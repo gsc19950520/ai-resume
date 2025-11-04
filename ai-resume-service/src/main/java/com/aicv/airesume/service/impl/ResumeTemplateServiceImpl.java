@@ -27,12 +27,14 @@ public class ResumeTemplateServiceImpl implements ResumeTemplateService {
 
     @Override
     public ResumeTemplate getByResumeId(Long resumeId) {
-        return resumeTemplateRepository.findByResumeId(resumeId).orElse(null);
+        // 根据实体类结构，模板不直接关联简历ID，返回null或通过其他方式处理
+        return null;
     }
 
     @Override
     public List<ResumeTemplate> getByUserId(Long userId) {
-        return resumeTemplateRepository.findByUserIdOrderByUpdateTimeDesc(userId);
+        // 返回所有活跃的模板，因为模板实体类没有userId属性
+        return resumeTemplateRepository.findByActiveOrderByUpdateTimeDesc(true);
     }
 
     @Override

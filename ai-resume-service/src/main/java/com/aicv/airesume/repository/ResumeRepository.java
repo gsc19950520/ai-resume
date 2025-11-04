@@ -15,12 +15,12 @@ public interface ResumeRepository extends JpaRepository<Resume, Long> {
     /**
      * 根据用户ID查询简历列表
      */
-    List<Resume> findByUserIdOrderByCreatedAtDesc(Long userId);
+    List<Resume> findByUserIdOrderByCreateTimeDesc(Long userId);
     
     /**
      * 根据用户ID和状态查询简历列表
      */
-    List<Resume> findByUserIdAndStatusOrderByCreatedAtDesc(Long userId, Integer status);
+    List<Resume> findByUserIdAndStatusOrderByCreateTimeDesc(Long userId, Integer status);
     
     /**
      * 根据ID列表查询简历

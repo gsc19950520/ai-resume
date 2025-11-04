@@ -134,7 +134,7 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
-                    <mainClass>com.aicv.airesume.AiResumeOptimizerApplication</mainClass>
+                    <mainClass>com.aicv.airesume.AiResumeServiceApplication</mainClass>
                     <excludes>
                         <exclude>
                             <groupId>org.projectlombok</groupId>

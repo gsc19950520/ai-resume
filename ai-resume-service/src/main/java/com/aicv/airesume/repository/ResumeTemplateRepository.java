@@ -13,7 +13,13 @@ import java.util.Optional;
 @Repository
 public interface ResumeTemplateRepository extends JpaRepository<ResumeTemplate, Long> {
 
-    Optional<ResumeTemplate> findByResumeId(Long resumeId);
+    /**
+     * 根据是否活跃查询模板列表并按更新时间降序排序
+     */
+    List<ResumeTemplate> findByActiveOrderByUpdateTimeDesc(Boolean active);
     
-    List<ResumeTemplate> findByUserIdOrderByUpdateTimeDesc(Long userId);
+    /**
+     * 查询所有模板并按更新时间降序排序
+     */
+    List<ResumeTemplate> findAllByOrderByUpdateTimeDesc();
 }

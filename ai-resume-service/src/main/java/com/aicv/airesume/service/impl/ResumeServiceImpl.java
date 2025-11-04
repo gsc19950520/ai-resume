@@ -126,8 +126,7 @@ public class ResumeServiceImpl implements ResumeService {
     // 修复返回类型以匹配接口定义
     @Override
     public List<Resume> getUserResumeList(Long userId) {
-        // 临时返回空列表
-        return new ArrayList<>();
+        return resumeRepository.findByUserIdOrderByCreateTimeDesc(userId);
     }
 
     // 修复返回类型以匹配接口定义

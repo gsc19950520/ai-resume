@@ -28,13 +28,13 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public List<Product> getActiveProducts() {
         // 使用Repository提供的方法查询上架产品
-        return productRepository.findByIsActiveOrderBySortWeightDesc(1);
+        return productRepository.findByActiveOrderByUpdateTimeDesc(true);
     }
 
     @Override
     public List<Product> getProductsByType(Integer type) {
         // 使用Repository提供的方法查询指定类型的上架产品
-        return productRepository.findByTypeAndIsActiveOrderBySortWeightDesc(type, 1);
+        return productRepository.findByTypeAndActiveOrderByUpdateTimeDesc(type.toString(), true);
     }
 
     @Override
@@ -64,10 +64,10 @@ public class ProductServiceImpl implements ProductService {
     public List<Product> getProductsByTypeAndStatus(Integer type, Boolean isActive) {
         // 如果指定了类型，使用Repository的方法；否则返回所有
         if (type != null) {
-            return productRepository.findByTypeAndIsActiveOrderBySortWeightDesc(type, isActive ? 1 : 0);
+            return productRepository.findByTypeAndActiveOrderByUpdateTimeDesc(type.toString(), isActive);
         }
         if (isActive != null) {
-            return productRepository.findByIsActiveOrderBySortWeightDesc(isActive ? 1 : 0);
+            return productRepository.findByActiveOrderByUpdateTimeDesc(isActive);
         }
         return productRepository.findAll();
     }

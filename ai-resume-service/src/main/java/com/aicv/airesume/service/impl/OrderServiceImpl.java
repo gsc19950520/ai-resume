@@ -46,12 +46,12 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public List<Order> getUserOrders(Long userId) {
-        return orderRepository.findByUserIdOrderByCreatedAtDesc(userId);
+        return orderRepository.findByUserIdOrderByCreateTimeDesc(userId);
     }
 
     @Override
     public List<Order> getUserOrdersByStatus(Long userId, Integer status) {
-        return orderRepository.findByUserIdAndStatusOrderByCreatedAtDesc(userId, status);
+        return orderRepository.findByUserIdAndStatusOrderByCreateTimeDesc(userId, status);
     }
 
     @Override

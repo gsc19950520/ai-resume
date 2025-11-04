@@ -13,22 +13,22 @@ import java.util.List;
 public interface TemplateRepository extends JpaRepository<Template, Long> {
     
     /**
-     * 查询所有可用模板，按排序权重排序
+     * 查询所有可用模板，按使用次数排序
      */
-    List<Template> findAllByOrderBySortWeightDesc();
+    List<Template> findAllByOrderByUseCountDesc();
     
     /**
      * 根据岗位类型查询模板
      */
-    List<Template> findByJobTypeOrderBySortWeightDesc(String jobType);
+    List<Template> findByJobTypeOrderByUseCountDesc(String jobType);
     
     /**
      * 根据是否VIP查询模板
      */
-    List<Template> findByIsVipOrderBySortWeightDesc(Integer isVip);
+    List<Template> findByVipOnlyOrderByUseCountDesc(Boolean vipOnly);
     
     /**
      * 根据岗位类型和VIP状态查询模板
      */
-    List<Template> findByJobTypeAndIsVipOrderBySortWeightDesc(String jobType, Integer isVip);
+    List<Template> findByJobTypeAndVipOnlyOrderByUseCountDesc(String jobType, Boolean vipOnly);
 }

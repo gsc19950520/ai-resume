@@ -24,28 +24,29 @@ public class TemplateServiceImpl implements TemplateService {
 
     @Override
     public List<Template> getAllTemplates() {
-        return templateRepository.findAll();
+        // 使用修改后的方法，按使用次数降序排序
+        return templateRepository.findAllByOrderByUseCountDesc();
     }
 
     @Override
     public List<Template> getTemplatesByJobType(String jobType) {
-        List<Template> templateList = templateRepository.findAll();
-        // 移除jobType过滤逻辑，避免方法调用错误
-        return templateList;
+        // 使用修改后的方法，根据岗位类型查询并按使用次数排序
+        return templateRepository.findByJobTypeOrderByUseCountDesc(jobType);
     }
 
     @Override
     public List<Template> getFreeTemplates() {
-        List<Template> templateList = templateRepository.findAll();
-        // 移除vip过滤逻辑，避免方法调用错误
-        return templateList;
+        // 获取所有免费模板
+        return templateRepository.findAll()
+                .stream()
+                .filter(Template::getFree)
+                .collect(Collectors.toList());
     }
 
     @Override
     public List<Template> getVipTemplates() {
-        List<Template> templateList = templateRepository.findAll();
-        // 移除vip过滤逻辑，避免方法调用错误
-        return templateList;
+        // 使用修改后的方法，获取VIP专属模板
+        return templateRepository.findByVipOnlyOrderByUseCountDesc(true);
     }
 
     @Override
@@ -63,6 +64,4 @@ public class TemplateServiceImpl implements TemplateService {
         // 临时直接返回true，避免方法调用错误
         return true;
     }
-
-    // 接口中未定义的方法已移除
 }

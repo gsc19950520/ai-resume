@@ -15,10 +15,10 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     /**
      * 根据产品类型查询上架产品
      */
-    List<Product> findByTypeAndIsActiveOrderBySortWeightDesc(Integer type, Integer isActive);
+    List<Product> findByTypeAndActiveOrderByUpdateTimeDesc(String type, Boolean active);
     
     /**
      * 查询所有上架产品
      */
-    List<Product> findByIsActiveOrderBySortWeightDesc(Integer isActive);
+    List<Product> findByActiveOrderByUpdateTimeDesc(Boolean active);
 }
