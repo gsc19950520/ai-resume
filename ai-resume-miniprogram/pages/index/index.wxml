@@ -1,0 +1,68 @@
+<!--index.wxml-->
+<view class="container">
+  <!-- 顶部欢迎区域 -->
+  <view class="welcome-section">
+    <view class="welcome-text">
+      <text class="hello">你好，{{userInfo ? userInfo.nickName : '用户'}}</text>
+      <text class="subtitle">欢迎使用AI简历助手</text>
+    </view>
+  </view>
+
+  <!-- 功能卡片区域 -->
+  <view class="features-section">
+    <view class="card" bindtap="createResume">
+      <view class="feature-icon">
+        <image src="/images/create.png" mode="aspectFit"></image>
+      </view>
+      <view class="feature-content">
+        <view class="feature-title">创建简历</view>
+        <view class="feature-desc">AI智能生成专业简历</view>
+      </view>
+      <view class="feature-arrow">
+        <image src="/images/arrow.png" mode="aspectFit"></image>
+      </view>
+    </view>
+
+    <view class="card" bindtap="myResumes">
+      <view class="feature-icon">
+        <image src="/images/list.png" mode="aspectFit"></image>
+      </view>
+      <view class="feature-content">
+        <view class="feature-title">我的简历</view>
+        <view class="feature-desc">管理已创建的简历</view>
+      </view>
+      <view class="feature-arrow">
+        <image src="/images/arrow.png" mode="aspectFit"></image>
+      </view>
+    </view>
+
+    <view class="card" bindtap="resumeTemplates">
+      <view class="feature-icon">
+        <image src="/images/template.png" mode="aspectFit"></image>
+      </view>
+      <view class="feature-content">
+        <view class="feature-title">简历模板</view>
+        <view class="feature-desc">多种专业模板选择</view>
+      </view>
+      <view class="feature-arrow">
+        <image src="/images/arrow.png" mode="aspectFit"></image>
+      </view>
+    </view>
+  </view>
+
+  <!-- 热门推荐区域 -->
+  <view class="recommend-section">
+    <view class="section-title">热门推荐</view>
+    <view class="recommend-list">
+      <view class="recommend-item" wx:for="{{recommendList}}" wx:key="index">
+        <image src="{{item.image}}" mode="aspectFill"></image>
+        <view class="recommend-text">{{item.title}}</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 底部提示 -->
+  <view class="footer-tip">
+    <text>如有问题，请联系客服</text>
+  </view>
+</view>

@@ -1,0 +1,151 @@
+package com.aicv.airesume.service.impl;
+
+import com.aicv.airesume.entity.Order;
+import com.aicv.airesume.repository.OrderRepository;
+import com.aicv.airesume.service.SubscriptionService;
+import com.aicv.airesume.service.UserService;
+import com.aicv.airesume.utils.WechatUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+/**
+ * 订阅服务实现类
+ */
+@Service
+public class SubscriptionServiceImpl implements SubscriptionService {
+
+    @Autowired
+    private OrderRepository orderRepository;
+
+    @Autowired
+    private UserService userService;
+
+    @Autowired
+    private WechatUtils wechatUtils;
+
+    @Override
+    public Order createOrder(Long userId, String productId, String productType, Integer amount) {
+        // 临时返回null，避免使用Order类
+        return null;
+    }
+
+    @Override
+    public Map<String, Object> payOrder(String orderNo, Long userId) {
+        // 临时返回空的支付参数，避免使用Order类
+        return new HashMap<>();
+    }
+
+    @Transactional
+    @Override
+    public void handlePayCallback(Map<String, String> notifyData) {
+        // 临时空实现，避免使用Order类
+    }
+
+    @Override
+    public List<Order> getOrderList(Long userId) {
+        // 临时返回空列表，避免使用Order类
+        return new ArrayList<>();
+    }
+
+    @Override
+    public Order getOrderByNo(String orderNo) {
+        // 临时返回null，避免使用Order类
+        return null;
+    }
+
+    @Override
+    public Map<String, Object> buyMembership(Long userId, Integer days) {
+        // 临时实现，避免使用Order类
+        String orderNo = generateOrderNo();
+        Integer amount = calculateMembershipPrice(days);
+        Map<String, Object> result = new HashMap<>();
+        result.put("orderNo", orderNo);
+        result.put("amount", amount);
+        result.put("payParams", new HashMap<>());
+        return result;
+    }
+
+    @Override
+    public Map<String, Object> buyOptimizePackage(Long userId, Integer count) {
+        // 临时实现，避免使用Order类
+        String orderNo = generateOrderNo();
+        Integer amount = calculateOptimizePrice(count);
+        Map<String, Object> result = new HashMap<>();
+        result.put("orderNo", orderNo);
+        result.put("amount", amount);
+        result.put("payParams", new HashMap<>());
+        return result;
+    }
+
+    @Override
+    public Map<String, Object> buyTemplatePackage(Long userId, Long templateId) {
+        // 临时实现，避免使用Order类
+        String orderNo = generateOrderNo();
+        Integer amount = 299; // 模板包价格299元
+        Map<String, Object> result = new HashMap<>();
+        result.put("orderNo", orderNo);
+        result.put("amount", amount);
+        result.put("payParams", new HashMap<>());
+        return result;
+    }
+
+    /**
+     * 生成订单号
+     */
+    private String generateOrderNo() {
+        String timestamp = String.valueOf(System.currentTimeMillis());
+        String random = UUID.randomUUID().toString().substring(0, 6);
+        return timestamp + random;
+    }
+
+    /**
+     * 获取产品名称
+     */
+    private String getProductName(String productType, String productId) {
+        // 临时返回固定产品名称
+        return "AI简历优化服务";
+    }
+
+    /**
+     * 处理产品交付
+     */
+    private void handleProductDelivery(Order order) {
+        // 临时空实现，避免使用Order类的任何方法
+    }
+
+    /**
+     * 计算会员价格
+     */
+    private Integer calculateMembershipPrice(Integer days) {
+        if (days == 30) {
+            return 199; // 月卡199元
+        } else if (days == 90) {
+            return 499; // 季卡499元
+        } else if (days == 365) {
+            return 1299; // 年卡1299元
+        }
+        return 199;
+    }
+
+    /**
+     * 计算优化次数价格
+     */
+    private Integer calculateOptimizePrice(Integer count) {
+        if (count == 10) {
+            return 99; // 10次99元
+        } else if (count == 30) {
+            return 249; // 30次249元
+        } else if (count == 100) {
+            return 699; // 100次699元
+        }
+        return 99;
+    }
+}

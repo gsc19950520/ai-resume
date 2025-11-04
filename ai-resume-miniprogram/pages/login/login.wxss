@@ -1,0 +1,100 @@
+/* login.wxss */
+
+.login-container {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 80rpx 40rpx;
+  box-sizing: border-box;
+  background-color: #fff;
+}
+
+/* 登录头部 */
+.login-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 80rpx;
+}
+
+.logo {
+  width: 200rpx;
+  height: 200rpx;
+  background-color: #f5f5f5;
+  border-radius: 40rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 30rpx;
+}
+
+.logo image {
+  width: 150rpx;
+  height: 150rpx;
+}
+
+.title {
+  font-size: 44rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 10rpx;
+}
+
+.subtitle {
+  font-size: 28rpx;
+  color: #999;
+}
+
+/* 登录主体 */
+.login-body {
+  width: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.wx-login-btn {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  background-color: #07c160;
+  color: #fff;
+  font-size: 32rpx;
+  height: 96rpx;
+  line-height: 96rpx;
+  border-radius: 48rpx;
+  margin-bottom: 40rpx;
+}
+
+.wx-icon {
+  width: 44rpx;
+  height: 44rpx;
+  margin-right: 16rpx;
+}
+
+/* 隐私协议 */
+.privacy-agreement {
+  text-align: center;
+  font-size: 24rpx;
+  color: #999;
+  line-height: 1.8;
+}
+
+.link {
+  color: #07c160;
+  text-decoration: underline;
+}
+
+/* 底部提示 */
+.login-footer {
+  margin-top: 40rpx;
+}
+
+.version {
+  font-size: 22rpx;
+  color: #ccc;
+}
