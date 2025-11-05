@@ -117,11 +117,11 @@ App({
   
   // 处理登录结果
   handleLoginResult: function(result, callback) {
-    console.info('处理登录结果', result)
+    console.info('开始处理登录结果', { hasResult: !!result, resultType: typeof result })
     
     // 检查响应是否存在
     if (!result) {
-      console.error('登录结果为空', result)
+      console.error('登录结果为空')
       wx.showToast({
         title: '登录信息解析失败',
         icon: 'none'
@@ -130,17 +130,27 @@ App({
       return
     }
     
+    // 记录result的详细结构，便于调试
+    console.info('登录结果详细信息:', {
+      statusCode: result.statusCode,
+      hasData: !!result.data,
+      dataType: typeof result.data,
+      dataKeys: result.data && typeof result.data === 'object' ? Object.keys(result.data) : null
+    })
+    
     // 云托管调用的数据结构可能是直接的响应体，或者在result.data中
     let responseData;
     // 尝试安全地访问响应数据
     if (result.data && typeof result.data === 'object') {
-      // 如果result.data存在且是对象，检查它是否包含code字段
+      // 如果result.data存在且是对象，使用它作为响应数据
       responseData = result.data;
+      console.info('使用result.data作为响应数据')
     } else if (typeof result === 'object') {
       // 否则直接使用result
       responseData = result;
+      console.info('直接使用result作为响应数据')
     } else {
-      console.error('登录结果格式无效', result)
+      console.error('登录结果格式无效', { type: typeof result, value: result })
       wx.showToast({
         title: '登录信息格式错误',
         icon: 'none'
@@ -149,32 +159,63 @@ App({
       return
     }
     
-    console.info('处理后的响应数据', responseData)
+    // 详细记录响应数据结构，便于调试
+    console.info('处理后的响应数据结构:', {
+      hasCode: 'code' in responseData,
+      codeValue: responseData.code,
+      hasSuccess: 'success' in responseData,
+      successValue: responseData.success,
+      hasData: 'data' in responseData,
+      dataKeys: responseData.data && typeof responseData.data === 'object' ? Object.keys(responseData.data) : null
+    })
     
     // 检查是否登录成功（code为0或success为true）
-    if (responseData.code === 0 || responseData.success === true) {
+    const isSuccess = responseData.code === 0 || responseData.success === true;
+    console.info('登录状态判断:', { isSuccess, code: responseData.code, success: responseData.success });
+    
+    if (isSuccess) {
       // 安全地获取token（兼容写法）
       const token = (responseData.data && responseData.data.token) || responseData.token;
       if (token) {
         this.globalData.token = token;
         wx.setStorageSync('token', token);
-        console.info('Token保存成功', token);
+        console.info('Token保存成功');
+      } else {
+        console.warn('登录成功但未获取到token');
       }
       
       // 尝试获取用户信息，但不强制要求存在（兼容写法）
-      const userInfo = (responseData.data && responseData.data.userInfo) || responseData.userInfo || {};
-      this.globalData.userInfo = userInfo;
-      wx.setStorageSync('userInfo', JSON.stringify(userInfo));
+      let userInfo = {};
+      try {
+        userInfo = (responseData.data && responseData.data.userInfo) || responseData.userInfo || {};
+        if (typeof userInfo !== 'object') {
+          userInfo = {};
+          console.warn('用户信息格式无效，已重置为空对象');
+        }
+      } catch (e) {
+        console.error('解析用户信息时出错:', e);
+        userInfo = {};
+      }
       
-      // 直接回调成功
-      console.info('登录成功处理完成');
-      if (callback) callback(null);
+      this.globalData.userInfo = userInfo;
+      try {
+        wx.setStorageSync('userInfo', JSON.stringify(userInfo));
+        console.info('用户信息保存成功');
+      } catch (e) {
+        console.error('保存用户信息到本地存储失败:', e);
+      }
+      
+      // 回调成功，返回标准格式的响应对象
+      const successResponse = { code: 0, message: '登录成功' };
+      console.info('登录成功处理完成，返回响应:', successResponse);
+      if (callback) callback(successResponse);
     } else {
       const errorMsg = responseData.message || responseData.error || '登录失败';
-      console.error('登录失败', errorMsg);
+      console.error('登录失败:', { message: errorMsg, responseData });
       wx.showToast({
         title: errorMsg,
-        icon: 'none'
+        icon: 'none',
+        duration: 3000 // 延长显示时间，确保用户能看到
       });
       if (callback) callback(new Error(errorMsg));
     }
@@ -195,7 +236,7 @@ App({
         config: {
           env: this.globalData.cloudEnvId
         },
-        path: `/api${url}`,
+        path: `/resume/api${url}`, // 添加服务名前缀
         method: method || 'GET',
         header: {
           'content-type': 'application/json',
