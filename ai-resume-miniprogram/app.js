@@ -168,11 +168,11 @@ App({
         },
         data: data || {},
         success: res => {
-          callback && callback(null, res.data)
+          callback && callback(res.data)
         },
         fail: err => {
           console.error('云托管调用失败', err)
-          callback && callback(err)
+          callback && callback({code: -1, message: '云托管调用失败'})
         }
       })
     } else {
@@ -198,6 +198,7 @@ App({
           wx.showToast({ title: '网络错误', icon: 'none' })
           callback && callback({code: -1, message: '网络错误'})
         }
-    })
+      })
+    }
   }
 })
