@@ -154,8 +154,8 @@ App({
   },
   // 统一请求方法（已迁移到utils/request.js中使用callContainer）
   request: function(url, method, data, callback) {
-      // 注意：此方法已保留以兼容旧代码，新代码应使用utils/request.js中的方法
-      if (this.globalData.useCloud) {
+    // 注意：此方法已保留以兼容旧代码，新代码应使用utils/request.js中的方法
+    if (this.globalData.useCloud) {
       wx.cloud.callContainer({
         config: {
           env: this.globalData.cloudEnvId
