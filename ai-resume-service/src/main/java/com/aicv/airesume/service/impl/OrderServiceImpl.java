@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import com.aicv.airesume.utils.RetryUtils;
 
 /**
  * 订单服务实现类
@@ -22,6 +23,9 @@ public class OrderServiceImpl implements OrderService {
 
     @Autowired
     private UserService userService;
+    
+    @Autowired
+    private RetryUtils retryUtils;
 
     @Override
     public Order createOrder(Order order) {
@@ -31,27 +35,27 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public Optional<Order> getOrderById(Long id) {
-        return orderRepository.findById(id);
+        return retryUtils.executeWithDefaultRetrySupplier(() -> orderRepository.findById(id));
     }
 
     @Override
     public Optional<Order> getOrderByOrderNo(String orderNo) {
-        return orderRepository.findByOrderNo(orderNo);
+        return retryUtils.executeWithDefaultRetrySupplier(() -> orderRepository.findByOrderNo(orderNo));
     }
 
     @Override
     public Optional<Order> getOrderByTransactionId(String transactionId) {
-        return orderRepository.findByTransactionId(transactionId);
+        return retryUtils.executeWithDefaultRetrySupplier(() -> orderRepository.findByTransactionId(transactionId));
     }
 
     @Override
     public List<Order> getUserOrders(Long userId) {
-        return orderRepository.findByUserIdOrderByCreateTimeDesc(userId);
+        return retryUtils.executeWithDefaultRetrySupplier(() -> orderRepository.findByUserIdOrderByCreateTimeDesc(userId));
     }
 
     @Override
     public List<Order> getUserOrdersByStatus(Long userId, Integer status) {
-        return orderRepository.findByUserIdAndStatusOrderByCreateTimeDesc(userId, status);
+        return retryUtils.executeWithDefaultRetrySupplier(() -> orderRepository.findByUserIdAndStatusOrderByCreateTimeDesc(userId, status));
     }
 
     @Override

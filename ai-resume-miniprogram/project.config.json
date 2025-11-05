@@ -46,7 +46,7 @@
     "disableSWC": true
   },
   "compileType": "miniprogram",
-  "libVersion": "2.31.0",
+  "libVersion": "3.11.1",
   "appid": "wxd90100eb4eda3c1a",
   "projectname": "ai-resume-miniprogram",
   "isGameTourist": false,

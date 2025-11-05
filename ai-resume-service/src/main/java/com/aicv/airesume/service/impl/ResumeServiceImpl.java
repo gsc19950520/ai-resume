@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import com.aicv.airesume.utils.RetryUtils;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -35,6 +36,9 @@ public class ResumeServiceImpl implements ResumeService {
 
     @Autowired
     private AiServiceUtils aiServiceUtils;
+    
+    @Autowired
+    private RetryUtils retryUtils;
 
     // 保留这个版本但不使用@Override
     public Resume uploadResume(Long userId, MultipartFile file, String fileName) throws IOException {
@@ -126,21 +130,34 @@ public class ResumeServiceImpl implements ResumeService {
     // 修复返回类型以匹配接口定义
     @Override
     public List<Resume> getUserResumeList(Long userId) {
-        return resumeRepository.findByUserIdOrderByCreateTimeDesc(userId);
+        return retryUtils.executeWithDefaultRetrySupplier(() -> {
+            return resumeRepository.findByUserIdOrderByCreateTimeDesc(userId);
+        });
     }
 
     // 修复返回类型以匹配接口定义
     @Override
     public Resume getResumeById(Long resumeId) {
-        // 临时返回null
-        return null;
+        return retryUtils.executeWithDefaultRetrySupplier(() -> {
+            return resumeRepository.findById(resumeId).orElse(null);
+        });
     }
 
     // 修复返回类型以匹配接口定义
     @Override
     public boolean deleteResume(Long resumeId, Long userId) {
-        // 临时返回false，避免Resume对象方法调用
-        return false;
+        return retryUtils.executeWithDefaultRetrySupplier(() -> {
+            Optional<Resume> resumeOpt = resumeRepository.findById(resumeId);
+            if (resumeOpt.isPresent()) {
+                Resume resume = resumeOpt.get();
+                // 检查是否是用户自己的简历
+                if (resume.getUserId().equals(userId)) {
+                    resumeRepository.delete(resume);
+                    return true;
+                }
+            }
+            return false;
+        });
     }
 
     // 添加缺失的exportResumeToWord方法（单参数版本）

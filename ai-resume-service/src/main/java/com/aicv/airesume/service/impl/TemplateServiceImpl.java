@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.stream.Collectors;
+import com.aicv.airesume.utils.RetryUtils;
 
 /**
  * 模板服务实现类
@@ -21,11 +22,16 @@ public class TemplateServiceImpl implements TemplateService {
 
     @Autowired
     private UserService userService;
+    
+    @Autowired
+    private RetryUtils retryUtils;
 
     @Override
     public List<Template> getAllTemplates() {
-        // 使用修改后的方法，按使用次数降序排序
-        return templateRepository.findAllByOrderByUseCountDesc();
+        return retryUtils.executeWithDefaultRetrySupplier(() -> {
+            // 使用修改后的方法，按使用次数降序排序
+            return templateRepository.findAllByOrderByUseCountDesc();
+        });
     }
 
     @Override

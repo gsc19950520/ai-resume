@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
 import java.util.Map;
+import com.aicv.airesume.utils.RetryUtils;
 
 /**
  * 统计服务实现类
@@ -24,24 +25,29 @@ public class StatisticsServiceImpl implements StatisticsService {
 
     @Autowired
     private TemplateRepository templateRepository;
+    
+    @Autowired
+    private RetryUtils retryUtils;
 
     @Override
     public Map<String, Object> getUserStatistics(Long userId) {
-        Map<String, Object> stats = new HashMap<>();
-        
-        // 获取用户的简历数量 - 临时使用固定值
-        Long resumeCount = 0L;
-        stats.put("resumeCount", resumeCount);
-        
-        // 获取用户已优化简历数量 - 临时使用固定值
-        Long optimizedCount = 0L;
-        stats.put("optimizedCount", optimizedCount);
-        
-        // 检查用户是否为VIP - 临时使用固定值
-        Boolean isVip = false;
-        stats.put("isVip", isVip);
-        
-        return stats;
+        return retryUtils.executeWithDefaultRetrySupplier(() -> {
+            Map<String, Object> stats = new HashMap<>();
+            
+            // 获取用户的简历数量 - 临时使用固定值
+            Long resumeCount = 0L;
+            stats.put("resumeCount", resumeCount);
+            
+            // 获取用户已优化简历数量 - 临时使用固定值
+            Long optimizedCount = 0L;
+            stats.put("optimizedCount", optimizedCount);
+            
+            // 检查用户是否为VIP - 临时使用固定值
+            Boolean isVip = false;
+            stats.put("isVip", isVip);
+            
+            return stats;
+        });
     }
 
     @Override
