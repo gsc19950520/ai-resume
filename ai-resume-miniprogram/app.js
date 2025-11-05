@@ -70,7 +70,7 @@ App({
             config: {
               env: this.globalData.cloudEnvId
             },
-            path: '/api/user/login',
+            path: '/user/login',
             method: 'POST',
             header: {
               'content-type': 'application/json'
