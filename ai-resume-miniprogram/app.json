@@ -17,15 +17,11 @@
     "list": [
       {
         "pagePath": "pages/index/index",
-        "text": "首页",
-        "iconPath": "images/home.png",
-        "selectedIconPath": "images/home_active.png"
+        "text": "首页"
       },
       {
         "pagePath": "pages/profile/profile",
-        "text": "我的",
-        "iconPath": "images/user.png",
-        "selectedIconPath": "images/user_active.png"
+        "text": "我的"
       }
     ]
   },
