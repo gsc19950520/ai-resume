@@ -117,33 +117,66 @@ App({
   
   // 处理登录结果
   handleLoginResult: function(result, callback) {
-    // 检查响应结构是否正确
-    if (!result || !result.data) {
-      console.error('登录结果格式错误', result)
+    console.info('处理登录结果', result)
+    
+    // 检查响应是否存在
+    if (!result) {
+      console.error('登录结果为空', result)
       wx.showToast({
         title: '登录信息解析失败',
         icon: 'none'
       })
-      if (callback) callback(new Error('登录结果格式错误'))
+      if (callback) callback(new Error('登录结果为空'))
       return
     }
-    // 注意：云托管调用和普通请求的数据结构可能略有不同
-    let responseData = result.data || result;
     
-    if (responseData.code === 0) {
-      this.globalData.token = responseData.data.token
-      this.globalData.userInfo = responseData.data.userInfo
-      wx.setStorageSync('token', responseData.data.token)
-      wx.setStorageSync('userInfo', JSON.stringify(responseData.data.userInfo))
-      
-      // 直接回调成功，不需要额外的用户信息获取
-      if (callback) callback(null)
+    // 云托管调用的数据结构可能是直接的响应体，或者在result.data中
+    let responseData;
+    // 尝试安全地访问响应数据
+    if (result.data && typeof result.data === 'object') {
+      // 如果result.data存在且是对象，检查它是否包含code字段
+      responseData = result.data;
+    } else if (typeof result === 'object') {
+      // 否则直接使用result
+      responseData = result;
     } else {
+      console.error('登录结果格式无效', result)
       wx.showToast({
-        title: responseData.message || '登录失败',
+        title: '登录信息格式错误',
         icon: 'none'
       })
-      if (callback) callback(new Error(responseData.message || '登录失败'))
+      if (callback) callback(new Error('登录结果格式无效'))
+      return
+    }
+    
+    console.info('处理后的响应数据', responseData)
+    
+    // 检查是否登录成功（code为0或success为true）
+    if (responseData.code === 0 || responseData.success === true) {
+      // 安全地获取token（兼容写法）
+      const token = (responseData.data && responseData.data.token) || responseData.token;
+      if (token) {
+        this.globalData.token = token;
+        wx.setStorageSync('token', token);
+        console.info('Token保存成功', token);
+      }
+      
+      // 尝试获取用户信息，但不强制要求存在（兼容写法）
+      const userInfo = (responseData.data && responseData.data.userInfo) || responseData.userInfo || {};
+      this.globalData.userInfo = userInfo;
+      wx.setStorageSync('userInfo', JSON.stringify(userInfo));
+      
+      // 直接回调成功
+      console.info('登录成功处理完成');
+      if (callback) callback(null);
+    } else {
+      const errorMsg = responseData.message || responseData.error || '登录失败';
+      console.error('登录失败', errorMsg);
+      wx.showToast({
+        title: errorMsg,
+        icon: 'none'
+      });
+      if (callback) callback(new Error(errorMsg));
     }
   },
 
