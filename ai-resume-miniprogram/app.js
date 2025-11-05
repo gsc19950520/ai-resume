@@ -6,7 +6,7 @@ App({
     baseUrl: 'http://localhost:8080/api', // 本地开发环境
     cloudBaseUrl: '', // 云托管服务地址，使用callContainer时无需配置
     useCloud: true, // 使用云托管服务（通过callContainer调用）
-    cloudEnvId: 'YOUR_ACTUAL_CLOUD_ENV_ID' // 请替换为您实际的微信云托管环境ID
+    cloudEnvId: 'prod-1gwm267i6a10e7cb' // 微信云托管环境ID
   },
   
   // 初始化云开发环境
