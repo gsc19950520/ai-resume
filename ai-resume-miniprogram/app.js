@@ -70,9 +70,10 @@ App({
             config: {
               env: this.globalData.cloudEnvId
             },
-            path: 'user/login',
+            path: '/api/user/login',
             method: 'POST',
             header: {
+              'X-WX-SERVICE': 'ai-resume-service',
               'content-type': 'application/json'
             },
             data: {
