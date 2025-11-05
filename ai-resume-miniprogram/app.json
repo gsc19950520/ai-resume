@@ -29,6 +29,12 @@
     "request": 10000,
     "downloadFile": 10000
   },
+  "cloud": true,
+  "permission": {
+    "scope.userInfo": {
+      "desc": "用于完善用户资料"
+    }
+  },
   "style": "v2",
   "sitemapLocation": "sitemap.json"
 }

@@ -12,7 +12,7 @@ const app = getApp()
 const cloudCall = (path, data = {}, method = 'GET', header = {}) => {
   return new Promise((resolve, reject) => {
     // 确保云环境ID已配置
-    if (!app.globalData.cloudEnvId || app.globalData.cloudEnvId === 'YOUR_ACTUAL_CLOUD_ENV_ID') {
+    if (!app.globalData.cloudEnvId) {
       console.error('云托管环境ID未配置，请在app.js中设置正确的cloudEnvId')
       reject(new Error('云托管环境ID未配置'))
       return

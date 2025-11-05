@@ -43,12 +43,14 @@
     "disableUseStrict": false,
     "condition": false,
     "swc": false,
-    "disableSWC": true
+    "disableSWC": true,
+    "cloudfunctionRoot": "cloudfunctions/"
   },
   "compileType": "miniprogram",
   "libVersion": "3.11.1",
   "appid": "wxd90100eb4eda3c1a",
   "projectname": "ai-resume-miniprogram",
+  "cloudfunctionRoot": "cloudfunctions/",
   "isGameTourist": false,
   "simulatorType": "wechat",
   "simulatorPluginLibVersion": {},

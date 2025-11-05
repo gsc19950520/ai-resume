@@ -55,7 +55,7 @@ App({
       success: res => {
         if (res.code) {
           // 确保云环境ID已配置
-          if (!this.globalData.cloudEnvId || this.globalData.cloudEnvId === 'YOUR_ACTUAL_CLOUD_ENV_ID') {
+          if (!this.globalData.cloudEnvId) {
             console.error('云托管环境ID未配置，请在app.js中设置正确的cloudEnvId')
             wx.showToast({
               title: '云环境配置错误',
@@ -64,26 +64,29 @@ App({
             if (callback) callback(new Error('云环境配置错误'))
             return
           }
-          
           // 使用云托管callContainer调用登录接口
           wx.cloud.callContainer({
             config: {
               env: this.globalData.cloudEnvId
             },
-            path: '/api/user/login',
+            path: '/api/user/wechat-login',
             method: 'POST',
             header: {
-              'X-WX-SERVICE': 'ai-resume-service',
+              'X-WX-SERVICE': 'springboot-bq0e',
               'content-type': 'application/json'
             },
             data: {
               code: res.code
             },
             success: result => {
+              console.info('登录接口调用成功', result)
               this.handleLoginResult(result, callback)
             },
             fail: error => {
               console.error('云托管登录请求失败', error)
+              console.log('环境ID:', this.globalData.cloudEnvId)
+              console.log('服务名:', 'springboot-bq0e')
+              console.log('请求路径:', '/api/user/wechat-login')
               wx.showToast({
                 title: '登录失败，请重试',
                 icon: 'none'
@@ -133,10 +136,8 @@ App({
       wx.setStorageSync('token', responseData.data.token)
       wx.setStorageSync('userInfo', JSON.stringify(responseData.data.userInfo))
       
-      // 获取用户信息
-      this.getUserInfo(() => {
-        if (callback) callback(null)
-      })
+      // 直接回调成功，不需要额外的用户信息获取
+      if (callback) callback(null)
     } else {
       wx.showToast({
         title: responseData.message || '登录失败',
