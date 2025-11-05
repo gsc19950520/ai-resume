@@ -4,6 +4,8 @@ import com.aicv.airesume.entity.User;
 import com.aicv.airesume.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * 用户控制器
@@ -27,14 +29,26 @@ public class UserController {
 
     /**
      * 微信登录
-     * @param code 微信登录code
-     * @param userInfo 用户信息
+     * @param request 请求参数，包含code
      * @return 登录结果
      */
     @PostMapping("/wechat-login")
-    public User wechatLogin(@RequestParam String code, @RequestBody User userInfo) {
-        // 简化实现，避免调用可能不存在的方法
-        return userInfo;
+    public Map<String, Object> wechatLogin(@RequestBody Map<String, String> request) {
+        String code = request.get("code");
+        if (code == null || code.isEmpty()) {
+            throw new IllegalArgumentException("登录code不能为空");
+        }
+        
+        // 创建响应对象
+        Map<String, Object> response = new HashMap<>();
+        response.put("code", 0);
+        response.put("message", "登录成功");
+        response.put("data", new HashMap<String, String>() {{ 
+            put("token", "mock_token_" + System.currentTimeMillis());
+            put("openId", "mock_openid_" + code.substring(0, 8));
+        }});
+        
+        return response;
     }
 
     /**
