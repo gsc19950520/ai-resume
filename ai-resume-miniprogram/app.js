@@ -5,8 +5,8 @@ App({
     token: '',
     baseUrl: 'http://localhost:8080/api', // 本地开发环境
     cloudBaseUrl: '', // 云托管服务地址，部署时会自动配置
-    useCloud: true, // 是否使用云托管服务
-    cloudEnvId: 'your-env-id' // 云开发环境ID
+    useCloud: true, // 使用云托管服务
+    cloudEnvId: 'your-env-id' // 云开发环境ID，部署时需替换为实际环境ID
   },
   
   // 初始化云开发环境
@@ -78,7 +78,6 @@ App({
                   title: '登录失败，请重试',
                   icon: 'none'
                 })
-    }
                 if (callback) callback(error)
               }
             })
@@ -176,20 +175,20 @@ App({
           'content-type': 'application/json',
           'token': this.globalData.token || ''
         },
-      success: res => {
-        // 处理登录过期
-        if (res.data.code === 401) {
-          this.logout()
-          wx.navigateTo({ url: '/pages/login/login' })
-          return
+        success: res => {
+          // 处理登录过期
+          if (res.data.code === 401) {
+            this.logout()
+            wx.navigateTo({ url: '/pages/login/login' })
+            return
+          }
+          callback && callback(res.data)
+        },
+        fail: error => {
+          console.error('请求失败', error)
+          wx.showToast({ title: '网络错误', icon: 'none' })
+          callback && callback({code: -1, message: '网络错误'})
         }
-        callback && callback(res.data)
-      },
-      fail: error => {
-        console.error('请求失败', error)
-        wx.showToast({ title: '网络错误', icon: 'none' })
-        callback && callback({code: -1, message: '网络错误'})
-      }
     })
   }
 })

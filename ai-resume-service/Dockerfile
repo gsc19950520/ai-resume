@@ -22,5 +22,8 @@ RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 # 暴露应用端口
 EXPOSE 8080
 
+# 设置Spring配置环境变量
+ENV SPRING_PROFILES_ACTIVE=prod
+
 # 启动应用
 CMD ["java", "-jar", "app.jar"]

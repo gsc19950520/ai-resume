@@ -22,7 +22,7 @@ mini-program/resume/
 
 - 微信公众平台账号（已开通云开发功能）
 - 微信开发者工具
-- 微信云托管CLI工具（`npm install -g wxcloud-cli`）
+- 微信云托管CLI工具（`npm install -g @cloudbase/cli`）
 
 ### 2. 配置环境变量
 
@@ -51,10 +51,10 @@ mini-program/resume/
 cd ai-resume-service
 
 # 登录微信云托管
-wxcloud login
+cloudbase login
 
 # 部署服务
-wxcloud deploy
+cloudbase service deploy
 ```
 
 #### 方式二：通过微信开发者工具部署
@@ -81,11 +81,11 @@ wxcloud deploy
 cd ai-resume-miniprogram
 
 # 登录微信云托管
-wxcloud login
+cloudbase login
 
 # 部署静态网站
-wxcloud deploy
-```
+cloudbase hosting deploy . cloudbase-env-id
+# 注意：请将cloudbase-env-id替换为您的实际环境ID
 
 ### 2. 修改小程序配置
 

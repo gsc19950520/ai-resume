@@ -153,5 +153,6 @@ export default {
   get,
   post,
   put,
+  del,
   delete: del
 }
