@@ -1,7 +1,7 @@
 {
-  "type": "run", // 云托管服务类型
-  "envId": "prod-1gwm267i6a10e7cb", // 微信云托管环境ID
-  "serverPath": ".", // 服务源码路径
+  "type": "run",
+  "envId": "prod-1gwm267i6a10e7cb",
+  "serverPath": ".",
   "functions": [],
   "triggerRules": [],
   "containerOptions": {
