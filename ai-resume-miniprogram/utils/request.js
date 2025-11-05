@@ -1,8 +1,8 @@
-// request.js
+// request.js - 针对云托管服务优化
 const app = getApp()
 
 /**
- * 封装云托管容器调用
+ * 封装云托管容器调用（使用callContainer方法）
  * @param {string} path - 请求路径
  * @param {object} data - 请求参数
  * @param {string} method - 请求方法
@@ -11,6 +11,13 @@ const app = getApp()
  */
 const cloudCall = (path, data = {}, method = 'GET', header = {}) => {
   return new Promise((resolve, reject) => {
+    // 确保云环境ID已配置
+    if (!app.globalData.cloudEnvId || app.globalData.cloudEnvId === 'YOUR_ACTUAL_CLOUD_ENV_ID') {
+      console.error('云托管环境ID未配置，请在app.js中设置正确的cloudEnvId')
+      reject(new Error('云托管环境ID未配置'))
+      return
+    }
+    
     wx.cloud.callContainer({
       config: {
         env: app.globalData.cloudEnvId // 云托管环境ID
@@ -35,7 +42,7 @@ const cloudCall = (path, data = {}, method = 'GET', header = {}) => {
 }
 
 /**
- * 封装微信的request请求
+ * 封装请求方法（主要使用云托管callContainer）
  * @param {string} url - 请求地址
  * @param {object} data - 请求参数
  * @param {string} method - 请求方法
@@ -43,8 +50,9 @@ const cloudCall = (path, data = {}, method = 'GET', header = {}) => {
  * @returns {Promise} 返回Promise对象
  */
 const request = (url, data = {}, method = 'GET', header = {}) => {
-  // 根据配置决定使用云托管调用还是普通请求
+  // 强制使用云托管调用（callContainer方式）
   if (app.globalData.useCloud) {
+    console.log(`云托管请求: ${method} ${url}`)
     return cloudCall(url, data, method, header)
       .then(res => {
         // 业务状态码处理
@@ -65,7 +73,7 @@ const request = (url, data = {}, method = 'GET', header = {}) => {
         }
       })
       .catch(error => {
-        console.error('请求失败', error)
+        console.error('云托管请求失败', error)
         wx.showToast({
           title: '网络错误，请稍后重试',
           icon: 'none'
