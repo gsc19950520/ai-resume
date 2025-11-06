@@ -5,6 +5,13 @@
   padding-bottom: 30rpx;
 }
 
+/* 报告页面样式 */
+.page {
+  min-height: 100vh;
+  background-color: #F7F7F7;
+  padding-bottom: 40rpx;
+}
+
 /* 顶部导航栏 */
 .header {
   display: flex;
@@ -49,6 +56,33 @@
   line-height: normal;
 }
 
+/* 职业信息样式 */
+.job-info {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20rpx;
+  margin: 20rpx;
+  padding: 20rpx;
+  background-color: #fff;
+  border-radius: 20rpx;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+}
+
+.job-type {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #667eea;
+}
+
+.domain {
+  font-size: 28rpx;
+  color: #666;
+  background-color: #f0f0f0;
+  padding: 6rpx 20rpx;
+  border-radius: 20rpx;
+}
+
 /* 总体评分卡片 */
 .summary-card {
   background-color: #ffffff;
@@ -81,6 +115,259 @@
 .chart-container {
   margin-top: 20rpx;
   position: relative;
+}
+
+/* 雷达图卡片 */
+.radar-card {
+  background-color: #fff;
+  border-radius: 20rpx;
+  padding: 30rpx;
+  margin: 24rpx 0;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+}
+
+.radar-chart {
+  width: 100%;
+  height: 400rpx;
+}
+
+/* 趋势图卡片 */
+.trend-card {
+  background-color: #fff;
+  border-radius: 20rpx;
+  padding: 30rpx;
+  margin: 24rpx 0;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+}
+
+.trend-chart {
+  width: 100%;
+  height: 300rpx;
+}
+
+/* 推荐技能卡片 */
+.skills-card {
+  background-color: #fff;
+  border-radius: 20rpx;
+  padding: 30rpx;
+  margin: 24rpx 0;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+}
+
+.skill-item {
+  display: flex;
+  align-items: center;
+  gap: 15rpx;
+  padding: 20rpx 0;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.skill-item:last-child {
+  border-bottom: none;
+}
+
+.skill-icon {
+  font-size: 40rpx;
+}
+
+.skill-name {
+  font-size: 28rpx;
+  color: #333;
+}
+
+/* 职业发展路径 */
+.career-path {
+  background-color: #fff;
+  border-radius: 20rpx;
+  padding: 30rpx;
+  margin: 24rpx 0;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+}
+
+.path-item {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  padding: 20rpx 0;
+}
+
+.path-node {
+  width: 50rpx;
+  height: 50rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28rpx;
+  font-weight: bold;
+}
+
+.path-name {
+  font-size: 28rpx;
+  color: #333;
+  flex: 1;
+}
+
+.path-arrow {
+  font-size: 40rpx;
+  color: #667eea;
+}
+
+/* 城市薪资匹配卡片 */
+.salary-match-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 16rpx;
+  padding: 30rpx;
+  margin: 24rpx 0;
+  color: #fff;
+  box-shadow: 0 8rpx 32rpx rgba(102, 126, 234, 0.3);
+}
+
+.salary-match-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24rpx;
+}
+
+.salary-match-title {
+  font-size: 32rpx;
+  font-weight: 600;
+}
+
+.salary-city-badge {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 6rpx 16rpx;
+  border-radius: 20rpx;
+  font-size: 24rpx;
+  display: flex;
+  align-items: center;
+}
+
+.salary-city-icon {
+  width: 20rpx;
+  height: 20rpx;
+  margin-right: 6rpx;
+}
+
+.salary-content {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 20rpx 0;
+}
+
+.salary-item {
+  text-align: center;
+  flex: 1;
+}
+
+.salary-item-label {
+  font-size: 24rpx;
+  opacity: 0.8;
+  margin-bottom: 8rpx;
+}
+
+.salary-item-value {
+  font-size: 36rpx;
+  font-weight: 600;
+}
+
+.salary-trend {
+  color: #50E3C2;
+  font-size: 28rpx;
+  font-weight: 600;
+}
+
+/* 薪资信心系数 */
+.confidence-section {
+  display: flex;
+  align-items: center;
+  margin-top: 20rpx;
+}
+
+.confidence-label {
+  font-size: 24rpx;
+  opacity: 0.8;
+  margin-right: 16rpx;
+}
+
+.confidence-bar {
+  flex: 1;
+  height: 16rpx;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 8rpx;
+  overflow: hidden;
+}
+
+.confidence-progress {
+  height: 100%;
+  background: #50E3C2;
+  border-radius: 8rpx;
+}
+
+.confidence-value {
+  font-size: 24rpx;
+  margin-left: 16rpx;
+  font-weight: 600;
+}
+
+/* 城市薪资对比图表 */
+.city-comparison-section {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 30rpx;
+  margin: 24rpx 0;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+}
+
+.city-comparison-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  margin-bottom: 24rpx;
+  color: #333;
+}
+
+.city-comparison-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.city-comparison-item {
+  display: flex;
+  align-items: center;
+}
+
+.city-name {
+  width: 100rpx;
+  font-size: 28rpx;
+  color: #666;
+}
+
+.city-bar-container {
+  flex: 1;
+  height: 20rpx;
+  background: #f5f5f5;
+  border-radius: 10rpx;
+  overflow: hidden;
+  margin: 0 20rpx;
+}
+
+.city-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #4A90E2 0%, #50E3C2 100%);
+  border-radius: 10rpx;
+}
+
+.city-salary {
+  width: 150rpx;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #4A90E2;
+  text-align: right;
 }
 
 /* 薪资卡片 */
@@ -334,6 +621,276 @@
   margin-bottom: 50rpx;
 }
 
+/* 雷达图样式 - RadarChart */
+.radar-chart-section {
+  background-color: #FFFFFF;
+  border-radius: 20rpx;
+  margin: 20rpx;
+  padding: 30rpx;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+}
+
+.radar-container {
+  display: flex;
+  justify-content: center;
+  padding: 20rpx 0;
+}
+
+.radar-chart {
+  width: 600rpx;
+  height: 400rpx;
+}
+
+/* 薪资信息面板样式 - SalaryInfoPanel */
+.salary-info-panel {
+  background-color: #FFFFFF;
+  border-radius: 20rpx;
+  margin: 20rpx;
+  padding: 30rpx;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+}
+
+.salary-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 30rpx;
+  padding-bottom: 20rpx;
+  border-bottom: 1rpx solid #EEEEEE;
+}
+
+.salary-city {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #333333;
+}
+
+.salary-job-type {
+  font-size: 28rpx;
+  color: #666666;
+}
+
+.salary-highlight {
+  background-color: rgba(245, 166, 35, 0.1);
+  padding: 20rpx;
+  border-radius: 10rpx;
+  text-align: center;
+  margin-bottom: 25rpx;
+}
+
+.salary-highlight-label {
+  font-size: 28rpx;
+  color: #666666;
+  margin-bottom: 10rpx;
+  display: block;
+}
+
+.salary-highlight-value {
+  font-size: 40rpx;
+  font-weight: bold;
+  color: #F5A623;
+  display: block;
+}
+
+/* 会话日志列表样式 - SessionLogList */
+.session-log-section {
+  background-color: #FFFFFF;
+  border-radius: 20rpx;
+  margin: 20rpx;
+  padding: 30rpx;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+}
+
+.session-log-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.session-log-item {
+  border-radius: 15rpx;
+  background-color: #F9F9F9;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.session-log-item:active {
+  background-color: #F0F0F0;
+}
+
+.log-header {
+  display: flex;
+  align-items: center;
+  padding: 30rpx;
+  cursor: pointer;
+}
+
+.log-question-number {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #333333;
+  flex: 1;
+}
+
+.log-score-badge {
+  min-width: 60rpx;
+  height: 40rpx;
+  border-radius: 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #FFFFFF;
+  font-size: 24rpx;
+  font-weight: 600;
+  margin: 0 20rpx;
+}
+
+.log-toggle-icon {
+  width: 30rpx;
+  height: 30rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.3s ease;
+  color: #666666;
+}
+
+.log-toggle-icon.expanded {
+  transform: rotate(180deg);
+}
+
+.log-content {
+  padding: 0 30rpx 30rpx;
+  animation: expandContent 0.3s ease-out;
+}
+
+@keyframes expandContent {
+  from { opacity: 0; height: 0; }
+  to { opacity: 1; height: auto; }
+}
+
+.log-question,
+.log-answer,
+.log-feedback {
+  margin-bottom: 20rpx;
+}
+
+.log-label {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #333333;
+  margin-right: 10rpx;
+}
+
+.log-text {
+  font-size: 28rpx;
+  color: #666666;
+  line-height: 1.5;
+}
+
+.log-points {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+  margin-top: 10rpx;
+}
+
+.log-point {
+  font-size: 24rpx;
+  padding: 5rpx 15rpx;
+  background-color: rgba(7, 193, 96, 0.1);
+  color: #07c160;
+  border-radius: 15rpx;
+}
+
+/* 成长建议面板样式 - GrowthSuggestionPanel */
+.growth-suggestion-panel {
+  background-color: #FFFFFF;
+  border-radius: 20rpx;
+  margin: 20rpx;
+  padding: 30rpx;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+}
+
+.growth-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 25rpx;
+}
+
+.growth-card {
+  display: flex;
+  gap: 20rpx;
+  padding: 30rpx;
+  border-radius: 15rpx;
+  transition: transform 0.3s ease;
+}
+
+.growth-card:active {
+  transform: translateY(2rpx);
+}
+
+.growth-card.short-term {
+  background-color: rgba(7, 193, 96, 0.1);
+  border-left: 6rpx solid #07c160;
+}
+
+.growth-card.medium-term {
+  background-color: rgba(245, 166, 35, 0.1);
+  border-left: 6rpx solid #F5A623;
+}
+
+.growth-card.long-term {
+  background-color: rgba(237, 28, 36, 0.1);
+  border-left: 6rpx solid #ED1C24;
+}
+
+.growth-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #333333;
+  margin-bottom: 15rpx;
+  display: block;
+}
+
+.growth-text {
+  font-size: 28rpx;
+  color: #666666;
+  line-height: 1.6;
+}
+
+/* 下载PDF按钮样式 - DownloadPDFButton */
+.download-section {
+  display: flex;
+  justify-content: center;
+  padding: 40rpx 0;
+  margin-bottom: 30rpx;
+}
+
+.download-btn {
+  width: 80%;
+  height: 90rpx;
+  border-radius: 45rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #FFFFFF;
+  background: linear-gradient(135deg, #07c160, #06a552);
+  box-shadow: 0 4rpx 20rpx rgba(7, 193, 96, 0.3);
+  transition: all 0.3s ease;
+}
+
+.download-btn:active {
+  transform: scale(0.98);
+  box-shadow: 0 2rpx 10rpx rgba(7, 193, 96, 0.3);
+}
+
+.download-icon {
+  font-size: 36rpx;
+  margin-right: 15rpx;
+}
+
 .advice-content {
   font-size: 28rpx;
   color: #666666;
@@ -384,4 +941,84 @@
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+/* 动画数字 */
+.animated-number {
+  animation: numberFadeIn 0.8s ease-out;
+}
+
+@keyframes numberFadeIn {
+  from { opacity: 0; transform: translateY(10rpx); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 深色模式 */
+@media (prefers-color-scheme: dark) {
+  .container,
+  .page {
+    background-color: #1F1F1F;
+  }
+  
+  .summary-card,
+  .salary-card,
+  .trend-card,
+  .detail-card,
+  .session-card,
+  .advice-card,
+  .radar-chart-section,
+  .salary-info-panel,
+  .session-log-section,
+  .growth-suggestion-panel {
+    background-color: #2C2C2C;
+    box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.2);
+  }
+  
+  .header-title,
+  .card-title,
+  .salary-value,
+  .session-number,
+  .feedback-title,
+  .points-title,
+  .salary-city,
+  .salary-highlight-value,
+  .log-question-number,
+  .log-label,
+  .growth-title {
+    color: #FFFFFF;
+  }
+  
+  .summary-title,
+  .score-desc,
+  .salary-label,
+  .city-info,
+  .dimension-label,
+  .dimension-value,
+  .session-answer,
+  .feedback-content,
+  .point-item,
+  .advice-content,
+  .salary-job-type,
+  .log-text,
+  .growth-text {
+    color: #CCCCCC;
+  }
+  
+  .salary-item,
+  .session-question,
+  .session-log-item {
+    background-color: #3A3A3A;
+  }
+  
+  .growth-card.short-term {
+    background-color: rgba(7, 193, 96, 0.2);
+  }
+  
+  .growth-card.medium-term {
+    background-color: rgba(245, 166, 35, 0.2);
+  }
+  
+  .growth-card.long-term {
+    background-color: rgba(237, 28, 36, 0.2);
+  }
 }

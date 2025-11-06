@@ -22,21 +22,34 @@
     </view>
     <view class="stat-divider"></view>
     <view class="stat-item">
-      <view class="stat-number">{{templateCount || 0}}</view>
-      <view class="stat-label">使用模板</view>
+      <view class="stat-number">{{interviewCount || 0}}</view>
+      <view class="stat-label">面试次数</view>
     </view>
     <view class="stat-divider"></view>
-      <view class="stat-item">
-        <view class="stat-number">{{favCount || 0}}</view>
-        <view class="stat-label">收藏</view>
-      </view>
-      <view class="stat-divider"></view>
-      <view class="stat-item">
-        <view class="stat-number">{{interviewCount || 0}}</view>
-        <view class="stat-label">面试次数</view>
-      </view>
+    <view class="stat-item">
+      <view class="stat-number">{{avgScore ? avgScore.toFixed(1) : '--'}}</view>
+      <view class="stat-label">平均得分</view>
+    </view>
+    <view class="stat-divider"></view>
+    <view class="stat-item">
+      <view class="stat-number">{{growthProgress || '--'}}%</view>
+      <view class="stat-label">成长进度</view>
+    </view>
   </view>
 
+  <!-- 面试历史 -->
+  <view class="menu-section" wx:if="{{userInfo}}">
+    <view class="menu-item" bindtap="interviewHistory">
+      <view class="menu-icon">
+        <image src="/images/list.png" mode="aspectFit"></image>
+      </view>
+      <view class="menu-text">面试历史</view>
+      <view class="menu-arrow">
+        <image src="/images/arrow.png" mode="aspectFit"></image>
+      </view>
+    </view>
+  </view>
+  
   <!-- 功能列表 -->
   <view class="menu-section">
     <view class="menu-item" bindtap="myResumes">
@@ -44,16 +57,6 @@
         <image src="/images/resume.png" mode="aspectFit"></image>
       </view>
       <view class="menu-text">我的简历</view>
-      <view class="menu-arrow">
-        <image src="/images/arrow.png" mode="aspectFit"></image>
-      </view>
-    </view>
-    
-    <view class="menu-item" bindtap="interviewHistory">
-      <view class="menu-icon">
-        <image src="/images/interview.png" mode="aspectFit"></image>
-      </view>
-      <view class="menu-text">面试历史</view>
       <view class="menu-arrow">
         <image src="/images/arrow.png" mode="aspectFit"></image>
       </view>

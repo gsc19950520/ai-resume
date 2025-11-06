@@ -5,60 +5,131 @@
     <view class="header-left" bindtap="goBack">
       <image src="/images/arrow.png" mode="aspectFit" class="back-icon"></image>
     </view>
-    <view class="header-title">面试报告</view>
+    <view class="header-title">AI面试成长报告</view>
     <view class="header-right">
       <button class="download-btn" bindtap="downloadReport">
         下载报告
       </button>
+      <view class="share-btn" bindtap="shareReport">
+        <image src="/images/arrow.png" mode="aspectFit" class="share-icon"></image>
+      </view>
     </view>
+  </view>
+  
+  <!-- 职业信息 -->
+  <view class="job-info" wx:if="jobType || domain">
+    <view class="job-type">{{jobType || ''}}</view>
+    <view class="domain">{{domain || ''}}</view>
   </view>
 
   <!-- 总体评分 -->
-  <view class="summary-card">
-    <view class="summary-title">总体评分</view>
-    <view class="total-score">{{totalScore}}</view>
-    <view class="score-desc">{{getScoreDescription(totalScore)}}</view>
-    
-    <!-- 雷达图容器 -->
-    <view class="chart-container">
-      <canvas canvas-id="radarCanvas" style="width: 100%; height: 400rpx;"></canvas>
+  <view class="report-section">
+    <view class="section-title">总体评分</view>
+    <view class="score-card">
+      <view class="total-score">{{totalScore}}</view>
+      <view class="score-label">{{getScoreLevel(totalScore)}}</view>
+      <view class="score-desc">{{getScoreDescription(totalScore)}}</view>
     </view>
   </view>
-
-  <!-- 薪资匹配 -->
-  <view class="salary-card">
-    <view class="card-header">
-      <view class="card-title">薪资与经验匹配</view>
-      <view class="confidence-badge" style="background-color: {{getConfidenceColor(confidence)}}">
-        匹配度 {{Math.round(confidence * 100)}}%
+  
+  <!-- 城市薪资匹配 -->
+  <view class="report-section">
+    <view class="section-title">城市薪资匹配</view>
+    <view class="salary-match-card">
+      <view class="salary-main">
+        <view class="salary-info">
+          <view class="salary-location">
+            <text class="location-icon">📍</text>
+            <text class="location-text">{{salaryInfo.city || '北京'}}</text>
+          </view>
+          <view class="salary-range">{{salaryInfo.salaryRange || '20K-30K'}}</view>
+          <view class="salary-meta">
+            <view class="meta-item">
+              <text class="meta-label">经验匹配</text>
+              <text class="meta-value">{{salaryInfo.experience || '3-5年'}}</text>
+            </view>
+            <view class="meta-item">
+              <text class="meta-label">信心系数</text>
+              <text class="meta-value" style="color: {{getConfidenceColor(salaryInfo.confidence)}}">
+                {{salaryInfo.confidence || 0}}%
+              </text>
+            </view>
+          </view>
+        </view>
+        <view class="salary-badge" style="background-color: {{getSalaryColor(salaryInfo.salaryLevel)}}">
+          {{salaryInfo.salaryLevel || '平均水平'}}
+        </view>
       </view>
-    </view>
-    <view class="salary-content">
-      <view class="salary-item">
-        <view class="salary-label">AI评估经验</view>
-        <view class="salary-value">{{estimatedYears}}</view>
+      
+      <!-- 城市对比图表 -->
+      <view class="city-comparison">
+        <view class="comparison-title">全国主要城市薪资对比</view>
+        <view class="city-list">
+          <view class="city-item" wx:for="{{salaryInfo.cityComparison || []}}" wx:key="index">
+            <view class="city-name">{{item.city}}</view>
+            <view class="city-bar-container">
+              <view class="city-bar" style="width: {{item.percentage}}%"></view>
+              <view class="city-value">{{item.salary}}</view>
+            </view>
+          </view>
+        </view>
       </view>
-      <view class="salary-item">
-        <view class="salary-label">推荐薪资范围</view>
-        <view class="salary-value highlight">{{salaryRange}}</view>
-      </view>
-    </view>
-    <view class="city-info">
-      <image src="/images/settings.png" mode="aspectFit" class="city-icon"></image>
-      <text>{{city}} | {{jobType}}</text>
     </view>
   </view>
-
+  
   <!-- 薪资趋势图 -->
-  <view class="trend-card">
-    <view class="card-header">
-      <view class="card-title">薪资趋势分析</view>
-    </view>
-    <view class="chart-container">
-      <canvas canvas-id="trendCanvas" style="width: 100%; height: 300rpx;"></canvas>
+  <view class="report-section">
+    <view class="section-title">薪资趋势</view>
+    <view class="trend-card">
+      <view class="trend-header">
+        <view class="trend-period">{{salaryInfo.city || '北京'}}近12个月行业薪资趋势</view>
+        <view class="trend-change" style="color: {{salaryInfo.trendChange && salaryInfo.trendChange.includes('↑') ? '#52c41a' : '#ff4d4f'}}">
+          {{salaryInfo.trendChange || '↑ 5.2%'}}
+        </view>
+      </view>
+      <canvas canvas-id="salaryTrend" class="trend-chart"></canvas>
     </view>
   </view>
 
+  <!-- 成长雷达图 -->
+  <view class="report-section">
+    <view class="section-title">能力成长雷达</view>
+    <view class="radar-card">
+      <canvas canvas-id="radarChart" class="radar-chart"></canvas>
+    </view>
+  </view>
+  
+  <!-- 成长趋势图 -->
+  <view class="report-section">
+    <view class="section-title">面试成长趋势</view>
+    <view class="trend-card">
+      <canvas canvas-id="trendChart" class="trend-chart"></canvas>
+    </view>
+  </view>
+  
+  <!-- 推荐学习路径 -->
+  <view class="report-section">
+    <view class="section-title">推荐学习技能</view>
+    <view class="skills-card">
+      <view class="skill-item" wx:for="{{recommendedSkills}}" wx:key="index">
+        <view class="skill-icon">📚</view>
+        <view class="skill-name">{{item}}</view>
+      </view>
+    </view>
+  </view>
+  
+  <!-- 长期职业路径 -->
+  <view class="report-section">
+    <view class="section-title">职业发展路径</view>
+    <view class="career-path">
+      <view class="path-item" wx:for="{{longTermPath}}" wx:key="index">
+        <view class="path-node">{{index + 1}}</view>
+        <view class="path-name">{{item}}</view>
+        <view class="path-arrow" wx:if="index < longTermPath.length - 1">→</view>
+      </view>
+    </view>
+  </view>
+  
   <!-- 详细评分 -->
   <view class="detail-card">
     <view class="card-header">
@@ -96,37 +167,82 @@
     </view>
   </view>
 
-  <!-- 答题记录 -->
+  <!-- 答题记录 - 会话日志列表 -->
   <view class="session-card">
     <view class="card-header">
       <view class="card-title">答题记录</view>
     </view>
     <view class="session-list">
-      <view class="session-item" wx:for="{{sessionLog}}" wx:key="index">
+      <view class="session-item" wx:for="{{sessionLog}}" wx:key="index" bindtap="toggleLogItem" data-index="{{index}}">
         <view class="session-header">
           <view class="session-number">问题 {{index + 1}}</view>
-          <view class="session-score">得分：{{getQuestionScore(item.score)}}</view>
+          <view class="session-score" style="background-color: {{getScoreColor(item.score)}}">
+            {{getQuestionScore(item.score)}}
+          </view>
+          <view class="log-toggle-icon {{expandedLogIndex === index ? 'expanded' : ''}}">
+            <text>▼</text>
+          </view>
         </view>
-        <view class="session-question">{{item.question}}</view>
-        <view class="session-answer">{{item.answer}}</view>
-        <view class="session-feedback">
-          <view class="feedback-title">AI反馈：</view>
-          <view class="feedback-content">{{item.feedback}}</view>
-        </view>
-        <view class="session-points" wx:if="item.matchedPoints && item.matchedPoints.length > 0">
-          <view class="points-title">覆盖要点：</view>
-          <view wx:for="{{item.matchedPoints}}" wx:for-item="point" wx:key="pointIndex" class="point-item">✓ {{point}}</view>
+        <view class="session-content" wx:if="expandedLogIndex === index">
+          <view class="session-question">
+            <text class="log-label">问题：</text>
+            <text class="log-text">{{item.question}}</text>
+          </view>
+          <view class="session-answer">
+            <text class="log-label">回答：</text>
+            <text class="log-text">{{item.answer}}</text>
+          </view>
+          <view class="session-feedback">
+            <text class="log-label">AI反馈：</text>
+            <text class="log-text">{{item.feedback}}</text>
+          </view>
+          <view class="session-points" wx:if="item.matchedPoints && item.matchedPoints.length > 0">
+            <text class="log-label">覆盖要点：</text>
+            <view class="log-points">
+              <view wx:for="{{item.matchedPoints}}" wx:for-item="point" wx:key="pointIndex" class="point-item">✓ {{point}}</view>
+            </view>
+          </view>
         </view>
       </view>
     </view>
   </view>
 
-  <!-- 成长建议 -->
-  <view class="advice-card">
-    <view class="card-header">
-      <view class="card-title">职业成长建议</view>
+  <!-- AI成长建议 -->
+  <view class="report-section">
+    <view class="section-title">AI成长建议</view>
+    <view class="advice-card">
+      <view class="advice-section short-term">
+        <view class="advice-header">
+          <view class="advice-icon">🎯</view>
+          <view class="advice-title">短期提升方向（1-3个月）</view>
+        </view>
+        <view class="advice-content">{{growthAdvice.shortTerm || '建议重点提升技术面试中的算法能力，特别是动态规划和数据结构相关内容。'}}</view>
+      </view>
+      
+      <view class="advice-section mid-term">
+        <view class="advice-header">
+          <view class="advice-icon">📈</view>
+          <view class="advice-title">中期规划（3-6个月）</view>
+        </view>
+        <view class="advice-content">{{growthAdvice.midTerm || '在团队协作和项目管理方面进行提升，参与更多跨团队项目以扩展业务视野。'}}</view>
+      </view>
+      
+      <view class="advice-section long-term">
+        <view class="advice-header">
+          <view class="advice-icon">🌟</view>
+          <view class="advice-title">长期发展（6-12个月）</view>
+        </view>
+        <view class="advice-content">{{growthAdvice.longTerm || '考虑向技术专家或架构师方向发展，深入研究系统设计和性能优化相关知识。'}}</view>
+      </view>
     </view>
-    <view class="advice-content">{{growthAdvice}}</view>
+  </view>
+  
+  <!-- 下载PDF按钮 -->
+  <view class="download-section">
+    <button class="download-btn gradient-btn" bindtap="downloadPDF">
+      <text class="download-icon">📄</text>
+      <text class="download-text">下载AI面试报告</text>
+    </button>
   </view>
 
   <!-- 加载提示 -->

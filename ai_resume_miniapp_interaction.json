@@ -1,0 +1,209 @@
+{
+  "name": "ai_resume_miniapp_interaction",
+  "type": "app_flow",
+  "description": "AI 简历优化 + 模拟面试小程序的完整交互逻辑与数据流配置。包含首页主流程、报告生成、薪资匹配、成长报告、历史记录等页面。用于 Trae 自动生成页面跳转与接口数据绑定。",
+  "pages": [
+    {
+      "id": "home",
+      "name": "首页",
+      "entry": true,
+      "components": [
+        "AI 模拟面试",
+        "AI 职业成长报告",
+        "智能推荐区"
+      ],
+      "actions": [
+        {
+          "trigger": "onClick(AI 模拟面试)",
+          "action": "goto(interview_start)"
+        },
+        {
+          "trigger": "onClick(AI 职业成长报告)",
+          "action": "goto(growth_report)"
+        }
+      ],
+      "data_bindings": [
+        {
+          "target": "recentInterviewSummary",
+          "source": "/api/user/lastInterview"
+        },
+        {
+          "target": "growthTip",
+          "source": "/api/user/growth/tip"
+        }
+      ]
+    },
+    {
+      "id": "interview_start",
+      "name": "模拟面试开始页",
+      "components": [
+        "岗位选择",
+        "开始面试按钮"
+      ],
+      "actions": [
+        {
+          "trigger": "onClick(开始面试按钮)",
+          "action": "goto(interview_room)"
+        }
+      ],
+      "data_bindings": [
+        {
+          "target": "jobTypes",
+          "source": "/api/jobs/list"
+        }
+      ]
+    },
+    {
+      "id": "interview_room",
+      "name": "模拟面试进行中",
+      "components": [
+        "AI提问模块",
+        "用户语音输入 / 文本输入",
+        "实时得分与进度条"
+      ],
+      "actions": [
+        {
+          "trigger": "onUserAnswer",
+          "action": "call(/api/interview/answer)"
+        },
+        {
+          "trigger": "onCompleteInterview",
+          "action": "call(/api/interview/finish)",
+          "next_action": "goto(interview_report)"
+        }
+      ],
+      "data_bindings": [
+        {
+          "target": "interviewSession",
+          "source": "/api/interview/start"
+        },
+        {
+          "target": "aiQuestion",
+          "source": "/api/interview/question"
+        }
+      ]
+    },
+    {
+      "id": "interview_report",
+      "name": "面试报告页",
+      "components": [
+        "得分雷达图",
+        "城市薪资匹配卡片",
+        "AI 成长建议模块",
+        "下载报告按钮"
+      ],
+      "actions": [
+        {
+          "trigger": "onClick(下载报告按钮)",
+          "action": "call(/api/report/download)"
+        },
+        {
+          "trigger": "onClick(查看成长路径)",
+          "action": "goto(growth_report)"
+        }
+      ],
+      "data_bindings": [
+        {
+          "target": "reportData",
+          "source": "/api/interview/report/{sessionId}"
+        },
+        {
+          "target": "salaryData",
+          "source": "/api/salary/match?city={{user.city}}&score={{reportData.totalScore}}"
+        }
+      ]
+    },
+    {
+      "id": "growth_report",
+      "name": "AI 职业成长报告",
+      "components": [
+        "成长曲线图",
+        "弱项分析模块",
+        "推荐岗位方向",
+        "更新报告按钮"
+      ],
+      "actions": [
+        {
+          "trigger": "onClick(更新报告按钮)",
+          "action": "call(/api/user/growth/refresh)"
+        },
+        {
+          "trigger": "onClick(返回首页)",
+          "action": "goto(home)"
+        }
+      ],
+      "data_bindings": [
+        {
+          "target": "growthReport",
+          "source": "/api/user/growth/report"
+        }
+      ]
+    },
+    {
+      "id": "profile",
+      "name": "我的页面",
+      "components": [
+        "用户信息卡",
+        "面试历史列表",
+        "AI 职业成长报告入口"
+      ],
+      "actions": [
+        {
+          "trigger": "onClick(面试记录项)",
+          "action": "goto(interview_report)"
+        },
+        {
+          "trigger": "onClick(AI 职业成长报告入口)",
+          "action": "goto(growth_report)"
+        }
+      ],
+      "data_bindings": [
+        {
+          "target": "userInfo",
+          "source": "/api/user/profile"
+        },
+        {
+          "target": "interviewHistory",
+          "source": "/api/user/history"
+        }
+      ]
+    }
+  ],
+  "data_flows": [
+    {
+      "name": "面试流程",
+      "steps": [
+        "用户选择岗位 → /api/interview/start",
+        "AI 发出问题 → /api/interview/question",
+        "用户作答 → /api/interview/answer",
+        "AI 评分 → /api/interview/finish",
+        "生成报告并调用薪资匹配模块 → /api/salary/match",
+        "保存面试记录 → /api/user/history/add",
+        "更新成长曲线 → /api/user/growth/update"
+      ]
+    },
+    {
+      "name": "成长报告生成流程",
+      "steps": [
+        "获取历史面试数据 → /api/user/history",
+        "分析得分趋势与技能标签 → /api/ai/analyze",
+        "输出成长路径与目标岗位建议 → /api/user/growth/report",
+        "生成 PDF 报告文件 → /api/report/export"
+      ]
+    }
+  ],
+  "ui_theme": {
+    "全局主色": "#4A90E2",
+    "按钮圆角": "12px",
+    "卡片阴影": "0 4px 10px rgba(0,0,0,0.08)",
+    "字体": "SF Pro Rounded",
+    "动画": "卡片进入时淡入 + 底部浮动导航动效"
+  },
+  "notes": [
+    "所有 API 返回均需标准化：{ code, message, data }",
+    "面试房间支持语音输入（实时转文本）与 AI 深入追问机制",
+    "报告页整合薪资对比、成长建议和下载功能",
+    "成长报告自动生成，也可手动触发刷新",
+    "\"我的\"页为数据中心，展示用户成长轨迹与历史记录"
+  ]
+}

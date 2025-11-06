@@ -42,6 +42,15 @@ public interface InterviewService {
      * @return 面试历史列表
      */
     List<Map<String, Object>> getInterviewHistory(String userId);
+    
+    /**
+     * 根据面试评分计算薪资范围
+     * @param city 城市
+     * @param jobType 职位类型
+     * @param aggregatedScores 各维度评分
+     * @return 薪资信息
+     */
+    Map<String, Object> calculateSalary(String city, String jobType, Map<String, Double> aggregatedScores);
 
     /**
      * 获取面试详情

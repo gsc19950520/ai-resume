@@ -158,3 +158,104 @@ CREATE TABLE IF NOT EXISTS `interview_log` (
   KEY `idx_round_number` (`round_number`),
   CONSTRAINT `fk_interview_log_session` FOREIGN KEY (`session_id`) REFERENCES `interview_session` (`session_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='面试日志表';
+
+-- 领域表
+CREATE TABLE IF NOT EXISTS `domain` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `domain_name` varchar(100) NOT NULL COMMENT '领域名称',
+  `description` text COMMENT '领域描述',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_domain_name` (`domain_name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='领域表';
+
+-- 职位类型表
+CREATE TABLE IF NOT EXISTS `job_type` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `job_name` varchar(100) NOT NULL COMMENT '职位名称',
+  `domain_id` bigint(20) NOT NULL COMMENT '所属领域ID',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_job_name` (`job_name`),
+  KEY `idx_domain_id` (`domain_id`),
+  CONSTRAINT `fk_job_type_domain` FOREIGN KEY (`domain_id`) REFERENCES `domain` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='职位类型表';
+
+-- 面试问题表
+CREATE TABLE IF NOT EXISTS `interview_question` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `question_text` text NOT NULL COMMENT '问题内容',
+  `job_type_id` bigint(20) NOT NULL COMMENT '适用职位ID',
+  `depth_level` varchar(20) NOT NULL COMMENT '深度级别：用法, 实现, 原理, 优化',
+  `skill_tag` varchar(100) COMMENT '技能标签',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_job_type_id` (`job_type_id`),
+  KEY `idx_depth_level` (`depth_level`),
+  KEY `idx_skill_tag` (`skill_tag`),
+  CONSTRAINT `fk_interview_question_job_type` FOREIGN KEY (`job_type_id`) REFERENCES `job_type` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='面试问题表';
+
+-- 职位技能表
+CREATE TABLE IF NOT EXISTS `job_skill` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `job_type_id` bigint(20) NOT NULL COMMENT '职位ID',
+  `skill_name` varchar(100) NOT NULL COMMENT '技能名称',
+  `skill_type` varchar(50) COMMENT '技能类型',
+  `importance` int(11) DEFAULT 1 COMMENT '重要程度',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_job_type_id` (`job_type_id`),
+  KEY `idx_skill_name` (`skill_name`),
+  CONSTRAINT `fk_job_skill_job_type` FOREIGN KEY (`job_type_id`) REFERENCES `job_type` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='职位技能表';
+
+-- 评分体系表
+CREATE TABLE IF NOT EXISTS `scoring_system` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `metric_name` varchar(100) NOT NULL COMMENT '评分指标名称',
+  `weight` double NOT NULL COMMENT '权重',
+  `description` text COMMENT '指标描述',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_metric_name` (`metric_name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='评分体系表';
+
+-- 薪资信息表
+CREATE TABLE IF NOT EXISTS `salary_info` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `job_type_id` bigint(20) NOT NULL COMMENT '职位ID',
+  `city` varchar(50) NOT NULL COMMENT '城市',
+  `salary_range` varchar(50) NOT NULL COMMENT '薪资范围',
+  `experience` varchar(50) COMMENT '经验要求',
+  `confidence` int(11) DEFAULT 80 COMMENT '置信度',
+  `salary_level` varchar(50) COMMENT '薪资水平',
+  `trend_change` varchar(20) COMMENT '趋势变化',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_job_type_id` (`job_type_id`),
+  KEY `idx_city` (`city`),
+  CONSTRAINT `fk_salary_info_job_type` FOREIGN KEY (`job_type_id`) REFERENCES `job_type` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='薪资信息表';
+
+-- 成长建议表
+CREATE TABLE IF NOT EXISTS `growth_advice` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `job_type_id` bigint(20) NOT NULL COMMENT '职位ID',
+  `recommended_skills` text COMMENT '推荐技能，JSON数组格式',
+  `long_term_path` text COMMENT '长期发展路径，JSON数组格式',
+  `short_term_advice` text COMMENT '短期建议',
+  `mid_term_advice` text COMMENT '中期建议',
+  `long_term_advice` text COMMENT '长期建议',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_job_type_id` (`job_type_id`),
+  CONSTRAINT `fk_growth_advice_job_type` FOREIGN KEY (`job_type_id`) REFERENCES `job_type` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='成长建议表';

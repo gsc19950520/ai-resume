@@ -16,13 +16,18 @@ Page({
   loadInterviewHistory: function() {
     wx.showLoading({ title: '加载中' })
     
-    app.request('/api/interview/history', 'GET', {}, res => {
+    // 获取用户ID
+    const userId = app.globalData.userInfo?.id || wx.getStorageSync('userId') || 'test_user'
+    
+    app.request('/api/interview/history', 'GET', { userId: userId }, res => {
       wx.hideLoading()
       this.setData({ loading: false })
       
-      if (res && res.code === 0 && res.data && res.data.list) {
+      if (res && res.code === 0 && res.data) {
+        // 适配后端返回的数据结构
+        const listData = Array.isArray(res.data) ? res.data : (res.data.list || [])
         this.setData({
-          interviewList: res.data.list,
+          interviewList: listData,
           hasMore: res.data.hasMore || false
         })
       } else {

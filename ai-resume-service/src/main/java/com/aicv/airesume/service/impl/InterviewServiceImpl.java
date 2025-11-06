@@ -47,6 +47,9 @@ public class InterviewServiceImpl implements InterviewService {
 
     static {
         // 初始化薪资映射
+        // 北京各职位薪资
+        Map<String, Map<String, String>> beijingMap = new HashMap<>();
+        
         // 北京Java薪资
         Map<String, String> beijingJava = new HashMap<>();
         beijingJava.put("0-1", "9K-14K");
@@ -54,7 +57,31 @@ public class InterviewServiceImpl implements InterviewService {
         beijingJava.put("3-5", "20K-28K");
         beijingJava.put("5-8", "28K-40K");
         beijingJava.put("8+", "40K-60K");
+        beijingMap.put("Java", beijingJava);
+        
+        // 北京前端薪资
+        Map<String, String> beijingFrontend = new HashMap<>();
+        beijingFrontend.put("0-1", "8K-13K");
+        beijingFrontend.put("1-3", "13K-19K");
+        beijingFrontend.put("3-5", "19K-26K");
+        beijingFrontend.put("5-8", "26K-38K");
+        beijingFrontend.put("8+", "38K-55K");
+        beijingMap.put("前端", beijingFrontend);
+        beijingMap.put("前端开发", beijingFrontend);
+        
+        // 北京产品薪资
+        Map<String, String> beijingProduct = new HashMap<>();
+        beijingProduct.put("0-1", "10K-15K");
+        beijingProduct.put("1-3", "15K-22K");
+        beijingProduct.put("3-5", "22K-30K");
+        beijingProduct.put("5-8", "30K-45K");
+        beijingProduct.put("8+", "45K-65K");
+        beijingMap.put("产品", beijingProduct);
+        beijingMap.put("产品经理", beijingProduct);
 
+        // 上海各职位薪资
+        Map<String, Map<String, String>> shanghaiMap = new HashMap<>();
+        
         // 上海Java薪资
         Map<String, String> shanghaiJava = new HashMap<>();
         shanghaiJava.put("0-1", "8K-12K");
@@ -62,17 +89,77 @@ public class InterviewServiceImpl implements InterviewService {
         shanghaiJava.put("3-5", "18K-25K");
         shanghaiJava.put("5-8", "25K-35K");
         shanghaiJava.put("8+", "35K-50K");
-
-        // 城市-职位映射
-        Map<String, Map<String, String>> beijingMap = new HashMap<>();
-        beijingMap.put("Java", beijingJava);
-
-        Map<String, Map<String, String>> shanghaiMap = new HashMap<>();
         shanghaiMap.put("Java", shanghaiJava);
+        
+        // 上海前端薪资
+        Map<String, String> shanghaiFrontend = new HashMap<>();
+        shanghaiFrontend.put("0-1", "7K-11K");
+        shanghaiFrontend.put("1-3", "11K-17K");
+        shanghaiFrontend.put("3-5", "17K-24K");
+        shanghaiFrontend.put("5-8", "24K-35K");
+        shanghaiFrontend.put("8+", "35K-50K");
+        shanghaiMap.put("前端", shanghaiFrontend);
+        shanghaiMap.put("前端开发", shanghaiFrontend);
+        
+        // 上海产品薪资
+        Map<String, String> shanghaiProduct = new HashMap<>();
+        shanghaiProduct.put("0-1", "9K-14K");
+        shanghaiProduct.put("1-3", "14K-20K");
+        shanghaiProduct.put("3-5", "20K-28K");
+        shanghaiProduct.put("5-8", "28K-42K");
+        shanghaiProduct.put("8+", "42K-60K");
+        shanghaiMap.put("产品", shanghaiProduct);
+        shanghaiMap.put("产品经理", shanghaiProduct);
+        
+        // 广州各职位薪资
+        Map<String, Map<String, String>> guangzhouMap = new HashMap<>();
+        
+        // 广州Java薪资
+        Map<String, String> guangzhouJava = new HashMap<>();
+        guangzhouJava.put("0-1", "7K-11K");
+        guangzhouJava.put("1-3", "11K-16K");
+        guangzhouJava.put("3-5", "16K-22K");
+        guangzhouJava.put("5-8", "22K-32K");
+        guangzhouJava.put("8+", "32K-45K");
+        guangzhouMap.put("Java", guangzhouJava);
+        
+        // 广州前端薪资
+        Map<String, String> guangzhouFrontend = new HashMap<>();
+        guangzhouFrontend.put("0-1", "6K-10K");
+        guangzhouFrontend.put("1-3", "10K-15K");
+        guangzhouFrontend.put("3-5", "15K-20K");
+        guangzhouFrontend.put("5-8", "20K-30K");
+        guangzhouFrontend.put("8+", "30K-42K");
+        guangzhouMap.put("前端", guangzhouFrontend);
+        guangzhouMap.put("前端开发", guangzhouFrontend);
+        
+        // 深圳各职位薪资
+        Map<String, Map<String, String>> shenzhenMap = new HashMap<>();
+        
+        // 深圳Java薪资
+        Map<String, String> shenzhenJava = new HashMap<>();
+        shenzhenJava.put("0-1", "8K-13K");
+        shenzhenJava.put("1-3", "13K-19K");
+        shenzhenJava.put("3-5", "19K-26K");
+        shenzhenJava.put("5-8", "26K-38K");
+        shenzhenJava.put("8+", "38K-55K");
+        shenzhenMap.put("Java", shenzhenJava);
+        
+        // 深圳前端薪资
+        Map<String, String> shenzhenFrontend = new HashMap<>();
+        shenzhenFrontend.put("0-1", "7K-12K");
+        shenzhenFrontend.put("1-3", "12K-18K");
+        shenzhenFrontend.put("3-5", "18K-25K");
+        shenzhenFrontend.put("5-8", "25K-36K");
+        shenzhenFrontend.put("8+", "36K-52K");
+        shenzhenMap.put("前端", shenzhenFrontend);
+        shenzhenMap.put("前端开发", shenzhenFrontend);
 
         // 添加城市映射
         SALARY_MAP.put("北京", beijingMap);
         SALARY_MAP.put("上海", shanghaiMap);
+        SALARY_MAP.put("广州", guangzhouMap);
+        SALARY_MAP.put("深圳", shenzhenMap);
     }
 
     @Override
@@ -256,6 +343,19 @@ public class InterviewServiceImpl implements InterviewService {
         }).collect(Collectors.toList());
     }
 
+    @Override
+    public Map<String, Object> calculateSalary(String city, String jobType, Map<String, Double> aggregatedScores) {
+        log.info("Calculating salary for city={}, jobType={}, aggregatedScores={}", city, jobType, aggregatedScores);
+        
+        // 确保提供了必要的评分信息
+        if (aggregatedScores == null || aggregatedScores.isEmpty()) {
+            throw new IllegalArgumentException("评分数据不能为空");
+        }
+        
+        // 调用现有的薪资匹配方法
+        return matchSalary(city, jobType, aggregatedScores);
+    }
+    
     @Override
     public Map<String, Object> getInterviewDetail(String sessionId) {
         InterviewSession session = sessionRepository.findBySessionId(sessionId)
@@ -461,21 +561,31 @@ public class InterviewServiceImpl implements InterviewService {
     }
 
     /**
-     * salaryMatcherAdvanced模块：薪资匹配
+     * salaryMatcherAdvanced模块：基于AI面试结果的薪资匹配
+     * 更准确地根据面试评分、技术深度等多维度计算薪资范围
      */
     private Map<String, Object> matchSalary(String city, String jobType, Map<String, Double> aggregatedScores) {
         Map<String, Object> result = new HashMap<>();
-        double totalScore = aggregatedScores.get("total");
         
-        // 根据总分映射经验年限
+        // 获取各维度评分
+        double totalScore = aggregatedScores.get("total");
+        double techScore = aggregatedScores.getOrDefault("tech", 0.0);
+        double depthScore = aggregatedScores.getOrDefault("depth", 0.0);
+        double logicScore = aggregatedScores.getOrDefault("logic", 0.0);
+        double clarityScore = aggregatedScores.getOrDefault("clarity", 0.0);
+        
+        // 基于多维度评分更准确地映射经验年限
+        // 技术深度和总分权重更高，因为它们更能反映实际工作经验
+        double weightedScore = (totalScore * 0.4) + (techScore * 0.3) + (depthScore * 0.2) + (logicScore * 0.05) + (clarityScore * 0.05);
+        
         String estimatedYears;
-        if (totalScore >= 9) {
+        if (weightedScore >= 9) {
             estimatedYears = "8+";
-        } else if (totalScore >= 7.5) {
+        } else if (weightedScore >= 7.5) {
             estimatedYears = "5-8";
-        } else if (totalScore >= 6) {
+        } else if (weightedScore >= 6) {
             estimatedYears = "3-5";
-        } else if (totalScore >= 4) {
+        } else if (weightedScore >= 4) {
             estimatedYears = "1-3";
         } else {
             estimatedYears = "0-1";
@@ -483,17 +593,94 @@ public class InterviewServiceImpl implements InterviewService {
 
         // 获取薪资范围
         String salaryRange = "未知";
-        if (SALARY_MAP.containsKey(city) && SALARY_MAP.get(city).containsKey(jobType) && 
-            SALARY_MAP.get(city).get(jobType).containsKey(estimatedYears)) {
-            salaryRange = SALARY_MAP.get(city).get(jobType).get(estimatedYears);
+        
+        // 检查城市是否存在
+        if (SALARY_MAP.containsKey(city)) {
+            Map<String, Map<String, String>> cityJobs = SALARY_MAP.get(city);
+            
+            // 尝试直接匹配职位类型
+            if (cityJobs.containsKey(jobType)) {
+                if (cityJobs.get(jobType).containsKey(estimatedYears)) {
+                    salaryRange = cityJobs.get(jobType).get(estimatedYears);
+                }
+            } else {
+                // 尝试模糊匹配职位类型（例如用户输入"前端开发工程师"可以匹配到"前端"）
+                for (String key : cityJobs.keySet()) {
+                    if (jobType.contains(key) || key.contains(jobType)) {
+                        if (cityJobs.get(key).containsKey(estimatedYears)) {
+                            salaryRange = cityJobs.get(key).get(estimatedYears);
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            // 如果仍未找到，且技术评分很高，可以适当提高薪资范围
+            if (salaryRange.equals("未知") && techScore >= 8.0) {
+                // 尝试使用默认Java职位的薪资作为参考
+                if (cityJobs.containsKey("Java") && cityJobs.get("Java").containsKey(estimatedYears)) {
+                    salaryRange = cityJobs.get("Java").get(estimatedYears);
+                }
+            }
         }
 
-        // 计算置信度
-        double confidence = Math.min(1.0, totalScore / 10.0);
+        // 基于技术评分和深度评分动态调整薪资范围
+        if (!salaryRange.equals("未知")) {
+            try {
+                // 解析薪资范围
+                String[] parts = salaryRange.split("-");
+                if (parts.length == 2) {
+                    int minSalary = Integer.parseInt(parts[0].replaceAll("[^0-9]", ""));
+                    int maxSalary = Integer.parseInt(parts[1].replaceAll("[^0-9]", ""));
+                    
+                    // 技术评分特别高时上调薪资上限
+                    if (techScore >= 9.0) {
+                        maxSalary = (int) (maxSalary * 1.2); // 上调20%
+                    } else if (techScore >= 8.0) {
+                        maxSalary = (int) (maxSalary * 1.1); // 上调10%
+                    }
+                    
+                    // 技术评分较低时下调薪资下限
+                    if (techScore < 5.0) {
+                        minSalary = (int) (minSalary * 0.9); // 下调10%
+                    }
+                    
+                    // 重新构建薪资范围
+                    salaryRange = minSalary + "K-" + maxSalary + "K";
+                }
+            } catch (Exception e) {
+                log.warn("解析薪资范围失败: {}", salaryRange, e);
+            }
+        }
+
+        // 计算更精确的置信度，考虑多维度评分的一致性
+        double baseConfidence = Math.min(1.0, totalScore / 10.0);
+        
+        // 计算评分标准差，评估各维度的一致性
+        double avgScore = (techScore + depthScore + logicScore + clarityScore) / 4;
+        double variance = Math.pow(techScore - avgScore, 2) + 
+                         Math.pow(depthScore - avgScore, 2) + 
+                         Math.pow(logicScore - avgScore, 2) + 
+                         Math.pow(clarityScore - avgScore, 2);
+        double stdDev = Math.sqrt(variance / 4);
+        
+        // 评分越一致，置信度越高
+        double consistencyFactor = 1.0 - (stdDev / 5.0); // 标准差最大5分，映射到0-1
+        consistencyFactor = Math.max(0.5, consistencyFactor); // 最低0.5
+        
+        // 最终置信度
+        double confidence = baseConfidence * 0.7 + consistencyFactor * 0.3;
+        confidence = Math.round(confidence * 100) / 100.0; // 保留两位小数
 
         result.put("ai_estimated_years", estimatedYears);
         result.put("ai_salary_range", salaryRange);
-        result.put("confidence", Math.round(confidence * 100) / 100.0);
+        result.put("confidence", confidence);
+        // 添加详细信息供前端展示
+        result.put("tech_score", techScore);
+        result.put("depth_score", depthScore);
+        result.put("logic_score", logicScore);
+        result.put("clarity_score", clarityScore);
+        result.put("total_score", totalScore);
 
         return result;
     }

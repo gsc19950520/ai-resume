@@ -10,9 +10,9 @@
     "pages/resume/view/view",
     "pages/interview/interview",
     "pages/interview/history",
-    "pages/salary/matcher",
     "pages/career/report",
-    "pages/report/report"
+    "pages/report/report",
+    "pages/growth/report"
   ],
   "window": {
     "backgroundTextStyle": "light",

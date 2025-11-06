@@ -5,8 +5,6 @@ Page({
   data: {
     userInfo: null,
     resumeCount: 0,
-    templateCount: 0,
-    favCount: 0,
     interviewCount: 0
   },
 
@@ -39,23 +37,41 @@ Page({
 
   // 加载用户数据
   loadUserData: function() {
-    wx.showLoading({ title: '加载中' })
+    // 检查用户是否已登录
+    const userInfo = wx.getStorageSync('userInfo');
+    if (!userInfo) {
+      this.setData({ userInfo: null });
+      return;
+    }
+
+    this.setData({ userInfo });
     
-    // 直接调用API获取用户统计数据
-    app.request('/api/user/stats', 'GET', {}, res => {
-      wx.hideLoading()
-      if (res && res.code === 0 && res.data) {
-        this.setData({
-          resumeCount: res.data.resumeCount || 0,
-          templateCount: res.data.templateCount || 0,
-          favCount: res.data.favCount || 0,
-          interviewCount: res.data.interviewCount || 0
-        })
-      } else {
-        console.log('获取用户统计数据失败或返回格式异常')
+    // 加载用户统计数据
+    wx.request({
+      url: '/api/user/stats',
+      method: 'GET',
+      header: {
+        'content-type': 'application/json',
+        'Authorization': 'Bearer ' + userInfo.token
+      },
+      success: (res) => {
+        if (res.data.code === 0) {
+          const { resumeCount, interviewCount } = res.data.data;
+          this.setData({ resumeCount, interviewCount });
+        }
+      },
+      fail: () => {
+        wx.showToast({
+          title: '获取用户数据失败',
+          icon: 'none'
+        });
       }
-    })
+    });
+    
+    // 无需加载详细数据，简化为只显示统计信息
   },
+  
+  
 
   // 我的简历
   myResumes: function() {
@@ -74,6 +90,8 @@ Page({
     }
     wx.navigateTo({ url: '/pages/interview/history' })
   },
+  
+  
 
   // 设置
   settings: function() {
@@ -135,17 +153,24 @@ Page({
   },
 
   // 显示登录提示
-  showLoginTip: function() {
-    wx.showToast({
-      title: '请先登录',
-      icon: 'none',
-      complete: () => {
-        setTimeout(() => {
-          wx.navigateTo({
-            url: '/pages/login/login'
-          })
-        }, 1500)
-      }
-    })
+  showLoginTip: function(callback) {
+    if (!this.data.userInfo) {
+      wx.showToast({
+        title: '请先登录',
+        icon: 'none',
+        complete: () => {
+          setTimeout(() => {
+            wx.navigateTo({
+              url: '/pages/login/login'
+            })
+          }, 1500)
+        }
+      })
+      return false;
+    }
+    if (callback && typeof callback === 'function') {
+      callback();
+    }
+    return true;
   }
 })

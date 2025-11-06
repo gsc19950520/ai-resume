@@ -5,8 +5,13 @@
     <view class="header-left" bindtap="goBack">
       <image src="/images/arrow.png" mode="aspectFit" class="back-icon"></image>
     </view>
-    <view class="header-title">技术面试模拟</view>
+    <view class="header-title">AI模拟面试</view>
     <view class="header-right"></view>
+  </view>
+
+  <!-- 行业-岗位标签 -->
+  <view class="industry-job-tag" wx:if="industryJobTag">
+    {{industryJobTag}}
   </view>
 
   <!-- 会话信息 -->
@@ -18,17 +23,21 @@
     </view>
   </view>
 
-  <!-- 问题卡片 -->
-  <view class="question-card">
-    <view class="depth-badge depth-{{currentQuestion.depthLevel}}">
-      {{getDepthText(currentQuestion.depthLevel)}}
+  <!-- 问题卡片 - QuestionCard -->
+  <view class="question-card-wrapper">
+    <view class="question-card gradient-border {{animationState.questionCard !== 'idle' ? 'animate-in' : ''}}">
+      <view class="depth-badge depth-{{currentQuestion.depthLevel}}">
+        {{getDepthText(currentQuestion.depthLevel)}}
+        <text class="depth-desc">{{getDepthDescription(currentQuestion.depthLevel)}}</text>
+      </view>
+      <view class="question-number">问题 {{currentRound}}/{{maxRounds}}</view>
+      <view class="question-content">{{currentQuestion.content}}</view>
     </view>
-    <view class="question-number">问题 {{currentRound}}/{{maxRounds}}</view>
-    <view class="question-content">{{currentQuestion.content}}</view>
   </view>
 
-  <!-- 答题面板 -->
+  <!-- 答题面板 - AnswerPanel -->
   <view class="answer-panel">
+    <view class="panel-title">请回答</view>
     <view class="answer-textarea-container">
       <textarea 
         class="answer-textarea" 
@@ -44,40 +53,69 @@
     <!-- 音频控制 -->
     <view class="audio-controls">
       <button 
-        class="audio-btn {{recording ? 'recording' : ''}}" 
+        class="audio-btn record-btn {{recording ? 'recording' : ''}}" 
         bindtap="toggleRecording"
+        loading="{{recording}}"
       >
+        <image src="/images/settings.png" class="btn-icon"></image>
         {{recording ? '停止录音' : '开始录音'}}
       </button>
       <button 
-        class="audio-btn"
+        class="audio-btn play-btn"
         bindtap="playRecording"
-        disabled="{{!recordingUrl}}"
-      >
+        disabled="{{!recordingUrl}}">
+        <image src="/images/settings.png" class="btn-icon"></image>
         播放录音
+      </button>
+      <button 
+        class="audio-btn transcribe-btn"
+        bindtap="transcribeAudio"
+        disabled="{{!recordingUrl || transcribing}}">
+        <image src="/images/settings.png" class="btn-icon"></image>
+        {{transcribing ? '转写中...' : '录音转文字'}}
       </button>
     </view>
   </view>
 
-  <!-- 评分反馈区域 (答题后显示) -->
-  <view class="feedback-section" wx:if="showFeedback">
+  <!-- 评分反馈区域 - PerQuestionFeedback -->
+  <view class="feedback-section {{animationState.feedbackPanel !== 'idle' ? 'animate-in' : ''}}" wx:if="showFeedback">
     <view class="feedback-title">AI评分与反馈</view>
-    <view class="score-row">
+    <view class="score-section">
       <view class="score-item">
-        <view class="score-label">技术深度</view>
-        <view class="score-value">{{questionScore.tech}}/10</view>
+        <view class="score-header">
+          <view class="score-label">技术深度</view>
+          <view class="score-value score-{{getScoreLevel(questionScore.tech)}}">{{questionScore.tech}}/10</view>
+        </view>
+        <view class="score-bar">
+          <view class="score-fill tech" style="width: {{questionScore.tech * 10}}%"></view>
+        </view>
       </view>
       <view class="score-item">
-        <view class="score-label">逻辑表达</view>
-        <view class="score-value">{{questionScore.logic}}/10</view>
+        <view class="score-header">
+          <view class="score-label">逻辑表达</view>
+          <view class="score-value score-{{getScoreLevel(questionScore.logic)}}">{{questionScore.logic}}/10</view>
+        </view>
+        <view class="score-bar">
+          <view class="score-fill logic" style="width: {{questionScore.logic * 10}}%"></view>
+        </view>
       </view>
       <view class="score-item">
-        <view class="score-label">表达清晰度</view>
-        <view class="score-value">{{questionScore.clarity}}/10</view>
+        <view class="score-header">
+          <view class="score-label">表达清晰度</view>
+          <view class="score-value score-{{getScoreLevel(questionScore.clarity)}}">{{questionScore.clarity}}/10</view>
+        </view>
+        <view class="score-bar">
+          <view class="score-fill clarity" style="width: {{questionScore.clarity * 10}}%"></view>
+        </view>
       </view>
       <view class="score-item">
-        <view class="score-label">回答深度</view>
-        <view class="score-value">{{questionScore.depth}}/10</view>
+        <view class="score-header">
+          <view class="score-label">回答深度</view>
+          <view class="score-value score-{{getScoreLevel(questionScore.depth)}}">{{questionScore.depth}}/10</view>
+        </view>
+        <view class="score-bar">
+          <view class="score-fill depth" style="width: {{questionScore.depth * 10}}%"></view>
+        </view>
       </view>
     </view>
     <view class="feedback-content">{{feedbackText}}</view>
@@ -85,29 +123,76 @@
       <view class="matched-title">覆盖要点：</view>
       <view wx:for="{{matchedPoints}}" wx:key="index" class="matched-item">✓ {{item}}</view>
     </view>
-  </view>
-
-  <!-- 会话进度条 -->
-  <view class="progress-section">
-    <view class="progress-bar">
-      <view class="progress-fill" style="width: {{progress}}%"></view>
+    
+    <!-- 追问提示 -->
+    <view class="follow-up-hint" wx:if="followUpEnabled">
+      <text class="hint-text">💡 AI将对您的回答进行进一步追问，请做好准备</text>
     </view>
-    <view class="progress-text">{{progress}}% 完成</view>
+    
+    <!-- 城市薪资匹配结果 -->
+    <view class="salary-match-card {{animationState.salaryCard !== 'idle' ? 'animate-in' : ''}}" wx:if="salaryMatchResult && salaryMatchResult.industryAverage">
+      <view class="salary-title">
+        <image src="/images/settings.png" class="salary-icon"></image>
+        城市薪资匹配
+      </view>
+      <view class="salary-content">
+        <view class="salary-item">
+          <view class="salary-label">行业平均</view>
+          <view class="salary-value">{{salaryMatchResult.industryAverage}}</view>
+        </view>
+        <view class="salary-item">
+          <view class="salary-label">您的预期</view>
+          <view class="salary-value salary-expected">{{salaryMatchResult.expectedSalary}}</view>
+        </view>
+        <view class="salary-item">
+          <view class="salary-label">匹配度</view>
+          <view class="salary-value salary-match">
+            {{salaryMatchResult.matchPercentage}}% <text class="match-status">{{salaryMatchResult.matchStatus}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
   </view>
 
-  <!-- 底部按钮 -->
+  <!-- 会话时间线 - SessionTimeline -->
+  <view class="timeline-section">
+    <view class="timeline-title">面试进度</view>
+    <view class="timeline-container">
+      <view wx:for="{{sessionTimeline}}" wx:key="index" class="timeline-item">
+        <view class="timeline-dot timeline-{{item.status}}">
+          <view class="timeline-number">{{index + 1}}</view>
+        </view>
+        <view class="timeline-line" wx:if="index < sessionTimeline.length - 1"></view>
+      </view>
+    </view>
+    <view class="timeline-stats">
+      <text>已完成：{{completedQuestions}}/{{maxRounds}}</text>
+      <text>当前问题：{{currentRound}}/{{maxRounds}}</text>
+    </view>
+  </view>
+
+  <!-- 底部按钮 - NextSkipButtons -->
   <view class="bottom-buttons">
     <button 
-      class="btn btn-secondary" 
+      class="btn btn-secondary skip-btn" 
       bindtap="skipQuestion"
       disabled="{{loading || !userAnswer}}">
-      跳过此题
+      <image src="/images/settings.png" class="btn-icon-small"></image>
+      跳过当前点
     </button>
     <button 
-      class="btn btn-primary" 
+      class="btn btn-warning mark-btn" 
+      bindtap="markAsDifficult"
+      disabled="{{loading || !userAnswer}}">
+      <image src="/images/settings.png" class="btn-icon-small"></image>
+      标记难点
+    </button>
+    <button 
+      class="btn btn-primary continue-btn gradient-btn" 
       bindtap="submitAnswer"
       disabled="{{loading || !userAnswer}}">
-      {{showFeedback ? '继续追问' : '提交回答'}}
+      <image src="/images/settings.png" class="btn-icon-small"></image>
+      {{showFeedback ? (followUpEnabled ? '继续追问' : '下一个问题') : '提交回答'}}
     </button>
   </view>
 

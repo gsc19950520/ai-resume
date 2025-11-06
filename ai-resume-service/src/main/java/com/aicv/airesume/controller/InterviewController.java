@@ -96,6 +96,74 @@ public class InterviewController {
             return ResponseUtils.error("获取面试历史失败：" + e.getMessage());
         }
     }
+    
+    /**
+     * 根据面试结果计算薪资范围
+     * 基于AI面试评分、技术深度等多维度计算薪资
+     */
+    @PostMapping("/calculate-salary")
+    public Map<String, Object> calculateSalary(@RequestBody SalaryCalculateRequest request) {
+        try {
+            Map<String, Double> aggregatedScores = new HashMap<>();
+            
+            // 确保总评分存在
+            if (!request.getAggregatedScores().containsKey("total")) {
+                // 计算总分
+                double tech = request.getAggregatedScores().getOrDefault("tech", 0.0);
+                double logic = request.getAggregatedScores().getOrDefault("logic", 0.0);
+                double clarity = request.getAggregatedScores().getOrDefault("clarity", 0.0);
+                double depth = request.getAggregatedScores().getOrDefault("depth", 0.0);
+                double total = (tech + logic + clarity + depth) / 4;
+                aggregatedScores.put("total", total);
+            } else {
+                aggregatedScores.putAll(request.getAggregatedScores());
+            }
+            
+            // 调用薪资计算方法
+            Map<String, Object> salaryInfo = interviewService.calculateSalary(
+                request.getCity(), 
+                request.getJobType(), 
+                aggregatedScores
+            );
+            
+            return ResponseUtils.success(salaryInfo);
+        } catch (Exception e) {
+            log.error("Calculate salary failed:", e);
+            return ResponseUtils.error("薪资计算失败：" + e.getMessage());
+        }
+    }
+    
+    // 薪资计算请求参数类
+    public static class SalaryCalculateRequest {
+        private String city;
+        private String jobType;
+        private Map<String, Double> aggregatedScores;
+        
+        // Getters and Setters
+        public String getCity() {
+            return city;
+        }
+        
+        public void setCity(String city) {
+            this.city = city;
+        }
+        
+        public String getJobType() {
+            return jobType;
+        }
+        
+        public void setJobType(String jobType) {
+            this.jobType = jobType;
+        }
+        
+        public Map<String, Double> getAggregatedScores() {
+            return aggregatedScores;
+        }
+        
+        public void setAggregatedScores(Map<String, Double> aggregatedScores) {
+            this.aggregatedScores = aggregatedScores;
+        }
+    }
 
     /**
      * 获取面试详情

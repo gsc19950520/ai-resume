@@ -20,7 +20,11 @@ Page({
         title: '热门行业分析',
         image: '/images/recommend3.png'
       }
-    ]
+    ],
+    // 新增数据
+    lastInterviewScore: null,
+    hasGrowthAdvice: false,
+    growthRecommendation: ''
   },
 
   onLoad: function () {
@@ -66,7 +70,6 @@ Page({
     wx.showLoading({ title: '加载中' })
     // 实际调用API获取推荐列表
     app.request('/api/recommend/list', 'GET', {}, res => {
-      wx.hideLoading()
       if (res && res.code === 0 && res.data && res.data.list) {
         this.setData({
           recommendList: res.data.list
@@ -76,11 +79,32 @@ Page({
         // 继续使用页面中定义的模拟数据，不进行修改
       }
     })
+    
+    // 获取用户上次面试数据和推荐
+    this.getUserInterviewSummary()
   
     // 无论API调用是否成功，都在2秒后隐藏加载提示
     setTimeout(() => {
       wx.hideLoading()
     }, 2000)
+  },
+  
+  // 获取用户面试摘要和推荐
+  getUserInterviewSummary: function() {
+    if (!this.data.userInfo) return;
+    
+    // 直接使用模拟数据，避免调用不存在的接口
+    this.setMockInterviewSummary();
+  },
+  
+  // 设置模拟面试摘要数据
+  setMockInterviewSummary: function() {
+    // 模拟数据
+    this.setData({
+      lastInterviewScore: 78,
+      hasGrowthAdvice: true,
+      growthRecommendation: '建议提升技术深度和表达清晰度，可通过多练习项目架构和表达技巧来改善'
+    })
   },
 
   // 创建简历
@@ -110,14 +134,7 @@ Page({
     wx.navigateTo({ url: '/pages/interview/interview' })
   },
 
-  // 城市薪资匹配
-  salaryMatcher: function() {
-    if (!this.data.userInfo) {
-      this.showLoginTip()
-      return
-    }
-    wx.navigateTo({ url: '/pages/salary/matcher' })
-  },
+  // 城市薪资匹配功能已整合到面试报告中
 
   // AI职业成长报告
   aiCareerReport: function() {
@@ -125,7 +142,16 @@ Page({
       this.showLoginTip()
       return
     }
-    wx.navigateTo({ url: '/pages/career/report' })
+    wx.navigateTo({ url: '/pages/growth/report' })
+  },
+  
+  // 简历优化功能
+  resumeOptimization: function() {
+    if (!this.data.userInfo) {
+      this.showLoginTip()
+      return
+    }
+    wx.navigateTo({ url: '/pages/resume/optimize' })
   },
 
   // 简历模板

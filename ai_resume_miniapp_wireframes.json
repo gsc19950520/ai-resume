@@ -1,0 +1,201 @@
+{
+  "create_wireframes": {
+    "name": "ai_resume_miniapp_wireframes",
+    "type": "ui_layout",
+    "description": "定义AI简历面试小程序的主要页面原型图（共6页），用于Trae生成界面布局与主要交互。",
+    "wireframes": [
+      {
+        "id": "home",
+        "name": "首页",
+        "layout": "vertical",
+        "sections": [
+          {
+            "Banner": "AI 简历与面试助手"
+          },
+          {
+            "FeatureButtons": [
+              {
+                "icon": "mic",
+                "label": "AI 模拟面试",
+                "action": "goto(interview_start)"
+              },
+              {
+                "icon": "bar-chart",
+                "label": "AI 职业成长报告",
+                "action": "goto(growth_report)"
+              }
+            ]
+          },
+          {
+            "RecentSummary": {
+              "title": "上次面试表现",
+              "data": "recentInterviewSummary",
+              "display": ["岗位", "总分", "改进建议"]
+            }
+          }
+        ],
+        "footer_nav": ["首页", "面试", "我的"]
+      },
+      {
+        "id": "interview_start",
+        "name": "模拟面试开始页",
+        "layout": "form",
+        "form_items": [
+          {
+            "type": "select",
+            "label": "选择岗位",
+            "options": "jobTypes"
+          },
+          {
+            "type": "input",
+            "label": "期望城市"
+          },
+          {
+            "type": "button",
+            "label": "开始面试",
+            "action": "goto(interview_room)"
+          }
+        ]
+      },
+      {
+        "id": "interview_room",
+        "name": "模拟面试进行中",
+        "layout": "stacked",
+        "components": [
+          {
+            "QuestionCard": {
+              "show": "currentQuestion",
+              "tag": "depthLevel",
+              "timer": true
+            }
+          },
+          {
+            "AnswerPanel": {
+              "modes": ["语音输入", "文本输入"],
+              "buttons": [
+                {
+                  "label": "提交回答",
+                  "action": "call(/api/interview/answer)"
+                },
+                {
+                  "label": "跳过",
+                  "action": "nextQuestion"
+                }
+              ]
+            }
+          },
+          {
+            "FeedbackPanel": {
+              "visible": "afterAnswer",
+              "fields": ["AI评分雷达", "反馈文字", "下一题按钮"]
+            }
+          },
+          {
+            "ProgressBar": {
+              "value": "currentProgress"
+            }
+          }
+        ],
+        "floating_buttons": [
+          {
+            "icon": "pause",
+            "label": "暂停"
+          },
+          {
+            "icon": "stop",
+            "label": "结束面试",
+            "action": "goto(interview_report)"
+          }
+        ]
+      },
+      {
+        "id": "interview_report",
+        "name": "面试报告页",
+        "layout": "scroll",
+        "components": [
+          {
+            "ScoreRadar": {
+              "data": "reportData.scoreRadar"
+            }
+          },
+          {
+            "SalaryCard": {
+              "data": "salaryData",
+              "title": "城市薪资匹配结果"
+            }
+          },
+          {
+            "FeedbackList": {
+              "data": "reportData.questions",
+              "expandable": true
+            }
+          },
+          {
+            "SuggestionBox": {
+              "data": "reportData.growthAdvice"
+            }
+          },
+          {
+            "DownloadButton": {
+              "label": "下载报告PDF",
+              "action": "call(/api/report/download)"
+            }
+          }
+        ]
+      },
+      {
+        "id": "growth_report",
+        "name": "AI 职业成长报告",
+        "layout": "vertical",
+        "components": [
+          {
+            "ProgressGraph": {
+              "data": "growthReport.trend"
+            }
+          },
+          {
+            "WeaknessPanel": {
+              "data": "growthReport.weakPoints"
+            }
+          },
+          {
+            "RecommendedJobs": {
+              "data": "growthReport.suggestedPaths"
+            }
+          },
+          {
+            "RefreshButton": {
+              "label": "更新报告",
+              "action": "call(/api/user/growth/refresh)"
+            }
+          }
+        ]
+      },
+      {
+        "id": "profile",
+        "name": "我的页面",
+        "layout": "vertical",
+        "components": [
+          {
+            "UserCard": {
+              "data": "userInfo"
+            }
+          },
+          {
+            "HistoryList": {
+              "data": "interviewHistory",
+              "onClick": "goto(interview_report)"
+            }
+          },
+          {
+            "GrowthShortcut": {
+              "label": "查看成长报告",
+              "action": "goto(growth_report)"
+            }
+          }
+        ],
+        "footer_nav": ["首页", "面试", "我的"]
+      }
+    ]
+  }
+}
