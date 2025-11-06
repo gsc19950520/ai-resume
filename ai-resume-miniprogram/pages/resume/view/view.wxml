@@ -1,0 +1,103 @@
+<!-- view.wxml -->
+<view class="container">
+  <view class="header">
+    <text class="title">简历预览</text>
+    <view class="ai-badge" wx:if="{{resumeData && resumeData.isAiGenerated}}">
+      <text class="ai-text">AI 生成</text>
+    </view>
+  </view>
+
+  <!-- 简历内容区域 -->
+  <scroll-view class="resume-content" scroll-y>
+    <!-- 个人信息 -->
+    <view class="resume-section personal-info">
+      <text class="resume-title">{{resumeData && resumeData.title ? resumeData.title : ''}}</text>
+      <text class="name">{{resumeData && resumeData.personalInfo && resumeData.personalInfo.name ? resumeData.personalInfo.name : '姓名'}}</text>
+      <text class="job-title">{{resumeData && resumeData.personalInfo && resumeData.personalInfo.jobTitle ? resumeData.personalInfo.jobTitle : '职位'}}</text>
+      
+      <view class="contact-info">
+        <text class="contact-item">{{resumeData && resumeData.personalInfo && resumeData.personalInfo.phone ? resumeData.personalInfo.phone : '电话'}}</text>
+        <text class="contact-item">{{resumeData && resumeData.personalInfo && resumeData.personalInfo.email ? resumeData.personalInfo.email : '邮箱'}}</text>
+        <text class="contact-item">{{resumeData && resumeData.personalInfo && resumeData.personalInfo.address ? resumeData.personalInfo.address : '地址'}}</text>
+      </view>
+    </view>
+
+    <!-- 个人简介 -->
+    <view class="resume-section" wx:if="{{resumeData && resumeData.summary}}">
+      <view class="section-header">
+        <text class="section-title">个人简介</text>
+      </view>
+      <text class="section-content">{{resumeData.summary}}</text>
+    </view>
+
+    <!-- 工作经历 -->
+    <view class="resume-section" wx:if="{{resumeData && resumeData.workExperience && resumeData.workExperience.length > 0}}">
+      <view class="section-header">
+        <text class="section-title">工作经历</text>
+      </view>
+      
+      <view class="work-item" wx:for="{{resumeData.workExperience}}" wx:key="index">
+        <view class="item-header">
+          <text class="company">{{item.company}}</text>
+          <text class="period">{{item.period}}</text>
+        </view>
+        <text class="position">{{item.position}}</text>
+        <text class="description">{{item.description}}</text>
+      </view>
+    </view>
+
+    <!-- 教育经历 -->
+    <view class="resume-section" wx:if="{{resumeData && resumeData.education && resumeData.education.length > 0}}">
+      <view class="section-header">
+        <text class="section-title">教育经历</text>
+      </view>
+      
+      <view class="education-item" wx:for="{{resumeData.education}}" wx:key="index">
+        <view class="item-header">
+          <text class="school">{{item.school}}</text>
+          <text class="period">{{item.period}}</text>
+        </view>
+        <text class="major">{{item.major}} | {{item.degree}}</text>
+      </view>
+    </view>
+
+    <!-- 专业技能 -->
+    <view class="resume-section" wx:if="{{resumeData && resumeData.skills && resumeData.skills.length > 0}}">
+      <view class="section-header">
+        <text class="section-title">专业技能</text>
+      </view>
+      
+      <view class="skills-list">
+        <view class="skill-tag" wx:for="{{resumeData.skills}}" wx:key="index">
+          <text>{{item}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 自我评价 -->
+    <view class="resume-section" wx:if="{{resumeData && resumeData.selfEvaluation}}">
+      <view class="section-header">
+        <text class="section-title">自我评价</text>
+      </view>
+      <text class="section-content">{{resumeData.selfEvaluation}}</text>
+    </view>
+
+    <!-- 空状态 -->
+    <view class="empty-state" wx:if="{{!resumeData}}">
+      <text class="empty-text">暂无简历数据</text>
+    </view>
+  </scroll-view>
+
+  <!-- 底部操作按钮 -->
+  <view class="footer">
+    <button class="edit-btn" bindtap="goBackToEdit">
+      {{source === 'ai' ? '重新生成' : '继续编辑'}}
+    </button>
+    <button class="save-btn" type="primary" bindtap="saveToMyResumes">
+      保存到我的简历
+    </button>
+    <button class="share-btn" open-type="share">
+      分享
+    </button>
+  </view>
+</view>

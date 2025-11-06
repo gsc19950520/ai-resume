@@ -1,0 +1,387 @@
+/* report.wxss */
+.container {
+  background-color: #f5f5f5;
+  min-height: 100vh;
+  padding-bottom: 30rpx;
+}
+
+/* 顶部导航栏 */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 100rpx;
+  background-color: #ffffff;
+  padding: 0 30rpx;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-left, .header-right {
+  width: 100rpx;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.header-title {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #333333;
+  flex: 1;
+  text-align: center;
+}
+
+.back-icon {
+  width: 40rpx;
+  height: 40rpx;
+}
+
+.download-btn {
+  font-size: 28rpx;
+  color: #07c160;
+  background: none;
+  padding: 0;
+  margin: 0;
+  line-height: normal;
+}
+
+/* 总体评分卡片 */
+.summary-card {
+  background-color: #ffffff;
+  margin: 20rpx;
+  padding: 30rpx;
+  border-radius: 20rpx;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+  text-align: center;
+}
+
+.summary-title {
+  font-size: 32rpx;
+  color: #666666;
+  margin-bottom: 20rpx;
+}
+
+.total-score {
+  font-size: 80rpx;
+  font-weight: bold;
+  color: #07c160;
+  margin-bottom: 10rpx;
+}
+
+.score-desc {
+  font-size: 28rpx;
+  color: #666666;
+  margin-bottom: 30rpx;
+}
+
+.chart-container {
+  margin-top: 20rpx;
+  position: relative;
+}
+
+/* 薪资卡片 */
+.salary-card {
+  background-color: #ffffff;
+  margin: 20rpx;
+  padding: 30rpx;
+  border-radius: 20rpx;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20rpx;
+}
+
+.card-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333333;
+}
+
+.confidence-badge {
+  padding: 8rpx 20rpx;
+  border-radius: 20rpx;
+  font-size: 24rpx;
+  color: #ffffff;
+  font-weight: bold;
+}
+
+.salary-content {
+  margin-bottom: 20rpx;
+}
+
+.salary-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15rpx;
+  padding: 20rpx;
+  background-color: #f9f9f9;
+  border-radius: 10rpx;
+}
+
+.salary-label {
+  font-size: 28rpx;
+  color: #666666;
+}
+
+.salary-value {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333333;
+}
+
+.salary-value.highlight {
+  color: #ff9500;
+}
+
+.city-info {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26rpx;
+  color: #999999;
+  padding-top: 20rpx;
+  border-top: 2rpx solid #f0f0f0;
+}
+
+.city-icon {
+  width: 28rpx;
+  height: 28rpx;
+  margin-right: 10rpx;
+}
+
+/* 趋势图卡片 */
+.trend-card {
+  background-color: #ffffff;
+  margin: 20rpx;
+  padding: 30rpx;
+  border-radius: 20rpx;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+}
+
+/* 详细评分卡片 */
+.detail-card {
+  background-color: #ffffff;
+  margin: 20rpx;
+  padding: 30rpx;
+  border-radius: 20rpx;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+}
+
+.dimension-scores {
+  margin-top: 20rpx;
+}
+
+.dimension-item {
+  margin-bottom: 25rpx;
+}
+
+.dimension-label {
+  font-size: 28rpx;
+  color: #666666;
+  margin-bottom: 10rpx;
+}
+
+.dimension-bar {
+  height: 20rpx;
+  background-color: #f0f0f0;
+  border-radius: 10rpx;
+  overflow: hidden;
+  margin-bottom: 5rpx;
+}
+
+.dimension-fill {
+  height: 100%;
+  background-color: #07c160;
+  transition: width 0.3s ease;
+}
+
+.dimension-fill.logic {
+  background-color: #34c759;
+}
+
+.dimension-fill.clarity {
+  background-color: #5ac8fa;
+}
+
+.dimension-fill.depth {
+  background-color: #ff9500;
+}
+
+.dimension-value {
+  font-size: 24rpx;
+  color: #999999;
+  text-align: right;
+}
+
+/* 会话记录卡片 */
+.session-card {
+  background-color: #ffffff;
+  margin: 20rpx;
+  padding: 30rpx;
+  border-radius: 20rpx;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+}
+
+.session-list {
+  margin-top: 20rpx;
+}
+
+.session-item {
+  margin-bottom: 30rpx;
+  padding-bottom: 30rpx;
+  border-bottom: 2rpx solid #f0f0f0;
+}
+
+.session-item:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.session-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15rpx;
+}
+
+.session-number {
+  font-size: 30rpx;
+  font-weight: bold;
+  color: #333333;
+}
+
+.session-score {
+  font-size: 28rpx;
+  color: #07c160;
+  font-weight: bold;
+}
+
+.session-question {
+  font-size: 28rpx;
+  color: #333333;
+  margin-bottom: 15rpx;
+  padding: 20rpx;
+  background-color: #f9f9f9;
+  border-radius: 10rpx;
+  line-height: 1.6;
+}
+
+.session-answer {
+  font-size: 28rpx;
+  color: #666666;
+  margin-bottom: 15rpx;
+  padding: 20rpx;
+  background-color: #f0f9ff;
+  border-radius: 10rpx;
+  line-height: 1.6;
+}
+
+.session-feedback {
+  margin-bottom: 15rpx;
+}
+
+.feedback-title {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #333333;
+  margin-bottom: 10rpx;
+}
+
+.feedback-content {
+  font-size: 26rpx;
+  color: #666666;
+  padding: 20rpx;
+  background-color: #fff9f0;
+  border-radius: 10rpx;
+  line-height: 1.6;
+}
+
+.session-points {
+  margin-top: 15rpx;
+}
+
+.points-title {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #333333;
+  margin-bottom: 10rpx;
+}
+
+.point-item {
+  font-size: 26rpx;
+  color: #07c160;
+  margin-bottom: 8rpx;
+  padding-left: 20rpx;
+}
+
+/* 成长建议卡片 */
+.advice-card {
+  background-color: #ffffff;
+  margin: 20rpx;
+  padding: 30rpx;
+  border-radius: 20rpx;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+  margin-bottom: 50rpx;
+}
+
+.advice-content {
+  font-size: 28rpx;
+  color: #666666;
+  line-height: 1.8;
+  padding: 20rpx;
+  background-color: #f0f9ff;
+  border-radius: 10rpx;
+}
+
+/* 加载提示 */
+.loading-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.loading-content {
+  background-color: #ffffff;
+  padding: 40rpx;
+  border-radius: 20rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20rpx;
+}
+
+.loading-spinner {
+  width: 60rpx;
+  height: 60rpx;
+  border: 8rpx solid #f3f3f3;
+  border-top: 8rpx solid #07c160;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.loading-text {
+  font-size: 30rpx;
+  color: #666666;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}

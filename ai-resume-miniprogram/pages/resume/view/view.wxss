@@ -1,0 +1,234 @@
+/* view.wxss */
+.container {
+  background-color: #f8f8f8;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  padding: 40rpx;
+  background-color: white;
+  text-align: center;
+  border-bottom: 1rpx solid #e0e0e0;
+  position: relative;
+}
+
+.title {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.ai-badge {
+  position: absolute;
+  top: 20rpx;
+  right: 40rpx;
+  padding: 6rpx 20rpx;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 20rpx;
+}
+
+.ai-text {
+  color: white;
+  font-size: 24rpx;
+}
+
+/* 简历内容 */
+.resume-content {
+  flex: 1;
+  padding: 30rpx;
+  overflow-y: auto;
+}
+
+.resume-section {
+  background-color: white;
+  border-radius: 20rpx;
+  padding: 40rpx;
+  margin-bottom: 30rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.05);
+}
+
+/* 个人信息部分 */
+.personal-info {
+  text-align: center;
+}
+
+.resume-title {
+  font-size: 44rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 20rpx;
+  display: block;
+}
+
+.name {
+  font-size: 40rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 10rpx;
+  display: block;
+}
+
+.job-title {
+  font-size: 32rpx;
+  color: #666;
+  margin-bottom: 20rpx;
+  display: block;
+}
+
+.contact-info {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 30rpx;
+  margin-top: 20rpx;
+}
+
+.contact-item {
+  font-size: 28rpx;
+  color: #999;
+}
+
+/* 通用部分样式 */
+.section-header {
+  border-bottom: 2rpx solid #e0e0e0;
+  padding-bottom: 20rpx;
+  margin-bottom: 30rpx;
+}
+
+.section-title {
+  font-size: 34rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.section-content {
+  font-size: 30rpx;
+  color: #666;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+/* 工作经历 */
+.work-item,
+.education-item {
+  margin-bottom: 30rpx;
+}
+
+.work-item:last-child,
+.education-item:last-child {
+  margin-bottom: 0;
+}
+
+.item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10rpx;
+}
+
+.company,
+.school {
+  font-size: 32rpx;
+  font-weight: 500;
+  color: #333;
+}
+
+.period {
+  font-size: 28rpx;
+  color: #999;
+}
+
+.position {
+  font-size: 30rpx;
+  color: #666;
+  margin-bottom: 10rpx;
+  display: block;
+}
+
+.description {
+  font-size: 30rpx;
+  color: #666;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.major {
+  font-size: 30rpx;
+  color: #666;
+}
+
+/* 技能标签 */
+.skills-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20rpx;
+}
+
+.skill-tag {
+  padding: 10rpx 30rpx;
+  background-color: #f0f2ff;
+  color: #667eea;
+  border-radius: 20rpx;
+  font-size: 28rpx;
+}
+
+/* 空状态 */
+.empty-state {
+  text-align: center;
+  padding: 100rpx 0;
+}
+
+.empty-text {
+  font-size: 32rpx;
+  color: #999;
+}
+
+/* 底部按钮 */
+.footer {
+  padding: 30rpx;
+  background-color: white;
+  border-top: 1rpx solid #e0e0e0;
+  box-shadow: 0 -2rpx 10rpx rgba(0, 0, 0, 0.05);
+}
+
+.edit-btn,
+.save-btn,
+.share-btn {
+  margin-bottom: 20rpx;
+  border-radius: 40rpx;
+  font-size: 32rpx;
+  padding: 20rpx 0;
+}
+
+.edit-btn {
+  background-color: transparent;
+  color: #667eea;
+  border: 2rpx solid #667eea;
+}
+
+.edit-btn::after {
+  border: none;
+  border-radius: 40rpx;
+}
+
+.save-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.save-btn::after {
+  border-radius: 40rpx;
+}
+
+.share-btn {
+  background-color: transparent;
+  color: #666;
+  border: 2rpx solid #e0e0e0;
+}
+
+.share-btn::after {
+  border: none;
+  border-radius: 40rpx;
+}

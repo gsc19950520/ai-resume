@@ -4,6 +4,11 @@ import com.alibaba.fastjson.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.MediaType;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -22,6 +27,12 @@ public class AiServiceUtils {
 
     @Value("${wenxin.api-key}")
     private String wenxinApiKey;
+
+    @Value("${deepseek.api-key}")
+    private String deepseekApiKey;
+
+    @Value("${deepseek.api-url:https://api.deepseek.com/v1/chat/completions}")
+    private String deepseekApiUrl;
 
     private final RestTemplate restTemplate = new RestTemplate();
 
@@ -72,5 +83,60 @@ public class AiServiceUtils {
         suggestions.put("管理岗", "建议突出您的团队管理经验和项目交付能力，强调领导力和决策能力。");
         
         return suggestions.getOrDefault(jobType, "您的简历整体不错，建议进一步完善个人技能和项目经验的描述。");
+    }
+
+    /**
+     * 调用DeepSeek API
+     * @param prompt 提示词
+     * @return API响应内容
+     */
+    public String callDeepSeekApi(String prompt) {
+        try {
+            // 设置请求头
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.set("Authorization", "Bearer " + deepseekApiKey);
+
+            // 构建请求体
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("model", "deepseek-chat"); // 使用DeepSeek聊天模型
+            
+            // 构建消息数组
+            Map<String, String> message = new HashMap<>();
+            message.put("role", "user");
+            message.put("content", prompt);
+            
+            requestBody.put("messages", new Object[]{message});
+            requestBody.put("temperature", 0.7);
+            requestBody.put("max_tokens", 2000);
+
+            // 发送请求
+            HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(requestBody, headers);
+            ResponseEntity<JSONObject> response = restTemplate.exchange(
+                    deepseekApiUrl,
+                    HttpMethod.POST,
+                    requestEntity,
+                    JSONObject.class
+            );
+
+            // 解析响应
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                JSONObject body = response.getBody();
+                if (body.containsKey("choices") && !body.getJSONArray("choices").isEmpty()) {
+                    JSONObject choice = body.getJSONArray("choices").getJSONObject(0);
+                    if (choice.containsKey("message")) {
+                        return choice.getJSONObject("message").getString("content");
+                    }
+                }
+            }
+
+            // 如果响应不符合预期，返回空字符串
+            return "";
+        } catch (Exception e) {
+            // 记录错误日志
+            System.err.println("Error calling DeepSeek API: " + e.getMessage());
+            // 返回空字符串，让调用方处理错误情况
+            return "";
+        }
     }
 }

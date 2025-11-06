@@ -45,8 +45,28 @@ App({
   },
 
   getSystemInfo: function() {
-    const systemInfo = wx.getSystemInfoSync()
-    this.globalData.systemInfo = systemInfo
+    try {
+      // 使用新的API替代废弃的getSystemInfoSync
+      const windowInfo = wx.getWindowInfo()
+      const appBaseInfo = wx.getAppBaseInfo()
+      const deviceInfo = wx.getDeviceInfo()
+      
+      // 合并信息到systemInfo对象，保持向后兼容
+      this.globalData.systemInfo = {
+        ...windowInfo,
+        ...appBaseInfo,
+        ...deviceInfo
+      }
+    } catch (error) {
+      console.error('获取系统信息失败:', error)
+      // 降级方案：如果新API失败，尝试使用旧API
+      try {
+        const systemInfo = wx.getSystemInfoSync()
+        this.globalData.systemInfo = systemInfo
+      } catch (fallbackError) {
+        console.error('降级获取系统信息也失败:', fallbackError)
+      }
+    }
   },
 
   // 登录方法
@@ -231,24 +251,37 @@ App({
   // 统一请求方法（已迁移到utils/request.js中使用callContainer）
   request: function(url, method, data, callback) {
     // 注意：此方法已保留以兼容旧代码，新代码应使用utils/request.js中的方法
+    // 确保callback存在，避免调用不存在的函数
+    const safeCallback = callback || function() {};
+    
     if (this.globalData.useCloud) {
+      // 确保URL以/api开头，如果不是则添加
+      const requestUrl = url.startsWith('/api') ? url : `/api${url}`;
+      
       wx.cloud.callContainer({
         config: {
           env: this.globalData.cloudEnvId
         },
-        path: `/resume/api${url}`, // 添加服务名前缀
+        path: requestUrl,
         method: method || 'GET',
         header: {
+          'X-WX-SERVICE': 'springboot-bq0e', // 添加服务名
           'content-type': 'application/json',
           'token': this.globalData.token || ''
         },
         data: data || {},
         success: res => {
-          callback && callback(res.data)
+          // 确保返回的数据格式正确，即使API返回异常也不会导致页面错误
+          const responseData = res.data && typeof res.data === 'object' ? res.data : { code: -1, message: '返回数据格式异常' };
+          safeCallback(responseData)
         },
         fail: err => {
           console.error('云托管调用失败', err)
-          callback && callback({code: -1, message: '云托管调用失败'})
+          console.log('环境ID:', this.globalData.cloudEnvId)
+          console.log('服务名:', 'springboot-bq0e')
+          console.log('请求路径:', requestUrl)
+          // 返回标准错误格式
+          safeCallback({code: -1, message: '云托管调用失败'})
         }
       })
     } else {
@@ -261,18 +294,22 @@ App({
           'token': this.globalData.token || ''
         },
         success: res => {
+          // 确保res.data存在且为对象
+          const responseData = res.data && typeof res.data === 'object' ? res.data : { code: -1, message: '返回数据格式异常' };
+          
           // 处理登录过期
-          if (res.data.code === 401) {
+          if (responseData.code === 401) {
             this.logout()
             wx.navigateTo({ url: '/pages/login/login' })
             return
           }
-          callback && callback(res.data)
+          safeCallback(responseData)
         },
         fail: error => {
           console.error('请求失败', error)
           wx.showToast({ title: '网络错误', icon: 'none' })
-          callback && callback({code: -1, message: '网络错误'})
+          // 返回标准错误格式
+          safeCallback({code: -1, message: '网络错误'})
         }
       })
     }

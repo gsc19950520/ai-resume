@@ -106,7 +106,7 @@ public class ResumeServiceImpl implements ResumeService {
     
     // 添加缺失的三参数optimizeResume方法
     @Override
-    public Resume optimizeResume(Long resumeId, Long userId, String jobType) {
+    public Resume optimizeResume(Long userId, Long resumeId, String targetJob) {
         // 临时创建一个Resume对象，避免Resume对象方法调用
         return new Resume();
     }
@@ -145,7 +145,7 @@ public class ResumeServiceImpl implements ResumeService {
 
     // 修复返回类型以匹配接口定义
     @Override
-    public boolean deleteResume(Long resumeId, Long userId) {
+    public boolean deleteResume(Long userId, Long resumeId) {
         return retryUtils.executeWithDefaultRetrySupplier(() -> {
             Optional<Resume> resumeOpt = resumeRepository.findById(resumeId);
             if (resumeOpt.isPresent()) {
@@ -157,6 +157,43 @@ public class ResumeServiceImpl implements ResumeService {
                 }
             }
             return false;
+        });
+    }
+    
+    @Override
+    public Resume setResumeTemplate(Long userId, Long resumeId, Long templateId) {
+        return retryUtils.executeWithDefaultRetrySupplier(() -> {
+            // 检查简历权限
+            if (!checkResumePermission(userId, resumeId)) {
+                throw new RuntimeException("无权限操作此简历");
+            }
+            
+            Resume resume = resumeRepository.findById(resumeId).orElseThrow(() -> 
+                new RuntimeException("简历不存在")
+            );
+            
+            // 直接设置templateId，JPA会自动关联
+            resume.setTemplate(null); // 先清空以避免潜在的缓存问题
+            resume.setTemplateId(templateId);
+            
+            return resumeRepository.save(resume);
+        });
+    }
+    
+    @Override
+    public Resume setResumeTemplateConfig(Long userId, Long resumeId, String templateConfig) {
+        return retryUtils.executeWithDefaultRetrySupplier(() -> {
+            // 检查简历权限
+            if (!checkResumePermission(userId, resumeId)) {
+                throw new RuntimeException("无权限操作此简历");
+            }
+            
+            Resume resume = resumeRepository.findById(resumeId).orElseThrow(() -> 
+                new RuntimeException("简历不存在")
+            );
+            
+            resume.setTemplateConfig(templateConfig);
+            return resumeRepository.save(resume);
         });
     }
 

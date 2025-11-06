@@ -70,4 +70,14 @@ public interface ResumeService {
      * 检查简历权限
      */
     boolean checkResumePermission(Long userId, Long resumeId);
+    
+    /**
+     * 设置简历模板
+     */
+    Resume setResumeTemplate(Long userId, Long resumeId, Long templateId);
+    
+    /**
+     * 设置简历模板配置
+     */
+    Resume setResumeTemplateConfig(Long userId, Long resumeId, String templateConfig);
 }

@@ -22,11 +22,13 @@ const cloudCall = (path, data = {}, method = 'GET', header = {}) => {
       config: {
         env: app.globalData.cloudEnvId // 云托管环境ID
       },
-      path: `/api${path}`, // 路径需要包含API前缀
+      // 确保路径格式正确，避免重复添加/api前缀
+      path: path.startsWith('/api') ? path : `/api${path}`,
       method: method,
       header: {
         'content-type': 'application/json',
         'token': app.globalData.token || '',
+        'X-WX-SERVICE': 'springboot-bq0e', // 添加服务名
         ...header
       },
       data,

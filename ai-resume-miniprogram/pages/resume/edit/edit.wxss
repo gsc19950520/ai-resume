@@ -1,0 +1,185 @@
+/* edit.wxss */
+.container {
+  background-color: #f8f8f8;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  padding: 40rpx;
+  background-color: white;
+  text-align: center;
+  border-bottom: 1rpx solid #e0e0e0;
+}
+
+.title {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.subtitle {
+  font-size: 28rpx;
+  color: #666;
+  margin-top: 10rpx;
+  display: block;
+}
+
+/* 部分导航 */
+.section-nav {
+  background-color: white;
+  padding: 20rpx 0;
+  white-space: nowrap;
+  border-bottom: 1rpx solid #e0e0e0;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+}
+
+.nav-item {
+  display: inline-block;
+  padding: 20rpx 40rpx;
+  margin: 0 10rpx;
+  font-size: 30rpx;
+  color: #666;
+  position: relative;
+}
+
+.nav-item.active {
+  color: #667eea;
+  font-weight: 500;
+}
+
+.nav-item.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 40rpx;
+  right: 40rpx;
+  height: 4rpx;
+  background-color: #667eea;
+}
+
+/* 内容区域 */
+.content {
+  flex: 1;
+  padding: 30rpx;
+  overflow-y: auto;
+}
+
+.edit-section {
+  background-color: white;
+  border-radius: 20rpx;
+  padding: 40rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.05);
+}
+
+.form-item {
+  margin-bottom: 40rpx;
+}
+
+.label {
+  display: block;
+  font-size: 28rpx;
+  color: #666;
+  margin-bottom: 16rpx;
+}
+
+.input {
+  width: 100%;
+  height: 80rpx;
+  border: 2rpx solid #e0e0e0;
+  border-radius: 10rpx;
+  padding: 0 20rpx;
+  font-size: 32rpx;
+  box-sizing: border-box;
+}
+
+.textarea {
+  width: 100%;
+  height: 200rpx;
+  border: 2rpx solid #e0e0e0;
+  border-radius: 10rpx;
+  padding: 20rpx;
+  font-size: 32rpx;
+  box-sizing: border-box;
+  resize: none;
+}
+
+/* 日期行 */
+.date-row {
+  display: flex;
+  gap: 30rpx;
+}
+
+.date-item {
+  flex: 1;
+  margin-bottom: 40rpx;
+}
+
+/* 项目/教育/工作经历项 */
+.education-item,
+.work-item,
+.project-item {
+  margin-bottom: 40rpx;
+  padding: 30rpx;
+  border: 2rpx solid #f0f0f0;
+  border-radius: 15rpx;
+  background-color: #fafafa;
+}
+
+.item-header {
+  margin-bottom: 30rpx;
+}
+
+.item-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+/* 添加按钮 */
+.add-btn {
+  margin-top: 20rpx;
+  background-color: transparent;
+  color: #667eea;
+  border: 2rpx dashed #667eea;
+  border-radius: 10rpx;
+  font-size: 30rpx;
+}
+
+.add-btn::after {
+  border: none;
+}
+
+/* 提示信息 */
+.tips {
+  margin-top: 20rpx;
+  padding: 20rpx;
+  background-color: #f9f9f9;
+  border-radius: 10rpx;
+}
+
+.tips text {
+  font-size: 24rpx;
+  color: #999;
+}
+
+/* 底部保存按钮 */
+.footer {
+  padding: 30rpx;
+  background-color: white;
+  border-top: 1rpx solid #e0e0e0;
+  box-shadow: 0 -2rpx 10rpx rgba(0, 0, 0, 0.05);
+}
+
+.save-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 40rpx;
+  font-size: 32rpx;
+  padding: 20rpx 0;
+}
+
+.save-btn::after {
+  border-radius: 40rpx;
+}

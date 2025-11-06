@@ -8,44 +8,75 @@
     </view>
   </view>
 
-  <!-- 功能卡片区域 -->
-  <view class="features-section">
-    <view class="card" bindtap="createResume">
-      <view class="feature-icon">
-        <image src="/images/create.png" mode="aspectFit"></image>
+  <!-- 核心功能模块区域 -->
+  <view class="core-modules-section">
+    <view class="section-header">
+      <text class="section-title">核心AI功能</text>
+    </view>
+    
+    <view class="core-modules-grid">
+      <!-- AI模拟面试模块 -->
+      <view class="core-module-card" bindtap="aiInterview">
+        <view class="module-icon interview-icon">
+          <image src="/images/interview.png" mode="aspectFit"></image>
+        </view>
+        <view class="module-content">
+          <view class="module-title">AI模拟面试</view>
+          <view class="module-desc">智能面试训练与评估</view>
+        </view>
+        <view class="module-badge">热门</view>
       </view>
-      <view class="feature-content">
-        <view class="feature-title">创建简历</view>
-        <view class="feature-desc">AI智能生成专业简历</view>
+
+      <!-- 城市薪资匹配模块 -->
+      <view class="core-module-card" bindtap="salaryMatcher">
+        <view class="module-icon salary-icon">
+          <image src="/images/salary.png" mode="aspectFit"></image>
+        </view>
+        <view class="module-content">
+          <view class="module-title">城市薪资匹配</view>
+          <view class="module-desc">精准薪资水平分析</view>
+        </view>
       </view>
-      <view class="feature-arrow">
-        <image src="/images/arrow.png" mode="aspectFit"></image>
+
+      <!-- AI职业成长报告模块 -->
+      <view class="core-module-card" bindtap="aiCareerReport">
+        <view class="module-icon career-icon">
+          <image src="/images/career.png" mode="aspectFit"></image>
+        </view>
+        <view class="module-content">
+          <view class="module-title">AI职业成长报告</view>
+          <view class="module-desc">个性化职业发展建议</view>
+        </view>
       </view>
     </view>
+  </view>
 
-    <view class="card" bindtap="myResumes">
-      <view class="feature-icon">
-        <image src="/images/list.png" mode="aspectFit"></image>
-      </view>
-      <view class="feature-content">
-        <view class="feature-title">我的简历</view>
-        <view class="feature-desc">管理已创建的简历</view>
-      </view>
-      <view class="feature-arrow">
-        <image src="/images/arrow.png" mode="aspectFit"></image>
-      </view>
+  <!-- 基础功能区域 -->
+  <view class="basic-features-section">
+    <view class="section-header">
+      <text class="section-title">简历管理</text>
     </view>
+    
+    <view class="feature-grid">
+      <view class="feature-card" bindtap="createResume">
+        <view class="feature-icon">
+          <image src="/images/create.png" mode="aspectFit"></image>
+        </view>
+        <view class="feature-text">创建简历</view>
+      </view>
 
-    <view class="card" bindtap="resumeTemplates">
-      <view class="feature-icon">
-        <image src="/images/template.png" mode="aspectFit"></image>
+      <view class="feature-card" bindtap="myResumes">
+        <view class="feature-icon">
+          <image src="/images/list.png" mode="aspectFit"></image>
+        </view>
+        <view class="feature-text">我的简历</view>
       </view>
-      <view class="feature-content">
-        <view class="feature-title">简历模板</view>
-        <view class="feature-desc">多种专业模板选择</view>
-      </view>
-      <view class="feature-arrow">
-        <image src="/images/arrow.png" mode="aspectFit"></image>
+
+      <view class="feature-card" bindtap="resumeTemplates">
+        <view class="feature-icon">
+          <image src="/images/template.png" mode="aspectFit"></image>
+        </view>
+        <view class="feature-text">简历模板</view>
       </view>
     </view>
   </view>
@@ -54,7 +85,7 @@
   <view class="recommend-section">
     <view class="section-title">热门推荐</view>
     <view class="recommend-list">
-      <view class="recommend-item" wx:for="{{recommendList}}" wx:key="index">
+      <view class="recommend-item" wx:for="{{recommendList}}" wx:key="id" bindtap="goToDetail" data-id="{{item.id}}">
         <image src="{{item.image}}" mode="aspectFill"></image>
         <view class="recommend-text">{{item.title}}</view>
       </view>

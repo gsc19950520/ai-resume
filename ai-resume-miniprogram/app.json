@@ -2,7 +2,17 @@
   "pages": [
     "pages/index/index",
     "pages/login/login",
-    "pages/profile/profile"
+    "pages/profile/profile",
+    "pages/create/create",
+    "pages/resume/list/list",
+    "pages/template/list/list",
+    "pages/resume/edit/edit",
+    "pages/resume/view/view",
+    "pages/interview/interview",
+    "pages/interview/history",
+    "pages/salary/matcher",
+    "pages/career/report",
+    "pages/report/report"
   ],
   "window": {
     "backgroundTextStyle": "light",
@@ -17,11 +27,15 @@
     "list": [
       {
         "pagePath": "pages/index/index",
-        "text": "首页"
+        "text": "首页",
+        "iconPath": "images/home.png",
+        "selectedIconPath": "images/home_active.png"
       },
       {
         "pagePath": "pages/profile/profile",
-        "text": "我的"
+        "text": "我的",
+        "iconPath": "images/user.png",
+        "selectedIconPath": "images/user_active.png"
       }
     ]
   },
@@ -30,11 +44,7 @@
     "downloadFile": 10000
   },
   "cloud": true,
-  "permission": {
-    "scope.userInfo": {
-      "desc": "用于完善用户资料"
-    }
-  },
+  "permission": {},
   "style": "v2",
   "sitemapLocation": "sitemap.json"
 }

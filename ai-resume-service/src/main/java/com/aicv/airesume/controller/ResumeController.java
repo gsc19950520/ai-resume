@@ -141,4 +141,30 @@ public class ResumeController {
         result.put("suggestions", suggestions);
         return result;
     }
+    
+    /**
+     * 设置简历模板
+     * @param userId 用户ID
+     * @param resumeId 简历ID
+     * @param templateId 模板ID
+     * @return 更新后的简历信息
+     */
+    @Log(description = "设置简历模板", recordParams = true, recordResult = true)
+    @PostMapping("/{resumeId}/template")
+    public Resume setResumeTemplate(@RequestParam Long userId, @PathVariable Long resumeId, @RequestParam Long templateId) {
+        return resumeService.setResumeTemplate(userId, resumeId, templateId);
+    }
+    
+    /**
+     * 设置简历模板配置
+     * @param userId 用户ID
+     * @param resumeId 简历ID
+     * @param templateConfig 模板配置信息（JSON格式）
+     * @return 更新后的简历信息
+     */
+    @Log(description = "设置简历模板配置", recordParams = true, recordResult = true)
+    @PostMapping("/{resumeId}/template-config")
+    public Resume setResumeTemplateConfig(@RequestParam Long userId, @PathVariable Long resumeId, @RequestBody String templateConfig) {
+        return resumeService.setResumeTemplateConfig(userId, resumeId, templateConfig);
+    }
 }

@@ -1,0 +1,190 @@
+<!-- edit.wxml -->
+<view class="container">
+  <view class="header">
+    <text class="title">编辑简历</text>
+    <text class="subtitle">{{resumeInfo && resumeInfo.title ? resumeInfo.title : ''}}</text>
+  </view>
+
+  <!-- 编辑部分导航 -->
+  <scroll-view class="section-nav" scroll-x>
+    <view class="nav-item" wx:for="{{sections}}" wx:key="id" 
+          class="nav-item {{currentSection === item.id ? 'active' : ''}}" 
+          bindtap="switchSection" data-id="{{item.id}}">
+      <text>{{item.name}}</text>
+    </view>
+  </scroll-view>
+
+  <!-- 编辑内容区域 -->
+  <scroll-view class="content" scroll-y>
+    <!-- 个人信息部分 -->
+    <view class="edit-section" wx:if="{{currentSection === 'personal'}}">
+      <view class="form-item">
+          <text class="label">姓名</text>
+          <input class="input" placeholder="请输入姓名" value="{{resumeInfo.personalInfo.name}}" bindinput="savePersonalInfo" data-field="name" />
+        </view>
+        
+        <view class="form-item">
+          <text class="label">职位</text>
+          <input class="input" placeholder="请输入求职职位" value="{{resumeInfo.personalInfo.jobTitle}}" bindinput="savePersonalInfo" data-field="jobTitle" />
+        </view>
+        
+        <view class="form-item">
+          <text class="label">电话</text>
+          <input class="input" placeholder="请输入联系电话" value="{{resumeInfo.personalInfo.phone}}" bindinput="savePersonalInfo" data-field="phone" />
+        </view>
+        
+        <view class="form-item">
+          <text class="label">邮箱</text>
+          <input class="input" placeholder="请输入邮箱地址" value="{{resumeInfo.personalInfo.email}}" bindinput="savePersonalInfo" data-field="email" />
+        </view>
+        
+        <view class="form-item">
+          <text class="label">地址</text>
+          <input class="input" placeholder="请输入居住地址" value="{{resumeInfo.personalInfo.address}}" bindinput="savePersonalInfo" data-field="address" />
+        </view>
+    </view>
+
+    <!-- 教育经历部分 -->
+      <view class="edit-section" wx:if="{{currentSection === 'education'}}">
+        <view class="education-item" wx:for="{{resumeInfo.education}}" wx:key="id">
+        <view class="item-header">
+          <text class="item-title">教育经历 {{index + 1}}</text>
+        </view>
+        
+        <view class="form-item">
+          <text class="label">学校名称</text>
+          <input class="input" placeholder="请输入学校名称" bindinput="onEducationInput" data-index="{{index}}" data-field="school" />
+        </view>
+        
+        <view class="form-item">
+          <text class="label">专业</text>
+          <input class="input" placeholder="请输入专业名称" bindinput="onEducationInput" data-index="{{index}}" data-field="major" />
+        </view>
+        
+        <view class="form-item">
+          <text class="label">学历</text>
+          <input class="input" placeholder="请输入学历" bindinput="onEducationInput" data-index="{{index}}" data-field="degree" />
+        </view>
+        
+        <view class="date-row">
+          <view class="form-item date-item">
+            <text class="label">开始时间</text>
+            <input class="input" placeholder="YYYY-MM" bindinput="onEducationInput" data-index="{{index}}" data-field="startDate" />
+          </view>
+          
+          <view class="form-item date-item">
+            <text class="label">结束时间</text>
+            <input class="input" placeholder="YYYY-MM" bindinput="onEducationInput" data-index="{{index}}" data-field="endDate" />
+          </view>
+        </view>
+      </view>
+      
+      <button class="add-btn" bindtap="addEducation">+ 添加教育经历</button>
+    </view>
+
+    <!-- 工作经历部分 -->
+      <view class="edit-section" wx:if="{{currentSection === 'work'}}">
+        <view class="work-item" wx:for="{{resumeInfo.workExperience}}" wx:key="id">
+        <view class="item-header">
+          <text class="item-title">工作经历 {{index + 1}}</text>
+        </view>
+        
+        <view class="form-item">
+          <text class="label">公司名称</text>
+          <input class="input" placeholder="请输入公司名称" bindinput="onWorkInput" data-index="{{index}}" data-field="company" />
+        </view>
+        
+        <view class="form-item">
+          <text class="label">职位</text>
+          <input class="input" placeholder="请输入职位" bindinput="onWorkInput" data-index="{{index}}" data-field="position" />
+        </view>
+        
+        <view class="date-row">
+          <view class="form-item date-item">
+            <text class="label">开始时间</text>
+            <input class="input" placeholder="YYYY-MM" bindinput="onWorkInput" data-index="{{index}}" data-field="startDate" />
+          </view>
+          
+          <view class="form-item date-item">
+            <text class="label">结束时间</text>
+            <input class="input" placeholder="YYYY-MM" bindinput="onWorkInput" data-index="{{index}}" data-field="endDate" />
+          </view>
+        </view>
+        
+        <view class="form-item">
+          <text class="label">工作描述</text>
+          <textarea class="textarea" placeholder="请描述您的工作职责和成就" bindinput="onWorkInput" data-index="{{index}}" data-field="description" />
+        </view>
+      </view>
+      
+      <button class="add-btn" bindtap="addWorkExperience">+ 添加工作经历</button>
+    </view>
+
+    <!-- 项目经验部分 -->
+      <view class="edit-section" wx:if="{{currentSection === 'project'}}">
+        <view class="project-item" wx:for="{{resumeInfo.projects}}" wx:key="id">
+        <view class="item-header">
+          <text class="item-title">项目经验 {{index + 1}}</text>
+        </view>
+        
+        <view class="form-item">
+          <text class="label">项目名称</text>
+          <input class="input" placeholder="请输入项目名称" bindinput="onProjectInput" data-index="{{index}}" data-field="name" />
+        </view>
+        
+        <view class="form-item">
+          <text class="label">担任角色</text>
+          <input class="input" placeholder="请输入您在项目中的角色" bindinput="onProjectInput" data-index="{{index}}" data-field="role" />
+        </view>
+        
+        <view class="date-row">
+          <view class="form-item date-item">
+            <text class="label">开始时间</text>
+            <input class="input" placeholder="YYYY-MM" bindinput="onProjectInput" data-index="{{index}}" data-field="startDate" />
+          </view>
+          
+          <view class="form-item date-item">
+            <text class="label">结束时间</text>
+            <input class="input" placeholder="YYYY-MM" bindinput="onProjectInput" data-index="{{index}}" data-field="endDate" />
+          </view>
+        </view>
+        
+        <view class="form-item">
+          <text class="label">项目描述</text>
+          <textarea class="textarea" placeholder="请描述项目内容和您的贡献" bindinput="onProjectInput" data-index="{{index}}" data-field="description" />
+        </view>
+      </view>
+      
+      <button class="add-btn" bindtap="addProject">+ 添加项目经验</button>
+    </view>
+
+    <!-- 专业技能部分 -->
+    <view class="edit-section" wx:if="{{currentSection === 'skills'}}">
+      <view class="form-item">
+        <text class="label">专业技能</text>
+        <textarea class="textarea" placeholder="请列出您的专业技能，如：JavaScript、React、UI设计等，用逗号分隔" value="{{resumeInfo.skills}}" bindinput="onSkillsInput" />
+      </view>
+      
+      <view class="tips">
+        <text>提示：请尽量详细地列出您掌握的技能，这将有助于提高简历的竞争力</text>
+      </view>
+    </view>
+
+    <!-- 自我评价部分 -->
+    <view class="edit-section" wx:if="{{currentSection === 'self'}}">
+      <view class="form-item">
+        <text class="label">自我评价</text>
+        <textarea class="textarea" placeholder="请简要评价您的优势、工作态度和职业目标" value="{{resumeInfo.selfEvaluation}}" bindinput="onSelfEvaluationInput" />
+      </view>
+      
+      <view class="tips">
+        <text>提示：自我评价应简洁有力，突出您的核心竞争力和职业优势</text>
+      </view>
+    </view>
+  </scroll-view>
+
+  <!-- 底部保存按钮 -->
+  <view class="footer">
+    <button class="save-btn" type="primary" bindtap="saveResume">保存简历</button>
+  </view>
+</view>

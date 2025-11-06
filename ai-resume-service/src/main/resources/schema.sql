@@ -15,26 +15,10 @@ CREATE TABLE IF NOT EXISTS user (
     remaining_optimize_count INT NOT NULL DEFAULT 0 COMMENT '剩余优化次数',
     is_vip TINYINT NOT NULL DEFAULT 0 COMMENT '是否VIP 0:否 1:是',
     vip_expire_time DATETIME COMMENT 'VIP过期时间',
-    create_time DATETIME NOT NULL COMMENT '创建时间',
-    update_time DATETIME NOT NULL COMMENT '更新时间',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     INDEX idx_open_id (open_id)
 ) COMMENT='用户表';
-
--- 添加创建时间和更新时间触发器
-DELIMITER //
-CREATE TRIGGER trg_user_before_insert BEFORE INSERT ON user
-FOR EACH ROW
-BEGIN
-    SET NEW.create_time = NOW();
-    SET NEW.update_time = NOW();
-END //
-
-CREATE TRIGGER trg_user_before_update BEFORE UPDATE ON user
-FOR EACH ROW
-BEGIN
-    SET NEW.update_time = NOW();
-END //
-DELIMITER ;
 
 -- 产品表
 CREATE TABLE IF NOT EXISTS product (
@@ -45,27 +29,11 @@ CREATE TABLE IF NOT EXISTS product (
     price INT NOT NULL COMMENT '价格(分)',
     type VARCHAR(50) NOT NULL COMMENT '产品类型',
     is_active TINYINT NOT NULL DEFAULT 1 COMMENT '是否启用 0:否 1:是',
-    create_time DATETIME COMMENT '创建时间',
-    update_time DATETIME COMMENT '更新时间',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     INDEX idx_product_id (product_id),
     INDEX idx_type (type)
 ) COMMENT='产品表';
-
--- 添加创建时间和更新时间触发器
-DELIMITER //
-CREATE TRIGGER trg_product_before_insert BEFORE INSERT ON product
-FOR EACH ROW
-BEGIN
-    SET NEW.create_time = NOW();
-    SET NEW.update_time = NOW();
-END //
-
-CREATE TRIGGER trg_product_before_update BEFORE UPDATE ON product
-FOR EACH ROW
-BEGIN
-    SET NEW.update_time = NOW();
-END //
-DELIMITER ;
 
 -- 订单表
 CREATE TABLE IF NOT EXISTS ai_order (
@@ -78,8 +46,8 @@ CREATE TABLE IF NOT EXISTS ai_order (
     status INT NOT NULL DEFAULT 0 COMMENT '订单状态 0:待支付 1:支付成功 2:支付失败 3:已取消',
     transaction_id VARCHAR(100) COMMENT '微信支付交易ID',
     pay_type VARCHAR(20) COMMENT '支付方式',
-    create_time DATETIME NOT NULL COMMENT '创建时间',
-    update_time DATETIME NOT NULL COMMENT '更新时间',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     pay_time DATETIME COMMENT '支付时间',
     INDEX idx_order_no (order_no),
     INDEX idx_user_id (user_id),
@@ -88,52 +56,7 @@ CREATE TABLE IF NOT EXISTS ai_order (
     FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
 ) COMMENT='订单表';
 
--- 添加创建时间和更新时间触发器
-DELIMITER //
-CREATE TRIGGER trg_ai_order_before_insert BEFORE INSERT ON ai_order
-FOR EACH ROW
-BEGIN
-    SET NEW.create_time = NOW();
-    SET NEW.update_time = NOW();
-END //
 
-CREATE TRIGGER trg_ai_order_before_update BEFORE UPDATE ON ai_order
-FOR EACH ROW
-BEGIN
-    SET NEW.update_time = NOW();
-END //
-DELIMITER ;
-
--- 简历模板表
-CREATE TABLE IF NOT EXISTS resume_template (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(100) NOT NULL COMMENT '模板名称',
-    description TEXT COMMENT '模板描述',
-    thumbnail_url VARCHAR(255) COMMENT '缩略图URL',
-    template_file_url VARCHAR(255) COMMENT '模板文件URL',
-    usage_count INT NOT NULL DEFAULT 0 COMMENT '使用次数',
-    is_premium TINYINT NOT NULL DEFAULT 0 COMMENT '是否高级模板 0:否 1:是',
-    active TINYINT NOT NULL DEFAULT 1 COMMENT '是否启用 0:否 1:是',
-    create_time DATETIME COMMENT '创建时间',
-    update_time DATETIME COMMENT '更新时间',
-    INDEX idx_active (active)
-) COMMENT='简历模板表';
-
--- 添加创建时间和更新时间触发器
-DELIMITER //
-CREATE TRIGGER trg_resume_template_before_insert BEFORE INSERT ON resume_template
-FOR EACH ROW
-BEGIN
-    SET NEW.create_time = NOW();
-    SET NEW.update_time = NOW();
-END //
-
-CREATE TRIGGER trg_resume_template_before_update BEFORE UPDATE ON resume_template
-FOR EACH ROW
-BEGIN
-    SET NEW.update_time = NOW();
-END //
-DELIMITER ;
 
 -- 模板表（另一个模板表，可能有不同用途）
 CREATE TABLE IF NOT EXISTS template (
@@ -147,28 +70,12 @@ CREATE TABLE IF NOT EXISTS template (
     is_free TINYINT NOT NULL DEFAULT 0 COMMENT '是否免费 0:否 1:是',
     is_vip_only TINYINT NOT NULL DEFAULT 0 COMMENT '是否仅VIP可用 0:否 1:是',
     use_count INT NOT NULL DEFAULT 0 COMMENT '使用次数',
-    create_time DATETIME NOT NULL COMMENT '创建时间',
-    update_time DATETIME NOT NULL COMMENT '更新时间',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     INDEX idx_job_type (job_type),
     INDEX idx_is_free (is_free),
     INDEX idx_is_vip_only (is_vip_only)
 ) COMMENT='模板表';
-
--- 添加创建时间和更新时间触发器
-DELIMITER //
-CREATE TRIGGER trg_template_before_insert BEFORE INSERT ON template
-FOR EACH ROW
-BEGIN
-    SET NEW.create_time = NOW();
-    SET NEW.update_time = NOW();
-END //
-
-CREATE TRIGGER trg_template_before_update BEFORE UPDATE ON template
-FOR EACH ROW
-BEGIN
-    SET NEW.update_time = NOW();
-END //
-DELIMITER ;
 
 -- 简历表
 CREATE TABLE IF NOT EXISTS resume (
@@ -185,29 +92,69 @@ CREATE TABLE IF NOT EXISTS resume (
     download_url_pdf VARCHAR(255) COMMENT 'PDF下载链接',
     download_url_word VARCHAR(255) COMMENT 'Word下载链接',
     template_id BIGINT COMMENT '使用的模板ID',
+    template_config TEXT COMMENT '模板配置信息',
     status INT NOT NULL DEFAULT 0 COMMENT '状态 0:上传成功 1:优化中 2:优化成功 3:优化失败',
-    create_time DATETIME NOT NULL COMMENT '创建时间',
-    update_time DATETIME NOT NULL COMMENT '更新时间',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     INDEX idx_user_id (user_id),
     INDEX idx_status (status),
     INDEX idx_template_id (template_id),
     INDEX idx_job_type (job_type),
     FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
-    FOREIGN KEY (template_id) REFERENCES resume_template(id) ON DELETE SET NULL
+    FOREIGN KEY (template_id) REFERENCES template(id) ON DELETE SET NULL
 ) COMMENT='简历表';
 
--- 添加创建时间和更新时间触发器
-DELIMITER //
-CREATE TRIGGER trg_resume_before_insert BEFORE INSERT ON resume
-FOR EACH ROW
-BEGIN
-    SET NEW.create_time = NOW();
-    SET NEW.update_time = NOW();
-END //
+-- 面试会话表
+CREATE TABLE IF NOT EXISTS `interview_session` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `session_id` varchar(100) NOT NULL COMMENT '会话ID',
+  `user_id` varchar(50) NOT NULL COMMENT '用户ID',
+  `resume_id` bigint(20) NOT NULL COMMENT '简历ID',
+  `job_type` varchar(100) NOT NULL COMMENT '工作类型',
+  `city` varchar(50) NOT NULL COMMENT '城市',
+  `status` varchar(20) NOT NULL COMMENT '状态：pending, in_progress, completed, canceled',
+  `total_score` double DEFAULT NULL COMMENT '总分',
+  `tech_score` double DEFAULT NULL COMMENT '技术评分',
+  `logic_score` double DEFAULT NULL COMMENT '逻辑评分',
+  `clarity_score` double DEFAULT NULL COMMENT '表达清晰度评分',
+  `depth_score` double DEFAULT NULL COMMENT '深度评分',
+  `ai_estimated_years` varchar(20) DEFAULT NULL COMMENT 'AI估计经验年限',
+  `ai_salary_range` varchar(20) DEFAULT NULL COMMENT 'AI薪资范围',
+  `confidence` double DEFAULT NULL COMMENT '置信度',
+  `report_url` varchar(255) DEFAULT NULL COMMENT '报告URL',
+  `max_depth_per_point` int(11) DEFAULT NULL COMMENT '每个点的最大深度',
+  `max_followups` int(11) DEFAULT NULL COMMENT '最大追问次数',
+  `time_limit_secs` int(11) DEFAULT NULL COMMENT '时间限制(秒)',
+  `actual_duration_secs` int(11) DEFAULT NULL COMMENT '实际时长(秒)',
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_session_id` (`session_id`),
+  KEY `idx_user_id` (`user_id`),
+  KEY `idx_resume_id` (`resume_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='面试会话表';
 
-CREATE TRIGGER trg_resume_before_update BEFORE UPDATE ON resume
-FOR EACH ROW
-BEGIN
-    SET NEW.update_time = NOW();
-END //
-DELIMITER ;
+-- 面试日志表
+CREATE TABLE IF NOT EXISTS `interview_log` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `question_id` varchar(100) NOT NULL COMMENT '问题ID',
+  `session_id` varchar(100) NOT NULL COMMENT '会话ID',
+  `question_text` text NOT NULL COMMENT '问题内容',
+  `user_answer_text` text COMMENT '用户文字答案',
+  `user_answer_audio_url` varchar(255) DEFAULT NULL COMMENT '用户音频答案URL',
+  `depth_level` varchar(20) DEFAULT NULL COMMENT '深度级别：basic, intermediate, advanced',
+  `tech_score` double DEFAULT NULL COMMENT '技术评分',
+  `logic_score` double DEFAULT NULL COMMENT '逻辑评分',
+  `clarity_score` double DEFAULT NULL COMMENT '表达清晰度评分',
+  `depth_score` double DEFAULT NULL COMMENT '深度评分',
+  `feedback` text COMMENT '反馈内容',
+  `matched_points` text COMMENT '匹配的关键点',
+  `round_number` int(11) NOT NULL COMMENT '轮次',
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `answer_duration_secs` int(11) DEFAULT NULL COMMENT '回答时长(秒)',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_question_id` (`question_id`),
+  KEY `idx_session_id` (`session_id`),
+  KEY `idx_round_number` (`round_number`),
+  CONSTRAINT `fk_interview_log_session` FOREIGN KEY (`session_id`) REFERENCES `interview_session` (`session_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='面试日志表';

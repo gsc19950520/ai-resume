@@ -1,0 +1,143 @@
+<!--pages/career/report.wxml-->
+<view class="container">
+  <view class="header">
+    <text class="title">AI职业成长报告</text>
+    <text class="subtitle">个性化职业发展规划</text>
+  </view>
+
+  <view class="content" wx:if="{{!reportResult}}">
+    <!-- 输入表单 -->
+    <view class="form-section">
+      <view class="input-group">
+        <text class="input-label">当前职业</text>
+        <input 
+          class="input" 
+          placeholder="例如：Java开发工程师、产品经理等" 
+          value="{{currentCareer}}"
+          bindinput="inputCurrentCareer"
+        />
+      </view>
+
+      <view class="input-group">
+        <text class="input-label">目标职业</text>
+        <input 
+          class="input" 
+          placeholder="例如：技术架构师、产品总监等" 
+          value="{{targetCareer}}"
+          bindinput="inputTargetCareer"
+        />
+      </view>
+
+      <view class="input-group">
+        <text class="input-label">工作年限（选填）</text>
+        <input 
+          class="input" 
+          placeholder="例如：3年、5年以上" 
+          value="{{experienceYears}}"
+          bindinput="inputExperienceYears"
+        />
+      </view>
+
+      <view class="input-group">
+        <text class="input-label">掌握技能（选填）</text>
+        <input 
+          class="input" 
+          placeholder="例如：Java, Spring, 架构设计" 
+          value="{{skills}}"
+          bindinput="inputSkills"
+        />
+      </view>
+
+      <button 
+        class="generate-btn" 
+        bindtap="generateReport" 
+        loading="{{loading}}"
+        disabled="{{loading}}"
+      >
+        {{loading ? '生成中...' : '生成职业报告'}}
+      </button>
+    </view>
+  </view>
+
+  <!-- 报告结果 -->
+  <view class="report-content" wx:if="{{reportResult}}">
+    <view class="report-header">
+      <text class="report-title">{{reportResult.title}}</text>
+      <view class="report-actions">
+        <button class="action-btn" size="mini" bindtap="regenerate">重新生成</button>
+        <button class="action-btn primary" size="mini" bindtap="shareReport">分享</button>
+      </view>
+    </view>
+
+    <!-- 职业信息卡片 -->
+    <view class="info-card">
+      <view class="info-item">
+        <text class="info-label">当前职业</text>
+        <text class="info-value">{{reportResult.currentCareer}}</text>
+      </view>
+      <view class="info-arrow">→</view>
+      <view class="info-item">
+        <text class="info-label">目标职业</text>
+        <text class="info-value">{{reportResult.targetCareer}}</text>
+      </view>
+    </view>
+
+    <!-- 优势分析 -->
+    <view class="section">
+      <text class="section-title">个人优势</text>
+      <view class="strength-list">
+        <view class="strength-item" wx:for="{{reportResult.strengths}}" wx:key="index">
+          <view class="strength-icon">✓</view>
+          <text class="strength-text">{{item}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 改进点 -->
+    <view class="section">
+      <text class="section-title">改进建议</text>
+      <view class="improvement-list">
+        <view class="improvement-item" wx:for="{{reportResult.improvementPoints}}" wx:key="index">
+          <view class="improvement-icon">!</view>
+          <text class="improvement-text">{{item}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 发展路径 -->
+    <view class="section">
+      <text class="section-title">职业发展路径</text>
+      <view class="path-list">
+        <view class="path-item" wx:for="{{reportResult.developmentPath}}" wx:key="index">
+          <view class="path-header">
+            <view class="path-stage">{{item.stage}}</view>
+          </view>
+          <view class="path-tasks">
+            <view class="task-item" wx:for="{{item.tasks}}" wx:for-item="task" wx:key="task-index">
+              <view class="task-number">{{index + 1}}</view>
+              <text class="task-text">{{task}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 技能推荐 -->
+    <view class="section">
+      <text class="section-title">技能提升建议</text>
+      <view class="skill-recommendation">
+        {{reportResult.skillRecommendation}}
+      </view>
+    </view>
+
+    <!-- 学习资源 -->
+    <view class="section">
+      <text class="section-title">推荐资源</text>
+      <view class="resources-list">
+        <view class="resource-item" wx:for="{{reportResult.resources}}" wx:key="index">
+          {{item}}
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

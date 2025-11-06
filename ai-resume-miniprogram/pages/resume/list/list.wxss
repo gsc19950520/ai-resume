@@ -1,0 +1,127 @@
+/* list.wxss */
+.container {
+  padding: 30rpx;
+  box-sizing: border-box;
+  min-height: 100vh;
+  padding-bottom: 150rpx;
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 400rpx;
+}
+
+.loading {
+  font-size: 32rpx;
+  color: #666;
+}
+
+.list-container {
+  min-height: 400rpx;
+}
+
+.resume-item {
+  background: #fff;
+  border-radius: 10rpx;
+  padding: 30rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.resume-info {
+  flex: 1;
+}
+
+.title-container {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  margin-bottom: 10rpx;
+  flex-wrap: wrap;
+}
+
+.resume-title {
+  display: block;
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.ai-badge-small {
+  background: linear-gradient(135deg, #4c6ef5, #748ffc);
+  padding: 4rpx 16rpx;
+  border-radius: 30rpx;
+}
+
+.ai-text-small {
+  font-size: 20rpx;
+  color: white;
+  font-weight: 500;
+}
+
+.resume-type {
+  display: inline-block;
+  font-size: 28rpx;
+  color: #1989fa;
+  background: #e6f7ff;
+  padding: 4rpx 16rpx;
+  border-radius: 40rpx;
+  margin-bottom: 10rpx;
+}
+
+.resume-time {
+  display: block;
+  font-size: 28rpx;
+  color: #999;
+}
+
+.resume-actions {
+  display: flex;
+  gap: 20rpx;
+}
+
+.edit-btn {
+  font-size: 28rpx;
+  height: 70rpx;
+  line-height: 70rpx;
+}
+
+.delete-btn {
+  font-size: 28rpx;
+  height: 70rpx;
+  line-height: 70rpx;
+}
+
+.empty-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 100rpx 0;
+}
+
+.empty-text {
+  font-size: 36rpx;
+  color: #666;
+  margin-bottom: 20rpx;
+}
+
+.empty-hint {
+  font-size: 28rpx;
+  color: #999;
+}
+
+.create-btn {
+  position: fixed;
+  bottom: 50rpx;
+  left: 30rpx;
+  right: 30rpx;
+  font-size: 34rpx;
+  height: 90rpx;
+  line-height: 90rpx;
+}

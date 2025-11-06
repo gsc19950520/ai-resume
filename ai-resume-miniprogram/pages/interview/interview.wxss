@@ -1,0 +1,347 @@
+/* interview.wxss */
+.container {
+  background-color: #f5f5f5;
+  min-height: 100vh;
+  padding-bottom: 100rpx;
+}
+
+/* 顶部导航栏 */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 100rpx;
+  background-color: #ffffff;
+  padding: 0 30rpx;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.1);
+}
+
+.header-left, .header-right {
+  width: 60rpx;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.header-title {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #333333;
+  flex: 1;
+  text-align: center;
+}
+
+.back-icon {
+  width: 40rpx;
+  height: 40rpx;
+}
+
+/* 会话信息 */
+.session-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 30rpx;
+  background-color: #ffffff;
+  margin-bottom: 20rpx;
+}
+
+.job-type {
+  font-size: 32rpx;
+  color: #07c160;
+  font-weight: bold;
+  padding: 8rpx 20rpx;
+  background-color: #f0f9ff;
+  border-radius: 20rpx;
+}
+
+.timer {
+  display: flex;
+  align-items: center;
+  font-size: 28rpx;
+  color: #666666;
+}
+
+.timer-icon {
+  width: 32rpx;
+  height: 32rpx;
+  margin-right: 10rpx;
+}
+
+/* 问题卡片 */
+.question-card {
+  background-color: #ffffff;
+  margin: 20rpx;
+  padding: 30rpx;
+  border-radius: 20rpx;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+  position: relative;
+}
+
+.depth-badge {
+  position: absolute;
+  top: -15rpx;
+  right: 30rpx;
+  padding: 10rpx 20rpx;
+  border-radius: 20rpx;
+  font-size: 24rpx;
+  font-weight: bold;
+}
+
+.depth-basic {
+  background-color: #07c160;
+  color: #ffffff;
+}
+
+.depth-intermediate {
+  background-color: #ff9500;
+  color: #ffffff;
+}
+
+.depth-advanced {
+  background-color: #ff3b30;
+  color: #ffffff;
+}
+
+.question-number {
+  font-size: 28rpx;
+  color: #999999;
+  margin-bottom: 20rpx;
+}
+
+.question-content {
+  font-size: 32rpx;
+  color: #333333;
+  line-height: 1.6;
+}
+
+/* 答题面板 */
+.answer-panel {
+  background-color: #ffffff;
+  margin: 20rpx;
+  padding: 30rpx;
+  border-radius: 20rpx;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+}
+
+.answer-textarea-container {
+  position: relative;
+  margin-bottom: 30rpx;
+}
+
+.answer-textarea {
+  width: 100%;
+  min-height: 200rpx;
+  padding: 20rpx;
+  font-size: 30rpx;
+  color: #333333;
+  border: 2rpx solid #e0e0e0;
+  border-radius: 10rpx;
+  box-sizing: border-box;
+}
+
+.word-count {
+  position: absolute;
+  bottom: 10rpx;
+  right: 20rpx;
+  font-size: 24rpx;
+  color: #999999;
+}
+
+/* 音频控制 */
+.audio-controls {
+  display: flex;
+  gap: 20rpx;
+}
+
+.audio-btn {
+  flex: 1;
+  font-size: 28rpx;
+  padding: 20rpx;
+  background-color: #f0f0f0;
+  color: #333333;
+  border-radius: 10rpx;
+}
+
+.audio-btn.recording {
+  background-color: #ff3b30;
+  color: #ffffff;
+}
+
+.audio-btn[disabled] {
+  opacity: 0.5;
+}
+
+/* 反馈区域 */
+.feedback-section {
+  background-color: #ffffff;
+  margin: 20rpx;
+  padding: 30rpx;
+  border-radius: 20rpx;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+}
+
+.feedback-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333333;
+  margin-bottom: 20rpx;
+}
+
+.score-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20rpx;
+}
+
+.score-item {
+  flex: 1;
+  text-align: center;
+}
+
+.score-label {
+  font-size: 26rpx;
+  color: #666666;
+  margin-bottom: 10rpx;
+}
+
+.score-value {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #07c160;
+}
+
+.feedback-content {
+  font-size: 28rpx;
+  color: #666666;
+  line-height: 1.6;
+  margin-bottom: 20rpx;
+  padding: 20rpx;
+  background-color: #f9f9f9;
+  border-radius: 10rpx;
+}
+
+.matched-points {
+  margin-top: 20rpx;
+}
+
+.matched-title {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #333333;
+  margin-bottom: 10rpx;
+}
+
+.matched-item {
+  font-size: 26rpx;
+  color: #07c160;
+  margin-bottom: 8rpx;
+  padding-left: 20rpx;
+}
+
+/* 进度条 */
+.progress-section {
+  margin: 20rpx;
+}
+
+.progress-bar {
+  height: 20rpx;
+  background-color: #e0e0e0;
+  border-radius: 10rpx;
+  overflow: hidden;
+  margin-bottom: 10rpx;
+}
+
+.progress-fill {
+  height: 100%;
+  background-color: #07c160;
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  font-size: 24rpx;
+  color: #666666;
+  text-align: center;
+}
+
+/* 底部按钮 */
+.bottom-buttons {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  padding: 30rpx;
+  background-color: #ffffff;
+  box-shadow: 0 -2rpx 10rpx rgba(0, 0, 0, 0.1);
+  gap: 20rpx;
+}
+
+.btn {
+  flex: 1;
+  height: 88rpx;
+  font-size: 32rpx;
+  border-radius: 44rpx;
+  line-height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-primary {
+  background-color: #07c160;
+  color: #ffffff;
+}
+
+.btn-secondary {
+  background-color: #f0f0f0;
+  color: #666666;
+}
+
+.btn[disabled] {
+  opacity: 0.5;
+}
+
+/* 加载提示 */
+.loading-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.loading-content {
+  background-color: #ffffff;
+  padding: 40rpx;
+  border-radius: 20rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20rpx;
+}
+
+.loading-spinner {
+  width: 60rpx;
+  height: 60rpx;
+  border: 8rpx solid #f3f3f3;
+  border-top: 8rpx solid #07c160;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.loading-text {
+  font-size: 30rpx;
+  color: #666666;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}

@@ -1,0 +1,30 @@
+<svg width="400" height="200" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="200" fill="#f7fafc" stroke="#e2e8f0" stroke-width="1"/>
+  
+  <!-- 个人信息区域 -->
+  <text x="200" y="40" font-family="Arial, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="#1a365d">张三</text>
+  <text x="200" y="65" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="#2b6cb0">高级前端开发工程师</text>
+  <text x="200" y="85" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="#718096">138****1234 | zhangsan@example.com | 上海市浦东新区</text>
+  
+  <!-- 分隔线 -->
+  <line x1="50" y1="95" x2="350" y2="95" stroke="#2b6cb0" stroke-width="1"/>
+  
+  <!-- 教育经历区域 -->
+  <rect x="50" y="105" width="300" height="25" fill="#f7fafc"/>
+  <text x="60" y="122" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a365d" letter-spacing="1">EDUCATION</text>
+  <!-- 左侧竖线 -->
+  <line x1="60" y1="125" x2="60" y2="145" stroke="#2b6cb0" stroke-width="3"/>
+  <text x="70" y="140" font-family="Arial, sans-serif" font-size="10" fill="#1a365d">北京大学 | 计算机科学与技术 | 本科</text>
+  
+  <!-- 技能区域 -->
+  <rect x="50" y="150" width="300" height="25" fill="#f7fafc"/>
+  <text x="60" y="167" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a365d" letter-spacing="1">SKILLS</text>
+  <rect x="150" y="155" width="50" height="20" rx="10" fill="#ebf8ff" stroke="#2b6cb0" stroke-width="1"/>
+  <text x="175" y="169" font-family="Arial, sans-serif" font-size="8" text-anchor="middle" fill="#1a365d">JavaScript</text>
+  <rect x="210" y="155" width="40" height="20" rx="10" fill="#ebf8ff" stroke="#2b6cb0" stroke-width="1"/>
+  <text x="230" y="169" font-family="Arial, sans-serif" font-size="8" text-anchor="middle" fill="#1a365d">React</text>
+  
+  <!-- 学术研究模板标签 -->
+  <rect x="300" y="170" width="80" height="20" rx="10" fill="#ebf8ff" stroke="#2b6cb0" stroke-width="1"/>
+  <text x="340" y="184" font-family="Arial, sans-serif" font-size="8" text-anchor="middle" fill="#1a365d">学术研究模板</text>
+</svg>

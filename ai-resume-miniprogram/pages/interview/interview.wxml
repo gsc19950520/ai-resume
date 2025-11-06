@@ -1,0 +1,121 @@
+<!-- interview.wxml -->
+<view class="container">
+  <!-- 顶部导航栏 -->
+  <view class="header">
+    <view class="header-left" bindtap="goBack">
+      <image src="/images/arrow.png" mode="aspectFit" class="back-icon"></image>
+    </view>
+    <view class="header-title">技术面试模拟</view>
+    <view class="header-right"></view>
+  </view>
+
+  <!-- 会话信息 -->
+  <view class="session-info">
+    <view class="job-type">{{jobType}}</view>
+    <view class="timer">
+      <image src="/images/settings.png" mode="aspectFit" class="timer-icon"></image>
+      <text>{{formatTime(elapsedTime)}}</text>
+    </view>
+  </view>
+
+  <!-- 问题卡片 -->
+  <view class="question-card">
+    <view class="depth-badge depth-{{currentQuestion.depthLevel}}">
+      {{getDepthText(currentQuestion.depthLevel)}}
+    </view>
+    <view class="question-number">问题 {{currentRound}}/{{maxRounds}}</view>
+    <view class="question-content">{{currentQuestion.content}}</view>
+  </view>
+
+  <!-- 答题面板 -->
+  <view class="answer-panel">
+    <view class="answer-textarea-container">
+      <textarea 
+        class="answer-textarea" 
+        placeholder="请输入您的回答..."
+        value="{{userAnswer}}"
+        bindinput="onAnswerInput"
+        auto-height
+        maxlength="1000"
+      ></textarea>
+      <view class="word-count">{{userAnswer.length}}/1000</view>
+    </view>
+
+    <!-- 音频控制 -->
+    <view class="audio-controls">
+      <button 
+        class="audio-btn {{recording ? 'recording' : ''}}" 
+        bindtap="toggleRecording"
+      >
+        {{recording ? '停止录音' : '开始录音'}}
+      </button>
+      <button 
+        class="audio-btn"
+        bindtap="playRecording"
+        disabled="{{!recordingUrl}}"
+      >
+        播放录音
+      </button>
+    </view>
+  </view>
+
+  <!-- 评分反馈区域 (答题后显示) -->
+  <view class="feedback-section" wx:if="showFeedback">
+    <view class="feedback-title">AI评分与反馈</view>
+    <view class="score-row">
+      <view class="score-item">
+        <view class="score-label">技术深度</view>
+        <view class="score-value">{{questionScore.tech}}/10</view>
+      </view>
+      <view class="score-item">
+        <view class="score-label">逻辑表达</view>
+        <view class="score-value">{{questionScore.logic}}/10</view>
+      </view>
+      <view class="score-item">
+        <view class="score-label">表达清晰度</view>
+        <view class="score-value">{{questionScore.clarity}}/10</view>
+      </view>
+      <view class="score-item">
+        <view class="score-label">回答深度</view>
+        <view class="score-value">{{questionScore.depth}}/10</view>
+      </view>
+    </view>
+    <view class="feedback-content">{{feedbackText}}</view>
+    <view class="matched-points" wx:if="matchedPoints && matchedPoints.length > 0">
+      <view class="matched-title">覆盖要点：</view>
+      <view wx:for="{{matchedPoints}}" wx:key="index" class="matched-item">✓ {{item}}</view>
+    </view>
+  </view>
+
+  <!-- 会话进度条 -->
+  <view class="progress-section">
+    <view class="progress-bar">
+      <view class="progress-fill" style="width: {{progress}}%"></view>
+    </view>
+    <view class="progress-text">{{progress}}% 完成</view>
+  </view>
+
+  <!-- 底部按钮 -->
+  <view class="bottom-buttons">
+    <button 
+      class="btn btn-secondary" 
+      bindtap="skipQuestion"
+      disabled="{{loading || !userAnswer}}">
+      跳过此题
+    </button>
+    <button 
+      class="btn btn-primary" 
+      bindtap="submitAnswer"
+      disabled="{{loading || !userAnswer}}">
+      {{showFeedback ? '继续追问' : '提交回答'}}
+    </button>
+  </view>
+
+  <!-- 加载提示 -->
+  <view class="loading-mask" wx:if="loading">
+    <view class="loading-content">
+      <view class="loading-spinner"></view>
+      <text class="loading-text">{{loadingText}}</text>
+    </view>
+  </view>
+</view>

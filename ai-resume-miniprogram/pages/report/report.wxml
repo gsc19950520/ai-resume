@@ -1,0 +1,139 @@
+<!-- report.wxml -->
+<view class="container">
+  <!-- 顶部导航栏 -->
+  <view class="header">
+    <view class="header-left" bindtap="goBack">
+      <image src="/images/arrow.png" mode="aspectFit" class="back-icon"></image>
+    </view>
+    <view class="header-title">面试报告</view>
+    <view class="header-right">
+      <button class="download-btn" bindtap="downloadReport">
+        下载报告
+      </button>
+    </view>
+  </view>
+
+  <!-- 总体评分 -->
+  <view class="summary-card">
+    <view class="summary-title">总体评分</view>
+    <view class="total-score">{{totalScore}}</view>
+    <view class="score-desc">{{getScoreDescription(totalScore)}}</view>
+    
+    <!-- 雷达图容器 -->
+    <view class="chart-container">
+      <canvas canvas-id="radarCanvas" style="width: 100%; height: 400rpx;"></canvas>
+    </view>
+  </view>
+
+  <!-- 薪资匹配 -->
+  <view class="salary-card">
+    <view class="card-header">
+      <view class="card-title">薪资与经验匹配</view>
+      <view class="confidence-badge" style="background-color: {{getConfidenceColor(confidence)}}">
+        匹配度 {{Math.round(confidence * 100)}}%
+      </view>
+    </view>
+    <view class="salary-content">
+      <view class="salary-item">
+        <view class="salary-label">AI评估经验</view>
+        <view class="salary-value">{{estimatedYears}}</view>
+      </view>
+      <view class="salary-item">
+        <view class="salary-label">推荐薪资范围</view>
+        <view class="salary-value highlight">{{salaryRange}}</view>
+      </view>
+    </view>
+    <view class="city-info">
+      <image src="/images/settings.png" mode="aspectFit" class="city-icon"></image>
+      <text>{{city}} | {{jobType}}</text>
+    </view>
+  </view>
+
+  <!-- 薪资趋势图 -->
+  <view class="trend-card">
+    <view class="card-header">
+      <view class="card-title">薪资趋势分析</view>
+    </view>
+    <view class="chart-container">
+      <canvas canvas-id="trendCanvas" style="width: 100%; height: 300rpx;"></canvas>
+    </view>
+  </view>
+
+  <!-- 详细评分 -->
+  <view class="detail-card">
+    <view class="card-header">
+      <view class="card-title">维度评分明细</view>
+    </view>
+    <view class="dimension-scores">
+      <view class="dimension-item">
+        <view class="dimension-label">技术深度</view>
+        <view class="dimension-bar">
+          <view class="dimension-fill" style="width: {{techScore * 10}}%"></view>
+        </view>
+        <view class="dimension-value">{{techScore}}/10</view>
+      </view>
+      <view class="dimension-item">
+        <view class="dimension-label">逻辑表达</view>
+        <view class="dimension-bar">
+          <view class="dimension-fill logic" style="width: {{logicScore * 10}}%"></view>
+        </view>
+        <view class="dimension-value">{{logicScore}}/10</view>
+      </view>
+      <view class="dimension-item">
+        <view class="dimension-label">表达清晰度</view>
+        <view class="dimension-bar">
+          <view class="dimension-fill clarity" style="width: {{clarityScore * 10}}%"></view>
+        </view>
+        <view class="dimension-value">{{clarityScore}}/10</view>
+      </view>
+      <view class="dimension-item">
+        <view class="dimension-label">回答深度</view>
+        <view class="dimension-bar">
+          <view class="dimension-fill depth" style="width: {{depthScore * 10}}%"></view>
+        </view>
+        <view class="dimension-value">{{depthScore}}/10</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 答题记录 -->
+  <view class="session-card">
+    <view class="card-header">
+      <view class="card-title">答题记录</view>
+    </view>
+    <view class="session-list">
+      <view class="session-item" wx:for="{{sessionLog}}" wx:key="index">
+        <view class="session-header">
+          <view class="session-number">问题 {{index + 1}}</view>
+          <view class="session-score">得分：{{getQuestionScore(item.score)}}</view>
+        </view>
+        <view class="session-question">{{item.question}}</view>
+        <view class="session-answer">{{item.answer}}</view>
+        <view class="session-feedback">
+          <view class="feedback-title">AI反馈：</view>
+          <view class="feedback-content">{{item.feedback}}</view>
+        </view>
+        <view class="session-points" wx:if="item.matchedPoints && item.matchedPoints.length > 0">
+          <view class="points-title">覆盖要点：</view>
+          <view wx:for="{{item.matchedPoints}}" wx:for-item="point" wx:key="pointIndex" class="point-item">✓ {{point}}</view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 成长建议 -->
+  <view class="advice-card">
+    <view class="card-header">
+      <view class="card-title">职业成长建议</view>
+    </view>
+    <view class="advice-content">{{growthAdvice}}</view>
+  </view>
+
+  <!-- 加载提示 -->
+  <view class="loading-mask" wx:if="loading">
+    <view class="loading-content">
+      <view class="loading-spinner"></view>
+      <text class="loading-text">加载报告中...</text>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,79 @@
+<!-- create.wxml -->
+<view class="container">
+  <view class="header">
+    <text class="title">创建新简历</text>
+  </view>
+  
+  <!-- 模式选择 -->
+  <view class="mode-selection">
+    <text class="section-title">请选择创建方式</text>
+    <radio-group class="mode-group" bindchange="onModeChange">
+      <label class="mode-option {{createMode === 'template' ? 'active' : ''}}" bindtap="selectTemplateMode">
+        <radio value="template" checked="{{createMode === 'template'}}" />
+        <view class="mode-content">
+          <text class="mode-title">使用模板</text>
+          <text class="mode-desc">选择专业模板，填写个人信息</text>
+        </view>
+      </label>
+      <label class="mode-option {{createMode === 'ai' ? 'active' : ''}}" bindtap="selectAiMode">
+        <radio value="ai" checked="{{createMode === 'ai'}}" />
+        <view class="mode-content">
+          <text class="mode-title">AI 生成</text>
+          <text class="mode-desc">填写职业信息，AI智能生成完美简历</text>
+        </view>
+      </label>
+    </radio-group>
+  </view>
+  
+  <!-- 模板模式内容 -->
+  <view class="mode-panel" wx:if="{{createMode === 'template'}}">
+    <view class="form">
+      <view class="form-item">
+        <text class="label">简历标题</text>
+        <input class="input" placeholder="请输入简历标题" value="{{resumeTitle}}" bindinput="onTitleInput" />
+      </view>
+      
+      <view class="form-item">
+        <text class="label">选择模板</text>
+        <view class="template-list">
+          <view class="template-item" wx:for="{{templates}}" wx:key="id" bindtap="selectTemplate" data-id="{{item.id}}">
+            <view class="template-preview">{{item.name}} 预览</view>
+            <text class="template-name">{{item.name}}</text>
+          </view>
+        </view>
+      </view>
+      
+      <button class="next-btn" type="primary" disabled="{{!selectedTemplateId}}" bindtap="goToTemplateEdit">
+        开始填写信息
+      </button>
+    </view>
+  </view>
+  
+  <!-- AI生成模式内容 -->
+  <view class="mode-panel" wx:if="{{createMode === 'ai'}}">
+    <view class="form">
+      <view class="form-item">
+        <text class="label">简历标题</text>
+        <input class="input" placeholder="请输入简历标题" value="{{resumeTitle}}" bindinput="onTitleInput" />
+      </view>
+      
+      <view class="form-item">
+        <text class="label">职业</text>
+        <input class="input" placeholder="请输入您的职业，如：前端开发工程师" value="{{occupation}}" bindinput="onOccupationInput" />
+      </view>
+      
+      <view class="form-item">
+        <text class="label">工作经历</text>
+        <textarea class="textarea" placeholder="请简要描述您的工作经历和项目经验，AI将基于这些信息生成简历" value="{{workExperience}}" bindinput="onWorkExperienceInput" />
+      </view>
+      
+      <button class="generate-btn" type="primary" disabled="{{!resumeTitle.trim() || !occupation.trim() || !workExperience.trim()}}" bindtap="generateResumeWithAI">
+        AI生成简历
+      </button>
+    </view>
+    
+    <view class="ai-hint">
+      <text>提示：AI将使用deepseek模型基于您提供的信息生成专业简历</text>
+    </view>
+  </view>
+</view>

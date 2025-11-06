@@ -63,11 +63,24 @@ Page({
 
   // 加载数据
   loadData: function() {
-    // 模拟加载数据
     wx.showLoading({ title: '加载中' })
+    // 实际调用API获取推荐列表
+    app.request('/api/recommend/list', 'GET', {}, res => {
+      wx.hideLoading()
+      if (res && res.code === 0 && res.data && res.data.list) {
+        this.setData({
+          recommendList: res.data.list
+        })
+      } else {
+        console.log('获取推荐列表失败或返回格式异常，使用模拟数据')
+        // 继续使用页面中定义的模拟数据，不进行修改
+      }
+    })
+  
+    // 无论API调用是否成功，都在2秒后隐藏加载提示
     setTimeout(() => {
       wx.hideLoading()
-    }, 1000)
+    }, 2000)
   },
 
   // 创建简历
@@ -76,9 +89,7 @@ Page({
       this.showLoginTip()
       return
     }
-    wx.navigateTo({
-      url: '/pages/create/create'
-    })
+    wx.navigateTo({ url: '/pages/create/create' })
   },
 
   // 我的简历
@@ -87,23 +98,46 @@ Page({
       this.showLoginTip()
       return
     }
-    wx.navigateTo({
-      url: '/pages/resume/list'
-    })
+    wx.navigateTo({ url: '/pages/resume/list/list' })
+  },
+
+  // AI模拟面试
+  aiInterview: function() {
+    if (!this.data.userInfo) {
+      this.showLoginTip()
+      return
+    }
+    wx.navigateTo({ url: '/pages/interview/interview' })
+  },
+
+  // 城市薪资匹配
+  salaryMatcher: function() {
+    if (!this.data.userInfo) {
+      this.showLoginTip()
+      return
+    }
+    wx.navigateTo({ url: '/pages/salary/matcher' })
+  },
+
+  // AI职业成长报告
+  aiCareerReport: function() {
+    if (!this.data.userInfo) {
+      this.showLoginTip()
+      return
+    }
+    wx.navigateTo({ url: '/pages/career/report' })
   },
 
   // 简历模板
   resumeTemplates: function() {
-    wx.navigateTo({
-      url: '/pages/template/list'
-    })
+    wx.navigateTo({ url: '/pages/template/list/list' })
   },
 
-  // 跳转到详情页
+  // 跳转到详情页（临时提示）
   goToDetail: function(e) {
-    const id = e.currentTarget.dataset.id
-    wx.navigateTo({
-      url: `/pages/detail/detail?id=${id}`
+    wx.showToast({
+      title: '详情页功能开发中',
+      icon: 'none'
     })
   },
 

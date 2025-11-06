@@ -47,8 +47,31 @@ public class Resume {
     @Column(name = "download_url_word")
     private String downloadUrlWord;
 
-    @Column(name = "template_id")
+    // 简历与模板的一对一关联
+    @ManyToOne
+    @JoinColumn(name = "template_id", referencedColumnName = "id", foreignKey = @ForeignKey(name = "fk_resume_template"))
+    private Template template;
+    
+    // 直接访问template_id字段，用于设置和获取
+    @Transient
     private Long templateId;
+    
+    // 模板配置信息，用于存储简历特定的模板配置
+    @Column(name = "template_config", columnDefinition = "text")
+    private String templateConfig;
+    
+    // 获取templateId
+    public Long getTemplateId() {
+        if (templateId != null) {
+            return templateId;
+        }
+        return template != null ? template.getId() : null;
+    }
+    
+    // 设置templateId
+    public void setTemplateId(Long templateId) {
+        this.templateId = templateId;
+    }
 
     @Column(name = "status", nullable = false, columnDefinition = "int default 0")
     private Integer status = 0; // 0: 上传成功, 1: 优化中, 2: 优化成功, 3: 优化失败

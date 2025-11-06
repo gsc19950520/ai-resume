@@ -6,7 +6,8 @@ Page({
     userInfo: null,
     resumeCount: 0,
     templateCount: 0,
-    favCount: 0
+    favCount: 0,
+    interviewCount: 0
   },
 
   onShow: function() {
@@ -40,20 +41,20 @@ Page({
   loadUserData: function() {
     wx.showLoading({ title: '加载中' })
     
-    // 模拟加载数据
-    setTimeout(() => {
-      // 调用API获取用户统计数据
-      app.request('/user/stats', 'GET', {}, res => {
-        wx.hideLoading()
-        if (res.code === 0) {
-          this.setData({
-            resumeCount: res.data.resumeCount || 0,
-            templateCount: res.data.templateCount || 0,
-            favCount: res.data.favCount || 0
-          })
-        }
-      })
-    }, 500)
+    // 直接调用API获取用户统计数据
+    app.request('/api/user/stats', 'GET', {}, res => {
+      wx.hideLoading()
+      if (res && res.code === 0 && res.data) {
+        this.setData({
+          resumeCount: res.data.resumeCount || 0,
+          templateCount: res.data.templateCount || 0,
+          favCount: res.data.favCount || 0,
+          interviewCount: res.data.interviewCount || 0
+        })
+      } else {
+        console.log('获取用户统计数据失败或返回格式异常')
+      }
+    })
   },
 
   // 我的简历
@@ -62,9 +63,16 @@ Page({
       this.showLoginTip()
       return
     }
-    wx.navigateTo({
-      url: '/pages/resume/list'
-    })
+    wx.navigateTo({ url: '/pages/resume/list/list' })
+  },
+
+  // 面试历史
+  interviewHistory: function() {
+    if (!this.data.userInfo) {
+      this.showLoginTip()
+      return
+    }
+    wx.navigateTo({ url: '/pages/interview/history' })
   },
 
   // 设置
@@ -73,22 +81,29 @@ Page({
       this.showLoginTip()
       return
     }
-    wx.navigateTo({
-      url: '/pages/settings/settings'
+    // 创建设置页面的临时实现
+    wx.showModal({
+      title: '设置',
+      content: '功能开发中，敬请期待！',
+      showCancel: false
     })
   },
 
   // 意见反馈
   feedback: function() {
-    wx.navigateTo({
-      url: '/pages/feedback/feedback'
+    wx.showModal({
+      title: '意见反馈',
+      content: '如有问题或建议，请联系我们：support@airesume.com',
+      showCancel: false
     })
   },
 
   // 关于我们
   about: function() {
-    wx.navigateTo({
-      url: '/pages/about/about'
+    wx.showModal({
+      title: '关于我们',
+      content: 'AI简历助手 v1.0.0\n\n智能简历创建与优化工具，帮助您打造专业简历，提升求职成功率。\n\n© 2023 AI简历助手团队',
+      showCancel: false
     })
   },
 

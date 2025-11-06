@@ -1,0 +1,38 @@
+<!-- list.wxml -->
+<view class="container">
+  <!-- 加载中 -->
+  <view class="loading-container" wx:if="{{loading && !refreshing}}">
+    <loading class="loading">加载中...</loading>
+  </view>
+
+  <!-- 简历列表 -->
+  <view class="list-container" wx:else>
+    <block wx:if="{{resumeList.length > 0}}">
+      <view class="resume-item" wx:for="{{resumeList}}" wx:key="id">
+        <view class="resume-info">
+          <view class="title-container">
+            <text class="resume-title">{{item.title}}</text>
+            <view class="ai-badge-small" wx:if="{{item.isAiGenerated !== false}}">
+              <text class="ai-text-small">AI</text>
+            </view>
+          </view>
+          <text class="resume-type">{{item.type === 'basic' ? '基础简历' : item.type === 'technical' ? '技术简历' : '创意简历'}}</text>
+          <text class="resume-time">更新于: {{item.updateTime}}</text>
+        </view>
+        <view class="resume-actions">
+          <button class="edit-btn" size="mini" bindtap="editResume" data-id="{{item.id}}">编辑</button>
+          <button class="delete-btn" size="mini" type="warn" bindtap="deleteResume" data-id="{{item.id}}">删除</button>
+        </view>
+      </view>
+    </block>
+    <view class="empty-container" wx:else>
+      <text class="empty-text">暂无简历</text>
+      <text class="empty-hint">点击下方按钮创建您的第一份简历</text>
+    </view>
+  </view>
+
+  <!-- 创建按钮 -->
+  <button class="create-btn" type="primary" bindtap="createNewResume">
+    创建新简历
+  </button>
+</view>

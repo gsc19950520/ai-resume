@@ -1,0 +1,287 @@
+/* preview.wxss */
+.container {
+  padding: 30rpx;
+  box-sizing: border-box;
+  min-height: 100vh;
+  background: #f5f5f5;
+}
+
+/* 顶部操作栏 */
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30rpx;
+  padding: 20rpx 0;
+}
+
+.template-title {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #333;
+  flex: 1;
+  text-align: center;
+}
+
+.back-btn, .use-btn {
+  font-size: 28rpx;
+  height: 70rpx;
+  line-height: 70rpx;
+  padding: 0 30rpx;
+}
+
+/* 预览容器 */
+.preview-container {
+  display: flex;
+  justify-content: center;
+}
+
+/* 简历卡片基础样式 */
+.resume-card {
+  width: 90%;
+  max-width: 800rpx;
+  background: #ffffff;
+  border-radius: 10rpx;
+  padding: 40rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.1);
+}
+
+/* 通用区块样式 */
+.section {
+  margin-top: 40rpx;
+}
+
+.section-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  margin-bottom: 20rpx;
+  padding-bottom: 10rpx;
+}
+
+.section-content {
+  font-size: 28rpx;
+  line-height: 44rpx;
+}
+
+/* 个人信息样式 */
+.personal-info {
+  text-align: center;
+  padding-bottom: 30rpx;
+  border-bottom: 2rpx solid #e0e0e0;
+}
+
+.name {
+  display: block;
+  font-size: 44rpx;
+  font-weight: bold;
+  margin-bottom: 10rpx;
+}
+
+.job-title {
+  display: block;
+  font-size: 32rpx;
+  margin-bottom: 20rpx;
+}
+
+.contact-info {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 20rpx;
+}
+
+.contact-item {
+  font-size: 26rpx;
+  color: #666;
+}
+
+/* 教育经历样式 */
+.education-item, .work-item, .project-item {
+  margin-bottom: 25rpx;
+}
+
+.education-header, .work-header, .project-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8rpx;
+}
+
+.school, .company, .project-name {
+  font-weight: bold;
+  font-size: 30rpx;
+}
+
+.date {
+  font-size: 26rpx;
+  color: #666;
+}
+
+.education-detail {
+  margin-left: 10rpx;
+}
+
+.major, .degree {
+  margin-right: 20rpx;
+  color: #555;
+}
+
+.position, .role {
+  display: block;
+  margin-bottom: 8rpx;
+  font-weight: 500;
+  color: #444;
+}
+
+.description {
+  display: block;
+  color: #666;
+  margin-left: 10rpx;
+}
+
+/* 专业技能样式 */
+.skills-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15rpx;
+}
+
+.skill-tag {
+  background: #f0f0f0;
+  padding: 8rpx 20rpx;
+  border-radius: 40rpx;
+  font-size: 26rpx;
+}
+
+/* 自我评价样式 */
+.self-evaluation {
+  color: #555;
+  line-height: 46rpx;
+}
+
+/* 简约专业模板样式 */
+.basic-template .section-title {
+  color: #333333;
+  border-bottom: 2rpx solid #333333;
+}
+
+.basic-template .name {
+  color: #333333;
+}
+
+.basic-template .job-title {
+  color: #0066cc;
+}
+
+.basic-template .skill-tag {
+  background: #e6f2ff;
+  color: #0066cc;
+}
+
+/* 技术人才模板样式 */
+.technical-template {
+  background: #f8f9fa;
+  border: 2rpx solid #dee2e6;
+}
+
+.technical-template .section-title {
+  color: #2c3e50;
+  border-bottom: 2rpx solid #3498db;
+  background: #eef4fa;
+  padding-left: 15rpx;
+}
+
+.technical-template .name {
+  color: #2c3e50;
+}
+
+.technical-template .job-title {
+  color: #3498db;
+}
+
+.technical-template .skill-tag {
+  background: #e3f2fd;
+  color: #2c3e50;
+  border: 1rpx solid #3498db;
+}
+
+/* 创意设计模板样式 */
+.creative-template {
+  background: #ffffff;
+  border: 4rpx solid #ecf0f1;
+  border-radius: 15rpx;
+}
+
+.creative-template .section-title {
+  color: #34495e;
+  border-bottom: 3rpx solid #e74c3c;
+  font-style: italic;
+}
+
+.creative-template .name {
+  color: #e74c3c;
+  font-style: italic;
+  letter-spacing: 4rpx;
+}
+
+.creative-template .job-title {
+  color: #34495e;
+}
+
+.creative-template .skill-tag {
+  background: #fadbd8;
+  color: #e74c3c;
+  transform: rotate(-1deg);
+}
+
+.creative-template .personal-info {
+  border-bottom: 2rpx dashed #95a5a6;
+}
+
+/* 学术研究模板样式 */
+.academic-template {
+  background: #f7fafc;
+  border: 2rpx solid #e2e8f0;
+}
+
+.academic-template .section-title {
+  color: #1a365d;
+  border-bottom: 2rpx solid #2b6cb0;
+  text-transform: uppercase;
+  letter-spacing: 2rpx;
+}
+
+.academic-template .name {
+  color: #1a365d;
+}
+
+.academic-template .job-title {
+  color: #2b6cb0;
+}
+
+.academic-template .skill-tag {
+  background: #ebf8ff;
+  color: #1a365d;
+  border: 1rpx solid #2b6cb0;
+}
+
+.academic-template .education-item {
+  border-left: 3rpx solid #2b6cb0;
+  padding-left: 20rpx;
+}
+
+/* 响应式设计 */
+@media (max-width: 375px) {
+  .resume-card {
+    width: 100%;
+    padding: 25rpx;
+  }
+  
+  .toolbar {
+    flex-direction: column;
+    gap: 15rpx;
+  }
+  
+  .template-title {
+    order: -1;
+  }
+}
