@@ -60,6 +60,9 @@ public class Resume {
     @Column(name = "template_config", columnDefinition = "text")
     private String templateConfig;
     
+    @Column(name = "job_type_id")
+    private Long jobTypeId;
+    
     // 获取templateId
     public Long getTemplateId() {
         if (templateId != null) {

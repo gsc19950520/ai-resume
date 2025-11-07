@@ -1,5 +1,12 @@
 package com.aicv.airesume.service;
 
+import com.aicv.airesume.entity.InterviewSession;
+import com.aicv.airesume.model.dto.InterviewQuestionDTO;
+import com.aicv.airesume.model.dto.InterviewReportDTO;
+import com.aicv.airesume.model.dto.InterviewResponseDTO;
+import com.aicv.airesume.model.vo.InterviewHistoryVO;
+import com.aicv.airesume.model.vo.InterviewSessionVO;
+import com.aicv.airesume.model.vo.SalaryRangeVO;
 import java.util.List;
 import java.util.Map;
 
@@ -9,54 +16,68 @@ import java.util.Map;
 public interface InterviewService {
 
     /**
-     * 开始面试
+     * 开始面试 - 支持动态配置
      * @param userId 用户ID
      * @param resumeId 简历ID
-     * @param jobType 工作类型
-     * @param city 城市
-     * @param sessionParams 会话参数
-     * @return 包含sessionId和firstQuestion的Map
+     * @param persona 面试官风格（可选）
+     * @param sessionSeconds 会话时长（可选）
+     * @return 面试会话信息和第一个问题
      */
-    Map<String, Object> startInterview(String userId, Long resumeId, String jobType, String city, Map<String, Object> sessionParams);
+    InterviewResponseDTO startInterview(Long userId, Long resumeId, String persona, Integer sessionSeconds);
 
     /**
-     * 提交答案并获取下一个问题
+     * 提交回答 - 支持回答时长
      * @param sessionId 会话ID
-     * @param questionId 问题ID
-     * @param userAnswerText 用户文字答案
-     * @param userAnswerAudioUrl 用户音频答案URL
-     * @return 包含nextQuestion、perQuestionScore、feedback、stopFlag的Map
+     * @param userAnswerText 用户回答文本
+     * @param answerDuration 回答时长（秒）
+     * @return 评分和下一个问题
      */
-    Map<String, Object> submitAnswer(String sessionId, String questionId, String userAnswerText, String userAnswerAudioUrl);
+    InterviewResponseDTO submitAnswer(String sessionId, String userAnswerText, Integer answerDuration);
 
     /**
-     * 完成面试并生成报告
+     * 完成面试
      * @param sessionId 会话ID
-     * @return 包含aggregatedScores、salaryInfo、reportUrl的Map
+     * @return 面试报告
      */
-    Map<String, Object> finishInterview(String sessionId);
+    InterviewReportDTO finishInterview(String sessionId);
 
     /**
-     * 获取用户面试历史
+     * 获取用户的面试历史
      * @param userId 用户ID
      * @return 面试历史列表
      */
-    List<Map<String, Object>> getInterviewHistory(String userId);
-    
+    List<InterviewHistoryVO> getInterviewHistory(Long userId);
+
     /**
-     * 根据面试评分计算薪资范围
-     * @param city 城市
-     * @param jobType 职位类型
-     * @param aggregatedScores 各维度评分
-     * @return 薪资信息
+     * 计算薪资范围
+     * @param sessionId 会话ID
+     * @return 薪资范围
      */
-    Map<String, Object> calculateSalary(String city, String jobType, Map<String, Double> aggregatedScores);
+    SalaryRangeVO calculateSalary(String sessionId);
 
     /**
      * 获取面试详情
      * @param sessionId 会话ID
-     * @return 面试详情信息
+     * @return 面试详情
      */
-    Map<String, Object> getInterviewDetail(String sessionId);
+    InterviewSessionVO getInterviewDetail(String sessionId);
+    
+    /**
+     * 从简历提取技术项和项目点
+     * @param resumeContent 简历内容
+     * @return 包含技术项和项目点的对象
+     */
+    Map<String, Object> extractTechItemsAndProjectPoints(String resumeContent);
+    
+    /**
+     * 动态生成下一个面试问题
+     * @param techItems 技术项列表
+     * @param projectPoints 项目点列表
+     * @param interviewState 面试状态
+     * @param sessionTimeRemaining 剩余时间（秒）
+     * @param persona 面试官风格
+     * @return 包含下一个问题的对象
+     */
+    Map<String, Object> generateNextQuestion(List<String> techItems, List<Map<String, Object>> projectPoints, Map<String, Object> interviewState, Integer sessionTimeRemaining, String persona);
 
 }

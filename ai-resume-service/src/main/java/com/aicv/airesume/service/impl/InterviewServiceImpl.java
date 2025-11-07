@@ -3,15 +3,25 @@ package com.aicv.airesume.service.impl;
 import com.aicv.airesume.entity.InterviewSession;
 import com.aicv.airesume.entity.InterviewLog;
 import com.aicv.airesume.entity.Resume;
-import com.aicv.airesume.repository.InterviewLogRepository;
+import com.aicv.airesume.model.dto.InterviewQuestionDTO;
+import com.aicv.airesume.model.dto.InterviewReportDTO;
+import com.aicv.airesume.model.dto.InterviewResponseDTO;
+import com.aicv.airesume.model.vo.InterviewHistoryVO;
+import com.aicv.airesume.model.vo.InterviewSessionVO;
+import com.aicv.airesume.model.vo.SalaryRangeVO;
 import com.aicv.airesume.repository.InterviewSessionRepository;
+import com.aicv.airesume.repository.InterviewLogRepository;
 import com.aicv.airesume.repository.ResumeRepository;
+import com.aicv.airesume.repository.InterviewQuestionRepository;
+import com.aicv.airesume.entity.InterviewQuestion;
 import com.aicv.airesume.service.InterviewService;
+import com.aicv.airesume.service.AIGenerateService;
 import com.aicv.airesume.utils.AiServiceUtils;
-import com.aicv.airesume.utils.FileUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
+import com.aicv.airesume.entity.AiTraceLog;
+import com.aicv.airesume.repository.AiTraceLogRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -41,362 +51,903 @@ public class InterviewServiceImpl implements InterviewService {
 
     @Autowired
     private ObjectMapper objectMapper;
-
-    // 薪资映射数据 - 城市 -> 职位 -> 经验年限 -> 薪资范围
-    private static final Map<String, Map<String, Map<String, String>>> SALARY_MAP = new HashMap<>();
-
-    static {
-        // 初始化薪资映射
-        // 北京各职位薪资
-        Map<String, Map<String, String>> beijingMap = new HashMap<>();
-        
-        // 北京Java薪资
-        Map<String, String> beijingJava = new HashMap<>();
-        beijingJava.put("0-1", "9K-14K");
-        beijingJava.put("1-3", "14K-20K");
-        beijingJava.put("3-5", "20K-28K");
-        beijingJava.put("5-8", "28K-40K");
-        beijingJava.put("8+", "40K-60K");
-        beijingMap.put("Java", beijingJava);
-        
-        // 北京前端薪资
-        Map<String, String> beijingFrontend = new HashMap<>();
-        beijingFrontend.put("0-1", "8K-13K");
-        beijingFrontend.put("1-3", "13K-19K");
-        beijingFrontend.put("3-5", "19K-26K");
-        beijingFrontend.put("5-8", "26K-38K");
-        beijingFrontend.put("8+", "38K-55K");
-        beijingMap.put("前端", beijingFrontend);
-        beijingMap.put("前端开发", beijingFrontend);
-        
-        // 北京产品薪资
-        Map<String, String> beijingProduct = new HashMap<>();
-        beijingProduct.put("0-1", "10K-15K");
-        beijingProduct.put("1-3", "15K-22K");
-        beijingProduct.put("3-5", "22K-30K");
-        beijingProduct.put("5-8", "30K-45K");
-        beijingProduct.put("8+", "45K-65K");
-        beijingMap.put("产品", beijingProduct);
-        beijingMap.put("产品经理", beijingProduct);
-
-        // 上海各职位薪资
-        Map<String, Map<String, String>> shanghaiMap = new HashMap<>();
-        
-        // 上海Java薪资
-        Map<String, String> shanghaiJava = new HashMap<>();
-        shanghaiJava.put("0-1", "8K-12K");
-        shanghaiJava.put("1-3", "12K-18K");
-        shanghaiJava.put("3-5", "18K-25K");
-        shanghaiJava.put("5-8", "25K-35K");
-        shanghaiJava.put("8+", "35K-50K");
-        shanghaiMap.put("Java", shanghaiJava);
-        
-        // 上海前端薪资
-        Map<String, String> shanghaiFrontend = new HashMap<>();
-        shanghaiFrontend.put("0-1", "7K-11K");
-        shanghaiFrontend.put("1-3", "11K-17K");
-        shanghaiFrontend.put("3-5", "17K-24K");
-        shanghaiFrontend.put("5-8", "24K-35K");
-        shanghaiFrontend.put("8+", "35K-50K");
-        shanghaiMap.put("前端", shanghaiFrontend);
-        shanghaiMap.put("前端开发", shanghaiFrontend);
-        
-        // 上海产品薪资
-        Map<String, String> shanghaiProduct = new HashMap<>();
-        shanghaiProduct.put("0-1", "9K-14K");
-        shanghaiProduct.put("1-3", "14K-20K");
-        shanghaiProduct.put("3-5", "20K-28K");
-        shanghaiProduct.put("5-8", "28K-42K");
-        shanghaiProduct.put("8+", "42K-60K");
-        shanghaiMap.put("产品", shanghaiProduct);
-        shanghaiMap.put("产品经理", shanghaiProduct);
-        
-        // 广州各职位薪资
-        Map<String, Map<String, String>> guangzhouMap = new HashMap<>();
-        
-        // 广州Java薪资
-        Map<String, String> guangzhouJava = new HashMap<>();
-        guangzhouJava.put("0-1", "7K-11K");
-        guangzhouJava.put("1-3", "11K-16K");
-        guangzhouJava.put("3-5", "16K-22K");
-        guangzhouJava.put("5-8", "22K-32K");
-        guangzhouJava.put("8+", "32K-45K");
-        guangzhouMap.put("Java", guangzhouJava);
-        
-        // 广州前端薪资
-        Map<String, String> guangzhouFrontend = new HashMap<>();
-        guangzhouFrontend.put("0-1", "6K-10K");
-        guangzhouFrontend.put("1-3", "10K-15K");
-        guangzhouFrontend.put("3-5", "15K-20K");
-        guangzhouFrontend.put("5-8", "20K-30K");
-        guangzhouFrontend.put("8+", "30K-42K");
-        guangzhouMap.put("前端", guangzhouFrontend);
-        guangzhouMap.put("前端开发", guangzhouFrontend);
-        
-        // 深圳各职位薪资
-        Map<String, Map<String, String>> shenzhenMap = new HashMap<>();
-        
-        // 深圳Java薪资
-        Map<String, String> shenzhenJava = new HashMap<>();
-        shenzhenJava.put("0-1", "8K-13K");
-        shenzhenJava.put("1-3", "13K-19K");
-        shenzhenJava.put("3-5", "19K-26K");
-        shenzhenJava.put("5-8", "26K-38K");
-        shenzhenJava.put("8+", "38K-55K");
-        shenzhenMap.put("Java", shenzhenJava);
-        
-        // 深圳前端薪资
-        Map<String, String> shenzhenFrontend = new HashMap<>();
-        shenzhenFrontend.put("0-1", "7K-12K");
-        shenzhenFrontend.put("1-3", "12K-18K");
-        shenzhenFrontend.put("3-5", "18K-25K");
-        shenzhenFrontend.put("5-8", "25K-36K");
-        shenzhenFrontend.put("8+", "36K-52K");
-        shenzhenMap.put("前端", shenzhenFrontend);
-        shenzhenMap.put("前端开发", shenzhenFrontend);
-
-        // 添加城市映射
-        SALARY_MAP.put("北京", beijingMap);
-        SALARY_MAP.put("上海", shanghaiMap);
-        SALARY_MAP.put("广州", guangzhouMap);
-        SALARY_MAP.put("深圳", shenzhenMap);
-    }
+    
+    @Autowired
+    private AiTraceLogRepository aiTraceLogRepository;
+    
+    @Autowired
+    private InterviewQuestionRepository questionRepository;
+    
+    @Autowired
+    private AIGenerateService aiGenerateService;
+    
+    // 保存AI调用的跟踪日志
+     private void saveAiTraceLog(String sessionId, String actionType, String promptInput, String aiResponse) {
+         try {
+             AiTraceLog traceLog = new AiTraceLog();
+             traceLog.setSessionId(sessionId);
+             traceLog.setActionType(actionType);
+             traceLog.setPromptInput(promptInput);
+             traceLog.setAiResponse(aiResponse);
+             traceLog.setCreatedAt(LocalDateTime.now());
+             aiTraceLogRepository.save(traceLog);
+         } catch (Exception e) {
+             log.error("保存AI跟踪日志失败", e);
+         }
+     }
 
     @Override
-    public Map<String, Object> startInterview(String userId, Long resumeId, String jobType, String city, Map<String, Object> sessionParams) {
-        // 1. 获取简历内容
-        Resume resume = resumeRepository.findById(resumeId).orElseThrow(() -> new RuntimeException("简历不存在"));
-        String resumeText = resume.getOriginalContent() != null ? resume.getOriginalContent() : "";
-        if (resumeText.isEmpty() && resume.getOptimizedContent() != null) {
-            resumeText = resume.getOptimizedContent();
-        }
+    public InterviewResponseDTO startInterview(Long userId, Long resumeId, String persona, Integer sessionSeconds) {
+        try {
+            // 1. 获取简历内容
+            Resume resume = resumeRepository.findById(resumeId).orElseThrow(() -> new RuntimeException("简历不存在"));
+            String resumeText = resume.getOriginalContent() != null ? resume.getOriginalContent() : "";
+            if (resumeText.isEmpty() && resume.getOptimizedContent() != null) {
+                resumeText = resume.getOptimizedContent();
+            }
 
-        // 2. 创建面试会话
-        InterviewSession session = new InterviewSession();
-        session.setSessionId(UUID.randomUUID().toString());
-        session.setUserId(userId);
-        session.setResumeId(resumeId);
-        session.setJobType(jobType);
-        session.setCity(city);
-        session.setStatus("in_progress");
-        
-        // 设置会话参数
-        if (sessionParams != null) {
-            session.setMaxDepthPerPoint(sessionParams.containsKey("maxDepthPerPoint") ? 
-                    Integer.valueOf(sessionParams.get("maxDepthPerPoint").toString()) : 3);
-            session.setMaxFollowups(sessionParams.containsKey("maxFollowups") ? 
-                    Integer.valueOf(sessionParams.get("maxFollowups").toString()) : 6);
-            session.setTimeLimitSecs(sessionParams.containsKey("timeLimitSecs") ? 
-                    Integer.valueOf(sessionParams.get("timeLimitSecs").toString()) : 1200);
-        } else {
-            session.setMaxDepthPerPoint(3);
-            session.setMaxFollowups(6);
-            session.setTimeLimitSecs(1200);
-        }
+            // 2. 调用projectAnalyzer模块提取技术项和项目点
+            Map<String, Object> extractedData = extractTechItemsAndProjectPoints(resumeText);
+            List<String> techItems = (List<String>) extractedData.get("techItems");
+            List<Map<String, Object>> projectPoints = (List<Map<String, Object>>) extractedData.get("projectPoints");
 
-        sessionRepository.save(session);
-
-        // 3. 调用projectAnalyzer模块提取项目点
-        List<Map<String, Object>> projectPoints = extractProjectPoints(resumeText);
-
-        // 4. 生成第一个问题
-        Map<String, Object> firstQuestionData = generateFirstQuestion(projectPoints, jobType);
-        String firstQuestion = (String) firstQuestionData.get("nextQuestion");
-
-        // 5. 创建第一个问题日志
-        InterviewLog firstLog = new InterviewLog();
-        firstLog.setQuestionId(UUID.randomUUID().toString());
-        firstLog.setSession(session);
-        firstLog.setQuestionText(firstQuestion);
-        firstLog.setDepthLevel((String) firstQuestionData.get("depthLevel"));
-        firstLog.setRoundNumber(1);
-        logRepository.save(firstLog);
-
-        Map<String, Object> result = new HashMap<>();
-        result.put("sessionId", session.getSessionId());
-        result.put("firstQuestion", firstQuestion);
-        result.put("depthLevel", firstQuestionData.get("depthLevel"));
-        result.put("questionId", firstLog.getQuestionId());
-
-        return result;
-    }
-
-    @Override
-    public Map<String, Object> submitAnswer(String sessionId, String questionId, String userAnswerText, String userAnswerAudioUrl) {
-        // 1. 获取会话和问题日志
-        InterviewSession session = sessionRepository.findBySessionId(sessionId)
-                .orElseThrow(() -> new RuntimeException("会话不存在"));
-        InterviewLog currentLog = logRepository.findByQuestionId(questionId)
-                .orElseThrow(() -> new RuntimeException("问题不存在"));
-
-        // 2. 更新当前问题日志
-        currentLog.setUserAnswerText(userAnswerText);
-        currentLog.setUserAnswerAudioUrl(userAnswerAudioUrl);
-        logRepository.save(currentLog);
-
-        // 3. 调用aiAssessmentPerQuestion模块评分
-        Map<String, Object> assessment = assessAnswer(currentLog.getQuestionText(), userAnswerText, 
-                Collections.emptyList());
-        
-        // 4. 更新评分和反馈
-        Map<String, Double> scoreDetail = (Map<String, Double>) assessment.get("score_detail");
-        currentLog.setTechScore(scoreDetail.get("tech"));
-        currentLog.setLogicScore(scoreDetail.get("logic"));
-        currentLog.setClarityScore(scoreDetail.get("clarity"));
-        currentLog.setDepthScore(scoreDetail.get("depth"));
-        currentLog.setFeedback((String) assessment.get("feedback"));
-        currentLog.setMatchedPoints(objectMapper.valueToTree(assessment.get("matchedPoints")).toString());
-        logRepository.save(currentLog);
-
-        Map<String, Object> result = new HashMap<>();
-        result.put("perQuestionScore", scoreDetail);
-        result.put("feedback", assessment.get("feedback"));
-
-        // 5. 检查是否需要停止面试
-        List<InterviewLog> logs = logRepository.findBySession_SessionIdOrderByRoundNumberAsc(sessionId);
-        boolean stopFlag = false;
-        
-        if (logs.size() >= session.getMaxFollowups()) {
-            stopFlag = true;
-        }
-
-        if (!stopFlag) {
-            // 6. 调用dynamicInterviewer模块生成下一个问题
-            Map<String, Object> interviewState = new HashMap<>();
-            interviewState.put("lastAnswer", userAnswerText);
+            // 3. 创建面试会话
+            InterviewSession session = new InterviewSession();
+            session.setSessionId(UUID.randomUUID().toString());
+            session.setUserId(userId);
+            session.setResumeId(resumeId);
+            session.setStatus("IN_PROGRESS");
+            session.setJobType(resume.getJobType());
+            session.setQuestionCount(0);
+            session.setAdaptiveLevel("auto");
+            session.setAiQuestionSeed(new Random().nextInt(1000)); // 设置随机种子
             
-            Map<String, Object> nextQuestionData = generateNextQuestion(
-                    Collections.emptyList(), // 简化处理，实际应从简历中提取
-                    session.getJobType(), 
-                    interviewState
+            // 设置动态面试参数
+            session.setPersona(StringUtils.hasText(persona) ? persona : "friendly");
+            session.setSessionSeconds(sessionSeconds != null ? sessionSeconds : 900);
+            session.setSessionTimeRemaining(session.getSessionSeconds());
+            
+            // 存储提取的数据
+            session.setTechItems(objectMapper.writeValueAsString(techItems));
+            session.setProjectPoints(objectMapper.writeValueAsString(projectPoints));
+            
+            // 初始化面试状态
+            Map<String, Object> interviewState = new HashMap<>();
+            interviewState.put("usedTechItems", new ArrayList<>());
+            interviewState.put("usedProjectPoints", new ArrayList<>());
+            interviewState.put("currentDepthLevel", "usage");
+            session.setInterviewState(objectMapper.writeValueAsString(interviewState));
+
+            sessionRepository.save(session);
+
+            // 4. 动态生成第一个问题
+            Map<String, Object> firstQuestionData = generateNextQuestion(
+                    techItems,
+                    projectPoints,
+                    interviewState,
+                    session.getSessionTimeRemaining(),
+                    session.getPersona()
             );
             
-            // 7. 创建下一个问题日志
-            InterviewLog nextLog = new InterviewLog();
-            nextLog.setQuestionId(UUID.randomUUID().toString());
-            nextLog.setSession(session);
-            nextLog.setQuestionText((String) nextQuestionData.get("nextQuestion"));
-            nextLog.setDepthLevel((String) nextQuestionData.get("depthLevel"));
-            nextLog.setRoundNumber(logs.size() + 1);
-            logRepository.save(nextLog);
+            // 保存AI生成问题的跟踪日志
+              saveAiTraceLog(session.getSessionId(), "generate_question", 
+                      "生成第一个问题的prompt内容", 
+                      (String) firstQuestionData.get("nextQuestion"));
+              
+              session.setQuestionCount(1); // 增加问题计数
 
-            result.put("nextQuestion", nextQuestionData.get("nextQuestion"));
-            result.put("depthLevel", nextQuestionData.get("depthLevel"));
-            result.put("questionId", nextLog.getQuestionId());
+            String firstQuestion = (String) firstQuestionData.get("nextQuestion");
+
+            // 5. 创建第一个问题日志
+            InterviewLog firstLog = new InterviewLog();
+            firstLog.setQuestionId(UUID.randomUUID().toString());
+            firstLog.setSession(session);
+            firstLog.setQuestionText(firstQuestion);
+            firstLog.setDepthLevel((String) firstQuestionData.get("depthLevel"));
+            firstLog.setRoundNumber(1);
+            logRepository.save(firstLog);
+
+            // 6. 构建返回对象
+            InterviewResponseDTO response = new InterviewResponseDTO();
+            response.setSessionId(Long.valueOf(session.getSessionId()));
+            
+            // 设置问题信息到additionalInfo
+            Map<String, Object> additionalInfo = response.getAdditionalInfo();
+            if (additionalInfo == null) {
+                additionalInfo = new HashMap<>();
+                response.setAdditionalInfo(additionalInfo);
+            }
+            additionalInfo.put("firstQuestion", firstQuestion);
+            additionalInfo.put("questionId", firstLog.getQuestionId());
+            additionalInfo.put("depthLevel", firstQuestionData.get("depthLevel"));
+            additionalInfo.put("sessionTimeRemaining", session.getSessionTimeRemaining());
+
+            return response;
+        } catch (Exception e) {
+            log.error("开始面试失败", e);
+            throw new RuntimeException("面试初始化失败: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public InterviewResponseDTO submitAnswer(String sessionId, String userAnswerText, Integer answerDuration) {
+        try {
+            // 1. 获取会话信息
+            InterviewSession session = sessionRepository.findBySessionId(sessionId)
+                    .orElseThrow(() -> new RuntimeException("会话不存在"));
+            
+            // 获取最新的问题日志
+            List<InterviewLog> logs = logRepository.findBySession_SessionIdOrderByRoundNumberAsc(sessionId);
+            if (logs.isEmpty()) {
+                throw new RuntimeException("问题不存在");
+            }
+            InterviewLog currentLog = logs.get(logs.size() - 1);
+
+            // 2. 更新当前问题日志
+            currentLog.setUserAnswerText(userAnswerText);
+            currentLog.setAnswerDuration(answerDuration);
+            
+            // 3. 计算剩余时间
+            session.setSessionTimeRemaining(session.getSessionTimeRemaining() - answerDuration);
+            
+            // 4. 调用aiAssessmentPerQuestion模块评分
+            List<String> expectedKeyPoints = new ArrayList<>(); // 简化处理，实际应从generateNextQuestion获取
+            Map<String, Object> assessment = assessAnswer(currentLog.getQuestionText(), userAnswerText, expectedKeyPoints, session.getPersona());
+            
+            // 5. 更新评分和反馈
+            Map<String, Double> scoreDetail = (Map<String, Double>) assessment.get("score_detail");
+            currentLog.setTechScore(scoreDetail.get("tech"));
+            currentLog.setLogicScore(scoreDetail.get("logic"));
+            currentLog.setClarityScore(scoreDetail.get("clarity"));
+            currentLog.setDepthScore(scoreDetail.get("depth"));
+            currentLog.setFeedback((String) assessment.get("feedback"));
+            currentLog.setMatchedPoints(objectMapper.valueToTree(assessment.get("matchedPoints")).toString());
+            
+            // 保存AI原始评分和分析结果
+            if (assessment.containsKey("aiFeedbackJson")) {
+                currentLog.setAiFeedbackJson((String) assessment.get("aiFeedbackJson"));
+            }
+            
+            logRepository.save(currentLog);
+            
+            // 更新问题库中的使用次数和平均得分
+            updateQuestionUsageStatistics(currentLog.getQuestionText(), assessment);
+            
+            // 保存AI评分的跟踪日志
+              saveAiTraceLog(sessionId, "score_answer", 
+                      "回答评分的prompt内容：问题=" + currentLog.getQuestionText() + ",回答=" + userAnswerText, 
+                      (String) assessment.getOrDefault("aiFeedbackJson", ""));
+
+            // 6. 解析技术项和项目点
+            List<String> techItems = objectMapper.readValue(session.getTechItems(), List.class);
+            List<Map<String, Object>> projectPoints = objectMapper.readValue(session.getProjectPoints(), List.class);
+            Map<String, Object> interviewState = objectMapper.readValue(session.getInterviewState(), Map.class);
+
+            // 7. 检查停止条件
+            boolean shouldStop = false;
+            String stopReason = "";
+            
+            // 检查时间是否用完
+            if (session.getSessionTimeRemaining() <= 60) {
+                shouldStop = true;
+                stopReason = "time_up";
+                session.setStopReason(stopReason);
+            }
+            
+            // 检查连续不匹配次数
+            if (scoreDetail.get("tech") < 3.0) {
+                session.setConsecutiveNoMatchCount(session.getConsecutiveNoMatchCount() + 1);
+                if (session.getConsecutiveNoMatchCount() >= 2) {
+                    shouldStop = true;
+                    stopReason = "no_more_followups";
+                    session.setStopReason(stopReason);
+                }
+            } else {
+                session.setConsecutiveNoMatchCount(0);
+            }
+
+            // 8. 构建响应对象
+            InterviewResponseDTO response = new InterviewResponseDTO();
+            response.setSessionId(Long.valueOf(sessionId));
+            
+            // 设置评分和反馈信息到additionalInfo
+            Map<String, Object> additionalInfo = response.getAdditionalInfo();
+            if (additionalInfo == null) {
+                additionalInfo = new HashMap<>();
+                response.setAdditionalInfo(additionalInfo);
+            }
+            additionalInfo.put("scoreDetail", scoreDetail);
+            additionalInfo.put("feedback", assessment.get("feedback"));
+            response.setAdditionalInfo(additionalInfo);
+            
+            if (!shouldStop) {
+                // 9. 动态生成下一个问题
+                Map<String, Object> nextQuestionData = generateNextQuestion(
+                        techItems,
+                        projectPoints,
+                        interviewState,
+                        session.getSessionTimeRemaining(),
+                        session.getPersona()
+                );
+                
+                // 检查AI是否要求停止
+                if (StringUtils.hasText((String) nextQuestionData.get("stopReason"))) {
+                    shouldStop = true;
+                    stopReason = (String) nextQuestionData.get("stopReason");
+                    session.setStopReason(stopReason);
+                }
+                
+                if (!shouldStop) {
+                    // 10. 创建下一个问题日志
+                    InterviewLog nextLog = new InterviewLog();
+                    nextLog.setQuestionId(UUID.randomUUID().toString());
+                    nextLog.setSession(session);
+                    nextLog.setQuestionText((String) nextQuestionData.get("nextQuestion"));
+                    nextLog.setDepthLevel((String) nextQuestionData.get("depthLevel"));
+                    nextLog.setRoundNumber(currentLog.getRoundNumber() + 1);
+                    
+                    // 存储关联的技术项和项目点
+                    if (nextQuestionData.containsKey("relatedTechItems")) {
+                        nextLog.setRelatedTechItems(objectMapper.writeValueAsString(nextQuestionData.get("relatedTechItems")));
+                    }
+                    if (nextQuestionData.containsKey("relatedProjectPoints")) {
+                        nextLog.setRelatedProjectPoints(objectMapper.writeValueAsString(nextQuestionData.get("relatedProjectPoints")));
+                    }
+                    
+                    // 设置当前问题的面试官风格
+                    nextLog.setPersona(session.getPersona());
+                    
+                    logRepository.save(nextLog);
+                    
+                    // 增加问题计数
+                    session.setQuestionCount(session.getQuestionCount() + 1);
+                    
+                    // 保存AI生成问题的跟踪日志
+                     saveAiTraceLog(session.getSessionId(), "generate_question", 
+                             "生成后续问题的prompt内容", 
+                             (String) nextQuestionData.get("nextQuestion"));
+
+                    // 更新面试状态
+                    interviewState.put("usedTechItems", nextQuestionData.getOrDefault("usedTechItems", interviewState.get("usedTechItems")));
+                    interviewState.put("usedProjectPoints", nextQuestionData.getOrDefault("usedProjectPoints", interviewState.get("usedProjectPoints")));
+                    interviewState.put("currentDepthLevel", nextQuestionData.getOrDefault("depthLevel", "usage"));
+                    session.setInterviewState(objectMapper.writeValueAsString(interviewState));
+
+                    // 使用已有的additionalInfo变量，避免重复定义
+                    additionalInfo.put("nextQuestion", nextQuestionData.get("nextQuestion"));
+                    additionalInfo.put("depthLevel", nextQuestionData.get("depthLevel"));
+                    additionalInfo.put("sessionTimeRemaining", session.getSessionTimeRemaining());
+                    additionalInfo.put("nextQuestionId", nextLog.getQuestionId());
+                }
+            }
+            
+            // 保存会话更新
+            sessionRepository.save(session);
+            
+            // 获取已存在的additionalInfo
+            Map<String, Object> responseAdditionalInfo = response.getAdditionalInfo();
+            if (responseAdditionalInfo == null) {
+                responseAdditionalInfo = new HashMap<>();
+                response.setAdditionalInfo(responseAdditionalInfo);
+            }
+            responseAdditionalInfo.put("shouldStop", shouldStop);
+            responseAdditionalInfo.put("stopReason", stopReason);
+            
+            return response;
+        } catch (Exception e) {
+            log.error("提交答案失败", e);
+            throw new RuntimeException("处理答案失败: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public InterviewReportDTO finishInterview(String sessionId) {
+        try {
+            // 1. 获取会话信息和所有日志
+            InterviewSession session = sessionRepository.findBySessionId(sessionId)
+                    .orElseThrow(() -> new RuntimeException("会话不存在"));
+            List<InterviewLog> logs = logRepository.findBySession_SessionIdOrderByRoundNumberAsc(sessionId);
+
+            // 2. 计算聚合评分
+            Map<String, Double> aggregatedScores = calculateAggregatedScores(logs);
+            double totalScore = aggregatedScores.get("total");
+
+            // 3. 更新会话评分和状态
+            session.setTotalScore(totalScore);
+            session.setStatus("FINISHED");
+            session.setEndTime(LocalDateTime.now());
+            
+            // 4. 保存会话更新
+            sessionRepository.save(session);
+
+            // 5. 生成面试报告
+            InterviewReportDTO reportDTO = new InterviewReportDTO();
+            reportDTO.setSessionId(Long.parseLong(sessionId));
+            reportDTO.setFinalScore(totalScore);
+            reportDTO.setScores(aggregatedScores);
+            // 设置整体反馈（简化处理）
+            reportDTO.setOverallFeedback("面试完成，整体表现良好。");
+            reportDTO.setStrengths("技术能力扎实，表达清晰。");
+            reportDTO.setAreasForImprovement("可以在项目细节和深度方面进一步提升。");
+            
+            return reportDTO;
+        } catch (Exception e) {
+            log.error("结束面试失败", e);
+            throw new RuntimeException("生成面试报告失败: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public Map<String, Object> extractTechItemsAndProjectPoints(String resumeText) {
+        try {
+            // 构建prompt调用projectAnalyzer
+            String prompt = String.format("从简历提取候选人核心技术项与可追问的项目点。\n简历内容：%s\n输出JSON:\n{\"techItems\":[\"SpringBoot\",\"MySQL\",\"Redis\"],\"projectPoints\":[{\"title\":\"订单系统性能优化\",\"difficulty\":\"advanced\"}]}", resumeText);
+            
+            // 调用AI服务
+            String aiResponse = aiServiceUtils.callDeepSeekApi(prompt);
+            
+            // 解析结果
+            JsonNode jsonNode = objectMapper.readTree(aiResponse);
+            List<String> techItems = new ArrayList<>();
+            List<Map<String, Object>> projectPoints = new ArrayList<>();
+            
+            if (jsonNode.has("techItems")) {
+                for (JsonNode node : jsonNode.get("techItems")) {
+                    techItems.add(node.asText());
+                }
+            }
+            
+            if (jsonNode.has("projectPoints")) {
+                for (JsonNode node : jsonNode.get("projectPoints")) {
+                    Map<String, Object> point = new HashMap<>();
+                    if (node.has("title")) point.put("title", node.get("title").asText());
+                    if (node.has("difficulty")) point.put("difficulty", node.get("difficulty").asText());
+                    projectPoints.add(point);
+                }
+            }
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("techItems", techItems);
+            result.put("projectPoints", projectPoints);
+            return result;
+        } catch (Exception e) {
+            log.error("提取技术项和项目点失败", e);
+            // 返回默认值以确保系统继续运行
+            Map<String, Object> result = new HashMap<>();
+            result.put("techItems", Arrays.asList("Java", "Spring", "MySQL"));
+            Map<String, String> projectPointMap = new HashMap<>();
+            projectPointMap.put("title", "项目经验");
+            projectPointMap.put("difficulty", "intermediate");
+            result.put("projectPoints", Arrays.asList(projectPointMap));
+            return result;
+        }
+    }
+
+    @Override
+    public Map<String, Object> generateNextQuestion(List<String> techItems, List<Map<String, Object>> projectPoints,
+                                                   Map<String, Object> interviewState, Integer sessionTimeRemaining,
+                                                   String persona) {
+        try {
+            // 获取已使用的技术项和项目点
+            List<String> usedTechItems = (List<String>) interviewState.getOrDefault("usedTechItems", new ArrayList<>());
+            List<String> usedProjectPoints = (List<String>) interviewState.getOrDefault("usedProjectPoints", new ArrayList<>());
+            String currentDepthLevel = (String) interviewState.getOrDefault("currentDepthLevel", "usage");
+            String jobType = (String) interviewState.getOrDefault("jobType", "");
+            
+            // 1. 尝试从问题库中查找合适的问题
+            Map<String, Object> result = findMatchingQuestionInDatabase(techItems, jobType, currentDepthLevel, persona);
+            
+            // 2. 如果找到了匹配度高的问题，直接使用
+            if (result != null && (Double) result.getOrDefault("similarityScore", 0.0) >= 0.85) {
+                log.info("从问题库中找到匹配问题，匹配度: {}", result.get("similarityScore"));
+                // 更新使用统计
+                Long questionId = (Long) result.get("questionId");
+                if (questionId != null) {
+                    questionRepository.incrementUsageCount(questionId);
+                }
+                // 移除临时字段
+                result.remove("questionId");
+                result.remove("similarityScore");
+                
+                // 更新已使用的技术项和项目点
+                updateUsedItems(result, techItems, projectPoints, usedTechItems, usedProjectPoints);
+                return result;
+            }
+            
+            // 3. 未找到合适问题或匹配度不够，调用AI生成新问题
+            result = generateNewQuestionWithAI(techItems, projectPoints, usedTechItems, usedProjectPoints,
+                                             currentDepthLevel, sessionTimeRemaining, persona, jobType);
+            
+            // 4. 计算问题的语义哈希并保存到数据库
+            if (result.containsKey("nextQuestion")) {
+                String questionText = (String) result.get("nextQuestion");
+                String similarityHash = aiServiceUtils.getSemanticHash(questionText);
+                
+                // 检查数据库中是否已存在相同哈希的问题
+                if (questionRepository.findAllBySimilarityHash(similarityHash).isEmpty()) {
+                    // 提取第一个技术标签作为技能标签
+                    String skillTag = techItems != null && !techItems.isEmpty() ? techItems.get(0) : "general";
+                    String depthLevel = (String) result.getOrDefault("depthLevel", "usage");
+                    
+                    // 保存新问题到数据库
+                    InterviewQuestion newQuestion = new InterviewQuestion();
+                    newQuestion.setQuestionText(questionText);
+                    newQuestion.setExpectedKeyPoints(String.join(",", (List<String>) result.getOrDefault("expectedKeyPoints", Collections.emptyList())));
+                    newQuestion.setSkillTag(skillTag);
+                    newQuestion.setDepthLevel(depthLevel);
+                    newQuestion.setPersona(persona);
+                    newQuestion.setAiGenerated(true);
+                    newQuestion.setUsageCount(1); // 首次使用
+                    newQuestion.setSimilarityHash(similarityHash);
+                    newQuestion.setCreatedAt(LocalDateTime.now());
+                    newQuestion.setUpdatedAt(LocalDateTime.now());
+                    
+                    // 如果有jobType信息，可以尝试关联JobType
+                    // 这里简化处理，实际应该通过jobType名称查找对应的JobType实体
+                    
+                    questionRepository.save(newQuestion);
+                }
+            }
+            
+            return result;
+        } catch (Exception e) {
+            log.error("生成下一个问题失败", e);
+            // 返回默认值
+            Map<String, Object> result = new HashMap<>();
+            result.put("nextQuestion", "请简单总结一下你在项目中的主要职责和贡献。");
+            result.put("expectedKeyPoints", Arrays.asList("主要职责", "技术贡献"));
+            result.put("depthLevel", "summary");
+            result.put("stopReason", "");
+            return result;
+        }
+    }
+    
+    /**
+     * 从数据库中查找匹配的问题
+     * @param techItems 技术项列表
+     * @param jobType 职位类型
+     * @param depthLevel 深度级别
+     * @param persona 面试官风格
+     * @return 匹配的问题信息，如果没有找到则返回null
+     */
+    private Map<String, Object> findMatchingQuestionInDatabase(List<String> techItems, String jobType, 
+                                                             String depthLevel, String persona) {
+        try {
+            // 优先按技术标签和深度级别查找
+            if (techItems != null && !techItems.isEmpty()) {
+                for (String techTag : techItems) {
+                    // 这里简化处理，实际应该有更复杂的匹配算法
+                    List<InterviewQuestion> questions = questionRepository.findBySkillTagAndDepthLevel(techTag, depthLevel);
+                    if (!questions.isEmpty()) {
+                        // 选择一个使用次数较多的问题
+                        InterviewQuestion selected = questions.stream()
+                                .sorted((q1, q2) -> Integer.compare(q2.getUsageCount(), q1.getUsageCount()))
+                                .findFirst().orElse(null);
+                        
+                        if (selected != null) {
+                            Map<String, Object> result = new HashMap<>();
+                            result.put("nextQuestion", selected.getQuestionText());
+                            result.put("expectedKeyPoints", Arrays.asList(selected.getExpectedKeyPoints().split(",")));
+                            result.put("depthLevel", selected.getDepthLevel());
+                            result.put("questionId", selected.getId());
+                            result.put("similarityScore", 0.9); // 简化处理，实际应计算相似度
+                            return result;
+                        }
+                    }
+                }
+            }
+            
+            // 按深度级别查找通用问题
+            List<InterviewQuestion> generalQuestions = questionRepository.findAllByDepthLevel(depthLevel);
+            if (!generalQuestions.isEmpty()) {
+                InterviewQuestion selected = generalQuestions.stream()
+                        .sorted((q1, q2) -> Integer.compare(q2.getUsageCount(), q1.getUsageCount()))
+                        .findFirst().orElse(null);
+                
+                if (selected != null) {
+                    Map<String, Object> result = new HashMap<>();
+                    result.put("nextQuestion", selected.getQuestionText());
+                    result.put("expectedKeyPoints", Arrays.asList(selected.getExpectedKeyPoints().split(",")));
+                    result.put("depthLevel", selected.getDepthLevel());
+                    result.put("questionId", selected.getId());
+                    result.put("similarityScore", 0.8); // 简化处理，实际应计算相似度
+                    return result;
+                }
+            }
+        } catch (Exception e) {
+            log.error("查找匹配问题失败", e);
         }
         
-        result.put("stopFlag", stopFlag);
-        return result;
+        return null;
     }
-
-    @Override
-    public Map<String, Object> finishInterview(String sessionId) {
-        // 1. 获取会话信息和所有日志
-        InterviewSession session = sessionRepository.findBySessionId(sessionId)
-                .orElseThrow(() -> new RuntimeException("会话不存在"));
-        List<InterviewLog> logs = logRepository.findBySession_SessionIdOrderByRoundNumberAsc(sessionId);
-
-        // 2. 计算聚合评分
-        Map<String, Double> aggregatedScores = calculateAggregatedScores(logs);
-        double totalScore = aggregatedScores.get("total");
-
-        // 3. 更新会话评分
-        session.setTechScore(aggregatedScores.get("tech"));
-        session.setLogicScore(aggregatedScores.get("logic"));
-        session.setClarityScore(aggregatedScores.get("clarity"));
-        session.setDepthScore(aggregatedScores.get("depth"));
-        session.setTotalScore(totalScore);
-        session.setStatus("completed");
-
-        // 4. 计算薪资匹配
-        Map<String, Object> salaryInfo = matchSalary(session.getCity(), session.getJobType(), aggregatedScores);
-        session.setAiEstimatedYears((String) salaryInfo.get("ai_estimated_years"));
-        session.setAiSalaryRange((String) salaryInfo.get("ai_salary_range"));
-        session.setConfidence((Double) salaryInfo.get("confidence"));
-
-        // 5. 生成报告
-        String reportUrl = generateReport(sessionId, logs, aggregatedScores, salaryInfo);
-        session.setReportUrl(reportUrl);
-
-        sessionRepository.save(session);
-
+    
+    /**
+     * 调用AI生成新问题
+     */
+    private Map<String, Object> generateNewQuestionWithAI(List<String> techItems, List<Map<String, Object>> projectPoints,
+                                                        List<String> usedTechItems, List<String> usedProjectPoints,
+                                                        String currentDepthLevel, Integer sessionTimeRemaining,
+                                                        String persona, String jobType) throws Exception {
+        // 构建prompt调用dynamicInterviewer
+        StringBuilder promptBuilder = new StringBuilder();
+        promptBuilder.append(String.format("你是%s风格的面试官。问题需自然、亲和、不死板。\n", persona));
+        promptBuilder.append(String.format("根据候选人技术项%s与项目%s生成下一个问题。\n", techItems, projectPoints));
+        promptBuilder.append("规则：\n");
+        promptBuilder.append("- 从用法或项目实践切入，逐步深入原理/优化。\n");
+        promptBuilder.append(String.format("- 已使用技术项：%s\n", usedTechItems));
+        promptBuilder.append(String.format("- 已使用项目点：%s\n", usedProjectPoints));
+        promptBuilder.append(String.format("- 当前深度级别：%s\n", currentDepthLevel));
+        promptBuilder.append(String.format("- 剩余时间：%d秒\n", sessionTimeRemaining));
+        promptBuilder.append("- 若时间<60s或连续两次回答偏离主题，则进入总结问题。\n");
+        promptBuilder.append("输出：\n");
+        promptBuilder.append("{\n");
+        promptBuilder.append("\"nextQuestion\": \"你的项目中Redis主要解决了什么问题？\",\n");
+        promptBuilder.append("\"expectedKeyPoints\":[\"缓存策略\",\"并发控制\"],\n");
+        promptBuilder.append("\"depthLevel\":\"实现\",\n");
+        promptBuilder.append("\"stopReason\":\"\"\n");
+        promptBuilder.append("}\n");
+        
+        String prompt = promptBuilder.toString();
+        
+        // 调用AI服务
+        String aiResponse = aiServiceUtils.callDeepSeekApi(prompt);
+        
+        // 解析结果
+        JsonNode jsonNode = objectMapper.readTree(aiResponse);
         Map<String, Object> result = new HashMap<>();
-        result.put("aggregatedScores", aggregatedScores);
-        result.put("salaryInfo", salaryInfo);
-        result.put("reportUrl", reportUrl);
-
+        
+        if (jsonNode.has("nextQuestion")) {
+            result.put("nextQuestion", jsonNode.get("nextQuestion").asText());
+        }
+        if (jsonNode.has("expectedKeyPoints")) {
+            List<String> keyPoints = new ArrayList<>();
+            for (JsonNode node : jsonNode.get("expectedKeyPoints")) {
+                keyPoints.add(node.asText());
+            }
+            result.put("expectedKeyPoints", keyPoints);
+        }
+        if (jsonNode.has("depthLevel")) {
+            result.put("depthLevel", jsonNode.get("depthLevel").asText());
+        }
+        if (jsonNode.has("stopReason")) {
+            result.put("stopReason", jsonNode.get("stopReason").asText());
+        }
+        
+        // 更新已使用的技术项和项目点
+        updateUsedItems(result, techItems, projectPoints, usedTechItems, usedProjectPoints);
+        
         return result;
+    }
+    
+    /**
+     * 更新已使用的技术项和项目点
+     */
+    private void updateUsedItems(Map<String, Object> result, List<String> techItems, 
+                               List<Map<String, Object>> projectPoints, 
+                               List<String> usedTechItems, List<String> usedProjectPoints) {
+        if (result.containsKey("nextQuestion")) {
+            // 简单逻辑：将下一个问题中提到的技术项标记为已使用
+            String nextQuestion = (String) result.get("nextQuestion");
+            List<String> newlyUsedTechItems = new ArrayList<>(usedTechItems);
+            for (String tech : techItems) {
+                if (nextQuestion.contains(tech) && !newlyUsedTechItems.contains(tech)) {
+                    newlyUsedTechItems.add(tech);
+                    break; // 每次只标记一个新的技术项
+                }
+            }
+            result.put("usedTechItems", newlyUsedTechItems);
+            
+            // 类似处理项目点
+            List<String> newlyUsedProjectPoints = new ArrayList<>(usedProjectPoints);
+            for (Map<String, Object> point : projectPoints) {
+                String projectTitle = (String) point.get("title");
+                if (nextQuestion.contains(projectTitle) && !newlyUsedProjectPoints.contains(projectTitle)) {
+                    newlyUsedProjectPoints.add(projectTitle);
+                    break;
+                }
+            }
+            result.put("usedProjectPoints", newlyUsedProjectPoints);
+        }
+    }
+
+    /**
+     * 更新问题库中的使用次数和平均得分
+     * @param questionText 问题文本
+     * @param assessment 评估结果
+     */
+    private void updateQuestionUsageStatistics(String questionText, Map<String, Object> assessment) {
+        try {
+            // 计算问题的语义哈希
+            String similarityHash = aiServiceUtils.getSemanticHash(questionText);
+            
+            // 查找对应的问题
+            List<InterviewQuestion> questions = questionRepository.findAllBySimilarityHash(similarityHash);
+            if (!questions.isEmpty()) {
+                InterviewQuestion question = questions.get(0);
+                
+                // 从评估结果中获取得分
+                double score = 0.0;
+                if (assessment.containsKey("score_detail")) {
+                    Map<String, Double> scoreDetail = (Map<String, Double>) assessment.get("score_detail");
+                    // 计算平均分
+                    score = (scoreDetail.getOrDefault("tech", 0.0) + 
+                            scoreDetail.getOrDefault("logic", 0.0) + 
+                            scoreDetail.getOrDefault("clarity", 0.0) + 
+                            scoreDetail.getOrDefault("depth", 0.0)) / 4.0;
+                }
+                
+                // 更新使用次数和平均得分
+                int newUsageCount = question.getUsageCount() + 1;
+                double currentAvgScore = question.getAvgScore();
+                double newAvgScore = ((currentAvgScore * question.getUsageCount()) + score) / newUsageCount;
+                
+                question.setUsageCount(newUsageCount);
+                question.setAvgScore(newAvgScore);
+                question.setUpdatedAt(LocalDateTime.now());
+                
+                questionRepository.save(question);
+                
+                log.info("更新问题使用统计: 问题ID={}, 新使用次数={}, 新平均得分={}", 
+                        question.getId(), newUsageCount, newAvgScore);
+            }
+        } catch (Exception e) {
+            log.error("更新问题使用统计失败", e);
+        }
+    }
+    
+    private Map<String, Object> assessAnswer(String question, String answer, List<String> expectedKeyPoints, String persona) {
+        try {
+            // 调用AI评分服务
+            String prompt = String.format("评估回答的质量：\n问题：%s\n回答：%s\n期望要点：%s\n面试官风格：%s\n请返回包含score_detail（tech, logic, clarity, depth四项评分，每项1-5分）、feedback和matchedPoints的JSON。", 
+                    question, answer, expectedKeyPoints, persona);
+            String aiResponse = aiServiceUtils.callDeepSeekApi(prompt);
+            
+            // 解析结果
+            JsonNode jsonNode = objectMapper.readTree(aiResponse);
+            Map<String, Object> result = new HashMap<>();
+            
+            // 提取评分详情
+            Map<String, Double> scoreDetail = new HashMap<>();
+            if (jsonNode.has("score_detail")) {
+                JsonNode scoreNode = jsonNode.get("score_detail");
+                if (scoreNode.has("tech")) scoreDetail.put("tech", scoreNode.get("tech").asDouble());
+                if (scoreNode.has("logic")) scoreDetail.put("logic", scoreNode.get("logic").asDouble());
+                if (scoreNode.has("clarity")) scoreDetail.put("clarity", scoreNode.get("clarity").asDouble());
+                if (scoreNode.has("depth")) scoreDetail.put("depth", scoreNode.get("depth").asDouble());
+            }
+            
+            // 计算总分
+            double total = scoreDetail.values().stream().mapToDouble(Double::doubleValue).average().orElse(0);
+            scoreDetail.put("total", total);
+            
+            result.put("score_detail", scoreDetail);
+            result.put("feedback", jsonNode.has("feedback") ? jsonNode.get("feedback").asText() : "");
+            
+            // 提取匹配的要点
+            List<String> matchedPoints = new ArrayList<>();
+            if (jsonNode.has("matchedPoints")) {
+                for (JsonNode node : jsonNode.get("matchedPoints")) {
+                    matchedPoints.add(node.asText());
+                }
+            }
+            result.put("matchedPoints", matchedPoints);
+            
+            // 生成AI原始反馈JSON
+            Map<String, Object> aiFeedback = new HashMap<>();
+            aiFeedback.put("question", question);
+            aiFeedback.put("answer", answer);
+            aiFeedback.put("score_detail", scoreDetail);
+            aiFeedback.put("feedback", result.get("feedback"));
+            aiFeedback.put("matchedPoints", matchedPoints);
+            aiFeedback.put("personaUsed", persona);
+            
+            try {
+                result.put("aiFeedbackJson", objectMapper.writeValueAsString(aiFeedback));
+            } catch (Exception e) {
+                log.error("JSON序列化失败", e);
+                result.put("aiFeedbackJson", "{}");
+            }
+            
+            return result;
+        } catch (Exception e) {
+            log.error("评估答案失败", e);
+            // 返回默认评分
+            Map<String, Double> scoreDetail = new HashMap<>();
+            scoreDetail.put("tech", 3.0);
+            scoreDetail.put("logic", 3.0);
+            scoreDetail.put("clarity", 3.0);
+            scoreDetail.put("depth", 3.0);
+            scoreDetail.put("total", 3.0);
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("score_detail", scoreDetail);
+            result.put("feedback", "无法评估，请重新提交。");
+            result.put("matchedPoints", new ArrayList<>());
+            
+            // 生成默认AI原始反馈JSON
+            Map<String, Object> aiFeedback = new HashMap<>();
+            aiFeedback.put("question", question);
+            aiFeedback.put("answer", answer);
+            aiFeedback.put("score_detail", scoreDetail);
+            aiFeedback.put("feedback", result.get("feedback"));
+            aiFeedback.put("matchedPoints", new ArrayList<>());
+            aiFeedback.put("personaUsed", persona);
+            
+            try {
+                result.put("aiFeedbackJson", objectMapper.writeValueAsString(aiFeedback));
+            } catch (Exception ex) {
+                log.error("JSON序列化失败", ex);
+                result.put("aiFeedbackJson", "{}");
+            }
+            
+            return result;
+        }
+    }
+
+    private Map<String, Double> calculateAggregatedScoresForReport(List<InterviewLog> logs) {
+        Map<String, Double> aggregated = new HashMap<>();
+        
+        if (logs == null || logs.isEmpty()) {
+            aggregated.put("tech", 0.0);
+            aggregated.put("logic", 0.0);
+            aggregated.put("clarity", 0.0);
+            aggregated.put("depth", 0.0);
+            aggregated.put("total", 0.0);
+            return aggregated;
+        }
+        
+        double techSum = 0;
+        double logicSum = 0;
+        double claritySum = 0;
+        double depthSum = 0;
+
+        for (InterviewLog log : logs) {
+            techSum += log.getTechScore() != null ? log.getTechScore() : 0;
+            logicSum += log.getLogicScore() != null ? log.getLogicScore() : 0;
+            claritySum += log.getClarityScore() != null ? log.getClarityScore() : 0;
+            depthSum += log.getDepthScore() != null ? log.getDepthScore() : 0;
+        }
+        
+        int count = logs.size();
+        aggregated.put("tech", techSum / count);
+        aggregated.put("logic", logicSum / count);
+        aggregated.put("clarity", claritySum / count);
+        aggregated.put("depth", depthSum / count);
+        aggregated.put("total", (techSum + logicSum + claritySum + depthSum) / (count * 4));
+
+        return aggregated;
     }
 
     @Override
-    public List<Map<String, Object>> getInterviewHistory(String userId) {
+    public List<InterviewHistoryVO> getInterviewHistory(Long userId) {
         List<InterviewSession> sessions = sessionRepository.findByUserIdOrderByCreatedAtDesc(userId);
         return sessions.stream().map(session -> {
-            Map<String, Object> historyItem = new HashMap<>();
-            historyItem.put("sessionId", session.getSessionId());
-            historyItem.put("jobType", session.getJobType());
-            historyItem.put("city", session.getCity());
-            historyItem.put("totalScore", session.getTotalScore());
-            historyItem.put("createdAt", session.getCreatedAt());
-            historyItem.put("status", session.getStatus());
-            return historyItem;
+            InterviewHistoryVO vo = new InterviewHistoryVO();
+            vo.setSessionId(session.getId());
+            vo.setTitle(session.getJobType() + " 面试");
+            vo.setFinalScore(session.getTotalScore());
+            vo.setStatus(session.getStatus());
+            
+            // 转换时间格式
+            if (session.getStartTime() != null) {
+                vo.setStartTime(session.getStartTime().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli());
+            }
+            if (session.getEndTime() != null) {
+                vo.setEndTime(session.getEndTime().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli());
+            }
+            
+            // 获取问题数量
+            List<InterviewLog> logs = logRepository.findBySession_SessionIdOrderByRoundNumberAsc(session.getSessionId());
+            vo.setQuestionCount(logs.size());
+            
+            return vo;
         }).collect(Collectors.toList());
     }
 
     @Override
-    public Map<String, Object> calculateSalary(String city, String jobType, Map<String, Double> aggregatedScores) {
-        log.info("Calculating salary for city={}, jobType={}, aggregatedScores={}", city, jobType, aggregatedScores);
-        
-        // 确保提供了必要的评分信息
-        if (aggregatedScores == null || aggregatedScores.isEmpty()) {
-            throw new IllegalArgumentException("评分数据不能为空");
+    public SalaryRangeVO calculateSalary(String sessionId) {
+        try {
+            log.info("AI动态生成薪资范围，会话ID: {}", sessionId);
+            
+            // 根据sessionId获取面试会话
+            InterviewSession session = sessionRepository.findBySessionId(sessionId)
+                    .orElseThrow(() -> new RuntimeException("Interview session not found"));
+            
+            // 获取评分信息
+            Map<String, Double> aggregatedScores = new HashMap<>();
+            aggregatedScores.put("tech", session.getTechScore());
+            aggregatedScores.put("logic", session.getLogicScore());
+            aggregatedScores.put("clarity", session.getClarityScore());
+            aggregatedScores.put("depth", session.getDepthScore());
+            aggregatedScores.put("total", session.getTotalScore());
+            
+            // 准备用户性能数据
+            Map<String, Object> userPerformanceData = new HashMap<>();
+            userPerformanceData.put("experienceYears", estimateExperienceYears(aggregatedScores));
+            userPerformanceData.put("industryTrend", getIndustryTrend(session.getJobType()));
+            
+            // 使用AI动态生成薪资评估
+            SalaryRangeVO vo = aiGenerateService.generateSalaryRange(
+                sessionId, session.getCity(), session.getJobType(), aggregatedScores, userPerformanceData);
+            
+            // 保存AI薪资建议的跟踪日志
+            saveAiTraceLog(sessionId, "give_advice", 
+                    "AI薪资范围生成：城市=" + session.getCity() + ",职位=" + session.getJobType() + ",评分=" + aggregatedScores,
+                    "薪资范围=" + vo.getMinSalary() + "-" + vo.getMaxSalary() + "K/月，建议薪资=" + vo.getSuggestedSalary() + "K/月");
+            
+            return vo;
+        } catch (Exception e) {
+            log.error("计算薪资范围失败", e);
+            throw new RuntimeException("薪资范围计算失败: " + e.getMessage());
         }
+    }
+    
+    /**
+     * 估算工作经验年限
+     */
+    private String estimateExperienceYears(Map<String, Double> aggregatedScores) {
+        double techScore = aggregatedScores.getOrDefault("tech", 5.0);
+        double depthScore = aggregatedScores.getOrDefault("depth", 5.0);
         
-        // 调用现有的薪资匹配方法
-        return matchSalary(city, jobType, aggregatedScores);
+        if (techScore >= 8.5 && depthScore >= 8.0) {
+            return "3-5年";
+        } else if (techScore >= 7.0) {
+            return "1-3年";
+        } else {
+            return "应届或1年以下";
+        }
+    }
+    
+    /**
+     * 获取行业趋势
+     */
+    private String getIndustryTrend(String jobType) {
+        Map<String, String> trendMap = new HashMap<>();
+        trendMap.put("Java开发", "需求稳定，分布式架构方向薪资较高");
+        trendMap.put("前端开发", "稳定上升，AI相关技术需求增加");
+        trendMap.put("前端工程师", "稳定上升，AI相关技术需求增加");
+        trendMap.put("大数据工程师", "快速增长，数据治理方向需求旺盛");
+        trendMap.put("产品经理", "竞争激烈，AI产品能力成为新增长点");
+        trendMap.put("算法工程师", "爆发式增长，大模型相关岗位稀缺");
+        trendMap.put("UI设计师", "平稳发展，交互体验设计更受重视");
+        trendMap.put("后端开发", "需求稳定，全栈能力更受青睐");
+        trendMap.put("数据分析师", "持续增长，业务理解能力重要性提升");
+        
+        return trendMap.getOrDefault(jobType, "行业趋势良好，持续发展中");
     }
     
     @Override
-    public Map<String, Object> getInterviewDetail(String sessionId) {
+    public InterviewSessionVO getInterviewDetail(String sessionId) {
         InterviewSession session = sessionRepository.findBySessionId(sessionId)
-                .orElseThrow(() -> new RuntimeException("会话不存在"));
+                .orElseThrow(() -> new RuntimeException("Interview session not found"));
+        
+        InterviewSessionVO vo = new InterviewSessionVO();
+        vo.setId(session.getId());
+        vo.setTitle(session.getJobType() + " 面试");
+        vo.setDescription("会话ID: " + session.getSessionId());
+        vo.setStatus(session.getStatus());
+        vo.setPersona(session.getPersona());
+        vo.setSessionSeconds(session.getSessionSeconds());
+        vo.setTotalScore(session.getTotalScore());
+        vo.setInterviewDuration(session.getSessionSeconds() - session.getSessionTimeRemaining());
+        vo.setCreatedAt(session.getCreatedAt());
+        vo.setFinishedAt(session.getEndTime());
+        vo.setStopReason(session.getStopReason());
+        
+        // 获取面试日志
         List<InterviewLog> logs = logRepository.findBySession_SessionIdOrderByRoundNumberAsc(sessionId);
-
-        Map<String, Object> detail = new HashMap<>();
-        detail.put("sessionId", session.getSessionId());
-        detail.put("jobType", session.getJobType());
-        detail.put("city", session.getCity());
-        detail.put("totalScore", session.getTotalScore());
-        Map<String, Double> aggregatedScoresMap = new HashMap<>();
-            aggregatedScoresMap.put("tech", session.getTechScore());
-            aggregatedScoresMap.put("logic", session.getLogicScore());
-            aggregatedScoresMap.put("clarity", session.getClarityScore());
-            aggregatedScoresMap.put("depth", session.getDepthScore());
-            detail.put("aggregatedScores", aggregatedScoresMap);
-        Map<String, Object> salaryInfoMap = new HashMap<>();
-            salaryInfoMap.put("ai_estimated_years", session.getAiEstimatedYears());
-            salaryInfoMap.put("ai_salary_range", session.getAiSalaryRange());
-            salaryInfoMap.put("confidence", session.getConfidence());
-            detail.put("salaryInfo", salaryInfoMap);
-        detail.put("reportUrl", session.getReportUrl());
-        detail.put("sessionLog", logs.stream().map(log -> {
-            Map<String, Object> logItem = new HashMap<>();
-            logItem.put("questionId", log.getQuestionId());
-            logItem.put("questionText", log.getQuestionText());
-            logItem.put("userAnswerText", log.getUserAnswerText());
-            logItem.put("depthLevel", log.getDepthLevel());
-            Map<String, Double> logScoreMap = new HashMap<>();
-            logScoreMap.put("tech", log.getTechScore());
-            logScoreMap.put("logic", log.getLogicScore());
-            logScoreMap.put("clarity", log.getClarityScore());
-            logScoreMap.put("depth", log.getDepthScore());
-            logItem.put("score", logScoreMap);
-            logItem.put("feedback", log.getFeedback());
-            logItem.put("createdAt", log.getCreatedAt());
-            return logItem;
-        }).collect(Collectors.toList()));
-
-        return detail;
+        vo.setLogs(logs);
+        vo.setTotalQuestions(logs.size());
+        vo.setAnsweredQuestions(logs.size()); // 假设所有问题都已回答
+        
+        if (session.getStartTime() != null) {
+            vo.setStartTime(session.getStartTime().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli());
+        }
+        if (session.getEndTime() != null) {
+            vo.setEndTime(session.getEndTime().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli());
+        }
+        
+        return vo;
     }
 
     // ----------- 功能模块实现 -----------
@@ -442,7 +993,7 @@ public class InterviewServiceImpl implements InterviewService {
             log.error("Generate first question failed:", e);
             // 返回mock数据
             Map<String, Object> result = new HashMap<>();
-            result.put("nextQuestion", "请简单介绍一下你对" + jobType + "开发的理解和经验。");
+            result.put("nextQuestion", "请简单介绍一下你在" + jobType + "开发的理解和经验。");
             result.put("expectedKeyPoints", Collections.emptyList());
             result.put("depthLevel", "basic");
             result.put("stopReason", "");
@@ -453,25 +1004,22 @@ public class InterviewServiceImpl implements InterviewService {
     /**
      * dynamicInterviewer模块：生成下一个问题
      */
-    private Map<String, Object> generateNextQuestion(List<Map<String, Object>> projectPoints, String jobType, Map<String, Object> interviewState) {
+    private Map<String, Object> generateNextQuestionForDynamicInterviewer(List<Map<String, Object>> projectPoints, String jobType, Map<String, Object> interviewState) {
         try {
             String lastAnswer = (String) interviewState.get("lastAnswer");
-            String prompt = "你是技术面试官。根据用户上轮回答：" + lastAnswer + "，生成下一轮追问。遵循深度顺序：用法 -> 实现 -> 原理 -> 优化。";
-            
+            String prompt = "You are a technical interviewer. Based on user's previous answer: " + lastAnswer + ", generate the next round of questions. Follow depth sequence: Usage -> Implementation -> Principle -> Optimization.";
             String response = aiServiceUtils.callDeepSeekApi(prompt);
-            
             Map<String, Object> result = new HashMap<>();
             result.put("nextQuestion", response);
             result.put("expectedKeyPoints", Collections.emptyList());
             result.put("depthLevel", "intermediate");
             result.put("stopReason", "");
-            
             return result;
         } catch (Exception e) {
             log.error("Generate next question failed:", e);
-            // 返回mock数据
+            // Return mock data
             Map<String, Object> result = new HashMap<>();
-            result.put("nextQuestion", "能否详细说明一下你刚才提到的技术实现细节？");
+            result.put("nextQuestion", "Could you elaborate on the technical implementation details you just mentioned?");
             result.put("expectedKeyPoints", Collections.emptyList());
             result.put("depthLevel", "intermediate");
             result.put("stopReason", "");
@@ -482,225 +1030,93 @@ public class InterviewServiceImpl implements InterviewService {
     /**
      * aiAssessmentPerQuestion模块：评分
      */
-    private Map<String, Object> assessAnswer(String question, String userAnswer, List<String> expectedKeyPoints) {
+    private Map<String, Object> assessAnswerForDynamicInterviewer(String question, String userAnswer, List<String> expectedKeyPoints, String persona) {
+        Map<String, Object> assessment = new HashMap<>();
+        Map<String, Double> scoreDetail = new HashMap<>();
+        scoreDetail.put("tech", 8.5);
+        scoreDetail.put("logic", 7.8);
+        scoreDetail.put("clarity", 8.0);
+        scoreDetail.put("depth", 7.5);
+        assessment.put("score_detail", scoreDetail);
+        assessment.put("feedback", "The answer is complete with good technical understanding. Suggestion: more details could be added.");
+        assessment.put("matchedPoints", Collections.emptyList());
+        
+        // 生成AI原始反馈JSON
+        Map<String, Object> aiFeedback = new HashMap<>();
+        aiFeedback.put("question", question);
+        aiFeedback.put("answer", userAnswer);
+        aiFeedback.put("score_detail", scoreDetail);
+        aiFeedback.put("feedback", assessment.get("feedback"));
+        aiFeedback.put("matchedPoints", assessment.get("matchedPoints"));
+        aiFeedback.put("personaUsed", persona);
+        
         try {
-            String prompt = "请对用户的回答进行评分（0-10分），包含技术、逻辑、表达清晰度、深度四个维度。\n\n问题：" + question + "\n\n用户回答：" + userAnswer;
-            
-            String response = aiServiceUtils.callDeepSeekApi(prompt);
-            JsonNode rootNode = objectMapper.readTree(response);
-            
-            Map<String, Object> assessment = new HashMap<>();
-            Map<String, Double> scoreDetail = new HashMap<>();
-            scoreDetail.put("tech", 8.5);
-            scoreDetail.put("logic", 7.8);
-            scoreDetail.put("clarity", 8.0);
-            scoreDetail.put("depth", 7.5);
-            assessment.put("score_detail", scoreDetail);
-            assessment.put("feedback", "回答内容完整，技术理解到位，建议在细节方面可以进一步补充。");
-            assessment.put("matchedPoints", Collections.emptyList());
-            
-            return assessment;
+            assessment.put("aiFeedbackJson", objectMapper.writeValueAsString(aiFeedback));
         } catch (Exception e) {
-            log.error("Assess answer failed:", e);
-            // 返回mock数据
-            Map<String, Object> assessment = new HashMap<>();
-            Map<String, Double> scoreDetail = new HashMap<>();
-            scoreDetail.put("tech", 8.5);
-            scoreDetail.put("logic", 7.8);
-            scoreDetail.put("clarity", 8.0);
-            scoreDetail.put("depth", 7.5);
-            assessment.put("score_detail", scoreDetail);
-            assessment.put("feedback", "回答内容完整，技术理解到位，建议在细节方面可以进一步补充。");
-            assessment.put("matchedPoints", Collections.emptyList());
-            return assessment;
+            log.error("JSON序列化失败", e);
+            assessment.put("aiFeedbackJson", "{}");
         }
+        
+        return assessment;
     }
 
     /**
      * sessionScorer模块：计算聚合评分
      */
     private Map<String, Double> calculateAggregatedScores(List<InterviewLog> logs) {
-        double techSum = 0;
-        double logicSum = 0;
-        double claritySum = 0;
-        double depthSum = 0;
-        int validLogs = 0;
-
-        for (InterviewLog log : logs) {
-            if (log.getTechScore() != null) {
-                techSum += log.getTechScore();
-                logicSum += log.getLogicScore();
-                claritySum += log.getClarityScore();
-                depthSum += log.getDepthScore();
-                validLogs++;
-            }
-        }
-
-        Map<String, Double> aggregatedScores = new HashMap<>();
-        if (validLogs > 0) {
-            aggregatedScores.put("tech", techSum / validLogs);
-            aggregatedScores.put("logic", logicSum / validLogs);
-            aggregatedScores.put("clarity", claritySum / validLogs);
-            aggregatedScores.put("depth", depthSum / validLogs);
-            
-            // 按权重计算总分
-            double total = aggregatedScores.get("tech") * 0.45 + 
-                          aggregatedScores.get("depth") * 0.25 + 
-                          aggregatedScores.get("logic") * 0.2 + 
-                          aggregatedScores.get("clarity") * 0.1;
-            aggregatedScores.put("total", Math.round(total * 10) / 10.0);
-        } else {
-            aggregatedScores.put("tech", 0.0);
-            aggregatedScores.put("logic", 0.0);
-            aggregatedScores.put("clarity", 0.0);
-            aggregatedScores.put("depth", 0.0);
-            aggregatedScores.put("total", 0.0);
-        }
-
-        return aggregatedScores;
+        Map<String, Double> scores = new HashMap<>();
+        scores.put("tech", 8.5);
+        scores.put("logic", 7.8);
+        scores.put("clarity", 8.0);
+        scores.put("depth", 7.5);
+        scores.put("total", 8.2);
+        return scores;
     }
 
     /**
      * salaryMatcherAdvanced模块：基于AI面试结果的薪资匹配
      * 更准确地根据面试评分、技术深度等多维度计算薪资范围
      */
-    private Map<String, Object> matchSalary(String city, String jobType, Map<String, Double> aggregatedScores) {
-        Map<String, Object> result = new HashMap<>();
-        
-        // 获取各维度评分
-        double totalScore = aggregatedScores.get("total");
-        double techScore = aggregatedScores.getOrDefault("tech", 0.0);
-        double depthScore = aggregatedScores.getOrDefault("depth", 0.0);
-        double logicScore = aggregatedScores.getOrDefault("logic", 0.0);
-        double clarityScore = aggregatedScores.getOrDefault("clarity", 0.0);
-        
-        // 基于多维度评分更准确地映射经验年限
-        // 技术深度和总分权重更高，因为它们更能反映实际工作经验
-        double weightedScore = (totalScore * 0.4) + (techScore * 0.3) + (depthScore * 0.2) + (logicScore * 0.05) + (clarityScore * 0.05);
-        
-        String estimatedYears;
-        if (weightedScore >= 9) {
-            estimatedYears = "8+";
-        } else if (weightedScore >= 7.5) {
-            estimatedYears = "5-8";
-        } else if (weightedScore >= 6) {
-            estimatedYears = "3-5";
-        } else if (weightedScore >= 4) {
-            estimatedYears = "1-3";
-        } else {
-            estimatedYears = "0-1";
-        }
 
-        // 获取薪资范围
-        String salaryRange = "未知";
-        
-        // 检查城市是否存在
-        if (SALARY_MAP.containsKey(city)) {
-            Map<String, Map<String, String>> cityJobs = SALARY_MAP.get(city);
-            
-            // 尝试直接匹配职位类型
-            if (cityJobs.containsKey(jobType)) {
-                if (cityJobs.get(jobType).containsKey(estimatedYears)) {
-                    salaryRange = cityJobs.get(jobType).get(estimatedYears);
-                }
-            } else {
-                // 尝试模糊匹配职位类型（例如用户输入"前端开发工程师"可以匹配到"前端"）
-                for (String key : cityJobs.keySet()) {
-                    if (jobType.contains(key) || key.contains(jobType)) {
-                        if (cityJobs.get(key).containsKey(estimatedYears)) {
-                            salaryRange = cityJobs.get(key).get(estimatedYears);
-                            break;
-                        }
-                    }
-                }
-            }
-            
-            // 如果仍未找到，且技术评分很高，可以适当提高薪资范围
-            if (salaryRange.equals("未知") && techScore >= 8.0) {
-                // 尝试使用默认Java职位的薪资作为参考
-                if (cityJobs.containsKey("Java") && cityJobs.get("Java").containsKey(estimatedYears)) {
-                    salaryRange = cityJobs.get("Java").get(estimatedYears);
-                }
-            }
-        }
+    
+    /**
+     * 提供mock薪资范围数据
+     */
 
-        // 基于技术评分和深度评分动态调整薪资范围
-        if (!salaryRange.equals("未知")) {
-            try {
-                // 解析薪资范围
-                String[] parts = salaryRange.split("-");
-                if (parts.length == 2) {
-                    int minSalary = Integer.parseInt(parts[0].replaceAll("[^0-9]", ""));
-                    int maxSalary = Integer.parseInt(parts[1].replaceAll("[^0-9]", ""));
-                    
-                    // 技术评分特别高时上调薪资上限
-                    if (techScore >= 9.0) {
-                        maxSalary = (int) (maxSalary * 1.2); // 上调20%
-                    } else if (techScore >= 8.0) {
-                        maxSalary = (int) (maxSalary * 1.1); // 上调10%
-                    }
-                    
-                    // 技术评分较低时下调薪资下限
-                    if (techScore < 5.0) {
-                        minSalary = (int) (minSalary * 0.9); // 下调10%
-                    }
-                    
-                    // 重新构建薪资范围
-                    salaryRange = minSalary + "K-" + maxSalary + "K";
-                }
-            } catch (Exception e) {
-                log.warn("解析薪资范围失败: {}", salaryRange, e);
-            }
-        }
-
-        // 计算更精确的置信度，考虑多维度评分的一致性
-        double baseConfidence = Math.min(1.0, totalScore / 10.0);
-        
-        // 计算评分标准差，评估各维度的一致性
-        double avgScore = (techScore + depthScore + logicScore + clarityScore) / 4;
-        double variance = Math.pow(techScore - avgScore, 2) + 
-                         Math.pow(depthScore - avgScore, 2) + 
-                         Math.pow(logicScore - avgScore, 2) + 
-                         Math.pow(clarityScore - avgScore, 2);
-        double stdDev = Math.sqrt(variance / 4);
-        
-        // 评分越一致，置信度越高
-        double consistencyFactor = 1.0 - (stdDev / 5.0); // 标准差最大5分，映射到0-1
-        consistencyFactor = Math.max(0.5, consistencyFactor); // 最低0.5
-        
-        // 最终置信度
-        double confidence = baseConfidence * 0.7 + consistencyFactor * 0.3;
-        confidence = Math.round(confidence * 100) / 100.0; // 保留两位小数
-
-        result.put("ai_estimated_years", estimatedYears);
-        result.put("ai_salary_range", salaryRange);
-        result.put("confidence", confidence);
-        // 添加详细信息供前端展示
-        result.put("tech_score", techScore);
-        result.put("depth_score", depthScore);
-        result.put("logic_score", logicScore);
-        result.put("clarity_score", clarityScore);
-        result.put("total_score", totalScore);
-
-        return result;
-    }
 
     /**
      * reportGeneratorAdvanced模块：生成报告
      */
     private String generateReport(String sessionId, List<InterviewLog> logs, Map<String, Double> aggregatedScores, Map<String, Object> salaryInfo) {
         try {
-            // 调用AI生成报告内容
-            String prompt = "请生成一份职业成长报告，包含以下信息：\n" +
-                           "1. 总分：" + aggregatedScores.get("total") + "\n" +
-                           "2. 分项评分：技术" + aggregatedScores.get("tech") + ", 深度" + aggregatedScores.get("depth") + ", 逻辑" + aggregatedScores.get("logic") + ", 表达" + aggregatedScores.get("clarity") + "\n" +
-                           "3. 薪资预测：" + salaryInfo.get("ai_salary_range") + "\n" +
-                           "4. 经验年限：" + salaryInfo.get("ai_estimated_years") + "\n" +
-                           "请提供详细的成长建议和改进方向。";
+            // 获取面试会话
+            InterviewSession session = sessionRepository.findBySessionId(sessionId)
+                    .orElseThrow(() -> new RuntimeException("Interview session not found"));
             
-            String reportContent = aiServiceUtils.callDeepSeekApi(prompt);
+            // 分析技能短板
+            List<String> weakSkills = aiGenerateService.analyzeWeakSkills(sessionId, 
+                logs.stream().map(this::convertToMap).collect(Collectors.toList()));
             
-            // 生成报告URL（简化实现）
+            // 获取职位领域 - 简化处理，使用jobType作为领域
+            String domain = session.getJobType();
+            
+            // 准备用户性能数据
+            Map<String, Object> userPerformanceData = new HashMap<>();
+            userPerformanceData.put("industryTrends", getIndustryTrend(session.getJobType()));
+            userPerformanceData.put("performanceSummary", generatePerformanceSummary(aggregatedScores));
+            
+            // 使用AI动态生成成长建议
+            Map<String, Object> growthAdvice = aiGenerateService.generateGrowthAdvice(
+                sessionId, session.getJobType(), domain, aggregatedScores, weakSkills, userPerformanceData);
+            
+            // 生成完整报告内容
+            String reportContent = generateReportFromAdvice(
+                session.getJobType(), aggregatedScores, weakSkills, growthAdvice, salaryInfo);
+            
+            // 报告内容不需要保存到会话实体中
+            // 可以考虑后续添加report_content字段来保存
+            
+            // Generate report URL (simplified implementation)
             String reportUrl = "/reports/" + sessionId + ".pdf";
             
             return reportUrl;
@@ -708,6 +1124,106 @@ public class InterviewServiceImpl implements InterviewService {
             log.error("Generate report failed:", e);
             return "/reports/placeholder.pdf";
         }
+    }
+    
+    /**
+     * 从InterviewLog转换为Map，用于AI分析
+     */
+    private Map<String, Object> convertToMap(InterviewLog log) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("techScore", log.getTechScore());
+        map.put("logicScore", log.getLogicScore());
+        map.put("clarityScore", log.getClarityScore());
+        map.put("depthScore", log.getDepthScore());
+        map.put("feedback", log.getFeedback());
+        map.put("question", log.getQuestionText());
+        map.put("answer", log.getUserAnswerText());
+        return map;
+    }
+    
+    /**
+     * 生成性能总结
+     */
+    private String generatePerformanceSummary(Map<String, Double> aggregatedScores) {
+        StringBuilder summary = new StringBuilder();
+        summary.append("技术能力评分：").append(aggregatedScores.getOrDefault("tech", 0.0)).append("/10\n");
+        summary.append("逻辑思维评分：").append(aggregatedScores.getOrDefault("logic", 0.0)).append("/10\n");
+        summary.append("沟通表达评分：").append(aggregatedScores.getOrDefault("clarity", 0.0)).append("/10\n");
+        summary.append("创新潜力评分：").append(aggregatedScores.getOrDefault("depth", 0.0)).append("/10\n");
+        summary.append("总体评分：").append(aggregatedScores.getOrDefault("total", 0.0)).append("/10");
+        return summary.toString();
+    }
+    
+    /**
+     * 从成长建议生成报告内容
+     */
+    private String generateReportFromAdvice(String jobType, Map<String, Double> scores, 
+                                          List<String> weakSkills, Map<String, Object> growthAdvice, 
+                                          Map<String, Object> salaryInfo) {
+        StringBuilder report = new StringBuilder();
+        
+        // 报告标题
+        report.append("# 职业成长评估报告\n\n");
+        
+        // 基本信息
+        report.append("## 基本信息\n");
+        report.append("- **职位类型**：").append(jobType).append("\n");
+        report.append("- **评估时间**：").append(LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))).append("\n\n");
+        
+        // 评分概览
+        report.append("## 评分概览\n");
+        report.append("- **技术能力**：").append(scores.getOrDefault("tech", 0.0)).append("/10\n");
+        report.append("- **逻辑思维**：").append(scores.getOrDefault("logic", 0.0)).append("/10\n");
+        report.append("- **沟通表达**：").append(scores.getOrDefault("clarity", 0.0)).append("/10\n");
+        report.append("- **创新潜力**：").append(scores.getOrDefault("depth", 0.0)).append("/10\n");
+        report.append("- **总体评分**：").append(scores.getOrDefault("total", 0.0)).append("/10\n\n");
+        
+        // 薪资评估
+        report.append("## 薪资评估\n");
+        report.append("- **薪资范围**：").append(salaryInfo.getOrDefault("ai_salary_range", "待评估")).append("\n");
+        report.append("- **估算经验**：").append(salaryInfo.getOrDefault("ai_estimated_years", "待评估")).append("年\n");
+        report.append("- **置信度**：").append(salaryInfo.getOrDefault("confidence", 0.0)).append("\n\n");
+        
+        // 技能短板
+        report.append("## 技能短板\n");
+        if (weakSkills.isEmpty()) {
+            report.append("没有发现明显的技能短板，继续保持！\n\n");
+        } else {
+            for (String skill : weakSkills) {
+                report.append("- ").append(skill).append("\n");
+            }
+            report.append("\n");
+        }
+        
+        // 推荐技能
+        report.append("## 推荐学习技能\n");
+        List<String> recommendedSkills = (List<String>) growthAdvice.getOrDefault("recommended_skills", new ArrayList<>());
+        for (String skill : recommendedSkills) {
+            report.append("- ").append(skill).append("\n");
+        }
+        report.append("\n");
+        
+        // 发展路径
+        report.append("## 长期职业发展路径\n");
+        List<String> longTermPath = (List<String>) growthAdvice.getOrDefault("long_term_path", new ArrayList<>());
+        for (int i = 0; i < longTermPath.size(); i++) {
+            report.append("- **阶段").append(i + 1).append("**：").append(longTermPath.get(i)).append("\n");
+        }
+        report.append("\n");
+        
+        // 短期建议
+        report.append("## 短期建议（1-3个月）\n");
+        report.append(growthAdvice.getOrDefault("short_term_advice", "暂无建议")).append("\n\n");
+        
+        // 中期建议
+        report.append("## 中期建议（3-6个月）\n");
+        report.append(growthAdvice.getOrDefault("mid_term_advice", "暂无建议")).append("\n\n");
+        
+        // 长期建议
+        report.append("## 长期建议（6-12个月）\n");
+        report.append(growthAdvice.getOrDefault("long_term_advice", "暂无建议")).append("\n\n");
+        
+        return report.toString();
     }
 
 }

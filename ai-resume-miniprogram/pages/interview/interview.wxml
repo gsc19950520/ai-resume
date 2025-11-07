@@ -14,24 +14,78 @@
     {{industryJobTag}}
   </view>
 
+  <!-- 面试官风格选择模块 - personaSelector -->
+  <view class="persona-selector" wx:if="{{!currentQuestion.content && !loading}}">
+    <view class="selector-title">选择面试官风格</view>
+    
+    <!-- 卡片网格布局 -->
+    <view class="persona-grid">
+      <view 
+        wx:for="{{personas}}" 
+        wx:key="id" 
+        class="persona-card {{persona === item.id ? 'selected' : ''}}"
+        bindtap="selectPersona"
+        data-id="{{item.id}}"
+      >
+        <view class="persona-emoji">{{item.emoji}}</view>
+        <view class="persona-name">{{item.name}}</view>
+        <view class="persona-description">{{item.description}}</view>
+        <view class="persona-example">{{item.example}}</view>
+      </view>
+    </view>
+    
+    <!-- 预览区域 -->
+    <view class="preview-section" wx:if="{{previewQuestion}}">
+      <view class="preview-title">预览</view>
+      <view class="preview-question">{{previewQuestion}}</view>
+    </view>
+    
+    <!-- 开始面试按钮 -->
+    <button 
+      class="start-interview-btn {{personaSelected ? 'active' : 'disabled'}}"
+      bindtap="startInterview"
+      disabled="{{!personaSelected}}"
+    >
+      开始面试
+    </button>
+  </view>
+
   <!-- 会话信息 -->
-  <view class="session-info">
-    <view class="job-type">{{jobType}}</view>
-    <view class="timer">
+  <view class="interview-header">
+    <view class="interview-info">
+      <text class="position">{{industryJobTag || '技术面试'}}</text>
+      <text class="persona" wx:if="{{persona}}">
+        面试官风格: {{getPersonaText(persona)}}
+      </text>
+    </view>
+    <view class="timer {{sessionTimeRemaining < 180 ? 'warning' : ''}}" wx:if="{{!showFeedback}}">
       <image src="/images/settings.png" mode="aspectFit" class="timer-icon"></image>
-      <text>{{formatTime(elapsedTime)}}</text>
+      剩余时间: {{formatRemainingTime(sessionTimeRemaining)}}
+    </view>
+    <view class="answer-duration" wx:if="{{showFeedback}}">
+      <image src="/images/settings.png" mode="aspectFit" class="timer-icon"></image>
+      回答时长: {{formatAnswerDuration(answerDuration)}}
     </view>
   </view>
 
   <!-- 问题卡片 - QuestionCard -->
-  <view class="question-card-wrapper">
+  <view class="question-card-wrapper" wx:if="{{!showFeedback}}">
     <view class="question-card gradient-border {{animationState.questionCard !== 'idle' ? 'animate-in' : ''}}">
-      <view class="depth-badge depth-{{currentQuestion.depthLevel}}">
-        {{getDepthText(currentQuestion.depthLevel)}}
-        <text class="depth-desc">{{getDepthDescription(currentQuestion.depthLevel)}}</text>
+      <view class="question-header">
+        <text class="question-round">第{{currentRound}}轮</text>
+        <text class="question-depth" wx:if="{{currentQuestion.depthLevel}}">
+          {{getDepthDescription(currentQuestion.depthLevel)}}
+        </text>
       </view>
-      <view class="question-number">问题 {{currentRound}}/{{maxRounds}}</view>
       <view class="question-content">{{currentQuestion.content}}</view>
+      <view class="expected-points" wx:if="{{currentQuestion.expectedKeyPoints && currentQuestion.expectedKeyPoints.length > 0}}">
+        <text class="points-title">考核要点：</text>
+        <view class="points-list">
+          <view class="point-item" wx:for="{{currentQuestion.expectedKeyPoints}}" wx:key="index">
+            {{item}}
+          </view>
+        </view>
+      </view>
     </view>
   </view>
 
@@ -79,7 +133,7 @@
 
   <!-- 评分反馈区域 - PerQuestionFeedback -->
   <view class="feedback-section {{animationState.feedbackPanel !== 'idle' ? 'animate-in' : ''}}" wx:if="showFeedback">
-    <view class="feedback-title">AI评分与反馈</view>
+    <view class="feedback-title">评分反馈</view>
     <view class="score-section">
       <view class="score-item">
         <view class="score-header">
@@ -122,6 +176,9 @@
     <view class="matched-points" wx:if="matchedPoints && matchedPoints.length > 0">
       <view class="matched-title">覆盖要点：</view>
       <view wx:for="{{matchedPoints}}" wx:key="index" class="matched-item">✓ {{item}}</view>
+    </view>
+    <view class="consecutive-no-match" wx:if="{{consecutiveNoMatchCount >= 2}}">
+      <text class="no-match-warning">⚠️ 请注意回答质量，已连续{{consecutiveNoMatchCount}}轮未命中要点</text>
     </view>
     
     <!-- 追问提示 -->
@@ -172,7 +229,14 @@
   </view>
 
   <!-- 底部按钮 - NextSkipButtons -->
-  <view class="bottom-buttons">
+  <view class="action-buttons">
+    <button 
+      class="voice-btn" 
+      bindtap="toggleRecording" 
+      disabled="{{loading}}">
+      <image src="/images/settings.png"></image>
+      {{recording ? '停止录音' : '语音输入'}}
+    </button>
     <button 
       class="btn btn-secondary skip-btn" 
       bindtap="skipQuestion"
@@ -188,11 +252,10 @@
       标记难点
     </button>
     <button 
-      class="btn btn-primary continue-btn gradient-btn" 
+      class="submit-btn" 
       bindtap="submitAnswer"
-      disabled="{{loading || !userAnswer}}">
-      <image src="/images/settings.png" class="btn-icon-small"></image>
-      {{showFeedback ? (followUpEnabled ? '继续追问' : '下一个问题') : '提交回答'}}
+      disabled="{{loading || !userAnswer.trim()}}">
+      {{showFeedback ? '下一题' : '提交回答'}}
     </button>
   </view>
 

@@ -10,8 +10,12 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.MediaType;
 
+import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Base64;
 
 /**
  * AI服务工具类
@@ -83,6 +87,34 @@ public class AiServiceUtils {
         suggestions.put("管理岗", "建议突出您的团队管理经验和项目交付能力，强调领导力和决策能力。");
         
         return suggestions.getOrDefault(jobType, "您的简历整体不错，建议进一步完善个人技能和项目经验的描述。");
+    }
+    
+    /**
+     * 计算文本的语义哈希
+     * @param text 需要计算哈希的文本
+     * @return 语义哈希值（MD5格式）
+     */
+    public String getSemanticHash(String text) {
+        try {
+            // 实际项目中，这里应该调用AI embedding接口获取语义向量
+            // 然后对向量进行哈希计算
+            // 这里使用简单的MD5实现作为模拟
+            MessageDigest md = MessageDigest.getInstance("MD5");
+            byte[] hashBytes = md.digest(text.getBytes(StandardCharsets.UTF_8));
+            
+            // 转换为十六进制字符串
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : hashBytes) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) hexString.append('0');
+                hexString.append(hex);
+            }
+            
+            return hexString.toString();
+        } catch (Exception e) {
+            // 如果计算失败，返回文本本身的哈希作为备选
+            return text.hashCode() + "_fallback";
+        }
     }
 
     /**

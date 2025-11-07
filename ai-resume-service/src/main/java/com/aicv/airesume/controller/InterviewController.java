@@ -1,13 +1,16 @@
 package com.aicv.airesume.controller;
 
-import com.aicv.airesume.entity.InterviewSession;
-import com.aicv.airesume.entity.InterviewLog;
+import com.aicv.airesume.model.dto.InterviewResponseDTO;
+import com.aicv.airesume.model.dto.InterviewReportDTO;
 import com.aicv.airesume.service.InterviewService;
 import com.aicv.airesume.utils.ResponseUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-
+import com.aicv.airesume.entity.AiTraceLog;
+import com.aicv.airesume.repository.AiTraceLogRepository;
+import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -20,30 +23,70 @@ public class InterviewController {
 
     @Autowired
     private InterviewService interviewService;
+    
+    @Autowired
+    private AiTraceLogRepository aiTraceLogRepository;
 
     /**
-     * 开始面试
+     * 开始面试 - 支持动态配置
      * @param request 请求参数
      * @return 会话信息和第一个问题
      */
     @PostMapping("/start")
     public Map<String, Object> startInterview(@RequestBody Map<String, Object> request) {
         try {
-            String userId = (String) request.get("userId");
+            Long userId = Long.valueOf(request.get("userId").toString());
             Long resumeId = Long.valueOf(request.get("resumeId").toString());
-            String jobType = (String) request.get("jobType");
-            String city = (String) request.get("city");
-            Map<String, Object> sessionParams = (Map<String, Object>) request.get("sessionParams");
+            String persona = (String) request.getOrDefault("persona", "专业面试官");
+            String toneStyle = (String) request.getOrDefault("toneStyle", "neutral"); // 添加语气风格参数
+            Integer sessionSeconds = request.get("sessionSeconds") != null ? 
+                Integer.valueOf(request.get("sessionSeconds").toString()) : 900; // 默认15分钟
 
-            Map<String, Object> result = interviewService.startInterview(userId, resumeId, jobType, city, sessionParams);
+            // 根据语气风格增强面试官角色描述
+            String enhancedPersona = enhancePersonaWithTone(persona, toneStyle);
+            InterviewResponseDTO result = interviewService.startInterview(userId, resumeId, enhancedPersona, sessionSeconds);
             return ResponseUtils.success(result);
         } catch (Exception e) {
             log.error("Start interview failed:", e);
             return ResponseUtils.error("开始面试失败：" + e.getMessage());
         }
     }
-
     /**
+     * 根据语气风格增强面试官角色描述
+     */
+    private String enhancePersonaWithTone(String basePersona, String toneStyle) {
+        switch (toneStyle) {
+            case "friendly":
+                return basePersona + "，语气友好亲切，鼓励候选人表达。";
+            case "challenging":
+                return basePersona + "，语气具有挑战性，会深入追问技术细节。";
+            case "analytical":
+                return basePersona + "，语气分析性强，注重逻辑推理过程。";
+            case "encouraging":
+                return basePersona + "，语气鼓励性强，给予正面反馈。";
+            case "formal":
+                return basePersona + "，语气正式专业，严格遵循技术评估标准。";
+            case "neutral":
+            default:
+                return basePersona + "，语气客观中立，关注事实和技术能力。";
+        }
+    }
+    
+    /**
+     * 获取AI运行日志（调试模式）
+     */
+    @GetMapping("/trace-logs/{sessionId}")
+    public Map<String, Object> getTraceLogs(@PathVariable String sessionId) {
+        try {
+            List<AiTraceLog> logs = aiTraceLogRepository.findBySessionIdOrderByCreatedAtDesc(sessionId);
+            return ResponseUtils.success(logs);
+        } catch (Exception e) {
+            log.error("获取AI跟踪日志失败", e);
+            return ResponseUtils.error("获取AI跟踪日志失败：" + e.getMessage());
+        }
+  }
+  
+  /**
      * 提交答案并获取下一个问题
      * @param request 请求参数
      * @return 下一个问题、评分和反馈
@@ -52,11 +95,13 @@ public class InterviewController {
     public Map<String, Object> submitAnswer(@RequestBody Map<String, Object> request) {
         try {
             String sessionId = (String) request.get("sessionId");
-            String questionId = (String) request.get("questionId");
             String userAnswerText = (String) request.get("userAnswerText");
-            String userAnswerAudioUrl = (String) request.get("userAnswerAudioUrl");
+            Integer answerDuration = Integer.valueOf(request.get("answerDuration").toString());
+            // 支持动态更新面试官风格（可选参数）
+            String toneStyle = (String) request.getOrDefault("toneStyle", null);
 
-            Map<String, Object> result = interviewService.submitAnswer(sessionId, questionId, userAnswerText, userAnswerAudioUrl);
+            InterviewResponseDTO result = interviewService.submitAnswer(sessionId, userAnswerText, answerDuration);
+            // 如果需要根据toneStyle调整，这里可以扩展逻辑
             return ResponseUtils.success(result);
         } catch (Exception e) {
             log.error("Submit answer failed:", e);
@@ -67,14 +112,14 @@ public class InterviewController {
     /**
      * 完成面试并生成报告
      * @param request 请求参数
-     * @return 聚合评分、薪资信息和报告URL
+     * @return 面试报告信息
      */
     @PostMapping("/finish")
     public Map<String, Object> finishInterview(@RequestBody Map<String, Object> request) {
         try {
             String sessionId = (String) request.get("sessionId");
 
-            Map<String, Object> result = interviewService.finishInterview(sessionId);
+            InterviewReportDTO result = interviewService.finishInterview(sessionId);
             return ResponseUtils.success(result);
         } catch (Exception e) {
             log.error("Finish interview failed:", e);
@@ -88,7 +133,7 @@ public class InterviewController {
      * @return 面试历史列表
      */
     @GetMapping("/history")
-    public Map<String, Object> getInterviewHistory(@RequestParam String userId) {
+    public Map<String, Object> getInterviewHistory(@RequestParam Long userId) {
         try {
             return ResponseUtils.success(interviewService.getInterviewHistory(userId));
         } catch (Exception e) {
@@ -102,66 +147,13 @@ public class InterviewController {
      * 基于AI面试评分、技术深度等多维度计算薪资
      */
     @PostMapping("/calculate-salary")
-    public Map<String, Object> calculateSalary(@RequestBody SalaryCalculateRequest request) {
+    public Map<String, Object> calculateSalary(@RequestBody Map<String, Object> request) {
         try {
-            Map<String, Double> aggregatedScores = new HashMap<>();
-            
-            // 确保总评分存在
-            if (!request.getAggregatedScores().containsKey("total")) {
-                // 计算总分
-                double tech = request.getAggregatedScores().getOrDefault("tech", 0.0);
-                double logic = request.getAggregatedScores().getOrDefault("logic", 0.0);
-                double clarity = request.getAggregatedScores().getOrDefault("clarity", 0.0);
-                double depth = request.getAggregatedScores().getOrDefault("depth", 0.0);
-                double total = (tech + logic + clarity + depth) / 4;
-                aggregatedScores.put("total", total);
-            } else {
-                aggregatedScores.putAll(request.getAggregatedScores());
-            }
-            
-            // 调用薪资计算方法
-            Map<String, Object> salaryInfo = interviewService.calculateSalary(
-                request.getCity(), 
-                request.getJobType(), 
-                aggregatedScores
-            );
-            
-            return ResponseUtils.success(salaryInfo);
+            String sessionId = (String) request.get("sessionId");
+            return ResponseUtils.success(interviewService.calculateSalary(sessionId));
         } catch (Exception e) {
             log.error("Calculate salary failed:", e);
             return ResponseUtils.error("薪资计算失败：" + e.getMessage());
-        }
-    }
-    
-    // 薪资计算请求参数类
-    public static class SalaryCalculateRequest {
-        private String city;
-        private String jobType;
-        private Map<String, Double> aggregatedScores;
-        
-        // Getters and Setters
-        public String getCity() {
-            return city;
-        }
-        
-        public void setCity(String city) {
-            this.city = city;
-        }
-        
-        public String getJobType() {
-            return jobType;
-        }
-        
-        public void setJobType(String jobType) {
-            this.jobType = jobType;
-        }
-        
-        public Map<String, Double> getAggregatedScores() {
-            return aggregatedScores;
-        }
-        
-        public void setAggregatedScores(Map<String, Double> aggregatedScores) {
-            this.aggregatedScores = aggregatedScores;
         }
     }
 

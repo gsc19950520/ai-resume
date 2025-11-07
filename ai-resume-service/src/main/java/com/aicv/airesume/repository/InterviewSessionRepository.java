@@ -25,7 +25,7 @@ public interface InterviewSessionRepository extends JpaRepository<InterviewSessi
      * @param userId 用户ID
      * @return 会话列表
      */
-    List<InterviewSession> findByUserIdOrderByCreatedAtDesc(String userId);
+    List<InterviewSession> findByUserIdOrderByCreatedAtDesc(Long userId);
 
     /**
      * 根据用户ID和状态查找会话列表
@@ -33,6 +33,6 @@ public interface InterviewSessionRepository extends JpaRepository<InterviewSessi
      * @param status 状态
      * @return 会话列表
      */
-    List<InterviewSession> findByUserIdAndStatusOrderByCreatedAtDesc(String userId, String status);
+    List<InterviewSession> findByUserIdAndStatusOrderByCreatedAtDesc(Long userId, String status);
 
 }
