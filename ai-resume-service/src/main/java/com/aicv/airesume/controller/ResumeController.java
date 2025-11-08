@@ -67,6 +67,22 @@ public class ResumeController {
     public List<Resume> getUserResumeList(@PathVariable Long userId) {
         return resumeService.getUserResumeList(userId);
     }
+    
+    /**
+     * 获取用户简历列表（支持查询参数形式）
+     * 用于兼容前端调用格式
+     * @param userId 用户ID
+     * @return 简历列表
+     */
+    @Log(description = "获取用户简历列表（查询参数形式）", recordParams = true, recordResult = false)
+    @GetMapping("/user-resumes")
+    public Map<String, Object> getUserResumes(@RequestParam Long userId) {
+        List<Resume> resumeList = resumeService.getUserResumeList(userId);
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", true);
+        result.put("data", resumeList);
+        return result;
+    }
 
     /**
      * 根据ID获取简历

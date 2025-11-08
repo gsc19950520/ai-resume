@@ -11,7 +11,7 @@ class UserService {
    * @returns {Promise} 返回登录结果
    */
   static async login(code) {
-    return request.post('/user/login', { code })
+    return request.post('/api/user/login', { code })
   }
 
   /**
@@ -19,7 +19,7 @@ class UserService {
    * @returns {Promise} 返回用户信息
    */
   static async getUserInfo() {
-    return request.get('/user/info')
+    return request.get('/api/user/info')
   }
 
   /**
@@ -28,7 +28,7 @@ class UserService {
    * @returns {Promise} 返回更新结果
    */
   static async updateUserInfo(userInfo) {
-    return request.put('/user/info', userInfo)
+    return request.put('/api/user/info', userInfo)
   }
 
   /**
@@ -36,7 +36,7 @@ class UserService {
    * @returns {Promise} 返回统计数据
    */
   static async getStats() {
-    return request.get('/user/stats')
+    return request.get('/api/user/stats')
   }
 
   /**
@@ -44,7 +44,7 @@ class UserService {
    * @returns {Promise} 返回登出结果
    */
   static async logout() {
-    return request.post('/user/logout')
+    return request.post('/api/user/logout')
   }
 
   /**
@@ -56,7 +56,7 @@ class UserService {
     return new Promise((resolve, reject) => {
       const app = getApp()
       wx.uploadFile({
-        url: `${app.globalData.baseUrl}/user/avatar`,
+        url: `${app.globalData.baseUrl}/api/user/avatar`,
         filePath,
         name: 'file',
         header: {

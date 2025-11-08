@@ -1,7 +1,5 @@
 package com.aicv.airesume.utils;
 
-import org.springframework.retry.annotation.Backoff;
-import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Component;
 
 import java.lang.reflect.InvocationTargetException;
@@ -118,16 +116,5 @@ public class RetryUtils {
         }
     }
 
-    /**
-     * 用于方法级别的重试注解示例
-     * 注意：使用此注解需要在应用主类上添加@EnableRetry注解
-     */
-    @Retryable(
-        value = {SQLException.class, RuntimeException.class},
-        maxAttempts = 4, // 1次原始尝试 + 3次重试
-        backoff = @Backoff(delay = 1000, multiplier = 2) // 1秒后第一次重试，然后2秒，然后4秒
-    )
-    public void exampleRetryableMethod() {
-        // 此方法在遇到指定异常时会自动重试
-    }
+
 }

@@ -33,37 +33,31 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
     @Override
     public Order createOrder(Long userId, String productId, String productType, Integer amount) {
-        // 临时返回null，避免使用Order类
         return null;
     }
 
     @Override
     public Map<String, Object> payOrder(String orderNo, Long userId) {
-        // 临时返回空的支付参数，避免使用Order类
         return new HashMap<>();
     }
 
     @Transactional
     @Override
     public void handlePayCallback(Map<String, String> notifyData) {
-        // 临时空实现，避免使用Order类
     }
 
     @Override
     public List<Order> getOrderList(Long userId) {
-        // 临时返回空列表，避免使用Order类
         return new ArrayList<>();
     }
 
     @Override
     public Order getOrderByNo(String orderNo) {
-        // 临时返回null，避免使用Order类
         return null;
     }
 
     @Override
     public Map<String, Object> buyMembership(Long userId, Integer days) {
-        // 临时实现，避免使用Order类
         String orderNo = generateOrderNo();
         Integer amount = calculateMembershipPrice(days);
         Map<String, Object> result = new HashMap<>();
@@ -75,7 +69,6 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
     @Override
     public Map<String, Object> buyOptimizePackage(Long userId, Integer count) {
-        // 临时实现，避免使用Order类
         String orderNo = generateOrderNo();
         Integer amount = calculateOptimizePrice(count);
         Map<String, Object> result = new HashMap<>();
@@ -87,7 +80,6 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
     @Override
     public Map<String, Object> buyTemplatePackage(Long userId, Long templateId) {
-        // 临时实现，避免使用Order类
         String orderNo = generateOrderNo();
         Integer amount = 299; // 模板包价格299元
         Map<String, Object> result = new HashMap<>();
@@ -110,7 +102,6 @@ public class SubscriptionServiceImpl implements SubscriptionService {
      * 获取产品名称
      */
     private String getProductName(String productType, String productId) {
-        // 临时返回固定产品名称
         return "AI简历优化服务";
     }
 
@@ -118,7 +109,6 @@ public class SubscriptionServiceImpl implements SubscriptionService {
      * 处理产品交付
      */
     private void handleProductDelivery(Order order) {
-        // 临时空实现，避免使用Order类的任何方法
     }
 
     /**

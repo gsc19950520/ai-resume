@@ -115,7 +115,7 @@ Page({
       return new Promise((resolve, reject) => {
         try {
           app.request({
-            url: '/interview/get-config',
+            url: '/api/interview/get-config',
             method: 'GET',
             success: (res) => {
               console.log('获取动态配置响应:', res);
@@ -203,7 +203,7 @@ Page({
     analyzeResume: async function(resumeId) {
       try {
         return new Promise((resolve, reject) => {
-          app.request('/interview/analyze-resume', 'POST', { resumeId }, res => {
+          app.request('/api/interview/analyze-resume', 'POST', { resumeId }, res => {
             if (res.code === 0 || res.success) {
               resolve(res);
             } else {
@@ -229,7 +229,7 @@ Page({
         // 尝试从服务器获取随机多样性控制
         try {
           const diversityResult = await new Promise((resolve, reject) => {
-            app.request('/interview/random-diversity', 'POST', { 
+            app.request('/api/interview/random-diversity', 'POST', { 
               techItems: safeTechItems, 
               projectSummaries: safeProjectSummaries, 
               userPerformance: safeUserPerformance 
@@ -351,7 +351,7 @@ Page({
         // 调用API生成问题
         try {
           const questionResult = await new Promise((resolve, reject) => {
-            app.request('/interview/generate-question', 'POST', requestData, res => {
+            app.request('/api/interview/generate-question', 'POST', requestData, res => {
               resolve(res);
             });
           });
@@ -440,7 +440,7 @@ Page({
       try {
         return new Promise((resolve, reject) => {
           app.request({
-            url: '/interview/assess-answer',
+            url: '/api/interview/assess-answer',
             method: 'POST',
             data: { question, userAnswer, expectedKeyPoints },
             success: res => {
@@ -468,7 +468,7 @@ Page({
       try {
         return new Promise((resolve, reject) => {
           app.request({
-            url: '/interview/growth-report',
+            url: '/api/interview/growth-report',
             method: 'POST',
             data: { userId, sessionHistory },
             header: { 'content-type': 'application/json' },
@@ -833,7 +833,7 @@ Page({
       // 调用后端API创建面试会话 - 使用app.request代替直接wx.request
       const sessionResponse = await new Promise((resolve, reject) => {
         app.request({
-          url: '/interview/start-session',
+          url: '/api/interview/start-session',
           method: 'POST',
           data: sessionConfig,
           success: res => resolve(res),

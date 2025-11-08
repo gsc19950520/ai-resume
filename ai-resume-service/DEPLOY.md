@@ -27,6 +27,7 @@
 | `OPENAI_API_KEY` | OpenAI API Key | `your_openai_api_key` |
 | `TONGYI_API_KEY` | 通义千问API Key | `your_tongyi_api_key` |
 | `WENXIN_API_KEY` | 文心一言API Key | `your_wenxin_api_key` |
+| `DEEPSEEK_API_KEY` | DeepSeek API Key | `your_deepseek_api_key` |
 | `OSS_ENDPOINT` | OSS端点 | `your_oss_endpoint` |
 | `OSS_ACCESS_KEY` | OSS访问密钥 | `your_oss_access_key` |
 | `OSS_SECRET_KEY` | OSS密钥 | `your_oss_secret_key` |

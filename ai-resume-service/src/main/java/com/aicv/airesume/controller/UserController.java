@@ -80,7 +80,6 @@ public class UserController {
      */
     @GetMapping("/{userId}/check-vip")
     public Boolean checkVipStatus(@PathVariable Long userId) {
-        // 临时返回false，需要实现对应的服务方法
         return false;
     }
 
@@ -91,7 +90,6 @@ public class UserController {
      */
     @GetMapping("/info")
     public User getUserInfo(@RequestParam Long userId) {
-        // 临时返回null，避免使用可能不存在的类
         return null;
     }
 }

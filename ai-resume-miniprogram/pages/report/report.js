@@ -45,7 +45,7 @@ Page({
     getCareerGrowthData: function(userId, jobType, domain) {
       return new Promise((resolve, reject) => {
         wx.request({
-          url: 'https://api.example.com/report/career-growth',
+          url: '/api/report/career-growth',
           method: 'GET',
           data: { userId, jobType, domain },
           success: (res) => resolve(res.data),
@@ -72,7 +72,7 @@ Page({
     getSalaryInfo: function(jobType, city, scores) {
       return new Promise((resolve, reject) => {
         wx.request({
-          url: 'https://api.example.com/report/salary-info',
+          url: '/api/report/salary-info',
           method: 'GET',
           data: { jobType, city, scores: JSON.stringify(scores) },
           success: (res) => resolve(res.data),
@@ -88,7 +88,7 @@ Page({
     getGrowthAdvice: function(jobType, domain, scores) {
       return new Promise((resolve, reject) => {
         wx.request({
-          url: 'https://api.example.com/report/growth-advice',
+          url: '/api/report/growth-advice',
           method: 'GET',
           data: { jobType, domain, scores: JSON.stringify(scores) },
           success: (res) => resolve(res.data),

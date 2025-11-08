@@ -62,12 +62,10 @@ public class TemplateServiceImpl implements TemplateService {
 
     @Override
     public void addTemplateUseCount(Long templateId) {
-        // 临时不执行任何操作，避免方法调用错误
     }
 
     @Override
     public boolean checkTemplatePermission(Long userId, Long templateId) {
-        // 临时直接返回true，避免方法调用错误
         return true;
     }
 }

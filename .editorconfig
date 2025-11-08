@@ -1,0 +1,33 @@
+# EditorConfig helps developers define and maintain consistent
+# coding styles between different editors and IDEs
+# editorconfig.org
+
+root = true
+
+[*]
+# We're using spaces for indentation
+indent_style = space
+indent_size = 4
+
+# We want Unix-style newlines
+end_of_line = lf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+[*.java]
+indent_size = 4
+max_line_length = 120
+
+[*.{js,jsx,ts,tsx,vue}]
+indent_size = 2
+max_line_length = 100
+
+[*.{yml,yaml,json,properties,xml}]
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+
+[Makefile]
+indent_style = tab

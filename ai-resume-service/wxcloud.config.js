@@ -14,7 +14,8 @@
     "port": 8080,
     "envParams": {
       "SPRING_PROFILES_ACTIVE": "prod",
-      "SERVER_PORT": "8080"
+      "SERVER_PORT": "8080",
+      "DEEPSEEK_API_KEY": "sk-3949685c1e23448b96e017f93f1501d5"
     }
   }
 }
