@@ -1,11 +1,12 @@
 package com.aicv.airesume.service.config;
 
+import com.aicv.airesume.entity.DynamicConfig;
+import com.aicv.airesume.repository.DynamicConfigRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -23,7 +24,7 @@ public class DynamicConfigService {
     private static final Logger logger = LoggerFactory.getLogger(DynamicConfigService.class);
 
     @Autowired
-    private JdbcTemplate jdbcTemplate;
+    private DynamicConfigRepository dynamicConfigRepository;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -45,11 +46,10 @@ public class DynamicConfigService {
         }
         
         // 从数据库查询
-        String sql = "SELECT config_value FROM dynamic_config WHERE config_type = ? AND config_key = ? AND is_active = 1";
         try {
-            List<String> results = jdbcTemplate.queryForList(sql, String.class, configType, configKey);
-            if (!results.isEmpty()) {
-                String value = results.get(0);
+            Optional<DynamicConfig> configOptional = dynamicConfigRepository.findByConfigTypeAndConfigKeyAndIsActiveTrue(configType, configKey);
+            if (configOptional.isPresent()) {
+                String value = configOptional.get().getConfigValue();
                 configCache.put(cacheKey, value);
                 return Optional.of(value);
             }
