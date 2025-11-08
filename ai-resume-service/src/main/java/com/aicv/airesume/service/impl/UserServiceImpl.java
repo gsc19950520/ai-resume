@@ -96,7 +96,7 @@ public class UserServiceImpl implements UserService {
                     newUser.setNickname(nickname != null && !nickname.isEmpty() ? nickname : generateRandomNickname());
                     
                     // 生成卡通头像（如果没有提供）
-                    newUser.setAvatarUrl(avatarUrl != null && !avatarUrl.isEmpty() ? avatarUrl : generateCartoonAvatar(openId));
+                    newUser.setAvatarUrl(avatarUrl != null && !avatarUrl.isEmpty() ? avatarUrl : generateCartoonAvatar(newUser.getNickname()));
                     
                     newUser.setRemainingOptimizeCount(0); // 初始优化次数
                     newUser.setVip(false); // 初始非VIP
@@ -314,10 +314,34 @@ public class UserServiceImpl implements UserService {
      * @return 卡通头像URL
      */
     private String generateCartoonAvatar(String openId) {
-        // 使用Gravatar的卡通头像服务，基于openId生成一个唯一的头像
-        // d=monsterid参数指定使用卡通怪物头像
-        // s=200参数指定头像大小为200px
-        String hash = Integer.toHexString(openId.hashCode());
-        return "https://www.gravatar.com/avatar/" + hash + "?d=monsterid&s=200";
+        // 使用国内稳定可用的头像生成服务
+        int hashCode = Math.abs(openId.hashCode());
+        
+        // 生成基于用户ID的固定颜色
+        int r = hashCode % 256;
+        int g = (hashCode / 256) % 256;
+        int b = (hashCode / 65536) % 256;
+        String bgColor = String.format("%02x%02x%02x", r, g, b);
+        
+        // 生成对比色作为文字颜色
+        String fgColor = (r + g + b > 380) ? "000000" : "ffffff"; // 简单的颜色对比度判断
+        
+        // 使用用户ID的第一个字符作为头像文字
+        String displayText = openId.isEmpty() ? "U" : openId.substring(0, 1).toUpperCase();
+        
+        try {
+            // 使用国内稳定的头像生成服务，避免依赖国外服务
+            // 使用更可靠的头像生成方式
+            return "https://ui-avatars.com/api/?name=" + displayText + "&background=" + bgColor + "&color=" + fgColor + "&size=200";
+        } catch (Exception e) {
+            // 降级方案：返回一个简单的本地头像路径
+            return "/api/avatar/default?color=" + bgColor;
+        }
+    }
+
+    public static void main(String[] args) {
+        UserServiceImpl userService = new UserServiceImpl();
+        String avatarUrl = userService.generateCartoonAvatar("123456");
+        System.out.println(avatarUrl);
     }
 }
