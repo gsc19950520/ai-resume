@@ -3,57 +3,57 @@ const app = getApp()
 
 Page({
   data: {
-    canIUse: wx.canIUse('button.open-type.getUserInfo'),
     isLoading: false
   },
 
   onLoad: function () {
     // 检查是否已经登录
-    if (app.globalData.userInfo) {
+    if (app.globalData.isLogin) {
       this.navigateToIndex()
     }
   },
 
-  // 获取用户信息
-  onGetUserInfo: function(e) {
-    if (e.detail.userInfo) {
-      // 用户同意授权
-      this.handleLogin(e.detail.userInfo)
-    } else {
-      // 用户拒绝授权
-      wx.showToast({
-        title: '需要授权才能使用完整功能',
-        icon: 'none'
-      })
-    }
-  },
-
-  // 处理登录逻辑
-  handleLogin: function(userInfo) {
+  // 微信登录按钮点击事件 - 简化登录流程，不获取用户信息
+  onGetUserInfo: function() {
     const that = this
-    that.setData({ isLoading: true })
     
-    // 调用app.js中的login方法
-    app.login(res => {
-      that.setData({ isLoading: false })
-      
-      if (res.code === 0) {
-        // 登录成功
-        wx.showToast({
-          title: '登录成功',
-          icon: 'success',
-          duration: 1500,
-          success: function() {
-            setTimeout(() => {
-              that.navigateToIndex()
-            }, 1500)
+    // 调用微信登录接口获取code
+    wx.login({
+      success: (loginRes) => {
+        that.setData({ isLoading: true })
+        
+        // 直接调用wechatLogin接口进行登录（不获取用户信息）
+        app.wechatLogin(loginRes.code, res => {
+          that.setData({ isLoading: false })
+          
+          if (res && res.code === 0) {
+            // 登录成功
+            wx.showToast({
+              title: '登录成功',
+              icon: 'success',
+              duration: 1500,
+              success: function() {
+                setTimeout(() => {
+                  that.navigateToIndex()
+                }, 1500)
+              }
+            })
+          } else {
+            // 登录失败
+            wx.showToast({
+              title: res?.message || '登录失败，请重试',
+              icon: 'none',
+              duration: 2000
+            })
           }
         })
-      } else {
-        // 登录失败
+      },
+      fail: (error) => {
+        console.error('微信登录失败', error)
         wx.showToast({
-          title: res.message || '登录失败，请重试',
-          icon: 'none'
+          title: '微信登录失败',
+          icon: 'none',
+          duration: 2000
         })
       }
     })
@@ -61,29 +61,8 @@ Page({
 
   // 跳转到首页
   navigateToIndex: function() {
-    const pages = getCurrentPages()
-    if (pages.length > 1) {
-      // 如果有上一页，返回上一页
-      wx.navigateBack()
-    } else {
-      // 否则跳转到首页
-      wx.switchTab({
-        url: '/pages/index/index'
-      })
-    }
-  },
-
-  // 查看隐私政策
-  viewPrivacy: function() {
-    wx.navigateTo({
-      url: '/pages/privacy/privacy'
-    })
-  },
-
-  // 查看用户协议
-  viewTerms: function() {
-    wx.navigateTo({
-      url: '/pages/terms/terms'
+    wx.switchTab({
+      url: '/pages/index/index'
     })
   }
 })

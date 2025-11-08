@@ -7,6 +7,7 @@ import com.aicv.airesume.utils.RetryUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.Random;
 import java.util.Optional;
 
 /**
@@ -90,8 +91,13 @@ public class UserServiceImpl implements UserService {
                     // 用户不存在，创建新用户
                     User newUser = new User();
                     newUser.setOpenId(openId);
-                    newUser.setNickname(nickname != null ? nickname : "微信用户");
-                    newUser.setAvatarUrl(avatarUrl != null ? avatarUrl : "");
+                    
+                    // 生成随机昵称（如果没有提供）
+                    newUser.setNickname(nickname != null && !nickname.isEmpty() ? nickname : generateRandomNickname());
+                    
+                    // 生成卡通头像（如果没有提供）
+                    newUser.setAvatarUrl(avatarUrl != null && !avatarUrl.isEmpty() ? avatarUrl : generateCartoonAvatar(openId));
+                    
                     newUser.setRemainingOptimizeCount(0); // 初始优化次数
                     newUser.setVip(false); // 初始非VIP
                     
@@ -251,5 +257,67 @@ public class UserServiceImpl implements UserService {
         } catch (Exception e) {
             throw new RuntimeException("检查模板使用权限失败: " + e.getMessage(), e);
         }
+    }
+    
+    /**
+     * 生成随机昵称
+     * @return 随机生成的用户昵称
+     */
+    private String generateRandomNickname() {
+        // 扩展形容词数组，增加更多选项
+        String[] adjectives = {
+            "快乐的", "聪明的", "勇敢的", "友善的", "活泼的", "优雅的", "机智的", "可爱的", "幽默的", "温柔的",
+            "热情的", "开朗的", "乐观的", "自信的", "谦虚的", "诚实的", "善良的", "细心的", "耐心的", "坚强的",
+            "敏捷的", "灵活的", "健壮的", "轻盈的", "优雅的", "高贵的", "神秘的", "梦幻的", "闪亮的", "耀眼的",
+            "温暖的", "清凉的", "甜蜜的", "清新的", "自由的", "奔放的", "安静的", "沉稳的", "深邃的", "广阔的",
+            "创意的", "独特的", "非凡的", "卓越的", "优秀的", "出色的", "顶尖的", "专业的", "专注的", "认真的",
+            "活泼的", "调皮的", "可爱的", "萌趣的", "机智的", "聪慧的", "睿智的", "理性的", "感性的", "直率的"
+        };
+        
+        // 扩展名词数组，增加更多选项
+        String[] nouns = {
+            "小猫", "小狗", "小鸟", "小鱼", "小熊", "小兔", "小鹿", "小松鼠", "小象", "小狮子",
+            "小狐狸", "小熊猫", "小龙", "小虎", "小马", "小羊", "小牛", "小鸡", "小鸭", "小鹅",
+            "小猫头鹰", "小海豚", "小鲸鱼", "小企鹅", "小浣熊", "小考拉", "小树懒", "小刺猬", "小兔子", "小鹿斑比",
+            "星星", "月亮", "太阳", "云朵", "彩虹", "雪花", "雨滴", "花朵", "树叶", "种子",
+            "火箭", "飞船", "飞机", "汽车", "火车", "轮船", "潜艇", "机器人", "无人机", "游戏机",
+            "梦想家", "探险家", "科学家", "艺术家", "音乐家", "作家", "画家", "设计师", "工程师", "程序员"
+        };
+        
+        // 扩展后缀数组，增加更多选项
+        String[] suffixes = {
+            "探险家", "旅行者", "梦想家", "创造者", "守护者", "冒险家", "追梦者", "探索者", "发现者", "实践者",
+            "思考者", "创造者", "设计师", "工程师", "艺术家", "音乐家", "作家", "画家", "摄影师", "程序员",
+            "科学家", "研究者", "发明家", "革新者", "开拓者", "领航者", "先锋", "领袖", "冠军", "英雄",
+            "学霸", "达人", "专家", "大师", "王者", "精英", "新秀", "天才", "神童", "奇才",
+            "爱好者", "收藏家", "鉴赏家", "玩家", "粉丝", "迷", "控", "狂", "痴", "宅",
+            "小能手", "小达人", "小天才", "小精灵", "小可爱", "小机灵", "小调皮", "小宝贝", "小天使", "小恶魔"
+        };
+        
+        Random random = new Random();
+        String adjective = adjectives[random.nextInt(adjectives.length)];
+        String noun = nouns[random.nextInt(nouns.length)];
+        String suffix = suffixes[random.nextInt(suffixes.length)];
+        int number = random.nextInt(10000);
+        
+        // 随机决定是否添加数字后缀，增加变化性
+        if (random.nextBoolean()) {
+            return adjective + noun + suffix + number;
+        } else {
+            return adjective + noun + suffix;
+        }
+    }
+    
+    /**
+     * 生成卡通头像URL
+     * @param openId 用户的openId，用于基于openId生成唯一的头像
+     * @return 卡通头像URL
+     */
+    private String generateCartoonAvatar(String openId) {
+        // 使用Gravatar的卡通头像服务，基于openId生成一个唯一的头像
+        // d=monsterid参数指定使用卡通怪物头像
+        // s=200参数指定头像大小为200px
+        String hash = Integer.toHexString(openId.hashCode());
+        return "https://www.gravatar.com/avatar/" + hash + "?d=monsterid&s=200";
     }
 }

@@ -1,0 +1,13 @@
+{
+  "name": "ai-resume-miniprogram",
+  "version": "1.0.0",
+  "description": "AI简历助手小程序",
+  "main": "app.js",
+  "scripts": {
+    "dev": "echo \"开发模式启动\"",
+    "build": "echo \"构建项目\""
+  },
+  "keywords": ["ai", "resume", "miniprogram"],
+  "author": "",
+  "license": "MIT"
+}

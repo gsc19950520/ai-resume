@@ -67,7 +67,17 @@
   height: 96rpx;
   line-height: 96rpx;
   border-radius: 48rpx;
+  margin-bottom: 30rpx;
+}
+
+/* 授权提示 */
+.auth-tip {
+  text-align: center;
+  font-size: 24rpx;
+  color: #666;
+  line-height: 1.6;
   margin-bottom: 40rpx;
+  padding: 0 40rpx;
 }
 
 .wx-icon {

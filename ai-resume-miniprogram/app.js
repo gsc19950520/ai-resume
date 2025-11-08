@@ -2,6 +2,7 @@
 App({
   globalData: {
     userInfo: null,
+    userProfile: null, // 用户头像和昵称等信息
     token: '',
     baseUrl: 'http://localhost:8080/api', // 本地开发环境
     cloudBaseUrl: '', // 云托管服务地址，使用callContainer时无需配置
@@ -70,7 +71,13 @@ App({
   },
 
   // 登录方法
-  login: function(callback) {
+  login: function(userInfo, callback) {
+    // 处理参数重载：如果第一个参数是函数，则表示没有传入userInfo
+    if (typeof userInfo === 'function') {
+      callback = userInfo
+      userInfo = null
+    }
+    
     wx.login({
       success: res => {
         if (res.code) {
@@ -85,8 +92,15 @@ App({
             return
           }
           
-          // 获取用户信息授权
-          this.getUserProfileInfo(res.code, callback)
+          // 如果已经传入了用户信息，直接调用登录接口
+          if (userInfo && Object.keys(userInfo).length > 0) {
+            console.info('使用已获取的用户信息进行登录')
+            this.wechatLogin(res.code, userInfo, callback)
+          } else {
+            // 否则获取用户信息授权
+            console.info('需要获取用户信息授权')
+            this.getUserProfileInfo(res.code, callback)
+          }
         } else {
           // 登录失败情况
           console.error('登录失败，无法获取code', res)
@@ -130,6 +144,22 @@ App({
   
   // 微信登录接口调用
   wechatLogin: function(code, userInfo, callback) {
+    // 处理参数重载：如果第二个参数是函数，则表示没有传入userInfo
+    if (typeof userInfo === 'function') {
+      callback = userInfo
+      userInfo = null
+    }
+    
+    // 构建请求数据
+    const requestData = {
+      code: code
+    }
+    
+    // 只有在提供了userInfo且不为空时才添加到请求数据中
+    if (userInfo && Object.keys(userInfo).length > 0) {
+      requestData.userInfo = userInfo
+    }
+    
     wx.cloud.callContainer({
       config: {
         env: this.globalData.cloudEnvId
@@ -140,10 +170,7 @@ App({
         'X-WX-SERVICE': 'springboot-bq0e',
         'content-type': 'application/json'
       },
-      data: {
-        code: code,
-        userInfo: userInfo
-      },
+      data: requestData,
       success: result => {
         console.info('登录接口调用成功', result)
         this.handleLoginResult(result, callback)
