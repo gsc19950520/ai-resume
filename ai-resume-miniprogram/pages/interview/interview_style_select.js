@@ -202,7 +202,7 @@ Page({
       }, 5000);
       
       app.request({
-        url: '/api/config/interview',
+        url: '/api/interview/get-config',
         method: 'GET',
         success: (res) => {
           clearTimeout(timeoutId);
@@ -227,7 +227,7 @@ Page({
   getDynamicConfig: function() {
     return new Promise((resolve, reject) => {
       app.request({
-        url: '/api/config/interview',
+        url: '/api/interview/get-config',
         method: 'GET',
         success: (res) => {
           if (res.code === 0 && res.data) {
