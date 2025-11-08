@@ -3,6 +3,7 @@ package com.aicv.airesume.controller;
 import com.aicv.airesume.model.dto.InterviewResponseDTO;
 import com.aicv.airesume.model.dto.InterviewReportDTO;
 import com.aicv.airesume.service.InterviewService;
+import com.aicv.airesume.service.config.DynamicConfigService;
 import com.aicv.airesume.utils.ResponseUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,7 +27,64 @@ public class InterviewController {
     
     @Autowired
     private AiTraceLogRepository aiTraceLogRepository;
+    
+    @Autowired
+    private DynamicConfigService dynamicConfigService;
 
+    /**
+     * 获取面试配置
+     * @return 面试相关配置信息
+     */
+    @GetMapping("/get-config")
+    public Map<String, Object> getInterviewConfig() {
+        try {
+            // 获取面试相关配置
+            Map<String, Object> config = new HashMap<>();
+            
+            // 获取面试官风格配置（只返回启用的）
+            dynamicConfigService.getInterviewPersonas().ifPresent(personas -> {
+                config.put("personas", personas);
+            });
+            
+            // 获取深度级别配置
+            dynamicConfigService.getInterviewDepthLevels().ifPresent(depthLevels -> {
+                config.put("depthLevels", depthLevels);
+            });
+            
+            // 获取默认会话时长
+            config.put("defaultSessionSeconds", dynamicConfigService.getDefaultSessionSeconds());
+            
+            // 获取默认面试官风格
+            config.put("defaultPersona", dynamicConfigService.getDefaultPersona());
+            
+            return ResponseUtils.success(config);
+        } catch (Exception e) {
+            log.error("获取面试配置失败", e);
+            return ResponseUtils.error("获取面试配置失败：" + e.getMessage());
+        }
+    }
+    
+    /**
+     * 获取所有面试官风格配置（包括禁用的），用于管理功能
+     * @return 所有面试官风格配置
+     */
+    @GetMapping("/admin/get-all-personas")
+    public Map<String, Object> getAllInterviewPersonas() {
+        try {
+            Map<String, Object> result = new HashMap<>();
+            
+            // 获取所有面试官风格配置（包括禁用的）
+            dynamicConfigService.getAllInterviewPersonas().ifPresent(personas -> {
+                result.put("personas", personas);
+            });
+            
+            return ResponseUtils.success(result);
+        } catch (Exception e) {
+            log.error("获取所有面试官风格配置失败", e);
+            return ResponseUtils.error("获取所有面试官风格配置失败：" + e.getMessage());
+        }
+    }
+    
     /**
      * 开始面试 - 支持动态配置
      * @param request 请求参数
@@ -37,10 +95,16 @@ public class InterviewController {
         try {
             Long userId = Long.valueOf(request.get("userId").toString());
             Long resumeId = Long.valueOf(request.get("resumeId").toString());
-            String persona = (String) request.getOrDefault("persona", "专业面试官");
+            
+            // 从动态配置获取默认值
+            String defaultPersona = dynamicConfigService.getDefaultPersona();
+            Integer defaultSessionSeconds = dynamicConfigService.getDefaultSessionSeconds();
+            
+            // 使用请求参数或默认配置
+            String persona = (String) request.getOrDefault("persona", defaultPersona);
             String toneStyle = (String) request.getOrDefault("toneStyle", "neutral"); // 添加语气风格参数
             Integer sessionSeconds = request.get("sessionSeconds") != null ? 
-                Integer.valueOf(request.get("sessionSeconds").toString()) : 900; // 默认15分钟
+                Integer.valueOf(request.get("sessionSeconds").toString()) : defaultSessionSeconds;
 
             // 根据语气风格增强面试官角色描述
             String enhancedPersona = enhancePersonaWithTone(persona, toneStyle);
@@ -169,6 +233,26 @@ public class InterviewController {
         } catch (Exception e) {
             log.error("Get interview detail failed:", e);
             return ResponseUtils.error("获取面试详情失败：" + e.getMessage());
+        }
+    }
+    
+    /**
+     * 生成第一个面试问题
+     * @param request 请求参数（包含resumeId、personaId、industryJobTag）
+     * @return 生成的问题
+     */
+    @PostMapping("/generate-first-question")
+    public Map<String, Object> generateFirstQuestion(@RequestBody Map<String, Object> request) {
+        try {
+            Long resumeId = Long.valueOf(request.get("resumeId").toString());
+            String personaId = (String) request.get("personaId");
+            String industryJobTag = (String) request.getOrDefault("industryJobTag", "");
+            
+            Map<String, Object> result = interviewService.generateFirstQuestion(resumeId, personaId, industryJobTag);
+            return ResponseUtils.success(result);
+        } catch (Exception e) {
+            log.error("Generate first question failed:", e);
+            return ResponseUtils.error("生成问题失败：" + e.getMessage());
         }
     }
 

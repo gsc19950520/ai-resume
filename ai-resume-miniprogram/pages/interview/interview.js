@@ -6,12 +6,17 @@ Page({
     sessionId: '',
     userId: '',
     resumeId: '',
+    // 简历选择相关
+    showResumeSelectModal: false, // 简历选择弹窗是否显示
+    resumeList: [], // 用户的简历列表
+    selectedResumeId: '', // 选中的简历ID
     
     // 动态面试配置 - 从数据库获取
     persona: '', // 面试官风格，默认为空，从配置获取
     personas: [], // 面试官风格列表，从数据库获取
     sessionSeconds: 900, // 默认值，将从数据库获取
     sessionTimeRemaining: 900, // 剩余时间（秒）
+    showTimeWarning: false, // 时间警告显示状态
     
     // 领域与行业信息
     domain: '',
@@ -105,7 +110,7 @@ Page({
   
   // API服务调用 - 升级为动态面试系统
   apiServices: {
-    // 获取动态配置
+    // 获取动态配置 - 优先调用接口获取数据
     getDynamicConfig: async function() {
       return new Promise((resolve, reject) => {
         try {
@@ -117,20 +122,20 @@ Page({
               if (res && (res.code === 0 || res.success)) {
                 resolve(res.data || {});
               } else {
-                // 在模拟环境中，如果接口调用失败，使用默认配置
-                console.warn('接口调用失败，使用默认模拟配置');
-                resolve(this.getMockDynamicConfig());
+                // 接口调用失败时抛出错误，不再自动使用默认配置
+                console.warn('接口调用失败:', res.data?.message || '配置获取失败');
+                reject(new Error(res.data?.message || '面试官配置获取失败'));
               }
             },
             fail: (err) => {
               console.error('获取动态配置请求失败:', err);
-              // 失败时返回模拟配置，确保页面可以正常运行
-              resolve(this.getMockDynamicConfig());
+              // 请求失败时抛出错误
+              reject(new Error('面试官配置获取失败'));
             }
           });
         } catch (error) {
           console.error('获取配置过程异常:', error);
-          resolve(this.getMockDynamicConfig());
+          reject(new Error('面试官配置获取异常'));
         }
       });
     },
@@ -140,50 +145,50 @@ Page({
       return {
         personas: [
           { 
-            id: 'friendly', 
-            name: '友好', 
-            emoji: '😊',
-            description: '语气亲和，注重引导',
-            example: '你能简单介绍一下你最熟悉的项目吗？'
+            id: 'colloquial', 
+            name: '口语化', 
+            emoji: '💬',
+            description: '轻松自然，像朋友聊天一样。适合练习表达与思维。',
+            example: '你平时在项目里主要怎么用这个框架的？讲讲你的思路。'
           },
           { 
-            id: 'neutral', 
-            name: '中立', 
+            id: 'formal', 
+            name: '正式面试', 
             emoji: '🎓',
-            description: '客观专业，条理清晰',
+            description: '逻辑清晰、专业正式，模拟真实企业面试场景。',
             example: '请详细说明你在该项目中负责的模块及技术实现。'
           },
           { 
-            id: 'challenging', 
-            name: '挑战性', 
+            id: 'manager', 
+            name: '主管语气', 
             emoji: '🧠',
-            description: '深入追问，注重细节',
-            example: '这个优化最终提升了什么指标？能从源码角度分析一下吗？'
+            description: '偏重项目成果与业务价值，关注你的思考与协作方式。',
+            example: '这个优化最终提升了什么指标？对团队交付有什么帮助？'
           },
           { 
-            id: 'casual', 
-            name: '口语化', 
-            emoji: '💬',
-            description: '轻松自然，像朋友聊天一样',
-            example: '你平时在项目里主要怎么用这个框架的？'
+            id: 'analytical', 
+            name: '冷静分析型', 
+            emoji: '🧊',
+            description: '逻辑严谨、问题拆解式提问，适合技术深度练习。',
+            example: '你认为这个算法的瓶颈在哪？能从复杂度角度分析一下吗？'
           },
           { 
             id: 'encouraging', 
             name: '鼓励型', 
             emoji: '🌱',
-            description: '语气温和积极，注重引导思考',
-            example: '你的思路挺好，可以再具体举个例子吗？'
+            description: '语气温和积极，注重引导思考与成长体验。',
+            example: '你的思路挺好，可以再具体举个例子来支撑一下吗？'
           },
           { 
             id: 'pressure', 
             name: '压力面', 
             emoji: '🔥',
-            description: '高强度提问，快速节奏',
-            example: '假设系统刚被打挂，你会在3分钟内做什么？'
+            description: '高强度提问，快速节奏模拟顶级面试场景。',
+            example: '假设你的系统刚被打挂，你会在3分钟内做什么？'
           }
         ],
         defaultSessionSeconds: 900,
-        defaultPersona: 'friendly',
+        defaultPersona: 'colloquial',
         minSessionSeconds: 600,
         maxSessionSeconds: 1800,
         depthLevels: [
@@ -489,94 +494,239 @@ Page({
   },
 
   onLoad: async function(options) {
-    try {
-      // 设置基本参数
-      this.setData({
-        resumeId: options.resumeId || '',
-        loading: true,
-        loadingText: '正在获取面试配置...',
-        userId: app.globalData.userInfo?.id || wx.getStorageSync('userId') || '0'
-      });
+    // 不再自动加载和显示简历选择弹窗，由风格选择页面处理简历选择
+    // 立即设置基本参数和默认数据，确保页面排版正确
+    this.setData({
+      resumeId: options.resumeId || '',
+      userId: app.globalData.userInfo?.id || wx.getStorageSync('userId') || '0',
+      sessionSeconds: parseInt(options.duration) || 900,
+      sessionTimeRemaining: parseInt(options.duration) || 900
+    });
+    
+    // 先使用默认配置，确保即使API调用失败也有完整的UI
+    this.useDefaultConfig();
+    this.setDefaultInterviewData();
+    
+    // 设置默认会话状态
+    const hasPersona = !!options.persona;
+    
+    // 只有从风格选择页面跳转过来时（有persona参数）才设置面试问题和进度
+    const initialData = {
+      interviewStatus: hasPersona ? 'in_progress' : 'initialized',
+      persona: options.persona || this.data.personas[0]?.id || '',
+      personaSelected: hasPersona, // 只有URL参数中有persona才标记为已选择
+      previewQuestion: this.data.personas[0]?.example || ''
+    };
+    
+    // 从风格选择页面跳转过来时，设置面试问题和进度
+    if (hasPersona) {
+      // 检查是否有传递过来的第一个问题
+      let mockQuestion = null;
       
-      // 获取动态配置
+      if (options.firstQuestion) {
+        // 使用从风格选择页面传递过来的问题
+        mockQuestion = {
+          content: decodeURIComponent(options.firstQuestion),
+          depthLevel: '用法',
+          expectedKeyPoints: ['个人基本信息', '项目经验概述', '技术栈介绍']
+        };
+      } else {
+        // 设置默认的模拟问题
+        mockQuestion = {
+          content: '请简单介绍一下你自己和你的项目经历。',
+          depthLevel: '用法',
+          expectedKeyPoints: ['个人基本信息', '项目经验概述', '技术栈介绍']
+        };
+      }
+      
+      initialData.currentQuestion = mockQuestion;
+      initialData.currentRound = 1;
+      initialData.completedQuestions = 0;
+    }
+    
+    this.setData(initialData);
+    
+    // 初始化时间线
+    this.initializeSessionTimeline();
+    
+    try {
+      // 获取动态配置（尝试覆盖默认配置）
       const config = await this.apiServices.getDynamicConfig();
       
-      // 设置从数据库获取的配置
+      // 如果获取到配置，则更新
       if (config) {
         const defaultSessionSeconds = config.defaultSessionSeconds || 900;
         const defaultPersona = config.defaultPersona || '';
         
         this.setData({
           // 优先级：URL参数 > 数据库配置 > 默认值
-          persona: options.persona || defaultPersona || '',
+          persona: options.persona || defaultPersona || this.data.persona,
           sessionSeconds: parseInt(options.duration) || defaultSessionSeconds,
           sessionTimeRemaining: parseInt(options.duration) || defaultSessionSeconds,
-          personas: config.personas || [],
-          depthLevels: config.depthLevels || []
+          personas: config.personas || this.data.personas,
+          depthLevels: config.depthLevels || this.data.depthLevels
         });
+        
+        // 更新预览问题
+        if (this.data.personas.length > 0 && this.data.persona) {
+          const selectedPersona = this.data.personas.find(p => p.id === this.data.persona);
+          if (selectedPersona) {
+            this.setData({
+              previewQuestion: selectedPersona.example
+            });
+          }
+        }
+        
+        // 确保从风格选择页面跳转过来时不显示风格选择器
+        if (hasPersona) {
+          this.setData({
+            personaSelected: true,
+            interviewStatus: 'in_progress'
+          });
+        }
       }
       
-      // 初始化动态面试系统
-      this.initializeDynamicInterview();
+      // 只有从风格选择页面跳转过来时才初始化动态面试系统
+      if (hasPersona) {
+        // 尝试初始化动态面试系统 - 使用await确保异步操作正确处理
+        await this.initializeDynamicInterview();
+      }
     } catch (error) {
       console.error('加载页面配置失败:', error);
-      // 使用默认配置确保页面可以正常使用
-      this.useDefaultConfig();
-      
-      // 使用默认配置后再设置其他参数
+      // 已经设置了默认数据，这里只需更新加载状态
       this.setData({
-        resumeId: options.resumeId || '',
-        persona: options.persona || '', // 不再硬编码默认值，让selectPersona方法处理
-        sessionSeconds: parseInt(options.duration) || 900, // 保留默认值作为最后备选
-        sessionTimeRemaining: parseInt(options.duration) || 900,
-        userId: app.globalData.userInfo?.id || wx.getStorageSync('userId') || '0'
+        loading: false
       });
-      
-      this.initializeDynamicInterview();
     }
   },
   
   // 使用默认配置作为后备
+  // 加载用户简历列表 - 优先调用接口获取数据
+  loadUserResumes: async function() {
+    wx.showLoading({ title: '加载简历中...' })
+    
+    try {
+      // 调用后端接口获取用户简历列表
+      const res = await wx.request({
+        url: '/api/resume/user-resumes',
+        method: 'GET',
+        header: {
+          'content-type': 'application/json'
+        }
+      })
+      
+      wx.hideLoading()
+      
+      if (res.statusCode === 200 && res.data.success) {
+        // 成功获取简历列表
+        const resumeList = res.data.data || []
+        
+        if (resumeList.length === 0) {
+          wx.showToast({
+            title: '暂无简历，请先创建简历',
+            icon: 'none'
+          })
+        } else {
+          this.setData({
+            resumeList: resumeList,
+            showResumeSelectModal: true
+          })
+        }
+      } else {
+        // 接口调用失败
+        throw new Error(res.data.message || '简历获取失败')
+      }
+    } catch (error) {
+      wx.hideLoading()
+      
+      // 立即返回简历获取失败结果
+      wx.showToast({
+        title: error.message || '简历获取失败',
+        icon: 'error'
+      })
+    }
+  },
+  
+  // 选择简历
+  selectResume: function(e) {
+    const resumeId = e.currentTarget.dataset.id
+    const resume = this.data.resumeList.find(item => item.id === resumeId)
+    
+    if (resume) {
+      this.setData({
+        selectedResumeId: resumeId,
+        resumeId: resumeId,
+        showResumeSelectModal: false
+      })
+      
+      // 跳转到面试官风格选择页面
+      wx.navigateTo({
+        url: '/pages/interview/interview_style_select?resumeId=' + resumeId + '&industryJobTag=' + (resume.occupation || '技术面试')
+      })
+    }
+  },
+  
+  // 分析简历中的职位信息
+  analyzeResumeJob: function(resume) {
+    wx.showLoading({ title: '分析职位中...' })
+    
+    // 模拟分析过程
+    setTimeout(() => {
+      wx.hideLoading()
+      
+      // 设置职位标签
+      this.setData({
+        industryJobTag: resume.occupation || '技术面试',
+        jobType: resume.occupation || ''
+      })
+      
+      wx.showToast({
+        title: '职位分析完成',
+        icon: 'success'
+      })
+    }, 1000)
+  },
+  
   useDefaultConfig: function() {
     this.setData({
       personas: [
         { 
-          id: '口语化', 
+          id: 'colloquial', 
           name: '口语化', 
           emoji: '💬',
           description: '轻松自然，像朋友聊天一样。适合练习表达与思维。',
           example: '你平时在项目里主要怎么用这个框架的？讲讲你的思路。'
         },
         { 
-          id: '正式面试', 
+          id: 'formal', 
           name: '正式面试', 
           emoji: '🎓',
           description: '逻辑清晰、专业正式，模拟真实企业面试场景。',
           example: '请详细说明你在该项目中负责的模块及技术实现。'
         },
         { 
-          id: '主管语气', 
+          id: 'manager', 
           name: '主管语气', 
           emoji: '🧠',
           description: '偏重项目成果与业务价值，关注你的思考与协作方式。',
           example: '这个优化最终提升了什么指标？对团队交付有什么帮助？'
         },
         { 
-          id: '冷静分析型', 
+          id: 'analytical', 
           name: '冷静分析型', 
           emoji: '🧊',
           description: '逻辑严谨、问题拆解式提问，适合技术深度练习。',
           example: '你认为这个算法的瓶颈在哪？能从复杂度角度分析一下吗？'
         },
         { 
-          id: '鼓励型', 
+          id: 'encouraging', 
           name: '鼓励型', 
           emoji: '🌱',
           description: '语气温和积极，注重引导思考与成长体验。',
           example: '你的思路挺好，可以再具体举个例子来支撑一下吗？'
         },
         { 
-          id: '压力面', 
+          id: 'pressure', 
           name: '压力面', 
           emoji: '🔥',
           description: '高强度提问，快速节奏模拟顶级面试场景。',
@@ -632,14 +782,11 @@ Page({
   
   // 初始化会话时间线
   initializeSessionTimeline: function() {
-    const timeline = [];
-    for (let i = 0; i < this.data.maxRounds; i++) {
-      timeline.push({
-        id: i + 1,
-        status: i === 0 ? 'current' : 'pending',
-        feedback: null
-      });
-    }
+    const timeline = [{
+      id: 1,
+      status: 'current',
+      feedback: null
+    }];
     this.setData({
       sessionTimeline: timeline
     });
@@ -648,13 +795,26 @@ Page({
   // 初始化动态面试系统
   initializeDynamicInterview: async function() {
     try {
+      // 先获取面试官配置 - 优先从接口获取
+      const dynamicConfig = await this.apiServices.getDynamicConfig();
+      
+      // 更新面试官配置到页面数据
+      if (dynamicConfig) {
+        this.setData({
+          personas: dynamicConfig.personas || this.data.personas,
+          depthLevels: dynamicConfig.depthLevels || this.data.depthLevels,
+          scoringMetrics: dynamicConfig.scoringMetrics || this.data.scoringMetrics,
+          weightMap: dynamicConfig.weightMap || this.data.weightMap
+        });
+        console.log('成功获取面试官配置:', dynamicConfig);
+      }
+      
       // 1. 分析简历内容
       const resumeAnalysis = await this.apiServices.analyzeResume(this.data.resumeId);
       
       if (resumeAnalysis && resumeAnalysis.data) {
         this.setData({
-          resumeAnalysis: resumeAnalysis.data,
-          loadingText: '正在准备面试环境...'
+          resumeAnalysis: resumeAnalysis.data
         });
         console.log('简历分析完成:', resumeAnalysis.data);
       } else {
@@ -683,8 +843,7 @@ Page({
       
       if (sessionResponse && (sessionResponse.code === 0 || sessionResponse.success) && sessionResponse.data && sessionResponse.data.sessionId) {
         this.setData({
-          sessionId: sessionResponse.data.sessionId,
-          loadingText: '正在生成第一个问题...'
+          sessionId: sessionResponse.data.sessionId
         });
         
         // 3. 生成第一个面试问题
@@ -692,8 +851,7 @@ Page({
         
         // 4. 设置面试状态并开始计时器
         this.setData({
-          interviewStatus: 'in_progress',
-          loading: false
+          interviewStatus: 'in_progress'
         });
         
         // 启动会话计时器
@@ -706,10 +864,58 @@ Page({
       }
     } catch (error) {
       console.error('初始化动态面试失败:', error);
-      this.setData({
-        error: '面试初始化失败，请重试',
-        loading: false
+      
+      // 显示错误提示
+      wx.showToast({
+        title: error.message || '初始化面试失败',
+        icon: 'error',
+        duration: 3000
       });
+      
+      // 如果是面试官配置获取失败，显示特定提示
+      if (error.message && error.message.includes('面试官配置获取')) {
+        wx.showModal({
+          title: '配置获取失败',
+          content: '无法获取面试官配置，请检查网络连接后重试。',
+          showCancel: false,
+          success: (res) => {
+            if (res.confirm) {
+              // 用户确认后可以选择返回上一页
+              this.goBack();
+            }
+          }
+        });
+      }
+      
+      // 设置默认面试数据，确保UI排版正确
+      this.setDefaultInterviewData();
+      
+      // 设置默认模拟问题
+      const mockQuestion = {
+        content: '请简单介绍一下你自己和你的项目经历。',
+        depthLevel: '用法',
+        expectedKeyPoints: ['个人基本信息', '项目经验概述', '技术栈介绍']
+      };
+      
+      // 设置默认会话时间线
+      this.setData({
+        currentQuestion: mockQuestion,
+        currentRound: 1,
+        completedQuestions: 0,
+        interviewStatus: 'initialized'
+      });
+      
+      // 初始化时间线
+      this.initializeSessionTimeline();
+      
+      // 如果没有选择面试官风格，默认选择第一个
+      if (!this.data.persona && this.data.personas && this.data.personas.length > 0) {
+        this.setData({
+          persona: this.data.personas[0].id,
+          personaSelected: true,
+          previewQuestion: this.data.personas[0].example
+        });
+      }
     }
   },
   
@@ -834,21 +1040,30 @@ Page({
   
   // 更新会话时间线
   updateTimeline: function(round, status, feedback = null) {
-    const timeline = [...this.data.sessionTimeline];
+    let timeline = [...this.data.sessionTimeline];
+    
+    // 更新当前问题状态
     if (timeline[round - 1]) {
       timeline[round - 1].status = status;
       timeline[round - 1].feedback = feedback;
     }
     
-    // 更新当前轮次
-    if (round < this.data.maxRounds && timeline[round]) {
+    // 动态添加下一轮次（如果不存在）
+    if (!timeline[round]) {
+      timeline.push({
+        id: round + 1,
+        status: 'current',
+        feedback: null
+      });
+    } else {
+      // 更新下一轮状态为当前
       timeline[round].status = 'current';
     }
     
     this.setData({
       sessionTimeline: timeline,
       completedQuestions: round,
-      currentRound: round < this.data.maxRounds ? round + 1 : round
+      currentRound: round + 1
     });
   },
 
@@ -884,6 +1099,11 @@ Page({
           sessionTimeRemaining: remaining,
           progress: progress
         });
+        
+        // 剩余时间少于60秒且为整10秒时显示警告
+        if (remaining <= 60 && remaining % 10 === 0 && !this.data.showTimeWarning) {
+          this.showTimeWarningOverlay();
+        }
         
         // 调试日志
         if (app.globalData && app.globalData.debug) {
@@ -1148,9 +1368,13 @@ Page({
 
   // 开始录音实现
   startRecord: function() {
+    // 清除之前可能存在的录音
+    const recorder = wx.getRecorderManager();
+    recorder.stop(); // 停止任何正在进行的录音
+    
     // 开始回答计时器
     this.startAnswerTimer();
-    const recorder = wx.getRecorderManager()
+    
     const options = {
       duration: 60000,
       sampleRate: 44100,
@@ -1160,7 +1384,10 @@ Page({
     }
     
     recorder.start(options)
-    this.setData({ recording: true })
+    this.setData({ 
+      recording: true,
+      transcriptText: '' // 清空之前的转录文本
+    })
     
     recorder.onStop = (res) => {
       this.setData({
@@ -1347,12 +1574,6 @@ Page({
       
       // 连续两次回答质量差
       if (this.data.consecutiveNoMatchCount >= 2) {
-        return true;
-      }
-      
-      // 回答数量达到上限
-      const answerCount = this.data.userPerformance.answers.length;
-      if (answerCount >= 10) {
         return true;
       }
       
@@ -1802,12 +2023,14 @@ Page({
   
   // 准备下一个问题
   prepareNextQuestion: function(nextQuestion) {
+    // 重置录音状态
+    this.resetRecordingState();
+    
     this.setData({ 
       showFeedback: false,
       userAnswer: '',
       recordingUrl: '',
       currentRound: this.data.currentRound + 1,
-      answerDuration: 0,
       consecutiveNoMatchCount: this.data.consecutiveNoMatchCount || 0,
       // 触发问题卡片动画
       animationState: {
@@ -1984,6 +2207,11 @@ Page({
       this.setData({ 
         progress: Math.min(Math.floor(progress), 100) // 确保不超过100%并取整
       });
+      
+      // 检查是否需要显示时间警告
+      if (sessionTimeRemaining <= 60 && !this.data.showTimeWarning) {
+        this.showTimeWarningOverlay();
+      }
       
       if (app.globalData && app.globalData.debug) {
         console.log(`更新进度 - 时间: ${timeProgress.toFixed(1)}%, 答题: ${questionProgress.toFixed(1)}%, 综合: ${progress.toFixed(1)}%`);
@@ -2386,5 +2614,33 @@ Page({
         }
       }
     })
+  },
+  
+  // 显示时间警告覆盖层
+  showTimeWarningOverlay: function() {
+    this.setData({ showTimeWarning: true });
+    // 3秒后自动隐藏警告
+    setTimeout(() => {
+      this.hideTimeWarningOverlay();
+    }, 3000);
+  },
+  
+  // 隐藏时间警告覆盖层
+  hideTimeWarningOverlay: function() {
+    this.setData({ showTimeWarning: false });
+  },
+  
+  // 重置录音状态
+  resetRecordingState: function() {
+    // 停止任何正在进行的录音
+    const recorder = wx.getRecorderManager();
+    recorder.stop();
+    
+    this.setData({
+      recording: false,
+      recordingUrl: '',
+      transcriptText: '',
+      answerDuration: 0
+    });
   }
 })

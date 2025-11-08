@@ -1,0 +1,72 @@
+<!-- interview_style_select.wxml -->
+<view class="container">
+  <!-- 顶部导航栏 -->
+  <view class="header">
+    <view class="header-left" bindtap="goBack">
+      <image src="/images/avatar.png" mode="aspectFit" class="avatar-icon"></image>
+    </view>
+    <view class="header-center">选择面试官风格</view>
+    <view class="header-right"></view>
+  </view>
+
+  <!-- 简历选择模块 -->
+  <view class="resume-selector">
+    <view class="section-title">请选择要面试的简历</view>
+    <view class="resume-picker-wrapper">
+      <picker 
+        mode="selector" 
+        range="{{resumeList}}" 
+        range-key="title" 
+        value="{{resumeIndex}}" 
+        bindchange="selectResume"
+        class="resume-picker"
+      >
+        <view class="picker-content">
+          {{selectedResume ? selectedResume.title : '请选择简历'}} <text class="arrow">▼</text>
+        </view>
+      </picker>
+      
+      <!-- 当前职位显示 -->
+      <view class="job-info" wx:if="selectedResume">
+        <view class="job-label">当前职位：</view>
+        <view class="job-badge">{{industryJobTag}}</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 面试官风格选择模块 -->
+  <view class="style-selector" wx:if="selectedResume">
+    <view class="selector-title">请选择你喜欢的面试官风格</view>
+    <view class="selector-subtitle">不同风格将影响问题的提问方式和难度</view>
+    
+    <!-- 两列三行网格布局 -->
+    <view class="persona-grid">
+      <view 
+        wx:for="{{personas}}" 
+        wx:key="id" 
+        class="persona-card persona-{{item.id}} {{selectedPersona === item.id ? 'selected' : ''}}"
+        bindtap="selectPersona"
+        data-id="{{item.id}}"
+      >
+        <view class="persona-emoji">{{item.emoji}}</view>
+        <view class="persona-name">{{item.name}}</view>
+        <view class="persona-description">{{item.description}}</view>
+      </view>
+    </view>
+    
+    <!-- 预览区域 -->
+    <view class="preview-section" wx:if="selectedPersona">
+      <view class="preview-title">风格预览</view>
+      <view class="preview-question">{{previewQuestion}}</view>
+    </view>
+    
+    <!-- 开始面试按钮 -->
+    <button 
+      class="start-interview-btn {{selectedPersona ? 'active' : 'disabled'}}"
+      bindtap="startInterview"
+      disabled="{{!selectedPersona || !selectedResume}}"
+    >
+      开始面试
+    </button>
+  </view>
+</view>

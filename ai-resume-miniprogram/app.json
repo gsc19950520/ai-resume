@@ -9,6 +9,7 @@
     "pages/resume/edit/edit",
     "pages/resume/view/view",
     "pages/interview/interview",
+    "pages/interview/interview_style_select",
     "pages/interview/history",
     "pages/career/report",
     "pages/report/report",
@@ -16,14 +17,19 @@
   ],
   "window": {
     "backgroundTextStyle": "light",
-    "navigationBarBackgroundColor": "#fff",
+    "navigationBarBackgroundColor": "#FFFFFF",
     "navigationBarTitleText": "AI简历助手",
-    "navigationBarTextStyle": "black"
+    "navigationBarTextStyle": "black",
+    "navigationBarShadow": {
+      "color": "rgba(0, 0, 0, 0.05)",
+      "width": "2rpx"
+    }
   },
   "tabBar": {
-    "color": "#999999",
-    "selectedColor": "#07c160",
-    "backgroundColor": "#ffffff",
+    "color": "#64748B",
+    "selectedColor": "#4F46E5",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "white",
     "list": [
       {
         "pagePath": "pages/index/index",

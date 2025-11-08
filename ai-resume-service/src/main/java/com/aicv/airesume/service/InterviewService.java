@@ -16,6 +16,15 @@ import java.util.Map;
 public interface InterviewService {
 
     /**
+     * 生成第一个面试问题
+     * @param resumeId 简历ID
+     * @param personaId 面试官风格ID
+     * @param industryJobTag 行业职位标签
+     * @return 包含生成问题的对象
+     */
+    Map<String, Object> generateFirstQuestion(Long resumeId, String personaId, String industryJobTag);
+
+    /**
      * 开始面试 - 支持动态配置
      * @param userId 用户ID
      * @param resumeId 简历ID

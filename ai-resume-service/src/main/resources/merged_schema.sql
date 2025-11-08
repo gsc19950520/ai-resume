@@ -59,8 +59,7 @@ CREATE TABLE IF NOT EXISTS ai_order (
     INDEX idx_order_no (order_no),
     INDEX idx_user_id (user_id),
     INDEX idx_product_id (product_id),
-    INDEX idx_status (status),
-    FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
+    INDEX idx_status (status)
 ) COMMENT='订单表';
 
 -- 模板表
@@ -104,12 +103,9 @@ CREATE TABLE IF NOT EXISTS resume (
     update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     INDEX idx_user_id (user_id),
     INDEX idx_status (status),
-    INDEX idx_template_id (template_id),
     INDEX idx_job_type (job_type),
-    INDEX idx_job_type_id (job_type_id),
-    FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
-    FOREIGN KEY (template_id) REFERENCES template(id) ON DELETE SET NULL,
-    CONSTRAINT fk_resume_job_type FOREIGN KEY (job_type_id) REFERENCES job_type (id)
+    INDEX idx_template_id (template_id),
+    INDEX idx_job_type_id (job_type_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='简历表';
 
 -- 领域表
@@ -130,8 +126,7 @@ CREATE TABLE IF NOT EXISTS job_type (
     create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     UNIQUE KEY uk_job_name (job_name),
-    KEY idx_domain_id (domain_id),
-    CONSTRAINT fk_job_type_domain FOREIGN KEY (domain_id) REFERENCES domain (id) ON DELETE CASCADE
+    KEY idx_domain_id (domain_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='职位类型表';
 
 -- 面试会话表
@@ -171,8 +166,7 @@ CREATE TABLE IF NOT EXISTS interview_session (
     INDEX idx_resume_id (resume_id),
     INDEX idx_status (status),
     INDEX idx_job_type (job_type),
-    INDEX idx_session_id (session_id),
-    CONSTRAINT fk_interview_session_user FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
+    INDEX idx_session_id (session_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='面试会话表';
 
 -- 面试日志表
@@ -201,8 +195,7 @@ CREATE TABLE IF NOT EXISTS interview_log (
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     INDEX idx_session_id (session_id),
     INDEX idx_question_id (question_id),
-    INDEX idx_round_number (round_number),
-    CONSTRAINT fk_interview_log_session FOREIGN KEY (session_id) REFERENCES interview_session (session_id) ON DELETE CASCADE
+    INDEX idx_round_number (round_number)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='面试日志表';
 
 -- 面试问题表
@@ -224,8 +217,7 @@ CREATE TABLE IF NOT EXISTS interview_question (
     KEY idx_depth_level (depth_level),
     KEY idx_skill_tag (skill_tag),
     KEY idx_similarity_hash (similarity_hash),
-    KEY idx_usage_count (usage_count),
-    CONSTRAINT fk_interview_question_job_type FOREIGN KEY (job_type_id) REFERENCES job_type (id) ON DELETE CASCADE
+    KEY idx_usage_count (usage_count)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='面试问题表';
 
 -- 职位技能表
@@ -243,8 +235,7 @@ CREATE TABLE IF NOT EXISTS job_skill (
     KEY idx_job_type_id (job_type_id),
     KEY idx_skill_name (skill_name),
     KEY idx_skill_level (skill_level),
-    KEY idx_ai_generated (ai_generated),
-    CONSTRAINT fk_job_skill_job_type FOREIGN KEY (job_type_id) REFERENCES job_type (id) ON DELETE CASCADE,
+    KEY idx_ai_generated (ai_generated)
     UNIQUE KEY uk_job_skill_level (job_type_id, skill_name, skill_level)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='职位技能表';
 
@@ -275,8 +266,7 @@ CREATE TABLE IF NOT EXISTS salary_info (
     update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     KEY idx_job_type_id (job_type_id),
     KEY idx_city (city),
-    KEY idx_ai_generated (ai_generated),
-    CONSTRAINT fk_salary_info_job_type FOREIGN KEY (job_type_id) REFERENCES job_type (id) ON DELETE CASCADE
+    KEY idx_ai_generated (ai_generated)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='薪资信息表';
 
 -- 成长建议表
@@ -294,8 +284,7 @@ CREATE TABLE IF NOT EXISTS growth_advice (
     create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     KEY idx_job_type_id (job_type_id),
-    KEY idx_ai_generated (ai_generated),
-    CONSTRAINT fk_growth_advice_job_type FOREIGN KEY (job_type_id) REFERENCES job_type (id) ON DELETE CASCADE
+    KEY idx_ai_generated (ai_generated)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='成长建议表';
 
 -- 系统配置表
@@ -584,10 +573,33 @@ INSERT INTO `scoring_system` (`metric_name`, `weight`, `description`) VALUES
 -- 插入动态配置数据
 INSERT INTO `dynamic_config` (`config_type`, `config_key`, `config_value`, `description`, `is_active`)
 VALUES
+-- 基础配置项
+('system', 'default_session_seconds', '900', '默认会话时长（秒）', 1),
+('system', 'stop_conditions', '{"min_session_time":60,"max_consecutive_no_match":2}', '停止条件配置', 1),
+
+-- 面试官风格配置 - 扩展版
 ('persona', 'friendly', '{"name":"友善面试官","description":"以友好、鼓励的方式进行面试","prompt":"你是一位友善的面试官，问题需自然、亲和、不死板。从用法或项目实践切入，逐步深入原理/优化。"}', '友善风格的面试官配置', 1),
 ('persona', 'neutral', '{"name":"中性面试官","description":"保持客观、专业的面试风格","prompt":"你是一位专业的面试官，请保持中性、客观的语气。从用法或项目实践切入，逐步深入原理/优化。"}', '中性风格的面试官配置', 1),
 ('persona', 'challenging', '{"name":"挑战性面试官","description":"提出深入的技术问题，挑战候选人的极限","prompt":"你是一位挑战性的面试官，问题需深入、有技术深度。从原理或优化角度切入，要求候选人提供详细实现思路。"}', '挑战性风格的面试官配置', 1),
-('template', 'default', '{"sessionSeconds":900,"minQuestions":3,"maxQuestions":8,"depthLevels":["basic","intermediate","advanced"]}', '默认面试模板配置', 1);
+
+-- 扩展面试官风格配置（添加enabled字段控制显示）
+('config', 'interview_personas', '{"personas":[{"id":"colloquial","name":"口语化","emoji":"💬","description":"轻松自然，像朋友聊天一样。适合练习表达与思维。","example":"你平时在项目里主要怎么用这个框架的？讲讲你的思路。","enabled":true},{"id":"formal","name":"正式面试","emoji":"🎓","description":"逻辑清晰、专业正式，模拟真实企业面试场景。","example":"请详细说明你在该项目中负责的模块及技术实现。","enabled":true},{"id":"manager","name":"主管语气","emoji":"🧠","description":"偏重项目成果与业务价值，关注你的思考与协作方式。","example":"这个优化最终提升了什么指标？对团队交付有什么帮助？","enabled":true},{"id":"analytical","name":"冷静分析型","emoji":"🧊","description":"逻辑严谨、问题拆解式提问，适合技术深度练习。","example":"你认为这个算法的瓶颈在哪？能从复杂度角度分析一下吗？","enabled":true},{"id":"encouraging","name":"鼓励型","emoji":"🌱","description":"语气温和积极，注重引导思考与成长体验。","example":"你的思路挺好，可以再具体举个例子来支撑一下吗？","enabled":true},{"id":"pressure","name":"压力面","emoji":"🔥","description":"高强度提问，快速节奏模拟顶级面试场景。","example":"假设你的系统刚被打挂，你会在3分钟内做什么？","enabled":true},{"id":"friendly","name":"友善面试官","emoji":"😊","description":"以友好、鼓励的方式进行面试，创造轻松氛围。","example":"你能简单介绍一下你在这个项目中的角色吗？","enabled":false},{"id":"neutral","name":"中性面试官","emoji":"📋","description":"保持客观、专业的面试风格，注重事实和技术。","example":"请详细描述这个技术的实现细节。","enabled":false},{"id":"challenging","name":"挑战性面试官","emoji":"⚡","description":"提出深入的技术问题，挑战候选人的极限。","example":"这个方案的扩展性如何？如何解决高并发场景？","enabled":false},{"id":"technical","name":"技术专家","emoji":"🔧","description":"专注于技术细节和实现原理，注重深度。","example":"这个算法的时间复杂度是多少？空间复杂度呢？","enabled":false},{"id":"innovative","name":"创新思维","emoji":"💡","description":"关注创新能力和解决方案，鼓励发散思维。","example":"如果让你重新设计这个系统，你会如何改进？","enabled":false},{"id":"practical","name":"注重实践","emoji":"🛠️","description":"强调实际应用经验和项目成果。","example":"请分享一个你解决过的最复杂的技术问题。","enabled":false}]}', '面试官风格配置', 1),
+('config', 'default_persona', 'colloquial', '默认面试官风格ID', 1),
+
+-- 深度级别配置
+('config', 'interview_depth_levels', '[{"id":"用法","name":"基础","text":"用法","description":"基本概念和简单应用场景"},{"id":"实现","name":"进阶","text":"实现","description":"内部工作原理和实现细节"},{"id":"原理","name":"深入","text":"原理","description":"底层原理和设计思想"},{"id":"优化","name":"高级","text":"优化","description":"性能优化和最佳实践"}]', '问题深度级别配置', 1),
+
+-- 面试模板配置
+('template', 'default', '{"sessionSeconds":900,"minQuestions":3,"maxQuestions":8,"depthLevels":["basic","intermediate","advanced"]}', '默认面试模板配置', 1),
+
+-- 完整的面试动态配置
+('config', 'interview_dynamic_config', '{"personas":[{"id":"colloquial","name":"口语化","emoji":"💬","description":"轻松自然，像朋友聊天一样。适合练习表达与思维。","example":"你平时在项目里主要怎么用这个框架的？讲讲你的思路。","enabled":true},{"id":"formal","name":"正式面试","emoji":"🎓","description":"逻辑清晰、专业正式，模拟真实企业面试场景。","example":"请详细说明你在该项目中负责的模块及技术实现。","enabled":true},{"id":"manager","name":"主管语气","emoji":"🧠","description":"偏重项目成果与业务价值，关注你的思考与协作方式。","example":"这个优化最终提升了什么指标？对团队交付有什么帮助？","enabled":true},{"id":"analytical","name":"冷静分析型","emoji":"🧊","description":"逻辑严谨、问题拆解式提问，适合技术深度练习。","example":"你认为这个算法的瓶颈在哪？能从复杂度角度分析一下吗？","enabled":true},{"id":"encouraging","name":"鼓励型","emoji":"🌱","description":"语气温和积极，注重引导思考与成长体验。","example":"你的思路挺好，可以再具体举个例子来支撑一下吗？","enabled":true},{"id":"pressure","name":"压力面","emoji":"🔥","description":"高强度提问，快速节奏模拟顶级面试场景。","example":"假设你的系统刚被打挂，你会在3分钟内做什么？","enabled":true},{"id":"friendly","name":"友善面试官","emoji":"😊","description":"以友好、鼓励的方式进行面试，创造轻松氛围。","example":"你能简单介绍一下你在这个项目中的角色吗？","enabled":false},{"id":"neutral","name":"中性面试官","emoji":"📋","description":"保持客观、专业的面试风格，注重事实和技术。","example":"请详细描述这个技术的实现细节。","enabled":false},{"id":"challenging","name":"挑战性面试官","emoji":"⚡","description":"提出深入的技术问题，挑战候选人的极限。","example":"这个方案的扩展性如何？如何解决高并发场景？","enabled":false},{"id":"technical","name":"技术专家","emoji":"🔧","description":"专注于技术细节和实现原理，注重深度。","example":"这个算法的时间复杂度是多少？空间复杂度呢？","enabled":false},{"id":"innovative","name":"创新思维","emoji":"💡","description":"关注创新能力和解决方案，鼓励发散思维。","example":"如果让你重新设计这个系统，你会如何改进？","enabled":false},{"id":"practical","name":"注重实践","emoji":"🛠️","description":"强调实际应用经验和项目成果。","example":"请分享一个你解决过的最复杂的技术问题。","enabled":false}],"depthLevels":[{"id":"用法","name":"基础","text":"用法","description":"基本概念和简单应用场景"},{"id":"实现","name":"进阶","text":"实现","description":"内部工作原理和实现细节"},{"id":"原理","name":"深入","text":"原理","description":"底层原理和设计思想"},{"id":"优化","name":"高级","text":"优化","description":"性能优化和最佳实践"}],"defaultSessionSeconds":900,"defaultPersona":"friendly"}', '完整的面试动态配置', 1);
+
+-- 创建面试相关索引（如果不存在）
+CREATE INDEX IF NOT EXISTS idx_interview_sessions_user_id ON interview_sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_interview_sessions_status ON interview_sessions(status);
+CREATE INDEX IF NOT EXISTS idx_interview_answers_session_id ON interview_log(session_id);
+CREATE INDEX IF NOT EXISTS idx_interview_answers_round_number ON interview_log(round_number);
 
 -- 插入系统配置数据
 INSERT INTO `system_config` (`config_key`, `config_value`, `description`) VALUES

@@ -1,42 +1,79 @@
 <!-- interview.wxml -->
 <view class="container">
+  
+  <!-- 简历选择弹窗 -->
+  <view class="modal-overlay" wx:if="{{showResumeSelectModal}}" bindtap="">
+    <view class="resume-select-modal" catchtap="">
+      <view class="modal-header">
+        <view class="modal-title">选择面试简历</view>
+      </view>
+      <view class="modal-content">
+        <view class="resume-list">
+          <view 
+            wx:for="{{resumeList}}" 
+            wx:key="id" 
+            class="resume-item {{selectedResumeId === item.id ? 'selected' : ''}}" 
+            bindtap="selectResume" 
+            data-id="{{item.id}}"
+          >
+            <view class="resume-info">
+              <view class="resume-title">{{item.title}}</view>
+              <view class="resume-occupation">{{item.occupation}}</view>
+              <view class="resume-time">更新时间: {{item.updateTime}}</view>
+            </view>
+            <view class="resume-select-icon" wx:if="{{selectedResumeId === item.id}}">
+              <image src="/images/check.png" mode="aspectFit"></image>
+            </view>
+          </view>
+        </view>
+      </view>
+      <view class="modal-footer">
+        <text class="tips">请选择一份简历，AI将基于简历内容生成面试问题</text>
+      </view>
+    </view>
+  </view>
   <!-- 顶部导航栏 -->
   <view class="header">
     <view class="header-left" bindtap="goBack">
-      <image src="/images/arrow.png" mode="aspectFit" class="back-icon"></image>
+      <image src="/images/avatar.png" mode="aspectFit" class="avatar-icon"></image>
+      <view class="job-badge">{{industryJobTag || '技术面试'}}</view>
     </view>
-    <view class="header-title">AI模拟面试</view>
-    <view class="header-right"></view>
-  </view>
-
-  <!-- 行业-岗位标签 -->
-  <view class="industry-job-tag" wx:if="industryJobTag">
-    {{industryJobTag}}
+    <view class="header-center">AI 模拟面试</view>
+    <view class="header-right">
+      <view class="progress-area">
+        <view class="countdown-timer {{sessionTimeRemaining < 60 ? 'time-warning pulse' : ''}}">
+          {{formatRemainingTime(sessionTimeRemaining)}}
+        </view>
+        <view class="progress-bar">
+          <view 
+            class="progress-fill"
+            style="width: {{(sessionTimeRemaining / data.sessionSeconds) * 100}}%"
+          ></view>
+        </view>
+      </view>
+    </view>
   </view>
 
   <!-- 面试官风格选择模块 - personaSelector -->
-  <view class="persona-selector" wx:if="{{!currentQuestion.content && !loading}}">
+  <view class="persona-selector" wx:if="{{false}}">
     <view class="selector-title">选择面试官风格</view>
     
-    <!-- 卡片网格布局 -->
-    <view class="persona-grid">
+    <!-- 水平卡片布局 -->
+    <view class="persona-cards">
       <view 
         wx:for="{{personas}}" 
         wx:key="id" 
-        class="persona-card {{persona === item.id ? 'selected' : ''}}"
+        class="persona-card persona-{{item.id}} {{persona === item.id ? 'selected' : ''}}"
         bindtap="selectPersona"
         data-id="{{item.id}}"
       >
         <view class="persona-emoji">{{item.emoji}}</view>
         <view class="persona-name">{{item.name}}</view>
-        <view class="persona-description">{{item.description}}</view>
-        <view class="persona-example">{{item.example}}</view>
       </view>
     </view>
     
     <!-- 预览区域 -->
     <view class="preview-section" wx:if="{{previewQuestion}}">
-      <view class="preview-title">预览</view>
       <view class="preview-question">{{previewQuestion}}</view>
     </view>
     
@@ -50,220 +87,191 @@
     </button>
   </view>
 
-  <!-- 会话信息 -->
-  <view class="interview-header">
-    <view class="interview-info">
-      <text class="position">{{industryJobTag || '技术面试'}}</text>
-      <text class="persona" wx:if="{{persona}}">
-        面试官风格: {{getPersonaText(persona)}}
-      </text>
-    </view>
-    <view class="timer {{sessionTimeRemaining < 180 ? 'warning' : ''}}" wx:if="{{!showFeedback}}">
-      <image src="/images/settings.png" mode="aspectFit" class="timer-icon"></image>
-      剩余时间: {{formatRemainingTime(sessionTimeRemaining)}}
-    </view>
-    <view class="answer-duration" wx:if="{{showFeedback}}">
-      <image src="/images/settings.png" mode="aspectFit" class="timer-icon"></image>
-      回答时长: {{formatAnswerDuration(answerDuration)}}
-    </view>
-  </view>
-
-  <!-- 问题卡片 - QuestionCard -->
-  <view class="question-card-wrapper" wx:if="{{!showFeedback}}">
-    <view class="question-card gradient-border {{animationState.questionCard !== 'idle' ? 'animate-in' : ''}}">
-      <view class="question-header">
-        <text class="question-round">第{{currentRound}}轮</text>
-        <text class="question-depth" wx:if="{{currentQuestion.depthLevel}}">
-          {{getDepthDescription(currentQuestion.depthLevel)}}
-        </text>
+  <!-- 主内容区域 -->
+  <view class="main-content">
+    <!-- 左侧：AI问题卡片 -->
+    <view class="left-column">
+      <view class="question-card-wrapper" wx:if="{{!showFeedback}}">
+        <view class="question-card {{animationState.questionCard !== 'idle' ? 'fade-in-bottom' : ''}}">
+          <view class="question-header">
+            <view class="persona-label persona-{{persona}}">
+              {{getPersonaText(persona)}}
+            </view>
+          </view>
+          <view class="question-content">{{currentQuestion.content}}</view>
+          <view class="hint-text" wx:if="{{currentQuestion.expectedKeyPoints && currentQuestion.expectedKeyPoints.length > 0}}">
+            提示: 请重点回答 {{currentQuestion.expectedKeyPoints.join('、')}}
+          </view>
+        </view>
       </view>
-      <view class="question-content">{{currentQuestion.content}}</view>
-      <view class="expected-points" wx:if="{{currentQuestion.expectedKeyPoints && currentQuestion.expectedKeyPoints.length > 0}}">
-        <text class="points-title">考核要点：</text>
-        <view class="points-list">
-          <view class="point-item" wx:for="{{currentQuestion.expectedKeyPoints}}" wx:key="index">
-            {{item}}
+
+      <!-- 历史记录面板 -->
+      <view class="history-panel" wx:if="{{interviewHistory && interviewHistory.length > 0}}">
+        <view class="history-header" bindtap="toggleHistory">
+          <view class="history-title">历史问答</view>
+          <view class="history-count">{{interviewHistory.length}} 条</view>
+          <view class="history-toggle">{{historyExpanded ? '收起' : '展开'}}</view>
+        </view>
+        <view class="history-content" wx:if="{{historyExpanded || interviewHistory.length <= 2}}">
+          <view wx:for="{{interviewHistory}}" wx:key="index" class="history-item">
+            <view class="history-question">{{item.question}}</view>
+            <view class="history-answer">{{item.answer.substring(0, 30)}}...</view>
+            <view class="history-score">评分: {{item.score}}</view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 右侧：用户回答面板和AI反馈卡片 -->
+    <view class="right-column">
+      <!-- 答题面板 - AnswerPanel -->
+      <view class="user-answer-panel">
+        <view class="panel-header">
+          <view class="panel-title">请回答</view>
+          <view class="recording-status" wx:if="{{recording}}">正在录音...</view>
+        </view>
+        
+        <!-- 录音按钮 -->
+        <view class="record-button-container">
+          <button 
+            class="record-button {{recording ? 'recording' : ''}}"
+            bindtouchstart="startRecord"
+            bindtouchend="stopRecord"
+          >
+            <image src="/images/mic_white.png" class="mic-icon"></image>
+          </button>
+          <view class="record-hint">长按录音</view>
+        </view>
+
+        <!-- 转写文本框 -->
+        <view class="transcription-box">
+          <textarea 
+            class="transcription-textarea" 
+            placeholder="回答内容将显示在这里..."
+            value="{{userAnswer}}"
+            bindinput="onAnswerInput"
+            auto-height
+            maxlength="1000"
+          ></textarea>
+        </view>
+
+        <!-- 提交行 -->
+        <view class="submit-row">
+          <button 
+            class="submit-btn-secondary"
+            bindtap="resetRecording"
+            disabled="{{!userAnswer}}"
+          >
+            重录
+          </button>
+          <button 
+            class="submit-btn-primary"
+            bindtap="submitAnswer"
+            disabled="{{!userAnswer.trim()}}"
+          >
+            提交回答
+          </button>
+          <button 
+            class="submit-btn-secondary"
+            bindtap="addNote"
+          >
+            补充说明
+          </button>
+        </view>
+      </view>
+
+      <!-- 评分反馈区域 - PerQuestionFeedback -->
+      <view class="ai-feedback-card {{animationState.feedbackPanel !== 'idle' ? 'fade-in' : ''}}" wx:if="showFeedback">
+        <view class="feedback-header">
+          <view class="feedback-title">AI评分反馈</view>
+          <view class="overall-score">{{calculateOverallScore()}}</view>
+        </view>
+        
+        <view class="score-donut">
+          <view class="score-item">
+            <view class="score-circle tech">{{questionScore.tech}}</view>
+            <view class="score-label">技术</view>
+          </view>
+          <view class="score-item">
+            <view class="score-circle logic">{{questionScore.logic}}</view>
+            <view class="score-label">逻辑</view>
+          </view>
+          <view class="score-item">
+            <view class="score-circle clarity">{{questionScore.clarity}}</view>
+            <view class="score-label">表达</view>
+          </view>
+          <view class="score-item">
+            <view class="score-circle depth">{{questionScore.depth}}</view>
+            <view class="score-label">深度</view>
+          </view>
+        </view>
+        
+        <view class="matched-points-tags">
+          <view 
+            wx:for="{{matchedPoints}}" 
+            wx:key="index" 
+            class="matched-point-tag"
+          >
+            ✓ {{item}}
+          </view>
+        </view>
+        
+        <view class="quick-tips">
+          {{feedbackText}}
+        </view>
+        
+        <!-- 城市薪资匹配结果 -->
+        <view class="salary-match-card" wx:if="salaryMatchResult && salaryMatchResult.industryAverage">
+          <view class="salary-title">
+            <image src="/images/settings.png" class="salary-icon"></image>
+            薪资匹配分析
+          </view>
+          <view class="salary-content">
+            <view class="salary-item">
+              <view class="salary-label">行业平均</view>
+              <view class="salary-value">{{salaryMatchResult.industryAverage}}</view>
+            </view>
+            <view class="salary-item">
+              <view class="salary-label">您的水平</view>
+              <view class="salary-value salary-match">
+                {{salaryMatchResult.matchPercentage}}% <text class="match-status">{{salaryMatchResult.matchStatus}}</text>
+              </view>
+            </view>
           </view>
         </view>
       </view>
     </view>
   </view>
 
-  <!-- 答题面板 - AnswerPanel -->
-  <view class="answer-panel">
-    <view class="panel-title">请回答</view>
-    <view class="answer-textarea-container">
-      <textarea 
-        class="answer-textarea" 
-        placeholder="请输入您的回答..."
-        value="{{userAnswer}}"
-        bindinput="onAnswerInput"
-        auto-height
-        maxlength="1000"
-      ></textarea>
-      <view class="word-count">{{userAnswer.length}}/1000</view>
-    </view>
-
-    <!-- 音频控制 -->
-    <view class="audio-controls">
-      <button 
-        class="audio-btn record-btn {{recording ? 'recording' : ''}}" 
-        bindtap="toggleRecording"
-        loading="{{recording}}"
-      >
-        <image src="/images/settings.png" class="btn-icon"></image>
-        {{recording ? '停止录音' : '开始录音'}}
-      </button>
-      <button 
-        class="audio-btn play-btn"
-        bindtap="playRecording"
-        disabled="{{!recordingUrl}}">
-        <image src="/images/settings.png" class="btn-icon"></image>
-        播放录音
-      </button>
-      <button 
-        class="audio-btn transcribe-btn"
-        bindtap="transcribeAudio"
-        disabled="{{!recordingUrl || transcribing}}">
-        <image src="/images/settings.png" class="btn-icon"></image>
-        {{transcribing ? '转写中...' : '录音转文字'}}
-      </button>
-    </view>
-  </view>
-
-  <!-- 评分反馈区域 - PerQuestionFeedback -->
-  <view class="feedback-section {{animationState.feedbackPanel !== 'idle' ? 'animate-in' : ''}}" wx:if="showFeedback">
-    <view class="feedback-title">评分反馈</view>
-    <view class="score-section">
-      <view class="score-item">
-        <view class="score-header">
-          <view class="score-label">技术深度</view>
-          <view class="score-value score-{{getScoreLevel(questionScore.tech)}}">{{questionScore.tech}}/10</view>
-        </view>
-        <view class="score-bar">
-          <view class="score-fill tech" style="width: {{questionScore.tech * 10}}%"></view>
-        </view>
-      </view>
-      <view class="score-item">
-        <view class="score-header">
-          <view class="score-label">逻辑表达</view>
-          <view class="score-value score-{{getScoreLevel(questionScore.logic)}}">{{questionScore.logic}}/10</view>
-        </view>
-        <view class="score-bar">
-          <view class="score-fill logic" style="width: {{questionScore.logic * 10}}%"></view>
-        </view>
-      </view>
-      <view class="score-item">
-        <view class="score-header">
-          <view class="score-label">表达清晰度</view>
-          <view class="score-value score-{{getScoreLevel(questionScore.clarity)}}">{{questionScore.clarity}}/10</view>
-        </view>
-        <view class="score-bar">
-          <view class="score-fill clarity" style="width: {{questionScore.clarity * 10}}%"></view>
-        </view>
-      </view>
-      <view class="score-item">
-        <view class="score-header">
-          <view class="score-label">回答深度</view>
-          <view class="score-value score-{{getScoreLevel(questionScore.depth)}}">{{questionScore.depth}}/10</view>
-        </view>
-        <view class="score-bar">
-          <view class="score-fill depth" style="width: {{questionScore.depth * 10}}%"></view>
-        </view>
-      </view>
-    </view>
-    <view class="feedback-content">{{feedbackText}}</view>
-    <view class="matched-points" wx:if="matchedPoints && matchedPoints.length > 0">
-      <view class="matched-title">覆盖要点：</view>
-      <view wx:for="{{matchedPoints}}" wx:key="index" class="matched-item">✓ {{item}}</view>
-    </view>
-    <view class="consecutive-no-match" wx:if="{{consecutiveNoMatchCount >= 2}}">
-      <text class="no-match-warning">⚠️ 请注意回答质量，已连续{{consecutiveNoMatchCount}}轮未命中要点</text>
-    </view>
-    
-    <!-- 追问提示 -->
-    <view class="follow-up-hint" wx:if="followUpEnabled">
-      <text class="hint-text">💡 AI将对您的回答进行进一步追问，请做好准备</text>
-    </view>
-    
-    <!-- 城市薪资匹配结果 -->
-    <view class="salary-match-card {{animationState.salaryCard !== 'idle' ? 'animate-in' : ''}}" wx:if="salaryMatchResult && salaryMatchResult.industryAverage">
-      <view class="salary-title">
-        <image src="/images/settings.png" class="salary-icon"></image>
-        城市薪资匹配
-      </view>
-      <view class="salary-content">
-        <view class="salary-item">
-          <view class="salary-label">行业平均</view>
-          <view class="salary-value">{{salaryMatchResult.industryAverage}}</view>
-        </view>
-        <view class="salary-item">
-          <view class="salary-label">您的预期</view>
-          <view class="salary-value salary-expected">{{salaryMatchResult.expectedSalary}}</view>
-        </view>
-        <view class="salary-item">
-          <view class="salary-label">匹配度</view>
-          <view class="salary-value salary-match">
-            {{salaryMatchResult.matchPercentage}}% <text class="match-status">{{salaryMatchResult.matchStatus}}</text>
-          </view>
-        </view>
-      </view>
-    </view>
-  </view>
-
-  <!-- 会话时间线 - SessionTimeline -->
-  <view class="timeline-section">
-    <view class="timeline-title">面试进度</view>
-    <view class="timeline-container">
-      <view wx:for="{{sessionTimeline}}" wx:key="index" class="timeline-item">
-        <view class="timeline-dot timeline-{{item.status}}">
-          <view class="timeline-number">{{index + 1}}</view>
-        </view>
-        <view class="timeline-line" wx:if="index < sessionTimeline.length - 1"></view>
-      </view>
-    </view>
-    <view class="timeline-stats">
-      <text>已完成：{{completedQuestions}}/{{maxRounds}}</text>
-      <text>当前问题：{{currentRound}}/{{maxRounds}}</text>
-    </view>
-  </view>
-
-  <!-- 底部按钮 - NextSkipButtons -->
-  <view class="action-buttons">
+  <!-- 底部控制按钮 -->
+  <view class="footer-controls">
     <button 
-      class="voice-btn" 
-      bindtap="toggleRecording" 
-      disabled="{{loading}}">
-      <image src="/images/settings.png"></image>
-      {{recording ? '停止录音' : '语音输入'}}
-    </button>
-    <button 
-      class="btn btn-secondary skip-btn" 
+      class="footer-btn footer-btn-secondary"
       bindtap="skipQuestion"
-      disabled="{{loading || !userAnswer}}">
-      <image src="/images/settings.png" class="btn-icon-small"></image>
-      跳过当前点
+      disabled="{{!userAnswer}}"
+    >
+      跳过
     </button>
     <button 
-      class="btn btn-warning mark-btn" 
-      bindtap="markAsDifficult"
-      disabled="{{loading || !userAnswer}}">
-      <image src="/images/settings.png" class="btn-icon-small"></image>
-      标记难点
+      class="footer-btn footer-btn-warning"
+      bindtap="togglePause"
+    >
+      {{isPaused ? '继续' : '暂停'}}
     </button>
     <button 
-      class="submit-btn" 
-      bindtap="submitAnswer"
-      disabled="{{loading || !userAnswer.trim()}}">
-      {{showFeedback ? '下一题' : '提交回答'}}
+      class="footer-btn footer-btn-primary"
+      bindtap="finishInterview"
+    >
+      结束并生成报告
     </button>
   </view>
 
-  <!-- 加载提示 -->
-  <view class="loading-mask" wx:if="loading">
-    <view class="loading-content">
-      <view class="loading-spinner"></view>
-      <text class="loading-text">{{loadingText}}</text>
+  <!-- 时间警告覆盖层 -->
+  <view class="time-warning-overlay" wx:if="{{sessionTimeRemaining < 60}}">
+    <view class="warning-content">
+      <view class="warning-icon">⚠️</view>
+      <view class="warning-text">面试即将结束</view>
+      <view class="warning-time">{{formatRemainingTime(sessionTimeRemaining)}}</view>
     </view>
   </view>
 </view>

@@ -22,9 +22,10 @@ public class InterviewLog {
     @Column(name = "question_id", nullable = false, length = 100)
     private String questionId;
 
-    @ManyToOne
-    @JoinColumn(name = "session_id", referencedColumnName = "session_id", nullable = false)
-    private InterviewSession session;
+    @Column(name = "session_id", nullable = false, length = 100)
+    private String sessionId;
+    
+    // private InterviewSession session; // 暂时注释掉关联对象
 
     @Column(name = "question_text", nullable = false, columnDefinition = "TEXT")
     private String questionText;

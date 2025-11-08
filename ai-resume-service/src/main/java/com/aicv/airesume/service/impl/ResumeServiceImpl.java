@@ -173,7 +173,7 @@ public class ResumeServiceImpl implements ResumeService {
             );
             
             // 直接设置templateId，JPA会自动关联
-            resume.setTemplate(null); // 先清空以避免潜在的缓存问题
+            resume.setTemplateId(null); // 先清空以避免潜在的缓存问题
             resume.setTemplateId(templateId);
             
             return resumeRepository.save(resume);

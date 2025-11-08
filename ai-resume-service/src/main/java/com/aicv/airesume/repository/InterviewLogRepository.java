@@ -25,7 +25,7 @@ public interface InterviewLogRepository extends JpaRepository<InterviewLog, Long
      * @param sessionId 会话ID
      * @return 日志列表
      */
-    List<InterviewLog> findBySession_SessionIdOrderByRoundNumberAsc(String sessionId);
+    List<InterviewLog> findBySessionIdOrderByRoundNumberAsc(String sessionId);
 
     /**
      * 根据会话ID和轮次查找日志
@@ -33,12 +33,12 @@ public interface InterviewLogRepository extends JpaRepository<InterviewLog, Long
      * @param roundNumber 轮次
      * @return 日志对象
      */
-    Optional<InterviewLog> findBySession_SessionIdAndRoundNumber(String sessionId, Integer roundNumber);
+    Optional<InterviewLog> findBySessionIdAndRoundNumber(String sessionId, Integer roundNumber);
 
     /**
      * 删除会话相关的所有日志
      * @param sessionId 会话ID
      */
-    void deleteBySession_SessionId(String sessionId);
+    void deleteBySessionId(String sessionId);
 
 }

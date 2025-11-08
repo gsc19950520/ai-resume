@@ -254,9 +254,19 @@ App({
     // 确保callback存在，避免调用不存在的函数
     const safeCallback = callback || function() {};
     
+    // 兼容对象参数形式
+    let requestParams = {};
+    if (typeof url === 'object') {
+      requestParams = url;
+      url = requestParams.url;
+      method = requestParams.method;
+      data = requestParams.data;
+      callback = requestParams.success || safeCallback;
+    }
+    
     if (this.globalData.useCloud) {
-      // 确保URL以/api开头，如果不是则添加
-      const requestUrl = url.startsWith('/api') ? url : `/api${url}`;
+      // 确保URL是字符串且以/api开头，如果不是则添加
+      const requestUrl = (typeof url === 'string' && url.startsWith('/api')) ? url : `/api${url}`;
       
       wx.cloud.callContainer({
         config: {
@@ -270,6 +280,13 @@ App({
           'token': this.globalData.token || ''
         },
         data: data || {},
+        fail: function(err) {
+          console.error('云调用失败:', err);
+          callback({
+            success: false,
+            error: err
+          });
+        },
         success: res => {
           // 确保返回的数据格式正确，即使API返回异常也不会导致页面错误
           const responseData = res.data && typeof res.data === 'object' ? res.data : { code: -1, message: '返回数据格式异常' };
@@ -285,6 +302,7 @@ App({
         }
       })
     } else {
+      // 非云环境下使用普通request
       wx.request({
         url: `${this.globalData.baseUrl}${url}`,
         method: method || 'GET',
@@ -292,6 +310,13 @@ App({
         header: {
           'content-type': 'application/json',
           'token': this.globalData.token || ''
+        },
+        fail: function(err) {
+          console.error('请求失败:', err);
+          callback({
+            success: false,
+            error: err
+          });
         },
         success: res => {
           // 确保res.data存在且为对象

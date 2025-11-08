@@ -50,10 +50,8 @@ public class InterviewQuestion {
     @Column(name = "similarity_hash", length = 64)
     private String similarityHash;
 
-    // 关联job_type表
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "job_type_id", insertable = false, updatable = false)
-    private JobType jobType;
+    // 关联job_type表（不使用外键约束）
+    // private JobType jobType; // 暂时注释掉关联对象
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

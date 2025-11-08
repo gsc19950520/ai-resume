@@ -131,7 +131,62 @@ Page({
       this.showLoginTip()
       return
     }
-    wx.navigateTo({ url: '/pages/interview/interview' })
+    
+    // 检查用户是否有简历
+    this.checkUserResumeStatus()
+  },
+  
+  // 检查用户简历状态
+  checkUserResumeStatus: function() {
+    wx.showLoading({ title: '检查简历中...' })
+    
+    // 模拟获取简历列表
+    setTimeout(() => {
+      wx.hideLoading()
+      
+      // 使用模拟数据检查简历状态
+      const resumeList = this.getMockResumeList()
+      
+      if (resumeList && resumeList.length > 0) {
+        // 有简历，跳转到风格和简历选择页面
+        wx.navigateTo({ url: '/pages/interview/interview_style_select' })
+      } else {
+        // 无简历，提示用户创建或上传简历
+        wx.showModal({
+          title: '提示',
+          content: '您还没有创建简历，请先创建或上传一份简历后再进行AI模拟面试。',
+          showCancel: true,
+          cancelText: '稍后',
+          confirmText: '去创建简历',
+          success: (res) => {
+            if (res.confirm) {
+              // 跳转到创建简历页面
+              wx.navigateTo({ url: '/pages/create/create' })
+            }
+          }
+        })
+      }
+    }, 500)
+  },
+  
+  // 获取模拟简历列表
+  getMockResumeList: function() {
+    // 这里可以根据实际情况获取真实的简历列表
+    // 返回模拟数据用于测试
+    return [
+      {
+        id: '1',
+        title: '前端开发工程师简历',
+        occupation: '前端开发工程师',
+        updateTime: '2025-11-05'
+      },
+      {
+        id: '2',
+        title: '全栈开发工程师简历',
+        occupation: '全栈开发工程师',
+        updateTime: '2025-10-30'
+      }
+    ];
   },
 
   // 城市薪资匹配功能已整合到面试报告中

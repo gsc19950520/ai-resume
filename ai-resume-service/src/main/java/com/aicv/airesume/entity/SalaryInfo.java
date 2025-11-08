@@ -48,7 +48,5 @@ public class SalaryInfo {
     @Temporal(TemporalType.TIMESTAMP)
     private Date updateTime = new Date();
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "job_type_id", insertable = false, updatable = false)
-    private JobType jobType;
+    // private JobType jobType; // 暂时注释掉关联对象，不使用外键约束
 }

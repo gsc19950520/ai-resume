@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import com.aicv.airesume.entity.AiTraceLog;
 import com.aicv.airesume.repository.AiTraceLogRepository;
+import com.aicv.airesume.service.config.DynamicConfigService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -60,6 +61,9 @@ public class InterviewServiceImpl implements InterviewService {
     
     @Autowired
     private AIGenerateService aiGenerateService;
+    
+    @Autowired
+    private DynamicConfigService dynamicConfigService;
     
     // 保存AI调用的跟踪日志
      private void saveAiTraceLog(String sessionId, String actionType, String promptInput, String aiResponse) {
@@ -103,8 +107,8 @@ public class InterviewServiceImpl implements InterviewService {
             session.setAiQuestionSeed(new Random().nextInt(1000)); // 设置随机种子
             
             // 设置动态面试参数
-            session.setPersona(StringUtils.hasText(persona) ? persona : "friendly");
-            session.setSessionSeconds(sessionSeconds != null ? sessionSeconds : 900);
+            session.setPersona(StringUtils.hasText(persona) ? persona : dynamicConfigService.getDefaultPersona());
+            session.setSessionSeconds(sessionSeconds != null ? sessionSeconds : dynamicConfigService.getDefaultSessionSeconds());
             session.setSessionTimeRemaining(session.getSessionSeconds());
             
             // 存储提取的数据
@@ -141,7 +145,7 @@ public class InterviewServiceImpl implements InterviewService {
             // 5. 创建第一个问题日志
             InterviewLog firstLog = new InterviewLog();
             firstLog.setQuestionId(UUID.randomUUID().toString());
-            firstLog.setSession(session);
+            firstLog.setSessionId(session.getSessionId()); // 使用sessionId而不是被注释掉的session关联
             firstLog.setQuestionText(firstQuestion);
             firstLog.setDepthLevel((String) firstQuestionData.get("depthLevel"));
             firstLog.setRoundNumber(1);
@@ -177,7 +181,7 @@ public class InterviewServiceImpl implements InterviewService {
                     .orElseThrow(() -> new RuntimeException("会话不存在"));
             
             // 获取最新的问题日志
-            List<InterviewLog> logs = logRepository.findBySession_SessionIdOrderByRoundNumberAsc(sessionId);
+            List<InterviewLog> logs = logRepository.findBySessionIdOrderByRoundNumberAsc(sessionId);
             if (logs.isEmpty()) {
                 throw new RuntimeException("问题不存在");
             }
@@ -281,7 +285,7 @@ public class InterviewServiceImpl implements InterviewService {
                     // 10. 创建下一个问题日志
                     InterviewLog nextLog = new InterviewLog();
                     nextLog.setQuestionId(UUID.randomUUID().toString());
-                    nextLog.setSession(session);
+                    nextLog.setSessionId(session.getSessionId()); // 使用sessionId而不是被注释掉的session关联
                     nextLog.setQuestionText((String) nextQuestionData.get("nextQuestion"));
                     nextLog.setDepthLevel((String) nextQuestionData.get("depthLevel"));
                     nextLog.setRoundNumber(currentLog.getRoundNumber() + 1);
@@ -346,7 +350,7 @@ public class InterviewServiceImpl implements InterviewService {
             // 1. 获取会话信息和所有日志
             InterviewSession session = sessionRepository.findBySessionId(sessionId)
                     .orElseThrow(() -> new RuntimeException("会话不存在"));
-            List<InterviewLog> logs = logRepository.findBySession_SessionIdOrderByRoundNumberAsc(sessionId);
+            List<InterviewLog> logs = logRepository.findBySessionIdOrderByRoundNumberAsc(sessionId);
 
             // 2. 计算聚合评分
             Map<String, Double> aggregatedScores = calculateAggregatedScores(logs);
@@ -424,9 +428,106 @@ public class InterviewServiceImpl implements InterviewService {
     }
 
     @Override
+    public Map<String, Object> generateFirstQuestion(Long resumeId, String personaId, String industryJobTag) {
+        try {
+            // 获取简历内容
+            Resume resume = resumeRepository.findById(resumeId).orElseThrow(() -> new RuntimeException("简历不存在"));
+            String resumeText = resume.getOriginalContent() != null ? resume.getOriginalContent() : "";
+            if (resumeText.isEmpty() && resume.getOptimizedContent() != null) {
+                resumeText = resume.getOptimizedContent();
+            }
+
+            // 提取技术项和项目点
+            Map<String, Object> extractedData = extractTechItemsAndProjectPoints(resumeText);
+            List<String> techItems = (List<String>) extractedData.get("techItems");
+            List<Map<String, Object>> projectPoints = (List<Map<String, Object>>) extractedData.get("projectPoints");
+
+            // 初始化面试状态
+            Map<String, Object> interviewState = new HashMap<>();
+            interviewState.put("usedTechItems", new ArrayList<>());
+            interviewState.put("usedProjectPoints", new ArrayList<>());
+            interviewState.put("currentDepthLevel", "usage");
+
+            // 构建面试官风格描述
+            String persona = enhancePersonaWithStyle(personaId);
+            
+            // 生成第一个问题
+            Map<String, Object> questionData = generateNextQuestion(
+                    techItems,
+                    projectPoints,
+                    interviewState,
+                    900, // 默认15分钟
+                    persona
+            );
+
+            // 构建返回结果
+            Map<String, Object> result = new HashMap<>();
+            result.put("question", questionData.get("nextQuestion"));
+            result.put("depthLevel", questionData.get("depthLevel"));
+            result.put("techItems", techItems);
+            result.put("projectPoints", projectPoints);
+            
+            return result;
+        } catch (Exception e) {
+            log.error("生成第一个问题失败", e);
+            // 返回备用问题
+            Map<String, Object> fallbackResult = new HashMap<>();
+            fallbackResult.put("question", "请简单介绍一下你自己和你的项目经历。");
+            fallbackResult.put("depthLevel", "usage");
+            return fallbackResult;
+        }
+    }
+    
+    /**
+     * 根据面试官风格ID增强风格描述
+     */
+    private String enhancePersonaWithStyle(String personaId) {
+        // 优先从动态配置获取面试官风格描述
+        try {
+            Optional<List<Map<String, Object>>> personasOpt = dynamicConfigService.getInterviewPersonas();
+            if (personasOpt.isPresent()) {
+                for (Map<String, Object> persona : personasOpt.get()) {
+                    if (personaId.equals(persona.get("id"))) {
+                        // 只返回基本描述，保持原有风格
+                        return (String) persona.get("description");
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.error("从动态配置获取面试官风格失败", e);
+        }
+        
+        // 回退到硬编码的风格描述，保持与原有项目一致
+        switch (personaId) {
+            case "friendly":
+                return "语气友好、平易近人，创造轻松的面试氛围。";
+            case "colloquial":
+                return "轻松自然，像朋友聊天一样。适合练习表达与思维。";
+            case "formal":
+                return "逻辑清晰、专业正式，模拟真实企业面试场景。";
+            case "manager":
+                return "偏重项目成果与业务价值，关注你的思考与协作方式。";
+            case "analytical":
+                return "冷静分析型面试官，逻辑严谨、问题拆解式提问，适合技术深度练习。";
+            case "encouraging":
+                return "鼓励型面试官，语气温和积极，注重引导思考与成长体验。";
+            case "pressure":
+                return "压力面风格，高强度提问，快速节奏模拟顶级面试场景。";
+            case "mentor":
+                return "友善风格面试官，以友好、鼓励的方式进行面试。";
+            case "neutral":
+                return "中性面试官，保持客观、专业的面试风格。";
+            case "challenging":
+                return "挑战性面试官，提出深入的技术问题，挑战候选人的极限。";
+            default:
+                return "专业面试官，语气客观中立，关注事实和技术能力。";
+        }
+    }
+
+    @Override
     public Map<String, Object> generateNextQuestion(List<String> techItems, List<Map<String, Object>> projectPoints,
-                                                   Map<String, Object> interviewState, Integer sessionTimeRemaining,
-                                                   String persona) {
+                                                    Map<String, Object> interviewState, Integer sessionTimeRemaining,
+                                                    String persona) {
         try {
             // 获取已使用的技术项和项目点
             List<String> usedTechItems = (List<String>) interviewState.getOrDefault("usedTechItems", new ArrayList<>());
@@ -837,7 +938,7 @@ public class InterviewServiceImpl implements InterviewService {
             }
             
             // 获取问题数量
-            List<InterviewLog> logs = logRepository.findBySession_SessionIdOrderByRoundNumberAsc(session.getSessionId());
+            List<InterviewLog> logs = logRepository.findBySessionIdOrderByRoundNumberAsc(session.getSessionId());
             vo.setQuestionCount(logs.size());
             
             return vo;
@@ -935,7 +1036,7 @@ public class InterviewServiceImpl implements InterviewService {
         vo.setStopReason(session.getStopReason());
         
         // 获取面试日志
-        List<InterviewLog> logs = logRepository.findBySession_SessionIdOrderByRoundNumberAsc(sessionId);
+        List<InterviewLog> logs = logRepository.findBySessionIdOrderByRoundNumberAsc(sessionId);
         vo.setLogs(logs);
         vo.setTotalQuestions(logs.size());
         vo.setAnsweredQuestions(logs.size()); // 假设所有问题都已回答

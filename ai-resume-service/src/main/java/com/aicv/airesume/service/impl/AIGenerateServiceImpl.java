@@ -105,7 +105,8 @@ public class AIGenerateServiceImpl implements AIGenerateService {
         try {
             JobType jobType = jobTypeRepository.findById(jobTypeId)
                     .orElseThrow(() -> new RuntimeException("职位类型不存在"));
-            return jobType.getDomain().getName(); // 假设JobType实体中有domain字段
+            // 使用domainId而不是不存在的domain对象
+            return jobType.getDomainId() != null ? jobType.getDomainId().toString() : "未知领域";
         } catch (Exception e) {
             log.error("获取职位领域失败", e);
             return "未知领域";
@@ -137,7 +138,8 @@ public class AIGenerateServiceImpl implements AIGenerateService {
             
             // 计算平均分
             if (count > 0) {
-                avgScores.replaceAll((k, v) -> v / count);
+                final int finalCount = count;
+                avgScores.replaceAll((k, v) -> v / finalCount);
                 
                 // 找出低于6分的维度作为短板
                 if (avgScores.get("tech") < 6.0) weakSkills.add("专业技能");
@@ -236,11 +238,11 @@ public class AIGenerateServiceImpl implements AIGenerateService {
      * 解析薪资响应
      */
     private SalaryRangeVO parseSalaryResponse(String aiResponse, String sessionId) {
-        try {
-            SalaryRangeVO vo = new SalaryRangeVO();
+        SalaryRangeVO vo = new SalaryRangeVO();
             vo.setSessionId(Long.parseLong(sessionId));
             vo.setCurrency("CNY");
             vo.setPeriod("月");
+        try {
             
             // 尝试JSON解析
             try {

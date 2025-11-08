@@ -36,8 +36,6 @@ public class JobType {
     @Temporal(TemporalType.TIMESTAMP)
     private Date updateTime = new Date();
 
-    // 领域关联
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "domain_id", insertable = false, updatable = false)
-    private Domain domain;
+    // 领域关联（不使用外键约束）
+    // private Domain domain; // 暂时注释掉关联对象
 }

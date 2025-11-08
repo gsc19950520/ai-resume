@@ -47,14 +47,12 @@ public class Resume {
     @Column(name = "download_url_word")
     private String downloadUrlWord;
 
-    // 简历与模板的一对一关联
-    @ManyToOne
-    @JoinColumn(name = "template_id", referencedColumnName = "id", foreignKey = @ForeignKey(name = "fk_resume_template"))
-    private Template template;
-    
-    // 直接访问template_id字段，用于设置和获取
-    @Transient
+    // 简历与模板的关联（不使用外键约束）
+    // 直接使用template_id字段
+    @Column(name = "template_id")
     private Long templateId;
+    
+    // private Template template; // 暂时注释掉关联对象
     
     // 模板配置信息，用于存储简历特定的模板配置
     @Column(name = "template_config", columnDefinition = "text")
@@ -65,15 +63,13 @@ public class Resume {
     
     // 获取templateId
     public Long getTemplateId() {
-        if (templateId != null) {
-            return templateId;
-        }
-        return template != null ? template.getId() : null;
+        return templateId;
     }
     
     // 设置templateId
     public void setTemplateId(Long templateId) {
         this.templateId = templateId;
+        // 实际应用中可能需要添加验证或其他业务逻辑
     }
 
     @Column(name = "status", nullable = false, columnDefinition = "int default 0")
