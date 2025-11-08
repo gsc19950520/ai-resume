@@ -143,50 +143,6 @@ Page({
     // 获取模拟的动态配置（开发和测试环境使用）
     getMockDynamicConfig: function() {
       return {
-        personas: [
-          { 
-            id: 'colloquial', 
-            name: '口语化', 
-            emoji: '💬',
-            description: '轻松自然，像朋友聊天一样。适合练习表达与思维。',
-            example: '你平时在项目里主要怎么用这个框架的？讲讲你的思路。'
-          },
-          { 
-            id: 'formal', 
-            name: '正式面试', 
-            emoji: '🎓',
-            description: '逻辑清晰、专业正式，模拟真实企业面试场景。',
-            example: '请详细说明你在该项目中负责的模块及技术实现。'
-          },
-          { 
-            id: 'manager', 
-            name: '主管语气', 
-            emoji: '🧠',
-            description: '偏重项目成果与业务价值，关注你的思考与协作方式。',
-            example: '这个优化最终提升了什么指标？对团队交付有什么帮助？'
-          },
-          { 
-            id: 'analytical', 
-            name: '冷静分析型', 
-            emoji: '🧊',
-            description: '逻辑严谨、问题拆解式提问，适合技术深度练习。',
-            example: '你认为这个算法的瓶颈在哪？能从复杂度角度分析一下吗？'
-          },
-          { 
-            id: 'encouraging', 
-            name: '鼓励型', 
-            emoji: '🌱',
-            description: '语气温和积极，注重引导思考与成长体验。',
-            example: '你的思路挺好，可以再具体举个例子来支撑一下吗？'
-          },
-          { 
-            id: 'pressure', 
-            name: '压力面', 
-            emoji: '🔥',
-            description: '高强度提问，快速节奏模拟顶级面试场景。',
-            example: '假设你的系统刚被打挂，你会在3分钟内做什么？'
-          }
-        ],
         defaultSessionSeconds: 900,
         defaultPersona: 'colloquial',
         minSessionSeconds: 600,
@@ -600,72 +556,6 @@ Page({
     }
   },
   
-  // 使用默认配置作为后备
-  // 加载用户简历列表 - 优先调用接口获取数据
-  loadUserResumes: async function() {
-    wx.showLoading({ title: '加载简历中...' })
-    
-    try {
-      // 调用后端接口获取用户简历列表
-      const res = await wx.request({
-        url: '/api/resume/user-resumes',
-        method: 'GET',
-        header: {
-          'content-type': 'application/json'
-        }
-      })
-      
-      wx.hideLoading()
-      
-      if (res.statusCode === 200 && res.data.success) {
-        // 成功获取简历列表
-        const resumeList = res.data.data || []
-        
-        if (resumeList.length === 0) {
-          wx.showToast({
-            title: '暂无简历，请先创建简历',
-            icon: 'none'
-          })
-        } else {
-          this.setData({
-            resumeList: resumeList,
-            showResumeSelectModal: true
-          })
-        }
-      } else {
-        // 接口调用失败
-        throw new Error(res.data.message || '简历获取失败')
-      }
-    } catch (error) {
-      wx.hideLoading()
-      
-      // 立即返回简历获取失败结果
-      wx.showToast({
-        title: error.message || '简历获取失败',
-        icon: 'error'
-      })
-    }
-  },
-  
-  // 选择简历
-  selectResume: function(e) {
-    const resumeId = e.currentTarget.dataset.id
-    const resume = this.data.resumeList.find(item => item.id === resumeId)
-    
-    if (resume) {
-      this.setData({
-        selectedResumeId: resumeId,
-        resumeId: resumeId,
-        showResumeSelectModal: false
-      })
-      
-      // 跳转到面试官风格选择页面
-      wx.navigateTo({
-        url: '/pages/interview/interview_style_select?resumeId=' + resumeId + '&industryJobTag=' + (resume.occupation || '技术面试')
-      })
-    }
-  },
-  
   // 分析简历中的职位信息
   analyzeResumeJob: function(resume) {
     wx.showLoading({ title: '分析职位中...' })
@@ -689,50 +579,6 @@ Page({
   
   useDefaultConfig: function() {
     this.setData({
-      personas: [
-        { 
-          id: 'colloquial', 
-          name: '口语化', 
-          emoji: '💬',
-          description: '轻松自然，像朋友聊天一样。适合练习表达与思维。',
-          example: '你平时在项目里主要怎么用这个框架的？讲讲你的思路。'
-        },
-        { 
-          id: 'formal', 
-          name: '正式面试', 
-          emoji: '🎓',
-          description: '逻辑清晰、专业正式，模拟真实企业面试场景。',
-          example: '请详细说明你在该项目中负责的模块及技术实现。'
-        },
-        { 
-          id: 'manager', 
-          name: '主管语气', 
-          emoji: '🧠',
-          description: '偏重项目成果与业务价值，关注你的思考与协作方式。',
-          example: '这个优化最终提升了什么指标？对团队交付有什么帮助？'
-        },
-        { 
-          id: 'analytical', 
-          name: '冷静分析型', 
-          emoji: '🧊',
-          description: '逻辑严谨、问题拆解式提问，适合技术深度练习。',
-          example: '你认为这个算法的瓶颈在哪？能从复杂度角度分析一下吗？'
-        },
-        { 
-          id: 'encouraging', 
-          name: '鼓励型', 
-          emoji: '🌱',
-          description: '语气温和积极，注重引导思考与成长体验。',
-          example: '你的思路挺好，可以再具体举个例子来支撑一下吗？'
-        },
-        { 
-          id: 'pressure', 
-          name: '压力面', 
-          emoji: '🔥',
-          description: '高强度提问，快速节奏模拟顶级面试场景。',
-          example: '假设你的系统刚被打挂，你会在3分钟内做什么？'
-        }
-      ],
       depthLevels: [
         { id: '用法', name: '基础', text: '用法', description: '基本概念和简单应用场景' },
         { id: '实现', name: '进阶', text: '实现', description: '内部工作原理和实现细节' },

@@ -67,17 +67,54 @@ public class UserServiceImpl implements UserService {
         }
     }
 
-    // 临时方法实现
-    public User wechatLogin(String code, String nickname, String avatarUrl) {
-        // 这里通常会涉及到微信API调用和数据库操作
+    @Override
+    public User wechatLogin(String openId, String nickname, String avatarUrl) {
         try {
             return retryUtils.executeWithDefaultRetry(() -> {
-                // 实际的微信登录逻辑，这里返回临时对象作为示例
-                return new User();
+                // 根据openId查找用户
+                Optional<User> existingUserOpt = userRepository.findByOpenId(openId);
+                
+                if (existingUserOpt.isPresent()) {
+                    // 用户已存在，更新用户信息
+                    User user = existingUserOpt.get();
+                    // 只有在提供了新信息时才更新
+                    if (nickname != null && !nickname.isEmpty()) {
+                        user.setNickname(nickname);
+                    }
+                    if (avatarUrl != null && !avatarUrl.isEmpty()) {
+                        user.setAvatarUrl(avatarUrl);
+                    }
+                    // 保存更新后的用户信息
+                    return userRepository.save(user);
+                } else {
+                    // 用户不存在，创建新用户
+                    User newUser = new User();
+                    newUser.setOpenId(openId);
+                    newUser.setNickname(nickname != null ? nickname : "微信用户");
+                    newUser.setAvatarUrl(avatarUrl != null ? avatarUrl : "");
+                    newUser.setRemainingOptimizeCount(0); // 初始优化次数
+                    newUser.setVip(false); // 初始非VIP
+                    
+                    // 保存新用户到数据库，自动生成id作为系统内部userId
+                    return userRepository.save(newUser);
+                }
             });
         } catch (Exception e) {
             throw new RuntimeException("微信登录失败: " + e.getMessage(), e);
         }
+    }
+    
+    /**
+     * 生成用户token
+     * @param userId 用户ID
+     * @return 生成的token字符串
+     */
+    public String generateToken(Long userId) {
+        // 简单的token生成逻辑，可以根据需要替换为更安全的实现
+        // 例如使用JWT、UUID等
+        String timestamp = String.valueOf(System.currentTimeMillis());
+        String randomStr = String.valueOf(Math.random()).substring(2, 8);
+        return "token_" + userId + "_" + timestamp + "_" + randomStr;
     }
 
     // 临时方法实现

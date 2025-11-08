@@ -9,14 +9,45 @@ Page({
   },
 
   onShow: function() {
-    // 每次显示页面时更新用户信息
-    this.setData({
-      userInfo: app.globalData.userInfo
-    })
+    const app = getApp();
+    // 每次显示页面时，从storage重新加载用户信息，确保数据最新
+    const token = wx.getStorageSync('token');
+    const userInfoStr = wx.getStorageSync('userInfo');
     
-    // 如果已登录，加载用户数据
-    if (this.data.userInfo) {
-      this.loadUserData()
+    if (token && userInfoStr) {
+      try {
+        const userInfo = JSON.parse(userInfoStr);
+        
+        // 确保用户对象包含id字段，如果没有则生成临时ID
+        if (!userInfo.id) {
+          console.warn('用户信息缺少ID，尝试从token生成');
+          // 使用token生成临时ID
+          userInfo.id = token.substring(0, 10);
+          // 保存更新后的用户信息
+          wx.setStorageSync('userInfo', JSON.stringify(userInfo));
+          app.globalData.userInfo = userInfo;
+        }
+        
+        this.setData({ userInfo });
+        // 更新全局用户信息
+        app.globalData.userInfo = userInfo;
+        app.globalData.token = token;
+        // 加载用户数据
+        this.loadUserData();
+      } catch (e) {
+        console.error('解析用户信息失败:', e);
+        // 出错时，尝试从token创建一个临时用户对象
+        if (token) {
+          const tempUserInfo = { id: token.substring(0, 10) };
+          this.setData({ userInfo: tempUserInfo });
+          app.globalData.userInfo = tempUserInfo;
+          console.info('创建临时用户对象以确保页面正常显示');
+        } else {
+          this.setData({ userInfo: null });
+        }
+      }
+    } else {
+      this.setData({ userInfo: null });
     }
   },
 
@@ -37,34 +68,82 @@ Page({
 
   // 加载用户数据
   loadUserData: function() {
+    const app = getApp();
     // 检查用户是否已登录
-    const userInfo = wx.getStorageSync('userInfo');
-    if (!userInfo) {
+    const token = wx.getStorageSync('token');
+    let userInfo = this.data.userInfo || app.globalData.userInfo;
+    
+    // 检查token有效性
+    if (!token || token === 'mock_token') {
+      console.warn('无效的token，不加载用户数据:', token);
       this.setData({ userInfo: null });
       return;
     }
-
-    this.setData({ userInfo });
     
-    // 加载用户统计数据
-    wx.request({
-      url: '/api/user/stats',
+    // 如果没有用户信息但有token，尝试从token创建一个临时用户对象
+    if (!userInfo && token) {
+      // 避免使用无效的token作为ID
+      let tempId = token.substring(0, 10);
+      if (tempId === 'mock_token') {
+        tempId = 'temp_' + Date.now();
+        console.warn('使用时间戳作为临时用户ID，避免使用无效token');
+      }
+      userInfo = { id: tempId };
+      this.setData({ userInfo });
+      app.globalData.userInfo = userInfo;
+      console.info('从token创建临时用户对象，ID:', tempId);
+    }
+    
+    if (!token || !userInfo) {
+      this.setData({ userInfo: null });
+      return;
+    }
+    
+    // 优先使用系统内部userId，其次使用id，确保不使用mock_token
+    let userId = userInfo.userId || userInfo.id;
+    
+    // 验证userId是否有效，避免使用mock_token或无效ID
+    if (!userId || userId === 'mock_token' || userId.toString().includes('mock_token')) {
+      console.warn('发现无效的用户ID，生成临时ID用于统计');
+      userId = 'temp_' + new Date().getTime();
+    }
+    
+    console.info('使用用户ID加载统计数据:', userId);
+    
+    // 更新用户对象中的ID
+    if (userInfo.userId !== userId && userInfo.id !== userId) {
+      userInfo.id = userId;
+      this.setData({ userInfo });
+      app.globalData.userInfo = userInfo;
+    }
+    
+    // 加载用户统计数据，使用云托管调用方式
+    wx.cloud.callContainer({
+      config: {
+        env: app.globalData.cloudEnvId
+      },
+      path: `/api/statistics/user/${userId}`,
       method: 'GET',
       header: {
+        'X-WX-SERVICE': 'springboot-bq0e',
         'content-type': 'application/json',
-        'Authorization': 'Bearer ' + userInfo.token
+        'token': token
       },
       success: (res) => {
-        if (res.data.code === 0) {
-          const { resumeCount, interviewCount } = res.data.data;
+        const responseData = res.data || {};
+        if (responseData.code === 0 || responseData.resumeCount !== undefined) {
+          // 兼容不同的响应格式
+          const statsData = responseData.data || responseData;
+          const { resumeCount, interviewCount } = statsData || {};
           this.setData({ resumeCount, interviewCount });
+        } else {
+          console.error('获取用户统计数据失败:', responseData);
+          // 不显示错误提示，避免影响用户体验
         }
       },
-      fail: () => {
-        wx.showToast({
-          title: '获取用户数据失败',
-          icon: 'none'
-        });
+      fail: (error) => {
+        console.error('云托管调用失败:', error);
+        // 不显示错误提示，允许页面继续显示
       }
     });
     

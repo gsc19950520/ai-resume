@@ -53,89 +53,34 @@ const cloudCall = (path, data = {}, method = 'GET', header = {}) => {
  */
 const request = (url, data = {}, method = 'GET', header = {}) => {
   // 强制使用云托管调用（callContainer方式）
-  if (app.globalData.useCloud) {
-    console.log(`云托管请求: ${method} ${url}`)
-    return cloudCall(url, data, method, header)
-      .then(res => {
-        // 业务状态码处理
-        if (res.code === 0) {
-          return res.data
-        } else if (res.code === 401) {
-          // 登录过期，需要重新登录
-          app.logout()
-          wx.navigateTo({ url: '/pages/login/login' })
-          throw new Error('登录已过期，请重新登录')
-        } else {
-          // 其他错误，提示错误信息
-          wx.showToast({
-            title: res.message || '请求失败',
-            icon: 'none'
-          })
-          throw new Error(res.message || '请求失败')
-        }
-      })
-      .catch(error => {
-        console.error('云托管请求失败', error)
+  console.log(`云托管请求: ${method} ${url}`)
+  return cloudCall(url, data, method, header)
+    .then(res => {
+      // 业务状态码处理
+      if (res.code === 0) {
+        return res.data
+      } else if (res.code === 401) {
+        // 登录过期，需要重新登录
+        app.logout()
+        wx.navigateTo({ url: '/pages/login/login' })
+        throw new Error('登录已过期，请重新登录')
+      } else {
+        // 其他错误，提示错误信息
         wx.showToast({
-          title: '网络错误，请稍后重试',
+          title: res.message || '请求失败',
           icon: 'none'
         })
-        throw error
-      })
-  }
-  
-  // 使用传统的wx.request方式
-  return new Promise((resolve, reject) => {
-    wx.request({
-      url: `${app.globalData.baseUrl}${url}`,
-      data,
-      method,
-      header: {
-        'content-type': 'application/json',
-        'token': app.globalData.token || '',
-        ...header
-      },
-      success: (res) => {
-        // 根据后端返回的状态码进行处理
-        if (res.statusCode === 200) {
-          const data = res.data
-          // 业务状态码处理
-          if (data.code === 0) {
-            resolve(data.data)
-          } else if (data.code === 401) {
-            // 登录过期，需要重新登录
-            app.logout()
-            wx.navigateTo({ url: '/pages/login/login' })
-            reject(new Error('登录已过期，请重新登录'))
-          } else {
-            // 其他错误，提示错误信息
-            wx.showToast({
-              title: data.message || '请求失败',
-              icon: 'none'
-            })
-            reject(new Error(data.message || '请求失败'))
-          }
-        } else {
-          wx.showToast({
-            title: '网络请求失败',
-            icon: 'none'
-          })
-          reject(new Error('网络请求失败'))
-        }
-      },
-      fail: (error) => {
-        console.error('请求失败', error)
-        wx.showToast({
-          title: '网络错误，请稍后重试',
-          icon: 'none'
-        })
-        reject(error)
-      },
-      complete: () => {
-        // 可以在这里添加请求完成后的操作，如隐藏加载动画
+        throw new Error(res.message || '请求失败')
       }
     })
-  })
+    .catch(error => {
+      console.error('云托管请求失败', error)
+      wx.showToast({
+        title: '网络错误，请稍后重试',
+        icon: 'none'
+      })
+      throw error
+    })
 }
 
 // 导出GET请求方法

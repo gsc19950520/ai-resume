@@ -30,9 +30,16 @@ public interface UserService {
     User updateUser(User user);
     
     /**
-     * 微信登录
-     */
-    User wechatLogin(String openId, String nickname, String avatarUrl);
+ * 微信登录
+ */
+User wechatLogin(String openId, String nickname, String avatarUrl);
+
+/**
+ * 生成用户token
+ * @param userId 用户ID
+ * @return 生成的token字符串
+ */
+String generateToken(Long userId);
     
     /**
      * 增加优化次数

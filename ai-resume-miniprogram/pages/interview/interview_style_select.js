@@ -39,7 +39,10 @@ Page({
       
       wx.hideLoading()
       
-      if (!resumeList || resumeList.length === 0) {
+      // 确保resumeList是数组类型
+      const safeResumeList = Array.isArray(resumeList) ? resumeList : [];
+      
+      if (safeResumeList.length === 0) {
         wx.showToast({
           title: '暂无可用简历',
           icon: 'none',
@@ -48,11 +51,11 @@ Page({
       }
       
       // 如果传入了简历ID，自动选中对应简历
-      const selectedResume = this.data.resumeId ? resumeList.find(r => r.id === this.data.resumeId) : null;
-      const resumeIndex = this.data.resumeId ? resumeList.findIndex(r => r.id === this.data.resumeId) : 0;
+      const selectedResume = this.data.resumeId ? safeResumeList.find(r => r && r.id === this.data.resumeId) : null;
+      const resumeIndex = this.data.resumeId ? safeResumeList.findIndex(r => r && r.id === this.data.resumeId) : 0;
       
       this.setData({
-        resumeList: resumeList,
+        resumeList: safeResumeList,
         resumeIndex: resumeIndex,
         selectedResume: selectedResume,
         industryJobTag: selectedResume?.occupation || this.data.industryJobTag
@@ -66,7 +69,10 @@ Page({
         icon: 'none',
         duration: 2000
       });
-      // 不设置任何数据，保留空状态
+      // 确保resumeList设置为空数组而不是undefined
+      this.setData({
+        resumeList: []
+      });
     }
   },
   
@@ -76,7 +82,7 @@ Page({
       // 设置超时处理
       const timeoutId = setTimeout(() => {
         reject(new Error('获取简历超时'));
-      }, 5000);
+      }, 15000);
       
       app.request({
         url: '/api/resume/user-resumes',
@@ -84,13 +90,10 @@ Page({
         data: {
           userId: this.data.userId
         },
-        success: (res) => {
+        success: (resData) => {
           clearTimeout(timeoutId);
-          if (res.code === 0 && res.data) {
-            resolve(res.data);
-          } else {
-            reject(new Error(res.message || '获取简历失败'));
-          }
+          // request.js已经处理了res.code，这里直接使用返回的数据
+          resolve(resData);
         },
         fail: (error) => {
           clearTimeout(timeoutId);
@@ -123,10 +126,9 @@ Page({
     try {
       // 优先从后端获取配置
       const config = await this.fetchPersonaConfigs();
-      
-      if (config && config.personas && config.personas.length > 0) {
+      if (config && config.data.personas && config.data.personas.length > 0) {
         this.setData({
-          personas: config.personas
+          personas: config.data.personas
         });
       } else {
         // 如果获取失败或没有数据，使用默认配置
@@ -170,25 +172,11 @@ Page({
         example: '这个优化最终提升了什么指标？对团队交付有什么帮助？'
       },
       { 
-        id: 'analytical', 
-        name: '冷静分析型', 
-        emoji: '🧊',
-        description: '逻辑严谨、问题拆解式提问，适合技术深度练习。',
-        example: '你认为这个算法的瓶颈在哪？能从复杂度角度分析一下吗？'
-      },
-      { 
         id: 'encouraging', 
         name: '鼓励型', 
         emoji: '🌱',
         description: '语气温和积极，注重引导思考与成长体验。',
         example: '你的思路挺好，可以再具体举个例子来支撑一下吗？'
-      },
-      { 
-        id: 'pressure', 
-        name: '压力面', 
-        emoji: '🔥',
-        description: '高强度提问，快速节奏模拟顶级面试场景。',
-        example: '假设你的系统刚被打挂，你会在3分钟内做什么？'
       }
     ];
   },
@@ -199,18 +187,15 @@ Page({
       // 设置超时处理
       const timeoutId = setTimeout(() => {
         reject(new Error('获取面试官风格配置超时'));
-      }, 5000);
+      }, 15000);
       
       app.request({
         url: '/api/interview/get-config',
         method: 'GET',
-        success: (res) => {
+        success: (resData) => {
           clearTimeout(timeoutId);
-          if (res.code === 0 && res.data) {
-            resolve(res.data);
-          } else {
-            reject(new Error(res.message || '获取配置失败'));
-          }
+          // request.js已经处理了res.code，这里直接使用返回的数据
+          resolve(resData);
         },
         fail: (error) => {
           clearTimeout(timeoutId);
@@ -229,12 +214,9 @@ Page({
       app.request({
         url: '/api/interview/get-config',
         method: 'GET',
-        success: (res) => {
-          if (res.code === 0 && res.data) {
-            resolve(res.data);
-          } else {
-            reject(new Error('获取配置失败'));
-          }
+        success: (resData) => {
+          // request.js已经处理了res.code，这里直接使用返回的数据
+          resolve(resData);
         },
         fail: (error) => {
           reject(error);
@@ -296,10 +278,10 @@ Page({
     const app = getApp();
     
     return new Promise((resolve, reject) => {
-      // 添加超时处理，缩短超时时间为5秒
+      // 添加超时处理，延长超时时间为15秒
       const timeoutId = setTimeout(() => {
         reject(new Error('请求超时，请检查网络连接'));
-      }, 5000); // 5秒超时
+      }, 15000); // 15秒超时
       
       app.request({
         url: '/api/interview/generate-first-question',
@@ -309,14 +291,10 @@ Page({
           personaId: this.data.selectedPersona,
           industryJobTag: this.data.industryJobTag
         },
-        success: (res) => {
+        success: (resData) => {
           clearTimeout(timeoutId);
-          if (res && (res.code === 0 || res.success) && res.data && res.data.question) {
-            resolve(res.data);
-          } else {
-            // 立即抛出异常，不再返回对象
-            reject(new Error(res.message || '服务器异常，请稍后重试'));
-          }
+          // request.js已经处理了res.code，这里直接使用返回的数据
+          resolve(resData);
         },
         fail: (error) => {
           clearTimeout(timeoutId);
@@ -334,5 +312,94 @@ Page({
   // 返回上一页
   goBack: function() {
     wx.navigateBack();
-  }
+  },
+  
+  // 跳转到创建简历页面
+  navigateToCreateResume() {
+    wx.navigateTo({
+      url: '/pages/create/create',
+      fail: (err) => {
+        console.error('跳转到创建简历页面失败:', err);
+        wx.showToast({
+          title: '页面跳转失败',
+          icon: 'none'
+        });
+      }
+    });
+  },
+  
+  // 上传简历文件
+  uploadResume() {
+    const that = this;
+    
+    wx.chooseMessageFile({
+      count: 1,
+      type: 'file',
+      extension: ['docx', 'pdf'],
+      success: function(res) {
+        const tempFilePath = res.tempFiles[0].path;
+        const fileName = res.tempFiles[0].name;
+        
+        wx.showLoading({
+          title: '正在上传简历...',
+        });
+        
+        // 调用微信小程序的上传API
+        wx.uploadFile({
+          url: app.globalData.baseUrl + '/api/resume/upload',
+          filePath: tempFilePath,
+          name: 'file',
+          formData: {
+            userId: that.data.userId,
+            fileName: fileName
+          },
+          success: function(uploadRes) {
+            try {
+              const data = JSON.parse(uploadRes.data);
+              if (data.code === 0) {
+                wx.showToast({
+                  title: '简历上传成功',
+                  icon: 'success'
+                });
+                // 上传成功后重新加载简历列表
+                setTimeout(() => {
+                  that.loadUserResumes();
+                }, 1000);
+              } else {
+                wx.showToast({
+                  title: data.message || '上传失败',
+                  icon: 'none'
+                });
+              }
+            } catch (e) {
+              wx.showToast({
+                title: '上传失败，服务器响应异常',
+                icon: 'none'
+              });
+            }
+          },
+          fail: function(err) {
+            console.error('简历上传失败:', err);
+            wx.showToast({
+              title: '网络异常，请重试',
+              icon: 'none'
+            });
+          },
+          complete: function() {
+            wx.hideLoading();
+          }
+        });
+      },
+      fail: function(err) {
+        console.error('选择文件失败:', err);
+        // 如果用户取消选择，不显示错误提示
+        if (err.errMsg !== 'chooseMessageFile:fail cancel') {
+          wx.showToast({
+            title: '选择文件失败',
+            icon: 'none'
+          });
+        }
+      }
+    });
+  },
 });

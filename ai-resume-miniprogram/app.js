@@ -84,36 +84,9 @@ App({
             if (callback) callback(new Error('云环境配置错误'))
             return
           }
-          // 使用云托管callContainer调用登录接口
-          wx.cloud.callContainer({
-            config: {
-              env: this.globalData.cloudEnvId
-            },
-            path: '/api/user/wechat-login',
-            method: 'POST',
-            header: {
-              'X-WX-SERVICE': 'springboot-bq0e',
-              'content-type': 'application/json'
-            },
-            data: {
-              code: res.code
-            },
-            success: result => {
-              console.info('登录接口调用成功', result)
-              this.handleLoginResult(result, callback)
-            },
-            fail: error => {
-              console.error('云托管登录请求失败', error)
-              console.log('环境ID:', this.globalData.cloudEnvId)
-              console.log('服务名:', 'springboot-bq0e')
-              console.log('请求路径:', '/api/user/wechat-login')
-              wx.showToast({
-                title: '登录失败，请重试',
-                icon: 'none'
-              })
-              if (callback) callback(error)
-            }
-          })
+          
+          // 获取用户信息授权
+          this.getUserProfileInfo(res.code, callback)
         } else {
           // 登录失败情况
           console.error('登录失败，无法获取code', res)
@@ -128,6 +101,60 @@ App({
         console.error('wx.login调用失败', error)
         wx.showToast({
           title: '登录接口调用失败',
+          icon: 'none'
+        })
+        if (callback) callback(error)
+      }
+    })
+  },
+  
+  // 获取用户信息并进行登录
+  getUserProfileInfo: function(code, callback) {
+    // 使用新版接口获取用户信息
+    wx.getUserProfile({
+      desc: '用于完善会员资料',
+      success: (userProfileRes) => {
+        console.info('获取用户信息成功', userProfileRes)
+        const userInfo = userProfileRes.userInfo || {};
+        
+        // 调用登录接口，传递code和用户信息
+        this.wechatLogin(code, userInfo, callback);
+      },
+      fail: (error) => {
+        console.warn('用户拒绝授权获取用户信息', error);
+        // 即使用户拒绝授权，也要继续登录流程，只是不传递用户信息
+        this.wechatLogin(code, {}, callback);
+      }
+    })
+  },
+  
+  // 微信登录接口调用
+  wechatLogin: function(code, userInfo, callback) {
+    wx.cloud.callContainer({
+      config: {
+        env: this.globalData.cloudEnvId
+      },
+      path: '/api/user/wechat-login',
+      method: 'POST',
+      header: {
+        'X-WX-SERVICE': 'springboot-bq0e',
+        'content-type': 'application/json'
+      },
+      data: {
+        code: code,
+        userInfo: userInfo
+      },
+      success: result => {
+        console.info('登录接口调用成功', result)
+        this.handleLoginResult(result, callback)
+      },
+      fail: error => {
+        console.error('云托管登录请求失败', error)
+        console.log('环境ID:', this.globalData.cloudEnvId)
+        console.log('服务名:', 'springboot-bq0e')
+        console.log('请求路径:', '/api/user/wechat-login')
+        wx.showToast({
+          title: '登录失败，请重试',
           icon: 'none'
         })
         if (callback) callback(error)
@@ -195,26 +222,75 @@ App({
     
     if (isSuccess) {
       // 安全地获取token（兼容写法）
-      const token = (responseData.data && responseData.data.token) || responseData.token;
+      let token = (responseData.data && responseData.data.token) || responseData.token;
+      
+      // 检查token是否有效
       if (token) {
-        this.globalData.token = token;
-        wx.setStorageSync('token', token);
-        console.info('Token保存成功');
+        // 避免保存无效的mock_token
+        if (token === 'mock_token') {
+          console.warn('发现mock_token，不保存到storage');
+          token = '';
+        } else {
+          this.globalData.token = token;
+          wx.setStorageSync('token', token);
+          console.info('Token保存成功');
+        }
       } else {
         console.warn('登录成功但未获取到token');
       }
       
-      // 尝试获取用户信息，但不强制要求存在（兼容写法）
+      // 尝试获取用户信息，并确保包含有效ID字段
       let userInfo = {};
       try {
+        // 先尝试获取现有的userInfo对象
         userInfo = (responseData.data && responseData.data.userInfo) || responseData.userInfo || {};
         if (typeof userInfo !== 'object') {
           userInfo = {};
           console.warn('用户信息格式无效，已重置为空对象');
         }
+        
+        // 优先使用后端返回的userId（系统内部主键）
+        const userId = (responseData.data && responseData.data.userId) || 
+                      (responseData.data && responseData.data.id) || 
+                      responseData.userId || 
+                      responseData.id;
+        console.info('后端返回的系统内部userId:', userId);
+        
+        // 确保用户对象包含id字段（系统内部主键）
+        if (userId) {
+          // 无论userInfo.id是否存在，优先使用后端返回的userId
+          userInfo.id = userId;
+          userInfo.userId = userId; // 明确设置userId字段
+          console.info('使用后端返回的系统内部userId作为用户ID:', userId);
+        } else if (!userInfo.id) {
+          // 如果没有后端返回的userId，则使用openId或生成临时ID
+          const openId = (responseData.data && responseData.data.openId) || responseData.openId;
+          if (openId) {
+            userInfo.id = openId;
+            console.info('使用openId作为用户ID');
+          } else if (token) {
+            userInfo.id = token.substring(0, 10);
+            console.info('使用token部分内容作为用户ID');
+          } else {
+            userInfo.id = 'user_' + Date.now();
+            console.info('生成基于时间戳的临时用户ID');
+          }
+        }
+        
+        // 确保用户对象包含所有必要字段
+        userInfo.userId = userInfo.id; // 明确设置userId字段，方便在业务中使用
+        userInfo.openId = userInfo.openId || (responseData.data && responseData.data.openId) || responseData.openId || '';
+        userInfo.nickName = userInfo.nickName || (responseData.data && responseData.data.nickName) || '';
+        userInfo.avatarUrl = userInfo.avatarUrl || (responseData.data && responseData.data.avatarUrl) || '';
+        userInfo.gender = userInfo.gender || (responseData.data && responseData.data.gender) || 0;
+        userInfo.city = userInfo.city || (responseData.data && responseData.data.city) || '';
+        userInfo.province = userInfo.province || (responseData.data && responseData.data.province) || '';
+        userInfo.country = userInfo.country || (responseData.data && responseData.data.country) || '';
+        userInfo.loginTime = new Date().toISOString();
       } catch (e) {
         console.error('解析用户信息时出错:', e);
-        userInfo = {};
+        // 即使出错也要确保userInfo至少有一个id字段
+        userInfo = { id: 'error_' + Date.now() };
       }
       
       this.globalData.userInfo = userInfo;
@@ -262,81 +338,90 @@ App({
       method = requestParams.method;
       data = requestParams.data;
       callback = requestParams.success || safeCallback;
+      // 同时支持对象参数中的fail和complete回调
+      const failCallback = requestParams.fail || function() {};
+      const completeCallback = requestParams.complete || function() {};
+      
+      // 使用Promise处理请求，确保能正确解析
+      return new Promise((resolve, reject) => {
+        try {
+          // 确保URL是字符串且以/api开头，如果不是则添加
+          const requestUrl = (typeof url === 'string' && url.startsWith('/api')) ? url : `/api${url}`;
+          
+          wx.cloud.callContainer({
+            config: {
+              env: this.globalData.cloudEnvId
+            },
+            path: requestUrl,
+            method: method || 'GET',
+            header: {
+              'X-WX-SERVICE': 'springboot-bq0e', // 添加服务名
+              'content-type': 'application/json',
+              'token': this.globalData.token || ''
+            },
+            data: data || {},
+            success: res => {
+              // 确保返回的数据格式正确，即使API返回异常也不会导致页面错误
+              const responseData = res.data && typeof res.data === 'object' ? res.data : { code: -1, message: '返回数据格式异常' };
+              console.log('API响应数据:', responseData);
+              // 调用用户传入的success回调
+              callback(responseData);
+              // 解析Promise，确保Promise链能继续执行
+              resolve(responseData);
+            },
+            fail: err => {
+              console.error('云托管调用失败', err);
+              console.log('环境ID:', this.globalData.cloudEnvId);
+              console.log('服务名:', 'springboot-bq0e');
+              console.log('请求路径:', requestUrl);
+              // 返回标准错误格式
+              const errorData = { code: -1, message: '网络请求失败', error: err };
+              // 调用用户传入的fail回调
+              failCallback(errorData);
+              // 拒绝Promise
+              reject(errorData);
+            },
+            complete: res => {
+              // 调用用户传入的complete回调
+              completeCallback(res);
+            }
+          });
+        } catch (e) {
+          console.error('请求异常:', e);
+          reject({ code: -1, message: '请求处理异常', error: e });
+        }
+      });
     }
     
-    if (this.globalData.useCloud) {
-      // 确保URL是字符串且以/api开头，如果不是则添加
-      const requestUrl = (typeof url === 'string' && url.startsWith('/api')) ? url : `/api${url}`;
-      
-      wx.cloud.callContainer({
-        config: {
-          env: this.globalData.cloudEnvId
-        },
-        path: requestUrl,
-        method: method || 'GET',
-        header: {
-          'X-WX-SERVICE': 'springboot-bq0e', // 添加服务名
-          'content-type': 'application/json',
-          'token': this.globalData.token || ''
-        },
-        data: data || {},
-        fail: function(err) {
-          console.error('云调用失败:', err);
-          callback({
-            success: false,
-            error: err
-          });
-        },
-        success: res => {
-          // 确保返回的数据格式正确，即使API返回异常也不会导致页面错误
-          const responseData = res.data && typeof res.data === 'object' ? res.data : { code: -1, message: '返回数据格式异常' };
-          safeCallback(responseData)
-        },
-        fail: err => {
-          console.error('云托管调用失败', err)
-          console.log('环境ID:', this.globalData.cloudEnvId)
-          console.log('服务名:', 'springboot-bq0e')
-          console.log('请求路径:', requestUrl)
-          // 返回标准错误格式
-          safeCallback({code: -1, message: '云托管调用失败'})
-        }
-      })
-    } else {
-      // 非云环境下使用普通request
-      wx.request({
-        url: `${this.globalData.baseUrl}${url}`,
-        method: method || 'GET',
-        data: data || {},
-        header: {
-          'content-type': 'application/json',
-          'token': this.globalData.token || ''
-        },
-        fail: function(err) {
-          console.error('请求失败:', err);
-          callback({
-            success: false,
-            error: err
-          });
-        },
-        success: res => {
-          // 确保res.data存在且为对象
-          const responseData = res.data && typeof res.data === 'object' ? res.data : { code: -1, message: '返回数据格式异常' };
-          
-          // 处理登录过期
-          if (responseData.code === 401) {
-            this.logout()
-            wx.navigateTo({ url: '/pages/login/login' })
-            return
-          }
-          safeCallback(responseData)
-        },
-        fail: error => {
-          console.error('请求失败', error)
-          wx.showToast({ title: '网络错误', icon: 'none' })
-          // 返回标准错误格式
-          safeCallback({code: -1, message: '网络错误'})
-        }
-      })
-    }
-  }
+    // 原始参数形式的处理（强制使用云托管调用）
+    // 确保URL是字符串且以/api开头，如果不是则添加
+    const requestUrl = (typeof url === 'string' && url.startsWith('/api')) ? url : `/api${url}`;
+    
+    return wx.cloud.callContainer({
+      config: {
+        env: this.globalData.cloudEnvId
+      },
+      path: requestUrl,
+      method: method || 'GET',
+      header: {
+        'X-WX-SERVICE': 'springboot-bq0e', // 添加服务名
+        'content-type': 'application/json',
+        'token': this.globalData.token || ''
+      },
+      data: data || {},
+      success: res => {
+        // 确保返回的数据格式正确，即使API返回异常也不会导致页面错误
+        const responseData = res.data && typeof res.data === 'object' ? res.data : { code: -1, message: '返回数据格式异常' };
+        safeCallback(responseData)
+      },
+      fail: err => {
+        console.error('云托管调用失败', err);
+        console.log('环境ID:', this.globalData.cloudEnvId);
+        console.log('服务名:', 'springboot-bq0e');
+        console.log('请求路径:', requestUrl);
+        // 返回标准错误格式
+        safeCallback({ code: -1, message: '网络请求失败', error: err });
+      }
+    });
+  },
 })
