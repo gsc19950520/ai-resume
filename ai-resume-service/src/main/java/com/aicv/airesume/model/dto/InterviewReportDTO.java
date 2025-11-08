@@ -9,7 +9,7 @@ import java.util.Map;
 @Data
 public class InterviewReportDTO {
     private Long reportId;
-    private Long sessionId;
+    private String sessionId;
     private String overallFeedback;
     private Map<String, Double> scores;
     private String strengths;

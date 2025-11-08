@@ -10,7 +10,7 @@ import java.util.Map;
 public class InterviewResponseDTO {
     private Long id;
     private Long questionId;
-    private Long sessionId;
+    private String sessionId;
     private String answerContent;
     private Long startTime;
     private Long endTime;

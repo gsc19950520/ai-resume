@@ -8,6 +8,7 @@ import lombok.Data;
 @Data
 public class InterviewHistoryVO {
     private Long sessionId;
+    private String uniqueSessionId;
     private String title;
     private Long startTime;
     private Long endTime;

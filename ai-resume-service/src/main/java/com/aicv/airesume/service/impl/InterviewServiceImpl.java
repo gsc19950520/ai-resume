@@ -153,7 +153,7 @@ public class InterviewServiceImpl implements InterviewService {
 
             // 6. 构建返回对象
             InterviewResponseDTO response = new InterviewResponseDTO();
-            response.setSessionId(Long.valueOf(session.getSessionId()));
+            response.setSessionId(session.getSessionId());
             
             // 设置问题信息到additionalInfo
             Map<String, Object> additionalInfo = response.getAdditionalInfo();
@@ -252,7 +252,7 @@ public class InterviewServiceImpl implements InterviewService {
 
             // 8. 构建响应对象
             InterviewResponseDTO response = new InterviewResponseDTO();
-            response.setSessionId(Long.valueOf(sessionId));
+            response.setSessionId(sessionId);
             
             // 设置评分和反馈信息到additionalInfo
             Map<String, Object> additionalInfo = response.getAdditionalInfo();
@@ -366,7 +366,7 @@ public class InterviewServiceImpl implements InterviewService {
 
             // 5. 生成面试报告
             InterviewReportDTO reportDTO = new InterviewReportDTO();
-            reportDTO.setSessionId(Long.parseLong(sessionId));
+            reportDTO.setSessionId(sessionId);
             reportDTO.setFinalScore(totalScore);
             reportDTO.setScores(aggregatedScores);
             // 设置整体反馈（简化处理）
@@ -925,6 +925,7 @@ public class InterviewServiceImpl implements InterviewService {
         return sessions.stream().map(session -> {
             InterviewHistoryVO vo = new InterviewHistoryVO();
             vo.setSessionId(session.getId());
+            vo.setUniqueSessionId(session.getSessionId()); // 添加唯一会话ID
             vo.setTitle(session.getJobType() + " 面试");
             vo.setFinalScore(session.getTotalScore());
             vo.setStatus(session.getStatus());
@@ -1166,11 +1167,53 @@ public class InterviewServiceImpl implements InterviewService {
      */
     private Map<String, Double> calculateAggregatedScores(List<InterviewLog> logs) {
         Map<String, Double> scores = new HashMap<>();
-        scores.put("tech", 8.5);
-        scores.put("logic", 7.8);
-        scores.put("clarity", 8.0);
-        scores.put("depth", 7.5);
-        scores.put("total", 8.2);
+        
+        // 如果没有面试日志，返回默认分数
+        if (logs == null || logs.isEmpty()) {
+            scores.put("tech", 0.0);
+            scores.put("logic", 0.0);
+            scores.put("clarity", 0.0);
+            scores.put("depth", 0.0);
+            scores.put("total", 0.0);
+            return scores;
+        }
+        
+        // 计算各维度的平均分
+        double totalTech = 0.0, totalLogic = 0.0, totalClarity = 0.0, totalDepth = 0.0;
+        int scoredCount = 0;
+        
+        for (InterviewLog log : logs) {
+            if (log.getTechScore() != null && log.getLogicScore() != null && 
+                log.getClarityScore() != null && log.getDepthScore() != null) {
+                
+                totalTech += log.getTechScore();
+                totalLogic += log.getLogicScore();
+                totalClarity += log.getClarityScore();
+                totalDepth += log.getDepthScore();
+                scoredCount++;
+            }
+        }
+        
+        // 计算平均分，保留一位小数
+        if (scoredCount > 0) {
+            scores.put("tech", Math.round((totalTech / scoredCount) * 10) / 10.0);
+            scores.put("logic", Math.round((totalLogic / scoredCount) * 10) / 10.0);
+            scores.put("clarity", Math.round((totalClarity / scoredCount) * 10) / 10.0);
+            scores.put("depth", Math.round((totalDepth / scoredCount) * 10) / 10.0);
+            
+            // 计算总分（各维度平均分）
+            double totalScore = (scores.get("tech") + scores.get("logic") + 
+                               scores.get("clarity") + scores.get("depth")) / 4.0;
+            scores.put("total", Math.round(totalScore * 10) / 10.0);
+        } else {
+            // 如果没有评分记录，返回默认值
+            scores.put("tech", 0.0);
+            scores.put("logic", 0.0);
+            scores.put("clarity", 0.0);
+            scores.put("depth", 0.0);
+            scores.put("total", 0.0);
+        }
+        
         return scores;
     }
 

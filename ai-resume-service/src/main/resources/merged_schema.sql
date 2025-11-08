@@ -235,7 +235,7 @@ CREATE TABLE IF NOT EXISTS job_skill (
     KEY idx_job_type_id (job_type_id),
     KEY idx_skill_name (skill_name),
     KEY idx_skill_level (skill_level),
-    KEY idx_ai_generated (ai_generated)
+    KEY idx_ai_generated (ai_generated),
     UNIQUE KEY uk_job_skill_level (job_type_id, skill_name, skill_level)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='职位技能表';
 
@@ -321,7 +321,6 @@ CREATE TABLE IF NOT EXISTS dynamic_config (
     is_active TINYINT(1) NOT NULL DEFAULT 1 COMMENT '是否启用',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (id),
     UNIQUE KEY uk_config_type_key (config_type, config_key)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='动态配置表';
 
@@ -570,6 +569,9 @@ INSERT INTO `scoring_system` (`metric_name`, `weight`, `description`) VALUES
 -- 面试问题数据由系统在运行时自动生成和管理
 -- 不需要预设初始数据，系统会根据用户面试情况动态生成并存储问题
 
+-- 设置字符集以支持emoji等4字节Unicode字符
+SET NAMES utf8mb4;
+
 -- 插入动态配置数据
 INSERT INTO `dynamic_config` (`config_type`, `config_key`, `config_value`, `description`, `is_active`)
 VALUES
@@ -596,10 +598,10 @@ VALUES
 ('config', 'interview_dynamic_config', '{"personas":[{"id":"colloquial","name":"口语化","emoji":"💬","description":"轻松自然，像朋友聊天一样。适合练习表达与思维。","example":"你平时在项目里主要怎么用这个框架的？讲讲你的思路。","enabled":true},{"id":"formal","name":"正式面试","emoji":"🎓","description":"逻辑清晰、专业正式，模拟真实企业面试场景。","example":"请详细说明你在该项目中负责的模块及技术实现。","enabled":true},{"id":"manager","name":"主管语气","emoji":"🧠","description":"偏重项目成果与业务价值，关注你的思考与协作方式。","example":"这个优化最终提升了什么指标？对团队交付有什么帮助？","enabled":true},{"id":"analytical","name":"冷静分析型","emoji":"🧊","description":"逻辑严谨、问题拆解式提问，适合技术深度练习。","example":"你认为这个算法的瓶颈在哪？能从复杂度角度分析一下吗？","enabled":true},{"id":"encouraging","name":"鼓励型","emoji":"🌱","description":"语气温和积极，注重引导思考与成长体验。","example":"你的思路挺好，可以再具体举个例子来支撑一下吗？","enabled":true},{"id":"pressure","name":"压力面","emoji":"🔥","description":"高强度提问，快速节奏模拟顶级面试场景。","example":"假设你的系统刚被打挂，你会在3分钟内做什么？","enabled":true},{"id":"friendly","name":"友善面试官","emoji":"😊","description":"以友好、鼓励的方式进行面试，创造轻松氛围。","example":"你能简单介绍一下你在这个项目中的角色吗？","enabled":false},{"id":"neutral","name":"中性面试官","emoji":"📋","description":"保持客观、专业的面试风格，注重事实和技术。","example":"请详细描述这个技术的实现细节。","enabled":false},{"id":"challenging","name":"挑战性面试官","emoji":"⚡","description":"提出深入的技术问题，挑战候选人的极限。","example":"这个方案的扩展性如何？如何解决高并发场景？","enabled":false},{"id":"technical","name":"技术专家","emoji":"🔧","description":"专注于技术细节和实现原理，注重深度。","example":"这个算法的时间复杂度是多少？空间复杂度呢？","enabled":false},{"id":"innovative","name":"创新思维","emoji":"💡","description":"关注创新能力和解决方案，鼓励发散思维。","example":"如果让你重新设计这个系统，你会如何改进？","enabled":false},{"id":"practical","name":"注重实践","emoji":"🛠️","description":"强调实际应用经验和项目成果。","example":"请分享一个你解决过的最复杂的技术问题。","enabled":false}],"depthLevels":[{"id":"用法","name":"基础","text":"用法","description":"基本概念和简单应用场景"},{"id":"实现","name":"进阶","text":"实现","description":"内部工作原理和实现细节"},{"id":"原理","name":"深入","text":"原理","description":"底层原理和设计思想"},{"id":"优化","name":"高级","text":"优化","description":"性能优化和最佳实践"}],"defaultSessionSeconds":900,"defaultPersona":"friendly"}', '完整的面试动态配置', 1);
 
 -- 创建面试相关索引（如果不存在）
-CREATE INDEX IF NOT EXISTS idx_interview_sessions_user_id ON interview_sessions(user_id);
-CREATE INDEX IF NOT EXISTS idx_interview_sessions_status ON interview_sessions(status);
-CREATE INDEX IF NOT EXISTS idx_interview_answers_session_id ON interview_log(session_id);
-CREATE INDEX IF NOT EXISTS idx_interview_answers_round_number ON interview_log(round_number);
+CREATE INDEX idx_interview_sessions_user_id ON interview_session(user_id);
+CREATE INDEX idx_interview_sessions_status ON interview_session(status);
+  CREATE INDEX idx_interview_answers_session_id ON interview_log(session_id);
+CREATE INDEX idx_interview_answers_round_number ON interview_log(round_number);
 
 -- 插入系统配置数据
 INSERT INTO `system_config` (`config_key`, `config_value`, `description`) VALUES
