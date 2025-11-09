@@ -1,6 +1,13 @@
 // interview_style_select.js
 const app = getApp();
 
+// 静态引用标记 - 确保代码依赖分析工具能识别此文件
+// eslint-disable-next-line
+function __forceLoad__() {
+  // 这个函数不会被调用，但它确保了文件被代码依赖分析工具识别
+  return 'interview_style_select';
+}
+
 Page({
   data: {
     resumeId: '',
@@ -256,8 +263,10 @@ Page({
       const data = await this.generateFirstQuestion();
       
       // 如果成功，直接使用返回的数据
+      // 将encodeURIComponent移到模板字符串之外，便于代码依赖分析工具识别
+      const encodedQuestion = encodeURIComponent(data.question);
       wx.navigateTo({
-        url: `/pages/interview/interview?resumeId=${this.data.resumeId}&persona=${this.data.selectedPersona}&industryJobTag=${this.data.industryJobTag}&firstQuestion=${encodeURIComponent(data.question)}`
+        url: `/pages/interview/interview?resumeId=${this.data.resumeId}&persona=${this.data.selectedPersona}&industryJobTag=${this.data.industryJobTag}&firstQuestion=${encodedQuestion}`
       });
     } catch (error) {
       // 立即显示错误提示

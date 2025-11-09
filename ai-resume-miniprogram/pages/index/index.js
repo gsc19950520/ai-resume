@@ -148,8 +148,8 @@ Page({
       const resumeList = this.getMockResumeList()
       
       if (resumeList && resumeList.length > 0) {
-        // 有简历，跳转到风格和简历选择页面
-        wx.navigateTo({ url: '/pages/interview/interview_style_select' })
+        // 有简历，跳转到风格和简历选择页面 - 使用模板字符串便于代码依赖分析
+        wx.navigateTo({ url: `/pages/interview/interview_style_select` })
       } else {
         // 无简历，提示用户创建或上传简历
         wx.showModal({

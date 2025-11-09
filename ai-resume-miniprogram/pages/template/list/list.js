@@ -97,9 +97,9 @@ Page({
     const templateId = e.currentTarget.dataset.id
     const templateName = e.currentTarget.dataset.name
     
-    // 跳转到模板预览页面
+    // 跳转到模板预览页面 - 使用模板字符串便于代码依赖分析
     wx.navigateTo({
-      url: '/pages/template/preview/preview?templateId=' + templateId + '&templateName=' + encodeURIComponent(templateName)
+      url: `/pages/template/preview/preview?templateId=${templateId}&templateName=${encodeURIComponent(templateName)}`
     })
   }
 })

@@ -120,43 +120,7 @@
       <button class="add-btn" bindtap="addWorkExperience">+ 添加工作经历</button>
     </view>
 
-    <!-- 项目经验部分 -->
-      <view class="edit-section" wx:if="{{currentSection === 'project'}}">
-        <view class="project-item" wx:for="{{resumeInfo.projects}}" wx:key="id">
-        <view class="item-header">
-          <text class="item-title">项目经验 {{index + 1}}</text>
-        </view>
-        
-        <view class="form-item">
-          <text class="label">项目名称</text>
-          <input class="input" placeholder="请输入项目名称" bindinput="onProjectInput" data-index="{{index}}" data-field="name" />
-        </view>
-        
-        <view class="form-item">
-          <text class="label">担任角色</text>
-          <input class="input" placeholder="请输入您在项目中的角色" bindinput="onProjectInput" data-index="{{index}}" data-field="role" />
-        </view>
-        
-        <view class="date-row">
-          <view class="form-item date-item">
-            <text class="label">开始时间</text>
-            <input class="input" placeholder="YYYY-MM" bindinput="onProjectInput" data-index="{{index}}" data-field="startDate" />
-          </view>
-          
-          <view class="form-item date-item">
-            <text class="label">结束时间</text>
-            <input class="input" placeholder="YYYY-MM" bindinput="onProjectInput" data-index="{{index}}" data-field="endDate" />
-          </view>
-        </view>
-        
-        <view class="form-item">
-          <text class="label">项目描述</text>
-          <textarea class="textarea" placeholder="请描述项目内容和您的贡献" bindinput="onProjectInput" data-index="{{index}}" data-field="description" />
-        </view>
-      </view>
-      
-      <button class="add-btn" bindtap="addProject">+ 添加项目经验</button>
-    </view>
+
 
     <!-- 专业技能部分 -->
     <view class="edit-section" wx:if="{{currentSection === 'skills'}}">

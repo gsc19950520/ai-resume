@@ -1,6 +1,6 @@
 /* preview.wxss */
 /* 导入全局样式重置 */
-@import '../../../../app.wxss';
+@import '../../../app.wxss';
 
 .container {
   padding: 0 24rpx 60rpx;
@@ -13,7 +13,7 @@
 /* 顶部操作栏 - 精致设计 */
 .toolbar {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
   margin-bottom: 32rpx;
   padding: 24rpx 32rpx 28rpx;
@@ -101,19 +101,646 @@
   animation: fadeInUp 0.5s ease-out;
 }
 
-/* 简历卡片基础样式 - 精致设计 */
+/* 简历卡片基础样式 - A4纸尺寸设计 */
 .resume-card {
-  width: 92%;
-  max-width: 780rpx;
+  width: 90%;
+  max-width: 710rpx; /* 按照A4比例 (210mm × 297mm) 设置，微信小程序中约710rpx宽比较合适 */
+  min-height: 997rpx; /* A4高度比例 */
+  height: auto;
   background: #ffffff;
-  border-radius: 24rpx;
-  padding: 50rpx;
-  box-shadow: 0 10rpx 40rpx rgba(0, 0, 0, 0.08);
-  border: 2rpx solid rgba(255, 255, 255, 0.5);
-  backdrop-filter: blur(10rpx);
-  transition: all 0.3s ease;
+  border-radius: 8rpx;
+  padding: 20rpx;
+  box-shadow: 0 8rpx 30rpx rgba(0, 0, 0, 0.1);
+  border: 1rpx solid #e5e7eb;
   position: relative;
+  overflow: visible;
+  font-size: 18rpx; /* 基础字体大小缩小 */
+  box-sizing: border-box;
+  margin: 0 auto;
+}
+
+/* 简历卡片基础样式 */
+.resume-layout {
+  width: 100%;
+  min-height: 997rpx;
+  height: auto;
+  background-color: #fff;
+  border-radius: 12rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.08);
+  padding: 20rpx;
+  box-sizing: border-box;
   overflow: hidden;
+}
+
+/* 标准两栏布局 */
+.two-column-standard {
+  display: flex;
+}
+
+.two-column-standard .left-column {
+  width: 25%;
+  padding-right: 20rpx;
+  box-sizing: border-box;
+  border-right: 1rpx solid #e8e8e8;
+}
+
+.two-column-standard .right-column {
+  width: 75%;
+  padding-left: 20rpx;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 技能侧边栏布局 */
+.skills-sidebar {
+  display: flex;
+  flex-direction: column;
+}
+
+.skills-sidebar .top-section {
+  margin-bottom: 20rpx;
+  padding-bottom: 15rpx;
+  border-bottom: 1rpx solid #e8e8e8;
+}
+
+.skills-sidebar .bottom-layout {
+  display: flex;
+  flex: 1;
+}
+
+.skills-sidebar .skills-column {
+  width: 25%;
+  padding-right: 20rpx;
+  box-sizing: border-box;
+  border-right: 1rpx solid #e8e8e8;
+}
+
+.skills-sidebar .main-column {
+  width: 75%;
+  padding-left: 20rpx;
+  box-sizing: border-box;
+  flex: 1;
+}
+
+/* ==== 1. 增强版两栏布局：简约专业模板 ==== */
+.enhanced-two-column {
+  display: flex;
+  height: 100%;
+}
+
+.enhanced-two-column .left-column {
+  width: 25%;
+  padding-right: 20rpx;
+  box-sizing: border-box;
+  border-right: 2rpx solid #e8e8e8;
+  display: flex;
+  flex-direction: column;
+}
+
+.enhanced-two-column .right-column {
+  width: 75%;
+  padding-left: 20rpx;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+.enhanced-two-column .personal-info {
+  margin-bottom: 20rpx;
+  padding-bottom: 15rpx;
+  border-bottom: 2rpx solid #e8e8e8;
+}
+
+.enhanced-two-column .vertical-skills {
+  flex-direction: column;
+  flex-wrap: nowrap;
+}
+
+.enhanced-two-column .skill-tag {
+  background: none;
+  padding: 8rpx 0;
+  margin: 0;
+  border-radius: 0;
+  display: flex;
+  align-items: center;
+  font-size: 16rpx;
+}
+
+.enhanced-two-column .skill-dot {
+  margin-right: 10rpx;
+  font-size: 20rpx;
+}
+
+.certification-item {
+  margin-bottom: 15rpx;
+}
+
+.cert-name {
+  font-weight: bold;
+  font-size: 16rpx;
+  display: block;
+  margin-bottom: 5rpx;
+}
+
+.cert-date {
+  font-size: 14rpx;
+  color: #666;
+}
+
+.language-item {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10rpx;
+  font-size: 16rpx;
+}
+
+.language-name {
+  font-weight: bold;
+}
+
+.language-level {
+  color: #666;
+}
+
+/* ==== 2. 技能聚焦三栏布局：技术人才模板 ==== */
+.skills-focus-three-column {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.skills-focus-three-column .top-section {
+  padding-bottom: 20rpx;
+  margin-bottom: 20rpx;
+  border-bottom: 2rpx solid #e8e8e8;
+  display: flex;
+  align-items: center;
+}
+
+.skills-focus-three-column .bottom-three-column {
+  display: flex;
+  flex: 1;
+  margin-bottom: 20rpx;
+  gap: 15rpx;
+}
+
+.skills-focus-three-column .left-column,
+.skills-focus-three-column .center-column,
+.skills-focus-three-column .right-column {
+  flex: 1;
+  padding: 0 10rpx;
+  display: flex;
+  flex-direction: column;
+}
+
+.skills-focus-three-column .left-column {
+  border-right: 1rpx solid #e8e8e8;
+}
+
+.skills-focus-three-column .right-column {
+  border-left: 1rpx solid #e8e8e8;
+}
+
+.skills-focus-three-column .full-width-section {
+  padding-top: 15rpx;
+  border-top: 2rpx solid #e8e8e8;
+}
+
+.hero-personal-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  width: 100%;
+}
+
+.horizontal-contact {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 15rpx;
+  margin-bottom: 10rpx;
+}
+
+.skills-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12rpx;
+}
+
+.skill-item {
+  background-color: #f5f5f5;
+  padding: 12rpx;
+  border-radius: 6rpx;
+  text-align: center;
+  font-size: 16rpx;
+}
+
+.tech-stack-item {
+  margin-bottom: 15rpx;
+}
+
+.tech-category {
+  font-weight: bold;
+  display: block;
+  margin-bottom: 6rpx;
+  color: #333;
+  font-size: 16rpx;
+}
+
+.tech-skills {
+  font-size: 16rpx;
+  color: #666;
+}
+
+.achievement-item {
+  display: flex;
+  margin-bottom: 12rpx;
+  align-items: flex-start;
+}
+
+.achievement-number {
+  background-color: #07c160;
+  color: white;
+  width: 32rpx;
+  height: 32rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 10rpx;
+  font-size: 16rpx;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.achievement-text {
+  flex: 1;
+  line-height: 1.5;
+  font-size: 16rpx;
+}
+
+/* ==== 3. 垂直分层创意布局：创意设计模板 ==== */
+.vertical-layers-creative {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.hero-section {
+  background-color: #f8f9fa;
+  padding: 25rpx;
+  margin-bottom: 25rpx;
+  border-radius: 10rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.creative-personal-info {
+  text-align: center;
+}
+
+.creative-bottom-layout {
+  display: flex;
+  flex: 1;
+  gap: 25rpx;
+}
+
+.creative-bottom-layout .sidebar {
+  width: 30%;
+  background-color: #f8f9fa;
+  padding: 20rpx;
+  border-radius: 10rpx;
+}
+
+.creative-bottom-layout .main-content {
+  width: 70%;
+  display: flex;
+  flex-direction: column;
+}
+
+.creative-section-title {
+  font-size: 20rpx;
+  font-weight: bold;
+  margin-bottom: 15rpx;
+  padding-bottom: 8rpx;
+  border-bottom: 3rpx solid currentColor;
+  text-align: center;
+}
+
+.skill-badge {
+  background-color: #fff;
+  padding: 12rpx 16rpx;
+  border-radius: 20rpx;
+  margin-right: 12rpx;
+  margin-bottom: 12rpx;
+  font-size: 16rpx;
+  box-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.1);
+  display: inline-block;
+}
+
+.approach-item {
+  margin-bottom: 15rpx;
+  padding-left: 15rpx;
+  position: relative;
+}
+
+.approach-item::before {
+  content: '→';
+  position: absolute;
+  left: 0;
+  color: currentColor;
+}
+
+.approach-text {
+  line-height: 1.5;
+  font-size: 16rpx;
+}
+
+.interests-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.interest-tag {
+  background-color: #fff;
+  padding: 8rpx 16rpx;
+  border-radius: 16rpx;
+  margin: 0 8rpx 12rpx 0;
+  font-size: 16rpx;
+  border: 2rpx dashed #ccc;
+}
+
+.work-item.creative-work,
+.education-item.creative-education {
+  display: flex;
+  margin-bottom: 25rpx;
+  position: relative;
+}
+
+.work-timeline,
+.education-timeline {
+  width: 6rpx;
+  background-color: #eee;
+  margin-right: 15rpx;
+  position: relative;
+}
+
+.work-timeline::before,
+.education-timeline::before {
+  content: '';
+  width: 20rpx;
+  height: 20rpx;
+  border-radius: 50%;
+  background-color: currentColor;
+  position: absolute;
+  left: -7rpx;
+  top: 5rpx;
+}
+
+.work-details,
+.education-details {
+  flex: 1;
+}
+
+.creative-evaluation {
+  background-color: #f8f9fa;
+  padding: 20rpx;
+  border-radius: 10rpx;
+  border-left: 6rpx solid currentColor;
+}
+
+/* ==== 4. 学术网格布局：学术研究模板 ==== */
+.academic-grid {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.header-section {
+  margin-bottom: 25rpx;
+  padding-bottom: 20rpx;
+  border-bottom: 3rpx solid #eee;
+}
+
+.academic-personal-info {
+  text-align: center;
+}
+
+.academic-contact {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 20rpx;
+}
+
+.academic-bottom-layout {
+  display: flex;
+  flex: 1;
+  gap: 25rpx;
+}
+
+.academic-bottom-layout .left-column {
+  width: 40%;
+  border-right: 2rpx solid #eee;
+  padding-right: 20rpx;
+}
+
+.academic-bottom-layout .right-column {
+  width: 60%;
+  padding-left: 20rpx;
+}
+
+.academic-section-title {
+  font-size: 20rpx;
+  font-weight: bold;
+  margin-bottom: 15rpx;
+  padding-bottom: 8rpx;
+  border-bottom: 2rpx solid currentColor;
+}
+
+.academic-education .education-detail {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8rpx;
+}
+
+.research-interest-item {
+  display: flex;
+  margin-bottom: 15rpx;
+  align-items: flex-start;
+}
+
+.interest-number {
+  font-weight: bold;
+  color: currentColor;
+  margin-right: 12rpx;
+  font-size: 24rpx;
+  flex-shrink: 0;
+}
+
+.interest-text {
+  flex: 1;
+  line-height: 1.5;
+  font-size: 16rpx;
+}
+
+.publication-item {
+  margin-bottom: 20rpx;
+  padding-bottom: 16rpx;
+  border-bottom: 1rpx solid #eee;
+}
+
+.publication-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.publication-title {
+  font-weight: bold;
+  font-size: 16rpx;
+  display: block;
+  margin-bottom: 8rpx;
+  line-height: 1.4;
+}
+
+.publication-authors {
+  font-size: 16rpx;
+  color: #666;
+  display: block;
+  margin-bottom: 4rpx;
+}
+
+.publication-source {
+  font-size: 14rpx;
+  color: #888;
+  font-style: italic;
+}
+
+.academic-skills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+}
+
+.academic-skills .skill-tag {
+  background-color: #f5f5f5;
+  padding: 8rpx 16rpx;
+  border-radius: 16rpx;
+  font-size: 16rpx;
+  border: 1rpx solid #eee;
+}
+
+/* 反向两栏布局 */
+.two-column-reversed {
+  display: flex;
+}
+
+.two-column-reversed .main-column {
+  width: 75%;
+  padding-right: 20rpx;
+  box-sizing: border-box;
+  border-right: 1rpx solid #e8e8e8;
+}
+
+.two-column-reversed .right-column {
+  width: 25%;
+  padding-left: 20rpx;
+  box-sizing: border-box;
+}
+
+/* 个人信息置顶布局 */
+.personal-info-top {
+  display: flex;
+  flex-direction: column;
+}
+
+.personal-info-top .top-section {
+  margin-bottom: 20rpx;
+  padding-bottom: 15rpx;
+  border-bottom: 1rpx solid #e8e8e8;
+}
+
+.personal-info-top .bottom-section {
+  display: flex;
+  flex: 1;
+  gap: 15rpx;
+}
+
+.personal-info-top .academic-column {
+  width: 25%;
+  padding-right: 10rpx;
+  box-sizing: border-box;
+}
+
+.personal-info-top .professional-column {
+  width: 50%;
+  padding: 0 10rpx;
+  box-sizing: border-box;
+  border-left: 1rpx solid #e8e8e8;
+  border-right: 1rpx solid #e8e8e8;
+}
+
+.personal-info-top .skills-column {
+  width: 25%;
+  padding-left: 10rpx;
+  box-sizing: border-box;
+}
+
+/* 内容区块 */
+.content-section {
+  margin-bottom: 15rpx;
+}
+
+/* 响应式调整 */
+@media (max-width: 375px) {
+  .resume-layout {
+    flex-direction: column;
+  }
+  
+  .left-column {
+    width: 100%;
+    padding-right: 0;
+    border-right: none;
+    border-bottom: 1rpx solid #e5e7eb;
+    padding-bottom: 10rpx;
+    margin-bottom: 10rpx;
+  }
+  
+  .right-column {
+    width: 100%;
+    padding-left: 0;
+  }
+  
+  .personal-info {
+    text-align: center;
+  }
+  
+  .contact-info {
+    align-items: center;
+  }
+}
+
+/* A4纸尺寸适配 */
+@media (min-width: 376px) {
+  .resume-card {
+    width: 710rpx; /* A4宽度的比例 */
+    margin: 20rpx auto;
+  }
+  
+  /* 确保内容不会溢出A4区域 */
+  .right-column {
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+  
+  /* 调整内容间距以适应A4尺寸 */
+  .content-section {
+    margin-bottom: 12rpx;
+  }
 }
 
 /* 模板视觉标识 */
@@ -134,29 +761,23 @@
 
 /* 通用区块样式 */
 .section {
-  margin-top: 50rpx;
+  margin-top: 15rpx;
   position: relative;
 }
 
 .section::before {
-  content: '';
-  position: absolute;
-  top: -20rpx;
-  left: 0;
-  width: 60rpx;
-  height: 6rpx;
-  background: linear-gradient(90deg, #07c160 0%, transparent 100%);
-  border-radius: 3rpx;
+  content: none; /* 移除装饰条以节省空间 */
 }
 
 .section-title {
-  font-size: 34rpx;
+  font-size: 20rpx;
   font-weight: 700;
-  margin-bottom: 24rpx;
-  padding-bottom: 12rpx;
-  letter-spacing: 0.5rpx;
+  margin-bottom: 8rpx;
+  padding-bottom: 4rpx;
+  letter-spacing: 0rpx;
   position: relative;
   display: inline-block;
+  width: 100%;
 }
 
 .section-title::after {
@@ -165,72 +786,62 @@
   bottom: 0;
   left: 0;
   width: 100%;
-  height: 2rpx;
+  height: 1rpx;
   background: linear-gradient(90deg, currentColor 0%, transparent 100%);
 }
 
 .section-content {
-  font-size: 28rpx;
-  line-height: 46rpx;
+  font-size: 16rpx;
+  line-height: 28rpx;
   color: #4a5568;
 }
 
 /* 个人信息样式 */
 .personal-info {
-  text-align: center;
-  padding-bottom: 40rpx;
-  border-bottom: 2rpx solid #f1f1f1;
+  text-align: left;
+  padding-bottom: 15rpx;
+  border-bottom: 1rpx solid #e5e7eb;
   position: relative;
+  margin-bottom: 0;
 }
 
 .personal-info::after {
-  content: '';
-  position: absolute;
-  bottom: -2rpx;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 100rpx;
-  height: 6rpx;
-  background: linear-gradient(90deg, transparent, #07c160, transparent);
-  border-radius: 3rpx;
+  content: none; /* 移除装饰元素以节省空间 */
 }
 
 .name {
   display: block;
-  font-size: 48rpx;
+  font-size: 24rpx;
   font-weight: 700;
-  margin-bottom: 16rpx;
-  letter-spacing: 2rpx;
-  animation: fadeInUp 0.6s ease-out;
+  margin-bottom: 5rpx;
+  letter-spacing: 0rpx;
 }
 
 .job-title {
   display: block;
-  font-size: 32rpx;
-  margin-bottom: 28rpx;
+  font-size: 18rpx;
+  margin-bottom: 8rpx;
   font-weight: 500;
-  animation: fadeInUp 0.7s ease-out;
 }
 
 .contact-info {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 24rpx;
-  animation: fadeInUp 0.8s ease-out;
+  flex-direction: column;
+  gap: 6rpx;
+  align-items: flex-start;
 }
 
 .contact-item {
-  font-size: 26rpx;
+  font-size: 16rpx;
   color: #6b7280;
-  padding: 8rpx 16rpx;
-  background: #f9fafb;
-  border-radius: 16rpx;
+  padding: 2rpx 8rpx;
+  background: transparent;
+  border-radius: 6rpx;
   border: 1rpx solid #f1f1f1;
-  transition: all 0.2s ease;
   display: flex;
   align-items: center;
-  gap: 8rpx;
+  gap: 4rpx;
+  white-space: nowrap;
 }
 
 .contact-item:active {
@@ -239,141 +850,130 @@
 }
 
 .contact-icon {
-  font-size: 32rpx;
+  font-size: 16rpx;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .contact-text {
-  font-size: 26rpx;
+  font-size: 16rpx;
   font-weight: 500;
 }
 
 /* 教育经历样式 */
 .education-item, .work-item, .project-item {
-  margin-bottom: 36rpx;
-  padding: 20rpx;
-  background: #fcfcfc;
-  border-radius: 16rpx;
-  border: 1rpx solid #f5f5f5;
-  transition: all 0.2s ease;
-  animation: fadeInUp 0.5s ease-out;
-}
-
-.education-item:active, .work-item:active, .project-item:active {
-  background: #f9f9f9;
-  transform: translateY(2rpx);
+  margin-bottom: 10rpx;
+  padding: 8rpx;
+  background: transparent;
+  border-radius: 4rpx;
+  border: none;
 }
 
 .education-header, .work-header, .project-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12rpx;
+  margin-bottom: 4rpx;
+  flex-wrap: wrap;
 }
 
 .school, .company, .project-name {
   font-weight: 700;
-  font-size: 30rpx;
+  font-size: 18rpx;
   color: #1f2937;
+  flex: 1;
 }
 
 .date {
-  font-size: 24rpx;
+  font-size: 14rpx;
   color: #9ca3af;
   background: #f3f4f6;
-  padding: 4rpx 16rpx;
-  border-radius: 12rpx;
+  padding: 1rpx 6rpx;
+  border-radius: 4rpx;
+  white-space: nowrap;
 }
 
 .education-detail {
-  margin-left: 10rpx;
+  margin-left: 4rpx;
   display: flex;
-  gap: 24rpx;
+  gap: 8rpx;
+  flex-wrap: wrap;
 }
 
 .major, .degree {
   color: #4b5563;
   font-weight: 500;
   background: #f9fafb;
-  padding: 4rpx 16rpx;
-  border-radius: 12rpx;
+  padding: 1rpx 8rpx;
+  border-radius: 4rpx;
   border: 1rpx solid #f1f1f1;
+  font-size: 16rpx;
 }
 
 .position, .role {
   display: block;
-  margin-bottom: 12rpx;
+  margin-bottom: 4rpx;
   font-weight: 600;
   color: #374151;
-  font-size: 28rpx;
+  font-size: 16rpx;
 }
 
 .description {
   display: block;
   color: #6b7280;
-  margin-left: 10rpx;
-  line-height: 44rpx;
-  background: #ffffff;
-  padding: 16rpx;
-  border-radius: 12rpx;
-  border-left: 4rpx solid #e5e7eb;
+  margin-left: 4rpx;
+  line-height: 24rpx;
+  background: transparent;
+  padding: 4rpx 8rpx;
+  border-radius: 4rpx;
+  border-left: 2rpx solid #e5e7eb;
+  font-size: 16rpx;
 }
 
 /* 专业技能样式 */
 .skills-container {
   display: flex;
   flex-wrap: wrap;
-  gap: 16rpx;
-  padding: 10rpx;
+  gap: 6rpx;
+  padding: 4rpx;
 }
 
 .skill-tag {
   background: #f0fdf4;
-  padding: 10rpx 24rpx;
-  border-radius: 24rpx;
-  font-size: 26rpx;
+  padding: 4rpx 10rpx;
+  border-radius: 12rpx;
+  font-size: 16rpx;
   font-weight: 500;
   color: #166534;
   border: 1rpx solid #bbf7d0;
-  transition: all 0.2s ease;
-  animation: fadeInUp 0.5s ease-out;
   display: flex;
   align-items: center;
-  gap: 8rpx;
+  gap: 4rpx;
 }
 
 .skill-dot {
-  font-size: 20rpx;
+  font-size: 12rpx;
   opacity: 0.8;
   font-weight: bold;
-}
-
-.skill-tag:active {
-  transform: scale(0.96) translateY(2rpx);
-  background: #dcfce7;
-  box-shadow: 0 2rpx 8rpx rgba(7, 193, 96, 0.2);
 }
 
 /* 自我评价样式 */
 .self-evaluation {
   color: #4b5563;
-  line-height: 48rpx;
-  background: #ffffff;
-  padding: 32rpx;
-  border-radius: 16rpx;
-  border: 2rpx solid #f3f4f6;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.02);
-  font-size: 28rpx;
+  line-height: 24rpx;
+  background: transparent;
+  padding: 8rpx;
+  border-radius: 6rpx;
+  border: 1rpx solid #f3f4f6;
+  font-size: 16rpx;
   display: flex;
   flex-direction: column;
   position: relative;
-  font-style: italic;
 }
 
 .eval-quote {
-  font-size: 60rpx;
+  font-size: 20rpx;
   opacity: 0.2;
   line-height: 1;
   display: block;
@@ -381,206 +981,25 @@
 }
 
 .eval-quote:nth-child(1) {
-  margin-bottom: -10rpx;
+  margin-bottom: -2rpx;
 }
 
 .eval-quote:nth-child(3) {
   text-align: right;
-  margin-top: -10rpx;
+  margin-top: -2rpx;
 }
 
 .eval-content {
-  font-size: 28rpx;
-  line-height: 48rpx;
-  margin: 0 20rpx;
+  font-size: 16rpx;
+  line-height: 24rpx;
+  margin: 0 6rpx;
   font-weight: 500;
-}
-
-/* 动画效果 */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20rpx);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* 悬停效果（在模拟器中不可见，但在实际设备上会有触摸反馈） */
-.resume-card:hover {
-  box-shadow: 0 15rpx 50rpx rgba(0, 0, 0, 0.12);
-}
-
-.skill-tag:hover {
-  transform: translateY(-2rpx);
-  box-shadow: 0 4rpx 12rpx rgba(7, 193, 96, 0.15);
-}
-
-/* 简约专业模板样式增强 */
-.basic-template {
-  border: 2rpx solid #e5e7eb;
-}
-
-.basic-template .section-title {
-  color: #334155;
-  font-weight: 700;
-}
-
-.basic-template .section-title::after {
-  background: linear-gradient(90deg, #334155 0%, transparent 100%);
-}
-
-.basic-template .name {
-  color: #1e293b;
-}
-
-.basic-template .job-title {
-  color: #0284c7;
-  font-weight: 600;
-}
-
-.basic-template .skill-tag {
-  background: #e0f2fe;
-  color: #0369a1;
-  border: 1rpx solid #bae6fd;
-}
-
-/* 技术人才模板样式增强 */
-.technical-template {
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  border: 2rpx solid #e2e8f0;
-}
-
-.technical-template .section-title {
-  color: #1e40af;
-  font-weight: 700;
-  background: #eff6ff;
-  padding: 8rpx 16rpx;
-  border-radius: 8rpx;
-  margin-bottom: 20rpx;
-}
-
-.technical-template .section-title::after {
-  background: linear-gradient(90deg, #3b82f6 0%, transparent 100%);
-}
-
-.technical-template .name {
-  color: #0f172a;
-  letter-spacing: 3rpx;
-}
-
-.technical-template .job-title {
-  color: #2563eb;
-  font-weight: 600;
-}
-
-.technical-template .skill-tag {
-  background: #dbeafe;
-  color: #1d4ed8;
-  border: 1rpx solid #93c5fd;
-  font-family: 'Monaco', monospace;
-}
-
-/* 创意设计模板样式增强 */
-.creative-template {
-  background: #ffffff;
-  border: 4rpx solid #f5f5f5;
-  border-radius: 28rpx;
-  overflow: hidden;
-}
-
-.creative-template::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 10rpx;
-  background: linear-gradient(90deg, #f43f5e, #8b5cf6, #3b82f6, #06b6d4, #10b981);
-}
-
-.creative-template .section-title {
-  color: #3b3b3b;
-  font-weight: 700;
-  font-style: italic;
-  letter-spacing: 2rpx;
-}
-
-.creative-template .section-title::after {
-  background: linear-gradient(90deg, #f43f5e 0%, transparent 100%);
-  height: 3rpx;
-}
-
-.creative-template .name {
-  color: #2b2b2b;
-  font-style: italic;
-  letter-spacing: 6rpx;
-  font-size: 52rpx;
-}
-
-.creative-template .job-title {
-  color: #6b7280;
-  font-weight: 400;
-  letter-spacing: 2rpx;
-}
-
-.creative-template .skill-tag {
-  background: #fff5f5;
-  color: #dc2626;
-  border: 1rpx solid #fecaca;
-  transform: rotate(-1deg);
-  font-weight: 600;
-}
-
-/* 学术研究模板样式增强 */
-.academic-template {
-  background: #ffffff;
-  border: 2rpx solid #f1f5f9;
-}
-
-.academic-template .section-title {
-  color: #1e293b;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 4rpx;
-  font-size: 30rpx;
-}
-
-.academic-template .section-title::after {
-  background: linear-gradient(90deg, #475569 0%, transparent 100%);
-  height: 3rpx;
-}
-
-.academic-template .name {
-  color: #1e293b;
-  font-size: 46rpx;
-  letter-spacing: 1rpx;
-}
-
-.academic-template .job-title {
-  color: #475569;
-  font-weight: 500;
-}
-
-.academic-template .skill-tag {
-  background: #f8fafc;
-  color: #334155;
-  border: 1rpx solid #cbd5e1;
-  font-family: serif;
-}
-
-.academic-template .education-item, .academic-template .work-item {
-  border-left: 4rpx solid #64748b;
-  padding-left: 24rpx;
-  border-radius: 0 16rpx 16rpx 0;
 }
 
 /* 简历页脚样式 */
 .resume-footer {
-  margin-top: 60rpx;
-  padding-top: 20rpx;
+  margin-top: 30rpx;
+  padding-top: 12rpx;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -588,17 +1007,17 @@
 }
 
 .footer-divider {
-  width: 120rpx;
-  height: 4rpx;
-  border-radius: 2rpx;
-  margin-bottom: 16rpx;
+  width: 80rpx;
+  height: 2rpx;
+  border-radius: 1rpx;
+  margin-bottom: 10rpx;
   opacity: 0.7;
 }
 
 .footer-note {
-  font-size: 22rpx;
+  font-size: 18rpx;
   color: #9ca3af;
-  letter-spacing: 1rpx;
+  letter-spacing: 0.8rpx;
 }
 
 /* 工作项目头部通用样式 */
@@ -606,182 +1025,552 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12rpx;
+  margin-bottom: 8rpx;
   flex-wrap: wrap;
-  gap: 12rpx;
+  gap: 8rpx;
 }
 
-/* 响应式设计优化 */
+/* 响应式设计优化 - 适配A4纸和不同设备 */
 @media (max-width: 375px) {
   .container {
-    padding: 0 16rpx 40rpx;
+    padding: 0 12rpx 20rpx;
   }
   
   .toolbar {
     flex-direction: column;
-    gap: 20rpx;
-    padding: 24rpx;
-    margin: 16rpx 0 24rpx 0;
+    gap: 16rpx;
+    padding: 20rpx;
+    margin: 12rpx 0 16rpx 0;
   }
   
   .template-title {
     order: -1;
-    font-size: 34rpx;
-    margin-bottom: 8rpx;
+    font-size: 30rpx;
+    margin-bottom: 6rpx;
   }
   
   .back-btn, .use-btn {
     margin: 0;
     width: 45%;
+    font-size: 24rpx;
   }
   
   .resume-card {
-    width: 98%;
-    padding: 36rpx 24rpx;
-    border-radius: 20rpx;
+    width: 98% !important;
+    padding: 20rpx 16rpx !important;
+    height: auto !important;
+    min-height: 900rpx;
   }
   
   .name {
-    font-size: 40rpx;
+    font-size: 34rpx !important;
+  }
+  
+  .position {
+    font-size: 20rpx !important;
   }
   
   .contact-info {
     flex-direction: column;
     align-items: center;
-    gap: 12rpx;
+    gap: 8rpx;
   }
   
   .contact-item {
     width: 80%;
     text-align: center;
+    font-size: 18rpx;
   }
   
   .education-header, .work-header, .project-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: 8rpx;
+    gap: 6rpx;
   }
   
   .date {
     align-self: flex-start;
+    font-size: 16rpx;
   }
 }
 
-/* 自我评价样式 */
-.self-evaluation {
-  color: #555;
-  line-height: 46rpx;
+/* A4纸尺寸优化 */
+@media (min-width: 376px) {
+  .resume-card {
+    max-width: 210mm;
+    margin: 0 auto;
+    page-break-inside: avoid;
+  }
 }
 
-/* 简约专业模板样式 */
-.basic-template .section-title {
-  color: #333333;
-  border-bottom: 2rpx solid #333333;
+/* 确保内容在不同设备上都能完整显示 */
+.resume-card {
+  box-sizing: border-box;
+  overflow: hidden;
+  font-size: 22rpx !important;
+  line-height: 34rpx !important;
 }
 
-.basic-template .name {
-  color: #333333;
+/* 优化滚动体验 */
+.preview-container {
+  overflow: scroll;
+  -webkit-overflow-scrolling: touch;
 }
 
-.basic-template .job-title {
-  color: #0066cc;
-}
+/* 四种模板样式 - 独特UI设计 */
 
-.basic-template .skill-tag {
-  background: #e6f2ff;
-  color: #0066cc;
-}
-
-/* 技术人才模板样式 */
-.technical-template {
-  background: #f8f9fa;
-  border: 2rpx solid #dee2e6;
-}
-
-.technical-template .section-title {
-  color: #2c3e50;
-  border-bottom: 2rpx solid #3498db;
-  background: #eef4fa;
-  padding-left: 15rpx;
-}
-
-.technical-template .name {
-  color: #2c3e50;
-}
-
-.technical-template .job-title {
-  color: #3498db;
-}
-
-.technical-template .skill-tag {
-  background: #e3f2fd;
-  color: #2c3e50;
-  border: 1rpx solid #3498db;
-}
-
-/* 创意设计模板样式 */
-.creative-template {
+/* 简约专业模板 - 蓝色专业风格 */
+.template-professional .resume-card {
   background: #ffffff;
-  border: 4rpx solid #ecf0f1;
-  border-radius: 15rpx;
+  border: 2rpx solid #e3f2fd;
+  box-shadow: 0 4rpx 16rpx rgba(37, 99, 235, 0.1);
+  border-radius: 12rpx;
 }
 
-.creative-template .section-title {
-  color: #34495e;
-  border-bottom: 3rpx solid #e74c3c;
+.template-professional .resume-layout {
+  background: #ffffff;
+}
+
+.template-professional .section-title {
+  color: #2563eb;
+  border-bottom: 2rpx solid #93c5fd;
+  background: linear-gradient(90deg, #eff6ff 0%, #ffffff 100%);
+  padding: 6rpx 12rpx;
+  border-radius: 4rpx 4rpx 0 0;
+  font-weight: 600;
+}
+
+.template-professional .personal-info {
+  background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%);
+  border: 2rpx solid #bfdbfe;
+  border-radius: 8rpx;
+  padding: 16rpx;
+  margin-bottom: 16rpx;
+  text-align: center;
+}
+
+.template-professional .name {
+  color: #1d4ed8;
+  font-size: 28rpx;
+  letter-spacing: 2rpx;
+  margin-bottom: 8rpx;
+}
+
+.template-professional .job-title {
+  color: #2563eb;
+  font-weight: 600;
+}
+
+.template-professional .contact-item {
+  background: #ffffff;
+  border: 1rpx solid #dbeafe;
+  color: #3b82f6;
+  padding: 4rpx 12rpx;
+  border-radius: 6rpx;
+}
+
+.template-professional .education-item,
+.template-professional .work-item,
+.template-professional .project-item {
+  background: #ffffff;
+  border-left: 3rpx solid #3b82f6;
+  padding: 12rpx 16rpx;
+  margin-bottom: 12rpx;
+  border-radius: 0 6rpx 6rpx 0;
+  box-shadow: 2rpx 2rpx 8rpx rgba(0, 0, 0, 0.02);
+}
+
+.template-professional .skill-tag {
+  background: #dbeafe;
+  color: #1d4ed8;
+  border: 1rpx solid #93c5fd;
+  padding: 5rpx 12rpx;
+  border-radius: 16rpx;
+  font-weight: 500;
+}
+
+.template-professional .self-evaluation {
+  background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+  border: 2rpx solid #bfdbfe;
+  border-radius: 8rpx;
+  padding: 16rpx;
+  position: relative;
+}
+
+.template-professional .self-evaluation::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4rpx;
+  height: 100%;
+  background: #3b82f6;
+  border-radius: 2rpx;
+}
+
+/* 技术人才模板 - 绿色科技风格 */
+.template-technical .resume-card {
+  background: #f8fafc;
+  border: 2rpx solid #d1fae5;
+  box-shadow: 0 4rpx 16rpx rgba(16, 185, 129, 0.1);
+  border-radius: 12rpx;
+}
+
+.template-technical .resume-layout {
+  background: #f8fafc;
+}
+
+.template-technical .section-title {
+  color: #059669;
+  border-bottom: 3rpx solid #6ee7b7;
+  background: linear-gradient(90deg, #f0fdf4 0%, #ffffff 100%);
+  padding: 6rpx 12rpx;
+  border-radius: 4rpx 4rpx 0 0;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+}
+
+.template-technical .personal-info {
+  background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
+  border: 2rpx solid #a7f3d0;
+  border-radius: 8rpx;
+  padding: 16rpx;
+  margin-bottom: 16rpx;
+  text-align: left;
+}
+
+.template-technical .name {
+  color: #065f46;
+  font-size: 28rpx;
+  font-family: 'Courier New', monospace;
+  margin-bottom: 8rpx;
+}
+
+.template-technical .job-title {
+  color: #059669;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+}
+
+.template-technical .contact-item {
+  background: #ffffff;
+  border: 1rpx solid #d1fae5;
+  color: #16a34a;
+  padding: 4rpx 12rpx;
+  border-radius: 4rpx;
+  font-family: 'Courier New', monospace;
+}
+
+.template-technical .education-item,
+.template-technical .work-item,
+.template-technical .project-item {
+  background: #ffffff;
+  border-left: 3rpx solid #10b981;
+  padding: 12rpx 16rpx;
+  margin-bottom: 12rpx;
+  border-radius: 0 6rpx 6rpx 0;
+  box-shadow: 2rpx 2rpx 8rpx rgba(0, 0, 0, 0.02);
+  font-family: 'Courier New', monospace;
+}
+
+.template-technical .skill-tag {
+  background: #d1fae5;
+  color: #065f46;
+  border: 1rpx solid #6ee7b7;
+  padding: 5rpx 12rpx;
+  border-radius: 4rpx;
+  font-weight: 500;
+  font-family: 'Courier New', monospace;
+  margin: 4rpx;
+}
+
+.template-technical .self-evaluation {
+  background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+  border: 2rpx solid #a7f3d0;
+  border-radius: 8rpx;
+  padding: 16rpx;
+  position: relative;
+  font-family: 'Courier New', monospace;
+}
+
+.template-technical .self-evaluation::before {
+  content: '// ';
+  color: #059669;
+  font-weight: bold;
+}
+
+/* 创意设计模板 - 红色创意风格 */
+.template-creative .resume-card {
+  background: #ffffff;
+  border: 3rpx solid #fca5a5;
+  box-shadow: 0 6rpx 20rpx rgba(239, 68, 68, 0.1);
+  border-radius: 16rpx;
+}
+
+.template-creative .resume-layout {
+  background: #ffffff;
+}
+
+.template-creative .section-title {
+  color: #dc2626;
+  border-bottom: 3rpx solid #fca5a5;
+  background: linear-gradient(90deg, #fef2f2 0%, #ffffff 100%);
+  padding: 6rpx 12rpx;
+  border-radius: 4rpx 4rpx 0 0;
+  font-weight: 600;
   font-style: italic;
-}
-
-.creative-template .name {
-  color: #e74c3c;
-  font-style: italic;
-  letter-spacing: 4rpx;
-}
-
-.creative-template .job-title {
-  color: #34495e;
-}
-
-.creative-template .skill-tag {
-  background: #fadbd8;
-  color: #e74c3c;
-  transform: rotate(-1deg);
-}
-
-.creative-template .personal-info {
-  border-bottom: 2rpx dashed #95a5a6;
-}
-
-/* 学术研究模板样式 */
-.academic-template {
-  background: #f7fafc;
-  border: 2rpx solid #e2e8f0;
-}
-
-.academic-template .section-title {
-  color: #1a365d;
-  border-bottom: 2rpx solid #2b6cb0;
-  text-transform: uppercase;
   letter-spacing: 2rpx;
 }
 
-.academic-template .name {
-  color: #1a365d;
+.template-creative .personal-info {
+  background: linear-gradient(135deg, #fef2f2 0%, #ffffff 100%);
+  border: 2rpx dashed #fca5a5;
+  border-radius: 12rpx;
+  padding: 16rpx;
+  margin-bottom: 16rpx;
+  text-align: center;
+  position: relative;
 }
 
-.academic-template .job-title {
-  color: #2b6cb0;
+.template-creative .personal-info::before,
+.template-creative .personal-info::after {
+  content: '';
+  position: absolute;
+  width: 20rpx;
+  height: 20rpx;
+  background: #fecaca;
+  border-radius: 50%;
 }
 
-.academic-template .skill-tag {
-  background: #ebf8ff;
-  color: #1a365d;
-  border: 1rpx solid #2b6cb0;
+.template-creative .personal-info::before {
+  top: -10rpx;
+  left: 40%;
 }
 
-.academic-template .education-item {
-  border-left: 3rpx solid #2b6cb0;
+.template-creative .personal-info::after {
+  top: -10rpx;
+  right: 40%;
+}
+
+.template-creative .name {
+  color: #dc2626;
+  font-size: 30rpx;
+  font-style: italic;
+  letter-spacing: 6rpx;
+  margin-bottom: 8rpx;
+}
+
+.template-creative .job-title {
+  color: #b91c1c;
+  font-weight: 600;
+  font-style: italic;
+}
+
+.template-creative .contact-item {
+  background: #ffffff;
+  border: 1rpx solid #fecaca;
+  color: #ef4444;
+  padding: 4rpx 12rpx;
+  border-radius: 20rpx;
+  transform: rotate(-1deg);
+  margin: 4rpx;
+}
+
+.template-creative .education-item,
+.template-creative .work-item,
+.template-creative .project-item {
+  background: #ffffff;
+  border-left: 3rpx solid #ef4444;
+  border-bottom: 1rpx solid #fecaca;
+  padding: 12rpx 16rpx;
+  margin-bottom: 12rpx;
+  border-radius: 0 6rpx 6rpx 0;
+  box-shadow: 3rpx 3rpx 10rpx rgba(0, 0, 0, 0.03);
+  transform: rotate(0.5deg);
+}
+
+.template-creative .skill-tag {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1rpx solid #fecaca;
+  padding: 5rpx 12rpx;
+  border-radius: 20rpx;
+  font-weight: 500;
+  transform: rotate(-2deg);
+  margin: 6rpx;
+  display: inline-block;
+}
+
+.template-creative .self-evaluation {
+  background: linear-gradient(135deg, #fff1f2 0%, #ffffff 100%);
+  border: 2rpx solid #fecaca;
+  border-radius: 12rpx;
+  padding: 16rpx;
+  position: relative;
+  font-style: italic;
+}
+
+.template-creative .self-evaluation::before {
+  content: '"';
+  position: absolute;
+  top: -10rpx;
+  left: 10rpx;
+  font-size: 40rpx;
+  color: #fecaca;
+  font-family: Georgia, serif;
+}
+
+.template-creative .self-evaluation::after {
+  content: '"';
+  position: absolute;
+  bottom: -20rpx;
+  right: 10rpx;
+  font-size: 40rpx;
+  color: #fecaca;
+  font-family: Georgia, serif;
+}
+
+/* 学术研究模板 - 紫色学术风格 */
+.template-academic .resume-card {
+  background: #f8fafc;
+  border: 2rpx solid #ddd6fe;
+  box-shadow: 0 4rpx 16rpx rgba(124, 58, 237, 0.1);
+  border-radius: 10rpx;
+}
+
+.template-academic .resume-layout {
+  background: #f8fafc;
+}
+
+.template-academic .section-title {
+  color: #6d28d9;
+  border-bottom: 2rpx solid #c4b5fd;
+  background: linear-gradient(90deg, #f5f3ff 0%, #ffffff 100%);
+  padding: 6rpx 12rpx;
+  border-radius: 4rpx 4rpx 0 0;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2rpx;
+  font-size: 18rpx;
+}
+
+.template-academic .personal-info {
+  background: linear-gradient(135deg, #f5f3ff 0%, #ffffff 100%);
+  border: 2rpx solid #c4b5fd;
+  border-radius: 8rpx;
+  padding: 16rpx;
+  margin-bottom: 16rpx;
+  text-align: center;
+}
+
+.template-academic .name {
+  color: #5b21b6;
+  font-size: 28rpx;
+  font-weight: 700;
+  margin-bottom: 8rpx;
+  letter-spacing: 1rpx;
+}
+
+.template-academic .job-title {
+  color: #6d28d9;
+  font-weight: 600;
+}
+
+.template-academic .contact-item {
+  background: #ffffff;
+  border: 1rpx solid #ddd6fe;
+  color: #7c3aed;
+  padding: 4rpx 12rpx;
+  border-radius: 6rpx;
+  font-weight: 500;
+}
+
+.template-academic .education-item,
+.template-academic .work-item,
+.template-academic .project-item {
+  background: #ffffff;
+  border-left: 3rpx solid #8b5cf6;
+  padding: 12rpx 16rpx;
+  margin-bottom: 12rpx;
+  border-radius: 0 6rpx 6rpx 0;
+  box-shadow: 2rpx 2rpx 8rpx rgba(0, 0, 0, 0.02);
+}
+
+.template-academic .education-item {
+  border-left: 4rpx solid #6d28d9;
   padding-left: 20rpx;
+}
+
+.template-academic .school,
+.template-academic .company,
+.template-academic .project-name {
+  color: #5b21b6;
+  font-weight: 700;
+}
+
+.template-academic .skill-tag {
+  background: #ede9fe;
+  color: #5b21b6;
+  border: 1rpx solid #c4b5fd;
+  padding: 5rpx 12rpx;
+  border-radius: 6rpx;
+  font-weight: 500;
+  margin: 4rpx;
+}
+
+.template-academic .self-evaluation {
+  background: linear-gradient(135deg, #faf5ff 0%, #ffffff 100%);
+  border: 2rpx solid #ddd6fe;
+  border-radius: 8rpx;
+  padding: 16rpx;
+  position: relative;
+}
+
+.template-academic .self-evaluation::before {
+  content: '';
+  position: absolute;
+  top: 8rpx;
+  left: 8rpx;
+  right: 8rpx;
+  bottom: 8rpx;
+  border: 1rpx solid #e9d5ff;
+  border-radius: 4rpx;
+  pointer-events: none;
+}
+
+/* 内容溢出控制 - 确保各部分不越界 */
+.education-item,
+.work-item,
+.project-item,
+.skills-container,
+.self-evaluation,
+.personal-info {
+  box-sizing: border-box;
+  overflow: hidden;
+  word-wrap: break-word;
+  word-break: break-word;
+}
+
+/* 响应式优化 */
+@media (max-width: 375px) {
+  .template-professional .personal-info,
+  .template-technical .personal-info,
+  .template-creative .personal-info,
+  .template-academic .personal-info {
+    padding: 12rpx;
+    margin-bottom: 12rpx;
+  }
+  
+  .template-professional .name,
+  .template-technical .name,
+  .template-creative .name,
+  .template-academic .name {
+    font-size: 24rpx;
+  }
+  
+  .template-creative .skill-tag {
+    transform: rotate(0deg);
+  }
 }
 
 /* 响应式设计 */

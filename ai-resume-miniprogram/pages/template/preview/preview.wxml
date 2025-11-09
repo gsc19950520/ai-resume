@@ -1,110 +1,852 @@
 <!-- preview.wxml -->
 <view class="container">
-  <!-- 顶部操作栏 - 精致设计 -->
+  <!-- 顶部操作栏 - 简化设计 -->
   <view class="toolbar">
-    <button class="back-btn" bindtap="backToList" type="default">
-      <view class="back-icon"></view>
-      <text>返回列表</text>
-    </button>
-    <view class="template-title">{{templateName}}</view>
     <button class="use-btn" bindtap="useTemplate" type="primary">使用此模板</button>
   </view>
 
   <!-- 模板预览区域 -->
   <view class="preview-container">
-    <!-- 简历预览卡片 -->
-    <view class="resume-card {{template.styleClass || 'basic-template'}}">
+    <!-- 简历预览卡片 - 两栏布局 -->
+    <view class="resume-card {{template.styleClass || 'template-professional'}}">
       <!-- 模板视觉标识 -->
       <view class="template-marker" style="background-color: {{template.accentColor}};"></view>
       
-      <!-- 个人信息部分 -->
-      <view class="personal-info section" wx:if="{{template.sections.personalInfo}}">
-        <text class="name">{{previewData.personalInfo.name}}</text>
-        <text class="job-title">{{previewData.personalInfo.jobTitle}}</text>
-        <view class="contact-info">
-          <view class="contact-item">
-            <text class="contact-icon">📱</text>
-            <text class="contact-text">{{previewData.personalInfo.phone}}</text>
+      <!-- 动态布局容器 -->
+      
+      <!-- 增强版两栏布局：简约专业模板 -->
+      <view class="resume-layout enhanced-two-column" wx:if="{{template.layout.type === 'enhancedTwoColumn'}}">
+        <!-- 左侧个人信息和补充内容 -->
+        <view class="left-column" style="width: {{template.layout.columnRatio.left * 100}}%">
+          <view class="personal-info" wx:if="{{template.sections.personalInfo}}">
+            <text class="name">{{previewData.personalInfo.name}}</text>
+            <text class="job-title">{{previewData.personalInfo.jobTitle}}</text>
+            <view class="contact-info">
+              <view class="contact-item">
+                <text class="contact-icon">📱</text>
+                <text class="contact-text">{{previewData.personalInfo.phone}}</text>
+              </view>
+              <view class="contact-item">
+                <text class="contact-icon">✉️</text>
+                <text class="contact-text">{{previewData.personalInfo.email}}</text>
+              </view>
+              <view class="contact-item">
+                <text class="contact-icon">📍</text>
+                <text class="contact-text">{{previewData.personalInfo.address}}</text>
+              </view>
+            </view>
+            <text class="summary" wx:if="{{previewData.personalInfo.summary}}">{{previewData.personalInfo.summary}}</text>
           </view>
-          <view class="contact-item">
-            <text class="contact-icon">✉️</text>
-            <text class="contact-text">{{previewData.personalInfo.email}}</text>
+          
+          <!-- 专业技能 -->
+          <view class="content-section" wx:if="{{template.sections.skills}}">
+            <view class="section-title" style="color: {{template.accentColor}};">专业技能</view>
+            <view class="section-content">
+              <view class="skills-container vertical-skills">
+                <view class="skill-tag" wx:for="{{previewData.skills}}" wx:key="index" style="color: {{template.accentColor}};">
+                  <text class="skill-dot">•</text>
+                  {{item}}
+                </view>
+              </view>
+            </view>
           </view>
-          <view class="contact-item">
-            <text class="contact-icon">📍</text>
-            <text class="contact-text">{{previewData.personalInfo.address}}</text>
+          
+          <!-- 证书认证 -->
+          <view class="content-section" wx:if="{{template.sections.certifications}}">
+            <view class="section-title" style="color: {{template.accentColor}};">证书认证</view>
+            <view class="section-content">
+              <view class="certification-item" wx:for="{{previewData.certifications}}" wx:key="index">
+                <text class="cert-name">{{item.name}}</text>
+                <text class="cert-date">{{item.date}}</text>
+              </view>
+            </view>
+          </view>
+          
+          <!-- 语言能力 -->
+          <view class="content-section" wx:if="{{template.sections.languages}}">
+            <view class="section-title" style="color: {{template.accentColor}};">语言能力</view>
+            <view class="section-content">
+              <view class="language-item" wx:for="{{previewData.languages}}" wx:key="index">
+                <text class="language-name">{{item.name}}</text>
+                <text class="language-level">{{item.proficiency}}</text>
+              </view>
+            </view>
+          </view>
+        </view>
+        
+        <!-- 右侧主要内容 -->
+        <view class="right-column" style="width: {{template.layout.columnRatio.right * 100}}%">
+          <!-- 教育经历 -->
+          <view class="content-section" wx:if="{{template.sections.education}}">
+            <view class="section-title" style="color: {{template.accentColor}};">教育经历</view>
+            <view class="section-content">
+              <view class="education-item" wx:for="{{previewData.education}}" wx:key="index">
+                <view class="education-header work-item-header">
+                  <text class="school">{{item.school}}</text>
+                  <text class="date">{{item.startDate}} - {{item.endDate}}</text>
+                </view>
+                <view class="education-detail">
+                  <text class="major">{{item.major}} | {{item.degree}}</text>
+                </view>
+                <text class="achievements" wx:if="{{item.achievements}}">{{item.achievements}}</text>
+              </view>
+            </view>
+          </view>
+
+          <!-- 工作经历 -->
+          <view class="content-section" wx:if="{{template.sections.workExperience}}">
+            <view class="section-title" style="color: {{template.accentColor}};">工作经历</view>
+            <view class="section-content">
+              <view class="work-item" wx:for="{{previewData.workExperience}}" wx:key="index">
+                <view class="work-header work-item-header">
+                  <text class="company">{{item.company}}</text>
+                  <text class="date">{{item.startDate}} - {{item.endDate}}</text>
+                </view>
+                <text class="position">{{item.position}}</text>
+                <text class="description">{{item.description}}</text>
+              </view>
+            </view>
+          </view>
+
+          <!-- 自我评价 -->
+          <view class="content-section" wx:if="{{template.sections.selfEvaluation}}">
+            <view class="section-title" style="color: {{template.accentColor}};">自我评价</view>
+            <view class="section-content">
+              <view class="self-evaluation">
+                <text class="eval-content">{{previewData.selfEvaluation}}</text>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+      
+      <!-- 技能聚焦三栏布局：技术人才模板 -->
+      <view class="resume-layout skills-focus-three-column" wx:if="{{template.layout.type === 'skillsFocusThreeColumn'}}">
+        <!-- 顶部个人信息 -->
+        <view class="top-section" style="height: {{template.layout.columnRatio.top * 100}}%">
+          <view class="personal-info hero-personal-info">
+            <text class="name">{{previewData.personalInfo.name}}</text>
+            <text class="job-title">{{previewData.personalInfo.jobTitle}}</text>
+            <view class="contact-info horizontal-contact">
+              <view class="contact-item">
+                <text class="contact-icon">📱</text>
+                <text class="contact-text">{{previewData.personalInfo.phone}}</text>
+              </view>
+              <view class="contact-item">
+                <text class="contact-icon">✉️</text>
+                <text class="contact-text">{{previewData.personalInfo.email}}</text>
+              </view>
+              <view class="contact-item">
+                <text class="contact-icon">📍</text>
+                <text class="contact-text">{{previewData.personalInfo.address}}</text>
+              </view>
+            </view>
+            <text class="summary" wx:if="{{previewData.personalInfo.summary}}">{{previewData.personalInfo.summary}}</text>
+          </view>
+        </view>
+        
+        <!-- 底部三栏布局 -->
+        <view class="bottom-three-column">
+          <!-- 左侧教育经历 -->
+          <view class="left-column" style="width: {{template.layout.columnRatio.left * 100}}%">
+            <!-- 教育经历 -->
+            <view class="content-section" wx:if="{{template.sections.education}}">
+              <view class="section-title" style="color: {{template.accentColor}};">教育经历</view>
+              <view class="section-content">
+                <view class="education-item" wx:for="{{previewData.education}}" wx:key="index">
+                  <text class="school">{{item.school}}</text>
+                  <text class="date">{{item.startDate}} - {{item.endDate}}</text>
+                  <text class="major">{{item.major}} | {{item.degree}}</text>
+                  <text class="achievements" wx:if="{{item.achievements}}">{{item.achievements}}</text>
+                </view>
+              </view>
+            </view>
+            
+            <!-- 自我评价 -->
+            <view class="content-section" wx:if="{{template.sections.selfEvaluation}}">
+              <view class="section-title" style="color: {{template.accentColor}};">自我评价</view>
+              <view class="section-content">
+                <view class="self-evaluation">
+                  <text class="eval-content">{{previewData.selfEvaluation}}</text>
+                </view>
+              </view>
+            </view>
+          </view>
+          
+          <!-- 中间技能和技术栈 -->
+          <view class="center-column" style="width: {{template.layout.columnRatio.center * 100}}%">
+            <!-- 专业技能 -->
+            <view class="content-section" wx:if="{{template.sections.skills}}">
+              <view class="section-title" style="color: {{template.accentColor}};">专业技能</view>
+              <view class="section-content">
+                <view class="skills-grid">
+                  <view class="skill-item" wx:for="{{previewData.skills}}" wx:key="index">
+                    <text class="skill-name">{{item}}</text>
+                  </view>
+                </view>
+              </view>
+            </view>
+            
+            <!-- 技术栈 -->
+            <view class="content-section" wx:if="{{template.sections.technicalStack}}">
+              <view class="section-title" style="color: {{template.accentColor}};">技术栈</view>
+              <view class="section-content">
+                <view class="tech-stack-item" wx:for="{{previewData.technicalStack}}" wx:key="index">
+                  <text class="tech-category">{{item.category}}</text>
+                  <text class="tech-skills">{{item.skills}}</text>
+                </view>
+              </view>
+            </view>
+          </view>
+          
+          <!-- 右侧成就 -->
+          <view class="right-column" style="width: {{template.layout.columnRatio.right * 100}}%">
+            <!-- 成就 -->
+            <view class="content-section" wx:if="{{template.sections.achievements}}">
+              <view class="section-title" style="color: {{template.accentColor}};">成就亮点</view>
+              <view class="section-content">
+                <view class="achievement-item" wx:for="{{previewData.achievements}}" wx:key="index">
+                  <text class="achievement-number">{{index + 1}}</text>
+                  <text class="achievement-text">{{item}}</text>
+                </view>
+              </view>
+            </view>
+            
+            <!-- 证书认证 -->
+            <view class="content-section" wx:if="{{previewData.certifications && previewData.certifications.length > 0}}">
+              <view class="section-title" style="color: {{template.accentColor}};">证书认证</view>
+              <view class="section-content">
+                <view class="certification-item" wx:for="{{previewData.certifications}}" wx:key="index">
+                  <text class="cert-name">{{item.name}}</text>
+                  <text class="cert-date">{{item.date}}</text>
+                </view>
+              </view>
+            </view>
+          </view>
+        </view>
+        
+        <!-- 全宽工作经历 -->
+        <view class="full-width-section" wx:if="{{template.sections.workExperience}}">
+          <view class="section-title" style="color: {{template.accentColor}};">工作经历</view>
+          <view class="section-content">
+            <view class="work-item expanded" wx:for="{{previewData.workExperience}}" wx:key="index">
+              <view class="work-header">
+                <text class="company">{{item.company}}</text>
+                <text class="date">{{item.startDate}} - {{item.endDate}}</text>
+              </view>
+              <text class="position">{{item.position}}</text>
+              <text class="description">{{item.description}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+      
+      <!-- 垂直分层创意布局：创意设计模板 -->
+      <view class="resume-layout vertical-layers-creative" wx:if="{{template.layout.type === 'verticalLayersCreative'}}">
+        <!-- 英雄区个人信息 -->
+        <view class="hero-section" style="height: {{template.layout.columnRatio.hero * 100}}%">
+          <view class="personal-info creative-personal-info">
+            <text class="name large-name">{{previewData.personalInfo.name}}</text>
+            <text class="job-title creative-title">{{previewData.personalInfo.jobTitle}}</text>
+            <text class="summary creative-summary" wx:if="{{previewData.personalInfo.summary}}">{{previewData.personalInfo.summary}}</text>
+            <view class="contact-info creative-contact">
+              <view class="contact-item">
+                <text class="contact-icon">📱</text>
+                <text class="contact-text">{{previewData.personalInfo.phone}}</text>
+              </view>
+              <view class="contact-item">
+                <text class="contact-icon">✉️</text>
+                <text class="contact-text">{{previewData.personalInfo.email}}</text>
+              </view>
+            </view>
+          </view>
+        </view>
+        
+        <!-- 底部内容区域 -->
+        <view class="creative-bottom-layout">
+          <!-- 左侧边栏 -->
+          <view class="sidebar" style="width: {{template.layout.columnRatio.sidebar * 100}}%">
+            <!-- 专业技能 -->
+            <view class="content-section" wx:if="{{template.sections.skills}}">
+              <view class="section-title creative-section-title" style="color: {{template.accentColor}};">专业技能</view>
+              <view class="section-content">
+                <view class="skills-container">
+                  <view class="skill-badge" wx:for="{{previewData.skills}}" wx:key="index">
+                    {{item}}
+                  </view>
+                </view>
+              </view>
+            </view>
+            
+            <!-- 创意方法 -->
+            <view class="content-section" wx:if="{{template.sections.creativeApproach}}">
+              <view class="section-title creative-section-title" style="color: {{template.accentColor}};">创意方法</view>
+              <view class="section-content">
+                <view class="approach-item" wx:for="{{previewData.creativeApproach}}" wx:key="index">
+                  <text class="approach-text">{{item}}</text>
+                </view>
+              </view>
+            </view>
+            
+            <!-- 兴趣爱好 -->
+            <view class="content-section" wx:if="{{template.sections.interests}}">
+              <view class="section-title creative-section-title" style="color: {{template.accentColor}};">兴趣爱好</view>
+              <view class="section-content">
+                <view class="interests-container">
+                  <view class="interest-tag" wx:for="{{previewData.interests}}" wx:key="index">
+                    {{item}}
+                  </view>
+                </view>
+              </view>
+            </view>
+          </view>
+          
+          <!-- 右侧主要内容 -->
+          <view class="main-content" style="width: {{template.layout.columnRatio.main * 100}}%">
+            <!-- 工作经历 -->
+            <view class="content-section" wx:if="{{template.sections.workExperience}}">
+              <view class="section-title creative-section-title" style="color: {{template.accentColor}};">工作经历</view>
+              <view class="section-content">
+                <view class="work-item creative-work" wx:for="{{previewData.workExperience}}" wx:key="index">
+                  <div class="work-timeline"></div>
+                  <view class="work-details">
+                    <view class="work-header">
+                      <text class="company">{{item.company}}</text>
+                      <text class="date">{{item.startDate}} - {{item.endDate}}</text>
+                    </view>
+                    <text class="position">{{item.position}}</text>
+                    <text class="description">{{item.description}}</text>
+                  </view>
+                </view>
+              </view>
+            </view>
+            
+            <!-- 教育经历 -->
+            <view class="content-section" wx:if="{{template.sections.education}}">
+              <view class="section-title creative-section-title" style="color: {{template.accentColor}};">教育经历</view>
+              <view class="section-content">
+                <view class="education-item creative-education" wx:for="{{previewData.education}}" wx:key="index">
+                  <div class="education-timeline"></div>
+                  <view class="education-details">
+                    <text class="school">{{item.school}}</text>
+                    <text class="date">{{item.startDate}} - {{item.endDate}}</text>
+                    <text class="major">{{item.major}} | {{item.degree}}</text>
+                    <text class="achievements" wx:if="{{item.achievements}}">{{item.achievements}}</text>
+                  </view>
+                </view>
+              </view>
+            </view>
+            
+            <!-- 自我评价 -->
+            <view class="content-section" wx:if="{{template.sections.selfEvaluation}}">
+              <view class="section-title creative-section-title" style="color: {{template.accentColor}};">自我评价</view>
+              <view class="section-content">
+                <view class="self-evaluation creative-evaluation">
+                  <text class="eval-content">{{previewData.selfEvaluation}}</text>
+                </view>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+      
+      <!-- 学术网格布局：学术研究模板 -->
+      <view class="resume-layout academic-grid" wx:if="{{template.layout.type === 'academicGrid'}}">
+        <!-- 顶部个人信息 -->
+        <view class="header-section" style="height: {{template.layout.columnRatio.header * 100}}%">
+          <view class="personal-info academic-personal-info">
+            <text class="name academic-name">{{previewData.personalInfo.name}}</text>
+            <text class="job-title academic-title">{{previewData.personalInfo.jobTitle}}</text>
+            <view class="contact-info academic-contact">
+              <view class="contact-item" wx:for="{{[1, 2, 3]}}" wx:key="index">
+                <text class="contact-icon">{{index === 0 ? '📱' : index === 1 ? '✉️' : '📍'}}</text>
+                <text class="contact-text">{{index === 0 ? previewData.personalInfo.phone : index === 1 ? previewData.personalInfo.email : previewData.personalInfo.address}}</text>
+              </view>
+            </view>
+          </view>
+        </view>
+        
+        <!-- 底部两栏布局 -->
+        <view class="academic-bottom-layout">
+          <!-- 左侧学术相关 -->
+          <view class="left-column" style="width: {{template.layout.columnRatio.left * 100}}%">
+            <!-- 教育经历 -->
+            <view class="content-section" wx:if="{{template.sections.education}}">
+              <view class="section-title academic-section-title" style="color: {{template.accentColor}};">教育经历</view>
+              <view class="section-content">
+                <view class="education-item academic-education" wx:for="{{previewData.education}}" wx:key="index">
+                  <view class="education-header">
+                    <text class="school">{{item.school}}</text>
+                    <text class="date">{{item.startDate}} - {{item.endDate}}</text>
+                  </view>
+                  <view class="education-detail">
+                    <text class="major">{{item.major}}</text>
+                    <text class="degree">{{item.degree}}</text>
+                  </view>
+                  <text class="achievements" wx:if="{{item.achievements}}">{{item.achievements}}</text>
+                </view>
+              </view>
+            </view>
+            
+            <!-- 研究兴趣 -->
+            <view class="content-section" wx:if="{{template.sections.researchInterests}}">
+              <view class="section-title academic-section-title" style="color: {{template.accentColor}};">研究兴趣</view>
+              <view class="section-content">
+                <view class="research-interest-item" wx:for="{{previewData.researchInterests}}" wx:key="index">
+                  <text class="interest-number">{{index + 1}}</text>
+                  <text class="interest-text">{{item}}</text>
+                </view>
+              </view>
+            </view>
+            
+            <!-- 发表论文 -->
+            <view class="content-section" wx:if="{{template.sections.publications}}">
+              <view class="section-title academic-section-title" style="color: {{template.accentColor}};">发表论文</view>
+              <view class="section-content">
+                <view class="publication-item" wx:for="{{previewData.publications}}" wx:key="index">
+                  <text class="publication-title">{{item.title}}</text>
+                  <text class="publication-authors">{{item.authors}}</text>
+                  <text class="publication-source">{{item.journal || item.conference}} | {{item.year}}</text>
+                </view>
+              </view>
+            </view>
+          </view>
+          
+          <!-- 右侧职业相关 -->
+          <view class="right-column" style="width: {{template.layout.columnRatio.right * 100}}%">
+            <!-- 工作经历 -->
+            <view class="content-section" wx:if="{{template.sections.workExperience}}">
+              <view class="section-title academic-section-title" style="color: {{template.accentColor}};">工作经历</view>
+              <view class="section-content">
+                <view class="work-item academic-work" wx:for="{{previewData.workExperience}}" wx:key="index">
+                  <view class="work-header">
+                    <text class="company">{{item.company}}</text>
+                    <text class="date">{{item.startDate}} - {{item.endDate}}</text>
+                  </view>
+                  <text class="position">{{item.position}}</text>
+                  <text class="description">{{item.description}}</text>
+                </view>
+              </view>
+            </view>
+            
+            <!-- 专业技能 -->
+            <view class="content-section" wx:if="{{template.sections.skills}}">
+              <view class="section-title academic-section-title" style="color: {{template.accentColor}};">专业技能</view>
+              <view class="section-content">
+                <view class="skills-container academic-skills">
+                  <view class="skill-tag" wx:for="{{previewData.skills}}" wx:key="index">
+                    {{item}}
+                  </view>
+                </view>
+              </view>
+            </view>
+            
+            <!-- 自我评价 -->
+            <view class="content-section" wx:if="{{template.sections.selfEvaluation}}">
+              <view class="section-title academic-section-title" style="color: {{template.accentColor}};">自我评价</view>
+              <view class="section-content">
+                <view class="self-evaluation academic-evaluation">
+                  <text class="eval-content">{{previewData.selfEvaluation}}</text>
+                </view>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+      
+      <!-- 保留原有布局作为兼容 -->
+      <view class="resume-layout two-column-standard" wx:if="{{template.layout.type === 'twoColumnStandard' || !template.layout.type}}">
+        <!-- 左侧栏 -->
+        <view class="left-column" style="width: {{template.layout.columnRatio.left * 100}}%">
+          <view class="personal-info" wx:if="{{template.sections.personalInfo}}">
+            <text class="name">{{previewData.personalInfo.name}}</text>
+            <text class="job-title">{{previewData.personalInfo.jobTitle}}</text>
+              <view class="contact-info">
+              <view class="contact-item">
+                <text class="contact-icon">📱</text>
+                <text class="contact-text">{{previewData.personalInfo.phone}}</text>
+              </view>
+              <view class="contact-item">
+                <text class="contact-icon">✉️</text>
+                <text class="contact-text">{{previewData.personalInfo.email}}</text>
+              </view>
+              <view class="contact-item">
+                <text class="contact-icon">📍</text>
+                <text class="contact-text">{{previewData.personalInfo.address}}</text>
+              </view>
+            </view>
+          </view>
+        </view>
+        
+        <!-- 右侧栏 -->
+        <view class="right-column" style="width: {{template.layout.columnRatio.right * 100}}%">
+          <!-- 教育经历 -->
+          <view class="content-section" wx:if="{{template.sections.education}}">
+            <view class="section-title" style="color: {{template.accentColor}};">教育经历</view>
+            <view class="section-content">
+              <view class="education-item" wx:for="{{previewData.education}}" wx:key="index">
+                <view class="education-header work-item-header">
+                  <text class="school">{{item.school}}</text>
+                  <text class="date">{{item.startDate}} - {{item.endDate}}</text>
+                </view>
+                <view class="education-detail">
+                  <text class="major">{{item.major}}</text>
+                  <text class="degree">{{item.degree}}</text>
+                </view>
+              </view>
+            </view>
+          </view>
+
+          <!-- 工作经历 -->
+          <view class="content-section" wx:if="{{template.sections.workExperience}}">
+            <view class="section-title" style="color: {{template.accentColor}};">工作经历</view>
+            <view class="section-content">
+              <view class="work-item" wx:for="{{previewData.workExperience}}" wx:key="index">
+                <view class="work-header work-item-header">
+                  <text class="company">{{item.company}}</text>
+                  <text class="date">{{item.startDate}} - {{item.endDate}}</text>
+                </view>
+                <text class="position">{{item.position}}</text>
+                <text class="description">{{item.description}}</text>
+              </view>
+            </view>
+          </view>
+
+          <!-- 项目经验 -->
+          <view class="content-section" wx:if="{{template.sections.projects}}">
+            <view class="section-title" style="color: {{template.accentColor}};">项目经验</view>
+            <view class="section-content">
+              <view class="project-item" wx:for="{{previewData.projects}}" wx:key="index">
+                <view class="project-header work-item-header">
+                  <text class="project-name">{{item.name}}</text>
+                  <text class="date">{{item.startDate}} - {{item.endDate}}</text>
+                </view>
+                <text class="role">{{item.role}}</text>
+                <text class="description">{{item.description}}</text>
+              </view>
+            </view>
+          </view>
+
+          <!-- 专业技能 -->
+          <view class="content-section" wx:if="{{template.sections.skills}}">
+            <view class="section-title" style="color: {{template.accentColor}};">专业技能</view>
+            <view class="section-content">
+              <view class="skills-container">
+                <view class="skill-tag" wx:for="{{previewData.skills}}" wx:key="index" style="color: {{template.accentColor}};">
+                  <text class="skill-dot">•</text>
+                  {{item}}
+                </view>
+              </view>
+            </view>
+          </view>
+
+          <!-- 自我评价 -->
+          <view class="content-section" wx:if="{{template.sections.selfEvaluation}}">
+            <view class="section-title" style="color: {{template.accentColor}};">自我评价</view>
+            <view class="section-content">
+              <view class="self-evaluation">
+                <text class="eval-content">{{previewData.selfEvaluation}}</text>
+              </view>
+            </view>
           </view>
         </view>
       </view>
 
-      <!-- 教育经历 -->
-      <view class="section" wx:if="{{template.sections.education}}">
-        <view class="section-title" style="color: {{template.accentColor}};">教育经历</view>
-        <view class="section-content">
-          <view class="education-item" wx:for="{{previewData.education}}" wx:key="index">
-            <view class="education-header work-item-header">
-              <text class="school">{{item.school}}</text>
-              <text class="date">{{item.startDate}} - {{item.endDate}}</text>
+      <!-- 技能侧边栏布局：顶部个人信息，左侧技能，右侧主要内容 -->
+      <view class="resume-layout skills-sidebar" wx:if="{{template.layout.type === 'skillsSidebar'}}">
+        <!-- 顶部个人信息 -->
+        <view class="top-section" wx:if="{{template.sections.personalInfo}}">
+          <view class="personal-info top-personal-info">
+            <text class="name">{{previewData.personalInfo.name}}</text>
+            <text class="position">{{previewData.personalInfo.jobTitle}}</text>
+            <view class="contact-info">
+              <view class="contact-item" wx:for="{{[1, 2, 3]}}" wx:key="index">
+                <text class="contact-icon">{{index === 0 ? '📱' : index === 1 ? '✉️' : '📍'}}</text>
+                <text class="contact-text">{{index === 0 ? previewData.personalInfo.phone : index === 1 ? previewData.personalInfo.email : previewData.personalInfo.address}}</text>
+              </view>
             </view>
-            <view class="education-detail">
-              <text class="major">{{item.major}}</text>
-              <text class="degree">{{item.degree}}</text>
+          </view>
+        </view>
+        
+        <!-- 底部两栏 -->
+        <view class="bottom-layout">
+          <!-- 左侧技能栏 -->
+          <view class="skills-column" style="width: {{template.layout.columnRatio.left * 100}}%" wx:if="{{template.sections.skills}}">
+            <view class="content-section">
+              <view class="section-title" style="color: {{template.accentColor}};">专业技能</view>
+              <view class="section-content">
+                <view class="skills-container vertical-skills">
+                  <view class="skill-tag" wx:for="{{previewData.skills}}" wx:key="index" style="color: {{template.accentColor}};">
+                    <text class="skill-dot">•</text>
+                    {{item}}
+                  </view>
+                </view>
+              </view>
+            </view>
+          </view>
+          
+          <!-- 右侧主要内容 -->
+          <view class="main-column" style="width: {{template.layout.columnRatio.right * 100}}%">
+            <!-- 教育经历 -->
+            <view class="content-section" wx:if="{{template.sections.education}}">
+              <view class="section-title" style="color: {{template.accentColor}};">教育经历</view>
+              <view class="section-content">
+                <view class="education-item" wx:for="{{previewData.education}}" wx:key="index">
+                  <view class="education-header work-item-header">
+                    <text class="school">{{item.school}}</text>
+                    <text class="date">{{item.startDate}} - {{item.endDate}}</text>
+                  </view>
+                  <view class="education-detail">
+                    <text class="major">{{item.major}}</text>
+                    <text class="degree">{{item.degree}}</text>
+                  </view>
+                </view>
+              </view>
+            </view>
+
+            <!-- 工作经历 -->
+            <view class="content-section" wx:if="{{template.sections.workExperience}}">
+              <view class="section-title" style="color: {{template.accentColor}};">工作经历</view>
+              <view class="section-content">
+                <view class="work-item" wx:for="{{previewData.workExperience}}" wx:key="index">
+                  <view class="work-header work-item-header">
+                    <text class="company">{{item.company}}</text>
+                    <text class="date">{{item.startDate}} - {{item.endDate}}</text>
+                  </view>
+                  <text class="position">{{item.position}}</text>
+                  <text class="description">{{item.description}}</text>
+                </view>
+              </view>
+            </view>
+
+            <!-- 项目经验 -->
+            <view class="content-section" wx:if="{{template.sections.projects}}">
+              <view class="section-title" style="color: {{template.accentColor}};">项目经验</view>
+              <view class="section-content">
+                <view class="project-item" wx:for="{{previewData.projects}}" wx:key="index">
+                  <view class="project-header work-item-header">
+                    <text class="project-name">{{item.name}}</text>
+                    <text class="date">{{item.startDate}} - {{item.endDate}}</text>
+                  </view>
+                  <text class="role">{{item.role}}</text>
+                  <text class="description">{{item.description}}</text>
+                </view>
+              </view>
+            </view>
+
+            <!-- 自我评价 -->
+            <view class="content-section" wx:if="{{template.sections.selfEvaluation}}">
+              <view class="section-title" style="color: {{template.accentColor}};">自我评价</view>
+              <view class="section-content">
+                <view class="self-evaluation">
+                  <text class="eval-content">{{previewData.selfEvaluation}}</text>
+                </view>
+              </view>
             </view>
           </view>
         </view>
       </view>
 
-      <!-- 工作经历 -->
-      <view class="section" wx:if="{{template.sections.workExperience}}">
-        <view class="section-title" style="color: {{template.accentColor}};">工作经历</view>
-        <view class="section-content">
-          <view class="work-item" wx:for="{{previewData.workExperience}}" wx:key="index">
-            <view class="work-header work-item-header">
-              <text class="company">{{item.company}}</text>
-              <text class="date">{{item.startDate}} - {{item.endDate}}</text>
+      <!-- 反向两栏布局：左侧主要内容，右侧个人信息 -->
+      <view class="resume-layout two-column-reversed" wx:if="{{template.layout.type === 'twoColumnReversed'}}">
+        <!-- 左侧主要内容 -->
+        <view class="main-column" style="width: {{template.layout.columnRatio.left * 100}}%">
+          <!-- 教育经历 -->
+          <view class="content-section" wx:if="{{template.sections.education}}">
+            <view class="section-title" style="color: {{template.accentColor}};">教育经历</view>
+            <view class="section-content">
+              <view class="education-item" wx:for="{{previewData.education}}" wx:key="index">
+                <view class="education-header work-item-header">
+                  <text class="school">{{item.school}}</text>
+                  <text class="date">{{item.startDate}} - {{item.endDate}}</text>
+                </view>
+                <view class="education-detail">
+                  <text class="major">{{item.major}}</text>
+                  <text class="degree">{{item.degree}}</text>
+                </view>
+              </view>
             </view>
-            <text class="position">{{item.position}}</text>
-            <text class="description">{{item.description}}</text>
+          </view>
+
+          <!-- 工作经历 -->
+          <view class="content-section" wx:if="{{template.sections.workExperience}}">
+            <view class="section-title" style="color: {{template.accentColor}};">工作经历</view>
+            <view class="section-content">
+              <view class="work-item" wx:for="{{previewData.workExperience}}" wx:key="index">
+                <view class="work-header work-item-header">
+                  <text class="company">{{item.company}}</text>
+                  <text class="date">{{item.startDate}} - {{item.endDate}}</text>
+                </view>
+                <text class="position">{{item.position}}</text>
+                <text class="description">{{item.description}}</text>
+              </view>
+            </view>
+          </view>
+
+          <!-- 项目经验 -->
+          <view class="content-section" wx:if="{{template.sections.projects}}">
+            <view class="section-title" style="color: {{template.accentColor}};">项目经验</view>
+            <view class="section-content">
+              <view class="project-item" wx:for="{{previewData.projects}}" wx:key="index">
+                <view class="project-header work-item-header">
+                  <text class="project-name">{{item.name}}</text>
+                  <text class="date">{{item.startDate}} - {{item.endDate}}</text>
+                </view>
+                <text class="role">{{item.role}}</text>
+                <text class="description">{{item.description}}</text>
+              </view>
+            </view>
+          </view>
+
+          <!-- 自我评价 -->
+          <view class="content-section" wx:if="{{template.sections.selfEvaluation}}">
+            <view class="section-title" style="color: {{template.accentColor}};">自我评价</view>
+            <view class="section-content">
+              <view class="self-evaluation">
+                <text class="eval-content">{{previewData.selfEvaluation}}</text>
+              </view>
+            </view>
+          </view>
+        </view>
+        
+        <!-- 右侧个人信息和技能 -->
+        <view class="right-column" style="width: {{template.layout.columnRatio.right * 100}}%">
+          <view class="personal-info" wx:if="{{template.sections.personalInfo}}">
+            <text class="name">{{previewData.personalInfo.name}}</text>
+            <text class="position">{{previewData.personalInfo.jobTitle}}</text>
+            <view class="contact-info">
+              <view class="contact-item">
+                <text class="contact-icon">📱</text>
+                <text class="contact-text">{{previewData.personalInfo.phone}}</text>
+              </view>
+              <view class="contact-item">
+                <text class="contact-icon">✉️</text>
+                <text class="contact-text">{{previewData.personalInfo.email}}</text>
+              </view>
+              <view class="contact-item">
+                <text class="contact-icon">📍</text>
+                <text class="contact-text">{{previewData.personalInfo.address}}</text>
+              </view>
+            </view>
+          </view>
+          
+          <!-- 专业技能 -->
+          <view class="content-section" wx:if="{{template.sections.skills}}">
+            <view class="section-title" style="color: {{template.accentColor}};">专业技能</view>
+            <view class="section-content">
+              <view class="skills-container vertical-skills">
+                <view class="skill-tag" wx:for="{{previewData.skills}}" wx:key="index" style="color: {{template.accentColor}};">
+                  <text class="skill-dot">•</text>
+                  {{item}}
+                </view>
+              </view>
+            </view>
           </view>
         </view>
       </view>
 
-      <!-- 项目经验 -->
-      <view class="section" wx:if="{{template.sections.projects}}">
-        <view class="section-title" style="color: {{template.accentColor}};">项目经验</view>
-        <view class="section-content">
-          <view class="project-item" wx:for="{{previewData.projects}}" wx:key="index">
-            <view class="project-header work-item-header">
-              <text class="project-name">{{item.name}}</text>
-              <text class="date">{{item.startDate}} - {{item.endDate}}</text>
-            </view>
-            <text class="role">{{item.role}}</text>
-            <text class="description">{{item.description}}</text>
-          </view>
-        </view>
-      </view>
-
-      <!-- 专业技能 -->
-      <view class="section" wx:if="{{template.sections.skills}}">
-        <view class="section-title" style="color: {{template.accentColor}};">专业技能</view>
-        <view class="section-content">
-          <view class="skills-container">
-            <view class="skill-tag" wx:for="{{previewData.skills}}" wx:key="index" style="color: {{template.accentColor}};">
-              <text class="skill-dot">•</text>
-              {{item}}
+      <!-- 个人信息置顶布局：顶部个人信息，底部主要内容 -->
+      <view class="resume-layout personal-info-top" wx:if="{{template.layout.type === 'personalInfoTop'}}">
+        <!-- 顶部个人信息 -->
+        <view class="top-section" style="height: {{template.layout.columnRatio.top * 100}}%" wx:if="{{template.sections.personalInfo}}">
+          <view class="personal-info centered-personal-info">
+            <text class="name">{{previewData.personalInfo.name}}</text>
+            <text class="position">{{previewData.personalInfo.jobTitle}}</text>
+            <view class="contact-info horizontal-contact">
+              <view class="contact-item">
+                <text class="contact-icon">📱</text>
+                <text class="contact-text">{{previewData.personalInfo.phone}}</text>
+              </view>
+              <view class="contact-item">
+                <text class="contact-icon">✉️</text>
+                <text class="contact-text">{{previewData.personalInfo.email}}</text>
+              </view>
+              <view class="contact-item">
+                <text class="contact-icon">📍</text>
+                <text class="contact-text">{{previewData.personalInfo.address}}</text>
+              </view>
             </view>
           </view>
         </view>
-      </view>
+        
+        <!-- 底部内容区域（三栏布局） -->
+        <view class="bottom-section" style="height: {{template.layout.columnRatio.bottom * 100}}%">
+          <!-- 左侧教育经历 -->
+          <view class="academic-column">
+            <view class="content-section" wx:if="{{template.sections.education}}">
+              <view class="section-title" style="color: {{template.accentColor}};">教育经历</view>
+              <view class="section-content">
+                <view class="education-item" wx:for="{{previewData.education}}" wx:key="index">
+                  <view class="education-header work-item-header">
+                    <text class="school">{{item.school}}</text>
+                    <text class="date">{{item.startDate}} - {{item.endDate}}</text>
+                  </view>
+                  <view class="education-detail">
+                    <text class="major">{{item.major}}</text>
+                    <text class="degree">{{item.degree}}</text>
+                  </view>
+                </view>
+              </view>
+            </view>
+          </view>
+          
+          <!-- 中间工作和项目 -->
+          <view class="professional-column">
+            <!-- 工作经历 -->
+            <view class="content-section" wx:if="{{template.sections.workExperience}}">
+              <view class="section-title" style="color: {{template.accentColor}};">工作经历</view>
+              <view class="section-content">
+                <view class="work-item" wx:for="{{previewData.workExperience}}" wx:key="index">
+                  <view class="work-header work-item-header">
+                    <text class="company">{{item.company}}</text>
+                    <text class="date">{{item.startDate}} - {{item.endDate}}</text>
+                  </view>
+                  <text class="position">{{item.position}}</text>
+                  <text class="description">{{item.description}}</text>
+                </view>
+              </view>
+            </view>
 
-      <!-- 自我评价 -->
-      <view class="section" wx:if="{{template.sections.selfEvaluation}}">
-        <view class="section-title" style="color: {{template.accentColor}};">自我评价</view>
-        <view class="section-content">
-          <view class="self-evaluation">
-            <text class="eval-quote">"</text>
-            <text class="eval-content">{{previewData.selfEvaluation}}</text>
-            <text class="eval-quote">"</text>
+            <!-- 项目经验 -->
+            <view class="content-section" wx:if="{{template.sections.projects}}">
+              <view class="section-title" style="color: {{template.accentColor}};">项目经验</view>
+              <view class="section-content">
+                <view class="project-item" wx:for="{{previewData.projects}}" wx:key="index">
+                  <view class="project-header work-item-header">
+                    <text class="project-name">{{item.name}}</text>
+                    <text class="date">{{item.startDate}} - {{item.endDate}}</text>
+                  </view>
+                  <text class="role">{{item.role}}</text>
+                  <text class="description">{{item.description}}</text>
+                </view>
+              </view>
+            </view>
+          </view>
+          
+          <!-- 右侧技能和自我评价 -->
+          <view class="skills-column">
+            <!-- 专业技能 -->
+            <view class="content-section" wx:if="{{template.sections.skills}}">
+              <view class="section-title" style="color: {{template.accentColor}};">专业技能</view>
+              <view class="section-content">
+                <view class="skills-container vertical-skills">
+                  <view class="skill-tag" wx:for="{{previewData.skills}}" wx:key="index" style="color: {{template.accentColor}};">
+                    <text class="skill-dot">•</text>
+                    {{item}}
+                  </view>
+                </view>
+              </view>
+            </view>
+
+            <!-- 自我评价 -->
+            <view class="content-section" wx:if="{{template.sections.selfEvaluation}}">
+              <view class="section-title" style="color: {{template.accentColor}};">自我评价</view>
+              <view class="section-content">
+                <view class="self-evaluation">
+                  <text class="eval-content">{{previewData.selfEvaluation}}</text>
+                </view>
+              </view>
+            </view>
           </view>
         </view>
       </view>

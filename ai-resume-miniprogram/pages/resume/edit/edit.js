@@ -5,7 +5,6 @@ Page({
       { id: 'personal', name: '个人信息' },
       { id: 'education', name: '教育经历' },
       { id: 'work', name: '工作经历' },
-      { id: 'projects', name: '项目经验' },
       { id: 'skills', name: '专业技能' },
       { id: 'self', name: '自我评价' }
     ],
@@ -38,16 +37,7 @@ Page({
           description: ''
         }
       ],
-      projects: [
-        {
-          id: 1,
-          name: '',
-          role: '',
-          startDate: '',
-          endDate: '',
-          description: ''
-        }
-      ],
+
       skills: '',
       selfEvaluation: ''
     }
@@ -102,14 +92,7 @@ Page({
     });
   },
 
-  // 处理项目经验输入
-  onProjectInput(e) {
-    const { index, field } = e.currentTarget.dataset;
-    const value = e.detail.value;
-    this.setData({
-      [`resumeInfo.projects[${index}].${field}`]: value
-    });
-  },
+
 
   // 处理专业技能输入
   onSkillsInput(e) {
@@ -193,39 +176,7 @@ Page({
     }
   },
 
-  // 添加项目经验
-  addProject: function() {
-    const projects = [...this.data.resumeInfo.projects];
-    projects.push({
-      id: Date.now(), // 添加唯一ID
-      name: '',
-      role: '',
-      startDate: '',
-      endDate: '',
-      description: ''
-    });
-    this.setData({
-      'resumeInfo.projects': projects
-    });
-  },
-  
-  // 删除项目经验
-  removeProject: function(e) {
-    const index = e.currentTarget.dataset.index;
-    const projects = [...this.data.resumeInfo.projects];
-    
-    if (projects.length > 1) {
-      projects.splice(index, 1);
-      this.setData({
-        'resumeInfo.projects': projects
-      });
-    } else {
-      wx.showToast({
-        title: '至少保留一个项目经验',
-        icon: 'none'
-      });
-    }
-  },
+
 
   // 保存简历
   saveResume: function() {
@@ -248,7 +199,7 @@ Page({
           personalInfo: this.data.resumeInfo.personalInfo,
           education: this.data.resumeInfo.education,
           workExperience: this.data.resumeInfo.workExperience,
-          projects: this.data.resumeInfo.projects,
+
           skills: this.data.resumeInfo.skills ? this.data.resumeInfo.skills.split(',').map(skill => skill.trim()) : [],
           selfEvaluation: this.data.resumeInfo.selfEvaluation
         }
