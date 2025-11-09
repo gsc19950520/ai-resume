@@ -165,23 +165,25 @@ Page({
   useTemplate: function() {
     const { templateId, templateName } = this.data
     
-    // 保存选择的模板信息
-    wx.setStorageSync('selectedTemplate', {
-      id: templateId,
-      name: templateName
+    // 保存选择的模板信息，使用与简历编辑页面一致的存储键
+    wx.setStorageSync('tempResumeInfo', {
+      templateId: templateId,
+      templateName: templateName,
+      title: '我的新简历',
+      isAiGenerated: false
     })
     
     wx.showToast({
-      title: '已选择模板',
+      title: '正在准备模板...',
       icon: 'success'
     })
     
-    // 跳转到创建简历页面，并带上模板信息
+    // 直接跳转到简历编辑页面，减少用户操作步骤
     setTimeout(() => {
       wx.navigateTo({
-        url: '/pages/create/create?templateId=' + templateId
+        url: `/pages/resume/edit/edit?templateId=${templateId}`
       })
-    }, 1500)
+    }, 1000)
   },
 
   // 返回模板列表

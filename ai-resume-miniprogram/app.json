@@ -6,6 +6,7 @@
     "pages/create/create",
     "pages/resume/list/list",
     "pages/template/list/list",
+    "pages/template/preview/preview",
     "pages/resume/edit/edit",
     "pages/resume/view/view",
     "pages/interview/interview",

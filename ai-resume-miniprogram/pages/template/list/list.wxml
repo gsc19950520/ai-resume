@@ -1,31 +1,32 @@
 <!-- list.wxml -->
 <view class="container">
+  <!-- 顶部标题区域 -->
+  <view class="section-header">
+    <text class="section-title">简历模板</text>
+  </view>
+  
   <!-- 加载中 -->
   <view class="loading-container" wx:if="{{loading}}">
     <loading class="loading">加载中...</loading>
   </view>
 
-  <!-- 模板列表 -->
-  <view class="template-list" wx:else>
-    <view class="template-item" wx:for="{{templateList}}" wx:key="id">
-      <!-- 模板预览图 -->
-      <view class="template-preview">
-        <image src="{{item.preview || '/images/default-template.png'}}" mode="aspectFill" bindtap="previewTemplate" data-id="{{item.id}}" data-name="{{item.name}}"></image>
-      </view>
-      
-      <!-- 模板信息 -->
-      <view class="template-info">
-        <text class="template-name">{{item.name}}</text>
-        <text class="template-description">{{item.description}}</text>
-        <view class="template-type">
-          <text class="type-tag">{{item.type === 'basic' ? '基础' : item.type === 'technical' ? '技术' : item.type === 'creative' ? '创意' : '学术'}}</text>
+  <!-- 模板列表 - 左右两列网格布局 -->
+  <view class="template-grid" wx:else>
+    <view class="template-card" wx:for="{{templateList}}" wx:key="id">
+      <!-- 模板卡片容器 - 点击整个卡片预览模板 -->
+      <view class="template-wrapper" bindtap="previewTemplate" data-id="{{item.id}}" data-name="{{item.name}}">
+        <!-- 缩略图区域 -->
+        <view class="thumbnail-container">
+          <image class="template-thumbnail" src="{{item.preview || '/images/default-template.png'}}" mode="aspectFill"></image>
+          <!-- 模板类型标签 -->
+          <view class="template-type" wx:if="{{item.type}}">{{item.type}}</view>
         </view>
-      </view>
-      
-      <!-- 操作按钮 -->
-      <view class="template-actions">
-        <button class="preview-btn" size="mini" bindtap="previewTemplate" data-id="{{item.id}}" data-name="{{item.name}}">预览</button>
-        <button class="select-btn" size="mini" type="primary" bindtap="selectTemplate" data-id="{{item.id}}" data-name="{{item.name}}">使用</button>
+        
+        <!-- 模板信息区域 -->
+        <view class="template-info">
+          <view class="template-name">{{item.name}}</view>
+          <view class="template-desc">{{item.description || '专业简历模板'}}</view>
+        </view>
       </view>
     </view>
   </view>
