@@ -56,9 +56,11 @@ Page({
 
   onLoad: function(options) {
     const { templateId, templateName } = options
+    // 解码templateName参数，避免乱码问题
+    const decodedTemplateName = decodeURIComponent(templateName || '')
     this.setData({
       templateId,
-      templateName
+      templateName: decodedTemplateName
     })
     
     // 根据模板ID获取模板配置

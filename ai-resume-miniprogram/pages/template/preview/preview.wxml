@@ -1,8 +1,11 @@
 <!-- preview.wxml -->
 <view class="container">
-  <!-- 顶部操作栏 -->
+  <!-- 顶部操作栏 - 精致设计 -->
   <view class="toolbar">
-    <button class="back-btn" bindtap="backToList" type="default">返回列表</button>
+    <button class="back-btn" bindtap="backToList" type="default">
+      <view class="back-icon"></view>
+      <text>返回列表</text>
+    </button>
     <view class="template-title">{{templateName}}</view>
     <button class="use-btn" bindtap="useTemplate" type="primary">使用此模板</button>
   </view>
@@ -11,23 +14,35 @@
   <view class="preview-container">
     <!-- 简历预览卡片 -->
     <view class="resume-card {{template.styleClass || 'basic-template'}}">
+      <!-- 模板视觉标识 -->
+      <view class="template-marker" style="background-color: {{template.accentColor}};"></view>
+      
       <!-- 个人信息部分 -->
-      <view class="personal-info" wx:if="{{template.sections.personalInfo}}">
+      <view class="personal-info section" wx:if="{{template.sections.personalInfo}}">
         <text class="name">{{previewData.personalInfo.name}}</text>
         <text class="job-title">{{previewData.personalInfo.jobTitle}}</text>
         <view class="contact-info">
-          <text class="contact-item">{{previewData.personalInfo.phone}}</text>
-          <text class="contact-item">{{previewData.personalInfo.email}}</text>
-          <text class="contact-item">{{previewData.personalInfo.address}}</text>
+          <view class="contact-item">
+            <text class="contact-icon">📱</text>
+            <text class="contact-text">{{previewData.personalInfo.phone}}</text>
+          </view>
+          <view class="contact-item">
+            <text class="contact-icon">✉️</text>
+            <text class="contact-text">{{previewData.personalInfo.email}}</text>
+          </view>
+          <view class="contact-item">
+            <text class="contact-icon">📍</text>
+            <text class="contact-text">{{previewData.personalInfo.address}}</text>
+          </view>
         </view>
       </view>
 
       <!-- 教育经历 -->
       <view class="section" wx:if="{{template.sections.education}}">
-        <view class="section-title">教育经历</view>
+        <view class="section-title" style="color: {{template.accentColor}};">教育经历</view>
         <view class="section-content">
           <view class="education-item" wx:for="{{previewData.education}}" wx:key="index">
-            <view class="education-header">
+            <view class="education-header work-item-header">
               <text class="school">{{item.school}}</text>
               <text class="date">{{item.startDate}} - {{item.endDate}}</text>
             </view>
@@ -41,10 +56,10 @@
 
       <!-- 工作经历 -->
       <view class="section" wx:if="{{template.sections.workExperience}}">
-        <view class="section-title">工作经历</view>
+        <view class="section-title" style="color: {{template.accentColor}};">工作经历</view>
         <view class="section-content">
           <view class="work-item" wx:for="{{previewData.workExperience}}" wx:key="index">
-            <view class="work-header">
+            <view class="work-header work-item-header">
               <text class="company">{{item.company}}</text>
               <text class="date">{{item.startDate}} - {{item.endDate}}</text>
             </view>
@@ -56,10 +71,10 @@
 
       <!-- 项目经验 -->
       <view class="section" wx:if="{{template.sections.projects}}">
-        <view class="section-title">项目经验</view>
+        <view class="section-title" style="color: {{template.accentColor}};">项目经验</view>
         <view class="section-content">
           <view class="project-item" wx:for="{{previewData.projects}}" wx:key="index">
-            <view class="project-header">
+            <view class="project-header work-item-header">
               <text class="project-name">{{item.name}}</text>
               <text class="date">{{item.startDate}} - {{item.endDate}}</text>
             </view>
@@ -71,10 +86,11 @@
 
       <!-- 专业技能 -->
       <view class="section" wx:if="{{template.sections.skills}}">
-        <view class="section-title">专业技能</view>
+        <view class="section-title" style="color: {{template.accentColor}};">专业技能</view>
         <view class="section-content">
           <view class="skills-container">
-            <view class="skill-tag" wx:for="{{previewData.skills}}" wx:key="index">
+            <view class="skill-tag" wx:for="{{previewData.skills}}" wx:key="index" style="color: {{template.accentColor}};">
+              <text class="skill-dot">•</text>
               {{item}}
             </view>
           </view>
@@ -83,9 +99,21 @@
 
       <!-- 自我评价 -->
       <view class="section" wx:if="{{template.sections.selfEvaluation}}">
-        <view class="section-title">自我评价</view>
+        <view class="section-title" style="color: {{template.accentColor}};">自我评价</view>
         <view class="section-content">
-          <text class="self-evaluation">{{previewData.selfEvaluation}}</text>
+          <view class="self-evaluation">
+            <text class="eval-quote">"</text>
+            <text class="eval-content">{{previewData.selfEvaluation}}</text>
+            <text class="eval-quote">"</text>
+          </view>
+        </view>
+      </view>
+      
+      <!-- 页脚装饰元素 -->
+      <view class="resume-footer">
+        <view class="footer-divider" style="background-color: {{template.accentColor}};"></view>
+        <view class="footer-note">
+          <text>简历模板预览</text>
         </view>
       </view>
     </view>
