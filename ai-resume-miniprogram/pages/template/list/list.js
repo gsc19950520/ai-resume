@@ -49,20 +49,6 @@ Page({
         preview: '/images/template-technical.png',
         type: 'technical',
         description: '突出技能和项目经验的技术导向模板'
-      },
-      {
-        id: '3',
-        name: '创意设计模板',
-        preview: '/images/template-creative.png',
-        type: 'creative',
-        description: '视觉冲击力强，适合设计和创意领域'
-      },
-      {
-        id: '4',
-        name: '学术研究模板',
-        preview: '/images/template-academic.png',
-        type: 'academic',
-        description: '强调教育背景和研究成果的学术模板'
       }
     ]
   },

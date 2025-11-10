@@ -4,121 +4,114 @@ const app = getApp()
 // 手动定义__route__变量，解决框架错误
 const __route__ = 'pages/template/preview/preview';
 
+// 引入工具函数
+import { getTemplateData, firstPersonCorrection } from '../../../utils/templateHelper';
+
 Page({
   
   data: {
     templateId: '',
     templateName: '',
     template: null,
-    previewData: {
-      // 模拟数据用于模板预览
-      personalInfo: {
-        name: '张三',
-        jobTitle: '高级前端开发工程师',
-        phone: '138****1234',
-        email: 'zhangsan@example.com',
-        address: '上海市浦东新区',
-        summary: '5年前端开发经验，精通各种前端技术栈，擅长大型项目架构设计和性能优化。'
-      },
+    // 预览数据 - 提供默认mock数据，确保页面加载时能正确显示模板内容
+    resumeData: {
+      name: '周星星',
+      age: '28',
+      gender: '男',
+      location: '上海',
+      position: '平面设计师',
+      expectedSalary: '15000/月',
+      availableTime: '一个月内到岗',
+      phone: '16888888888',
+      email: 'jianli@qq.com',
+      wechat: 'wx123456',
+      avatarUrl: '/images/avatar.png',
+      
+      // 教育背景
       education: [
         {
-          school: '北京大学',
-          major: '计算机科学与技术',
+          school: '上海设计大学',
+          major: '艺术学院',
           degree: '本科',
-          startDate: '2014-09',
-          endDate: '2018-06',
-          achievements: 'GPA 3.8/4.0，获得优秀毕业生称号，参与国家级科研项目'
-        },
-        {
-          school: '清华大学',
-          major: '软件工程',
-          degree: '硕士',
-          startDate: '2018-09',
-          endDate: '2021-06',
-          achievements: '获得国家奖学金，发表3篇学术论文'
+          startDate: '2018.09',
+          endDate: '2022.06',
+          description: '专业成绩：广告设计，色彩构成，素描基础；获奖情况：校二等奖学金\n主修课程：广告设计、色彩构成、素描基础、平面设计、photoshop、CorelDraw、Illustrator、AutoCAD、广告原理、字体设计、平面广告设计与工艺课程'
         }
       ],
+      
+      // 工作经历
       workExperience: [
         {
-          company: '科技有限公司',
-          position: '前端开发工程师',
-          startDate: '2018-07',
-          endDate: '2022-03',
-          description: '负责公司核心产品的前端开发，参与需求分析和技术方案制定，优化用户体验和性能。主导重构项目，将页面加载速度提升40%。'
+          company: '上海品牌设计公司',
+          position: '平面设计师',
+          startDate: '2024.01',
+          endDate: '至今',
+          description: '负责产品包装、标志设计、说明书、挂卡等设计排版，负责产品宣传板、挂历等宣传材料设计；\n公司交办的其他设计任务；负责公司海报、推广手册、吊牌等相关平面设计工作，负责新产品的开发处理；\n协助参加产品的广告设计、参加公司新产品的广告宣传设计等；\n负责企业重要资料的设计、制作与拍摄；也是应对企业广告平面设计、制作以及其他设计类工作'
         },
         {
-          company: '互联网创新公司',
-          position: '高级前端开发工程师',
-          startDate: '2022-04',
-          endDate: '至今',
-          description: '负责技术团队的管理和前端架构设计，主导多个重要项目的开发和上线。建立前端工程化体系，提高团队开发效率60%。'
+          company: '创意广告有限公司',
+          position: '助理设计师',
+          startDate: '2022.07',
+          endDate: '2023.12',
+          description: '协助设计师完成各类设计任务；负责基础的设计排版工作；参与市场调研和创意讨论；负责素材收集和整理'
         }
       ],
+      
+      // 项目经验
       projects: [
         {
-          name: '企业管理系统',
-          role: '技术负责人',
-          startDate: '2020-01',
-          endDate: '2020-08',
-          description: '设计并实现了基于React的企业管理系统前端架构，提升了开发效率30%。'
-        }
-      ],
-      skills: ['JavaScript', 'React', 'Vue', 'TypeScript', 'Webpack', 'Node.js', 'CSS3', 'HTML5', 'Git', '前端架构'],
-      selfEvaluation: '5年前端开发经验，精通各种前端技术栈，具有良好的代码规范和团队协作能力。热爱技术，持续学习，追求卓越。善于解决复杂问题，具备良好的沟通能力和项目管理经验。',
-      // 新增板块数据
-      certifications: [
-        { name: 'AWS认证解决方案架构师', date: '2022-05' },
-        { name: 'Google认证前端开发专家', date: '2021-12' },
-        { name: '微软MCSD认证', date: '2020-08' }
-      ],
-      languages: [
-        { name: '英语', proficiency: '专业熟练（听说读写流利）' },
-        { name: '日语', proficiency: '基础水平' }
-      ],
-      technicalStack: [
-        { category: '前端框架', skills: 'React, Vue, Angular, Next.js' },
-        { category: '编程语言', skills: 'JavaScript, TypeScript, Python' },
-        { category: '开发工具', skills: 'Webpack, Git, Docker, Jest' },
-        { category: '数据库', skills: 'MySQL, MongoDB, Redis' }
-      ],
-      achievements: [
-        '主导的项目获得公司年度最佳产品奖',
-        '优化系统性能，将页面加载时间减少60%',
-        '培训新员工10名，建立前端技术分享机制',
-        '贡献开源项目3个，获得社区好评'
-      ],
-      creativeApproach: [
-        '注重用户体验设计，追求简洁直观的界面',
-        '善于将复杂功能简化为易用的交互',
-        '结合数据分析优化设计决策',
-        '不断探索新技术应用于创意实现'
-      ],
-      interests: [
-        '开源项目贡献',
-        '技术博客写作',
-        '户外运动（登山、骑行）',
-        '摄影艺术'
-      ],
-      researchInterests: [
-        '前端性能优化与工程化',
-        'WebAssembly在前端的应用',
-        '人工智能在前端开发中的应用',
-        '跨平台开发技术研究'
-      ],
-      publications: [
-        {
-          title: '基于React的大型应用架构设计研究',
-          journal: '计算机科学与应用',
-          year: '2021',
-          authors: '张三，李四'
+          name: 'XX品牌视觉形象升级',
+          role: '主设计师',
+          startDate: '2024.03',
+          endDate: '2024.06',
+          description: '负责品牌标志重新设计、VI系统升级，提高了品牌识别度和市场影响力'
         },
         {
-          title: '前端性能优化策略与实践',
-          conference: '全国前端技术大会',
-          year: '2020',
-          authors: '张三'
+          name: '年度产品包装设计系列',
+          role: '设计师',
+          startDate: '2023.09',
+          endDate: '2023.12',
+          description: '设计了12款产品的包装方案，获得了客户高度认可，销售额提升了15%'
         }
-      ]
+      ],
+      
+      // 专业技能
+      skills: [
+        {
+          name: '设计软件',
+          description: '精通Photoshop、Illustrator、CorelDraw、AutoCAD等设计软件'
+        },
+        {
+          name: '设计能力',
+          description: '具有优秀的平面设计、UI设计、品牌设计能力'
+        },
+        {
+          name: '创意思维',
+          description: '具备丰富的创意灵感和优秀的审美能力'
+        }
+      ],
+      
+      // 荣誉证书
+      certifications: [
+        {
+          name: '广告设计师证',
+          year: '2022'
+        },
+        {
+          name: '大学英语六级证书',
+          year: '2021'
+        },
+        {
+          name: '全国计算机二级证书',
+          year: '2020'
+        }
+      ],
+      
+      // 兴趣爱好
+      interests: ['摄影', '绘画', '健身', '旅行', '跑步'],
+      
+      // 自我评价
+      selfEvaluation: '工作积极一丝不苟，认真负责，熟练运用专业软件，踏实肯干，动手能力强，有很强的自驱力，坚韧不拔的精神，喜欢迎接新挑战，做好自己，努力最好。'
     }
   },
 
@@ -133,6 +126,86 @@ Page({
     
     // 根据模板ID获取模板配置
     this.getTemplateConfig(templateId)
+    
+    // 加载模板数据
+    this.loadTemplateData()
+    // 加载简历数据
+    this.loadResumeData()
+  },
+  
+  // 加载模板数据
+  loadTemplateData: function() {
+    const { templateId } = this.data;
+    
+    // 获取模板数据
+    const templateData = getTemplateData(templateId);
+    
+    // 对数据进行第一人称修正
+    const correctedData = firstPersonCorrection(templateData);
+    
+    // 尝试从全局状态或缓存获取真实数据
+    try {
+      const cachedData = wx.getStorageSync('resumeData');
+      if (cachedData && JSON.stringify(cachedData) !== '{}') {
+        // 合并缓存数据和默认数据，确保数据结构完整
+        const mergedData = this.mergeData(correctedData, cachedData);
+        this.setData({
+          resumeData: mergedData
+        });
+        return;
+      }
+    } catch (error) {
+      console.log('获取缓存数据失败:', error);
+    }
+    
+    // 使用修正后的模板数据
+    this.setData({
+      resumeData: correctedData
+    });
+  },
+  // 加载简历数据
+  loadResumeData: function() {
+    // 尝试从全局状态或缓存获取真实数据
+    try {
+      const cachedData = wx.getStorageSync('resumeData');
+      if (cachedData && JSON.stringify(cachedData) !== '{}') {
+        // 合并缓存数据和默认数据，确保数据结构完整
+        const mergedData = this.mergeData(this.data.resumeData, cachedData);
+        this.setData({
+          resumeData: mergedData
+        });
+        return;
+      }
+    } catch (error) {
+      console.log('获取缓存数据失败:', error);
+    }
+    
+    // 如果没有缓存数据，使用默认的mock数据（已在data中定义）
+  },
+  
+  // 合并数据函数，确保默认字段不被覆盖
+  mergeData: function(defaultData, newData) {
+    const merged = { ...defaultData };
+    
+    // 合并一级字段
+    for (const key in newData) {
+      if (newData.hasOwnProperty(key)) {
+        // 如果是数组，保留非空数组
+        if (Array.isArray(newData[key]) && newData[key].length > 0) {
+          merged[key] = newData[key];
+        }
+        // 如果是对象且非空
+        else if (typeof newData[key] === 'object' && newData[key] !== null && Object.keys(newData[key]).length > 0) {
+          merged[key] = { ...merged[key], ...newData[key] };
+        }
+        // 如果是非空基本类型
+        else if (newData[key] !== null && newData[key] !== undefined && newData[key] !== '') {
+          merged[key] = newData[key];
+        }
+      }
+    }
+    
+    return merged;
   },
 
   // 获取模板配置
@@ -293,7 +366,7 @@ Page({
 
   // 使用模板
   useTemplate: function() {
-    const { templateId, templateName, template } = this.data
+    const { templateId, templateName, template, resumeData } = this.data
     
     // 确保模板包含完整的布局配置
     const templateWithLayout = {
@@ -315,7 +388,8 @@ Page({
       templateName: templateName,
       title: '我的新简历',
       isAiGenerated: false,
-      layout: templateWithLayout.layout // 保存布局配置
+      layout: templateWithLayout.layout, // 保存布局配置
+      resumeData: resumeData // 同时保存预览数据
     })
     
     wx.showToast({

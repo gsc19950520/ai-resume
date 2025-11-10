@@ -16,15 +16,6 @@ import java.util.Map;
 public interface InterviewService {
 
     /**
-     * 生成第一个面试问题
-     * @param resumeId 简历ID
-     * @param personaId 面试官风格ID
-     * @param industryJobTag 行业职位标签
-     * @return 包含生成问题的对象
-     */
-    Map<String, Object> generateFirstQuestion(Long resumeId, String personaId, String industryJobTag);
-
-    /**
      * 开始面试 - 支持动态配置
      * @param userId 用户ID
      * @param resumeId 简历ID
@@ -88,5 +79,14 @@ public interface InterviewService {
      * @return 包含下一个问题的对象
      */
     Map<String, Object> generateNextQuestion(List<String> techItems, List<Map<String, Object>> projectPoints, Map<String, Object> interviewState, Integer sessionTimeRemaining, String persona);
+
+    /**
+     * 生成第一个面试问题
+     * @param resumeId 简历ID
+     * @param personaId 面试官风格ID
+     * @param industryJobTag 行业职位标签
+     * @return 包含问题、深度级别等信息的对象
+     */
+    Map<String, Object> generateFirstQuestion(Long resumeId, String personaId, String industryJobTag);
 
 }
