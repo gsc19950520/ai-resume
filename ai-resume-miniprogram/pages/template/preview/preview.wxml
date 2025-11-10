@@ -8,18 +8,38 @@
       <!-- 引用外部模板 -->
       <import src="./templates/two/template-two.wxml"/>
       <import src="./templates/one/template-one.wxml"/>
+      <import src="./templates/three/template-three.wxml"/>
+      <import src="./templates/four/template-four.wxml"/>
+      <import src="./templates/five/template-five.wxml"/>
+      <import src="./templates/six/template-six.wxml"/>
       
-      <block wx:if="{{template.layout.type === 'enhancedTwoColumn' || template.id === 'basic'}}">
+      <block wx:if="{{template.id === 'template-one'}}">
+        <template is="template-one" data="{{resumeData}}"/>
+      </block>
+
+      <block wx:elif="{{template.id === 'template-two'}}">
         <template is="template-two" data="{{resumeData}}"/>
       </block>
       
-      <block wx:elif="{{template.layout.type !== 'enhancedTwoColumn' || template.id === 'technical' || template.id === 'creative' || template.id === 'academic'}}">
-        <template is="template-one" data="{{resumeData}}"/>
+      <block wx:elif="{{template.id === 'template-three'}}">
+        <template is="template-three" data="{{resumeData}}"/>
+      </block>
+      
+      <block wx:elif="{{template.id === 'template-four'}}">
+        <template is="template-four" data="{{resumeData}}"/>
+      </block>
+      
+      <block wx:elif="{{template.id === 'template-five'}}">
+        <template is="template-five" data="{{resumeData}}"/>
+      </block>
+      
+      <block wx:elif="{{template.id === 'template-six'}}">
+        <template is="template-six" data="{{resumeData}}"/>
       </block>
       
       <!-- 默认显示 -->
       <block wx:else>
-        <template is="template-two" data="{{resumeData}}"/>
+        <template is="template-one" data="{{resumeData}}"/>
       </block>
       </view>
     </view>

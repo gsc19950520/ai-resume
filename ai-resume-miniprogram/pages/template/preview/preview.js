@@ -212,8 +212,8 @@ Page({
   getTemplateConfig: function(templateId) {
     // 根据不同模板ID返回不同的配置
     const templates = {
-      '1': {
-        id: 'basic',
+      'template-two': {
+        id: 'template-two',
         name: '简约专业模板',
         type: 'professional',
         styleClass: 'template-professional',
@@ -246,11 +246,11 @@ Page({
           }
         }
       },
-      '2': {
-        id: 'technical',
-        name: '技术人才模板',
-        type: 'technical',
-        styleClass: 'template-technical',
+      'template-one': {
+        id: 'template-one',
+        name: '多功能通用模板',
+        type: 'universal',
+        styleClass: 'template-one',
         colors: {
           primary: '#059669',
           secondary: '#6ee7b7',
@@ -265,8 +265,12 @@ Page({
           projects: false,
           skills: true,
           selfEvaluation: true,
-          technicalStack: true, // 新增技术栈板块
-          achievements: true // 新增成就板块
+          technicalStack: true,
+          achievements: true,
+          creativeApproach: true,
+          interests: true,
+          researchInterests: true,
+          publications: true
         },
         layout: {
           type: 'skillsFocusThreeColumn',
@@ -283,77 +287,149 @@ Page({
           }
         }
       },
-      '3': {
-        id: 'creative',
-        name: '创意设计模板',
-        type: 'creative',
-        styleClass: 'template-creative',
+      'template-three': {
+        id: 'template-three',
+        name: '左侧导航型模板',
+        type: 'modern',
+        styleClass: 'template-three',
         colors: {
-          primary: '#dc2626',
-          secondary: '#fca5a5',
-          accent: '#b91c1c',
+          primary: '#165dff',
+          secondary: '#e6f7ff',
+          accent: '#09389f',
           background: '#ffffff',
-          border: '#fca5a5'
+          border: '#d9e9ff'
         },
         sections: {
           personalInfo: true,
           education: true,
           workExperience: true,
-          projects: false,
+          projects: true,
           skills: true,
           selfEvaluation: true,
-          creativeApproach: true, // 新增创意方法板块
-          interests: true // 新增兴趣爱好板块
+          interests: true
         },
         layout: {
-          type: 'verticalLayersCreative',
-          personalInfoPosition: 'hero',
-          skillsPosition: 'sidebar',
-          creativeApproachPosition: 'sidebar',
-          interestsPosition: 'sidebar',
-          contentPosition: 'main',
+          type: 'leftNavigation',
+          personalInfoPosition: 'left',
+          skillsPosition: 'left',
+          interestsPosition: 'left',
+          educationPosition: 'right',
+          workExperiencePosition: 'right',
+          projectsPosition: 'right',
           columnRatio: {
-            hero: 0.3,
-            sidebar: 0.25,
-            main: 0.75
+            left: 0.3,
+            right: 0.7
           }
         }
       },
-      '4': {
-        id: 'academic',
-        name: '学术研究模板',
-        type: 'academic',
-        styleClass: 'template-academic',
+      'template-four': {
+        id: 'template-four',
+        name: '卡片式布局模板',
+        type: 'card',
+        styleClass: 'template-four',
         colors: {
-          primary: '#6d28d9',
-          secondary: '#c4b5fd',
-          accent: '#5b21b6',
-          background: '#f8fafc',
-          border: '#ddd6fe'
+          primary: '#36b37e',
+          secondary: '#e6f7ef',
+          accent: '#0b8050',
+          background: '#ffffff',
+          border: '#b7eb8f'
         },
         sections: {
           personalInfo: true,
           education: true,
           workExperience: true,
-          projects: false,
+          projects: true,
           skills: true,
           selfEvaluation: true,
-          researchInterests: true, // 新增研究兴趣板块
-          publications: true // 新增发表论文板块
+          interests: true
         },
         layout: {
-          type: 'academicGrid',
-          personalInfoPosition: 'header',
+          type: 'cardLayout',
+          personalInfoPosition: 'top',
           educationPosition: 'left',
-          researchInterestsPosition: 'left',
-          publicationsPosition: 'left',
+          projectsPosition: 'left',
           workExperiencePosition: 'right',
           skillsPosition: 'right',
+          interestsPosition: 'right',
+          columnRatio: {
+            top: 0.3,
+            left: 0.48,
+            right: 0.48
+          }
+        }
+      },
+      'template-five': {
+        id: 'template-five',
+        name: '深色主题模板',
+        type: 'dark',
+        styleClass: 'template-five',
+        colors: {
+          primary: '#7b61ff',
+          secondary: '#2d284a',
+          accent: '#5e46ff',
+          background: '#1a1924',
+          border: '#3e3d53'
+        },
+        sections: {
+          personalInfo: true,
+          education: true,
+          workExperience: true,
+          projects: true,
+          skills: true,
+          selfEvaluation: true,
+          interests: true
+        },
+        layout: {
+          type: 'darkTheme',
+          personalInfoPosition: 'top',
+          educationPosition: 'left',
+          workExperiencePosition: 'left',
+          projectsPosition: 'right',
+          skillsPosition: 'right',
+          interestsPosition: 'right',
           selfEvaluationPosition: 'right',
           columnRatio: {
-            header: 0.15,
-            left: 0.4,
-            right: 0.6
+            top: 0.25,
+            left: 0.5,
+            right: 0.5
+          }
+        }
+      },
+      'template-six': {
+        id: 'template-six',
+        name: '时尚简约模板',
+        type: 'fashion',
+        styleClass: 'template-six',
+        colors: {
+          primary: '#667eea',
+          secondary: '#f0f0f5',
+          accent: '#764ba2',
+          background: '#ffffff',
+          border: '#eee'
+        },
+        sections: {
+          personalInfo: true,
+          education: true,
+          workExperience: true,
+          projects: true,
+          skills: true,
+          selfEvaluation: true,
+          interests: true
+        },
+        layout: {
+          type: 'fashionSimple',
+          personalInfoPosition: 'top',
+          educationPosition: 'left',
+          workExperiencePosition: 'left',
+          projectsPosition: 'left',
+          skillsPosition: 'right',
+          expertisePosition: 'right',
+          interestsPosition: 'right',
+          selfEvaluationPosition: 'right',
+          columnRatio: {
+            top: 0.3,
+            left: 0.5,
+            right: 0.5
           }
         }
       }

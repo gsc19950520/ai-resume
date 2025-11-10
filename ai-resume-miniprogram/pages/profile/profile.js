@@ -3,7 +3,7 @@ const app = getApp()
 
 Page({
   data: {
-    userInfo: null,
+    userInfo: { id: 'guest', nickName: '游客', avatarUrl: '/images/avatar.png' }, // 默认游客信息，确保页面不会空白
     resumeCount: 0,
     interviewCount: 0
   },

@@ -1,0 +1,318 @@
+/* WXSS代码 - template-three 现代简约风格简历模板样式 */
+
+/* 容器样式 */
+.container {
+  padding: 30rpx; 
+  background-color: #f8fafc; 
+  height: 100vh; 
+  width: 100%; 
+  overflow-y: auto;
+  position: relative; 
+  margin: 0; 
+  box-sizing: border-box;
+}
+
+/* 简历主体样式 */
+.resume {
+  background-color: white; 
+  padding: 40rpx;
+  border-radius: 20rpx;
+  box-sizing: border-box;
+  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, sans-serif;
+  color: #2d3748;
+  line-height: 1.6;
+  max-width: 100%;
+  margin: 0 auto;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.05);
+}
+
+/* 头部信息样式 - 现代简约版 */
+.header {
+  margin-bottom: 40rpx;
+  padding-bottom: 30rpx;
+  border-bottom: 2rpx solid #e2e8f0;
+}
+
+/* 背景装饰 - 简约线条 */
+.header-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4rpx;
+  background: linear-gradient(90deg, #3182ce, #63b3ed);
+}
+
+/* 头部布局 */
+.header-left {
+  text-align: center;
+  margin-bottom: 30rpx;
+}
+
+.header-right {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+}
+
+/* 姓名卡片 - 简约设计 */
+.name-card {
+  margin-bottom: 24rpx;
+}
+
+.name {
+  font-size: 48rpx;
+  font-weight: 700;
+  color: #1a202c;
+  margin-bottom: 12rpx;
+  letter-spacing: 2rpx;
+}
+
+.position-title {
+  font-size: 28rpx;
+  color: #3182ce;
+  font-weight: 500;
+  margin-bottom: 8rpx;
+}
+
+/* 核心标签 - 简约风格 */
+.core-tags {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  margin-bottom: 24rpx;
+}
+
+.tag {
+  padding: 8rpx 20rpx;
+  border-radius: 20rpx;
+  font-size: 20rpx;
+  font-weight: 500;
+}
+
+.tag.primary {
+  background: #ebf8ff;
+  color: #2b6cb0;
+  border: 1rpx solid #bee3f8;
+}
+
+.tag.secondary {
+  background: #f7fafc;
+  color: #4a5568;
+  border: 1rpx solid #e2e8f0;
+}
+
+.tag.salary {
+  background: #fed7d7;
+  color: #c53030;
+  border: 1rpx solid #feb2b2;
+}
+
+/* 信息组 - 简约设计 */
+.info-group {
+  margin-bottom: 24rpx;
+}
+
+.info-item {
+  margin-bottom: 16rpx;
+}
+
+.info-item:last-child {
+  margin-bottom: 0;
+}
+
+.info-label {
+  font-size: 22rpx;
+  font-weight: 600;
+  color: #718096;
+  margin-bottom: 10rpx;
+  text-transform: uppercase;
+  letter-spacing: 1rpx;
+}
+
+.info-value {
+  font-size: 24rpx;
+  color: #2d3748;
+  line-height: 1.5;
+}
+
+/* 联系方式组 - 简约风格 */
+.contact-group {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.contact-item {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  padding: 16rpx 0;
+  border-bottom: 1rpx solid #f1f5f9;
+}
+
+.contact-icon {
+  width: 28rpx;
+  height: 28rpx;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  flex-shrink: 0;
+}
+
+.phone-icon {
+  background-color: #3182ce;
+  mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20,15.5C18.8,15.5 17.5,15.3 16.4,14.9C16.3,14.9 16.2,14.9 16.1,15C15.8,15.3 15.5,15.5 15.2,15.5H14.8C14.5,15.5 14.2,15.3 13.9,15C13.8,14.9 13.7,14.9 13.6,14.9C12.5,15.3 11.2,15.5 10,15.5C8.8,15.5 7.5,15.3 6.4,14.9C6.3,14.9 6.2,14.9 6.1,15C5.8,15.3 5.5,15.5 5.2,15.5H4.8C4.5,15.5 4.2,15.3 3.9,15C3.8,14.9 3.7,14.9 3.6,14.9C2.5,15.3 1.2,15.5 0,15.5V18.5C1.2,18.5 2.5,18.3 3.6,17.9C3.7,17.9 3.8,17.9 3.9,17.8C4.2,17.5 4.5,17.3 4.8,17.3H5.2C5.5,17.3 5.8,17.5 6.1,17.8C6.2,17.9 6.3,17.9 6.4,17.9C7.5,18.3 8.8,18.5 10,18.5C11.2,18.5 12.5,18.3 13.6,17.9C13.7,17.9 13.8,17.9 13.9,17.8C14.2,17.5 14.5,17.3 14.8,17.3H15.2C15.5,17.3 15.8,17.5 16.1,17.8C16.2,17.9 16.3,17.9 16.4,17.9C17.5,18.3 18.8,18.5 20,18.5V15.5Z"/></svg>');
+  -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20,15.5C18.8,15.5 17.5,15.3 16.4,14.9C16.3,14.9 16.2,14.9 16.1,15C15.8,15.3 15.5,15.5 15.2,15.5H14.8C14.5,15.5 14.2,15.3 13.9,15C13.8,14.9 13.7,14.9 13.6,14.9C12.5,15.3 11.2,15.5 10,15.5C8.8,15.5 7.5,15.3 6.4,14.9C6.3,14.9 6.2,14.9 6.1,15C5.8,15.3 5.5,15.5 5.2,15.5H4.8C4.5,15.5 4.2,15.3 3.9,15C3.8,14.9 3.7,14.9 3.6,14.9C2.5,15.3 1.2,15.5 0,15.5V18.5C1.2,18.5 2.5,18.3 3.6,17.9C3.7,17.9 3.8,17.9 3.9,17.8C4.2,17.5 4.5,17.3 4.8,17.3H5.2C5.5,17.3 5.8,17.5 6.1,17.8C6.2,17.9 6.3,17.9 6.4,17.9C7.5,18.3 8.8,18.5 10,18.5C11.2,18.5 12.5,18.3 13.6,17.9C13.7,17.9 13.8,17.9 13.9,17.8C14.2,17.5 14.5,17.3 14.8,17.3H15.2C15.5,17.3 15.8,17.5 16.1,17.8C16.2,17.9 16.3,17.9 16.4,17.9C17.5,18.3 18.8,18.5 20,18.5V15.5Z"/></svg>');
+}
+
+.email-icon {
+  background-color: #4a5568;
+  mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20,4H4C2.9,4 2,4.9 2,6V18C2,19.1 2.9,20 4,20H20C21.1,20 22,19.1 22,18V6C22,4.9 21.1,4 20,4M20,8L12,13L4,8V6L12,11L20,6V8Z"/></svg>');
+  -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20,4H4C2.9,4 2,4.9 2,6V18C2,19.1 2.9,20 4,20H20C21.1,20 22,19.1 22,18V6C22,4.9 21.1,4 20,4M20,8L12,13L4,8V6L12,11L20,6V8Z"/></svg>');
+}
+
+.contact-text {
+  font-size: 24rpx;
+  color: #4a5568;
+  font-weight: 400;
+}
+
+/* 装饰元素 */
+.header-decoration {
+  position: absolute;
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(67, 97, 238, 0.08) 0%, transparent 70%);
+  z-index: 0;
+}
+
+.header-decoration.top-left {
+  top: -40rpx;
+  left: -40rpx;
+}
+
+.header-decoration.bottom-right {
+  bottom: -40rpx;
+  right: -40rpx;
+  background: radial-gradient(circle, rgba(236, 72, 153, 0.08) 0%, transparent 70%);
+}
+
+/* 分隔线样式 */
+.divider {
+  height: 1rpx; /* 分隔线高度为1rpx */
+  background-color: #ddd; /* 分隔线颜色为浅灰色 */
+  margin: 8rpx 0; /* 分隔线上下方的外边距为8rpx */
+}
+
+/* 各部分标题容器样式 */
+.section {
+  margin-bottom: 10rpx; /* 每个部分下方的外边距为10rpx */
+}
+
+/* 部分标题样式 */
+.section-title {
+  font-size: 18rpx; /* 标题字体大小为18rpx */
+  font-weight: bold; /* 字体加粗显示 */
+  margin-bottom: 4rpx; /* 标题下方的外边距为4rpx */
+  border-bottom: 2rpx solid #333; /* 标题下方有2rpx的深灰色边框 */
+  padding-bottom: 1rpx; /* 标题文字与下划线之间的内边距为1rpx */
+}
+
+/* 经历项目样式 */
+.experience-item {
+  margin-bottom: 6rpx; /* 每个经历项目下方的外边距为6rpx */
+}
+
+/* 工作经历头部样式 */
+.job-header {
+  display: flex; /* 使用flex布局 */
+  justify-content: space-between; /* 两端对齐，公司信息在左，时间信息在右 */
+  margin-bottom: 1rpx; /* 下方外边距为1rpx */
+}
+
+/* 公司名称样式 */
+.company {
+  font-size: 16rpx; /* 公司名称字体大小为16rpx */
+  font-weight: bold; /* 字体加粗显示 */
+}
+
+/* 职位样式 */
+.position {
+  font-size: 14rpx; /* 职位字体大小为14rpx */
+  color: #666; /* 职位文字颜色为中灰色 */
+}
+
+/* 时间样式 */
+.time {
+  font-size: 12rpx; /* 时间字体大小为12rpx */
+  color: #999; /* 时间文字颜色为浅灰色 */
+  margin-bottom: 2rpx; /* 下方外边距为2rpx */
+}
+
+/* 工作职责样式 */
+.job-duties {
+  display: flex; /* 使用flex布局 */
+  flex-direction: column; /* 子元素垂直排列 */
+}
+
+/* 工作职责文本样式 */
+.job-duties text {
+  font-size: 14rpx; /* 文本字体大小为14rpx */
+  margin-bottom: 1.5rpx; /* 文本行之间的间距为1.5rpx */
+  line-height: 1.15; /* 行高设置为1.15，使文本更加紧凑 */
+  word-break: break-all; /* 允许单词在任意位置换行，防止长单词导致溢出 */
+}
+
+/* 技能特长容器样式 - 现代简约 */
+.skills {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+/* 单个技能项样式 - 现代简约 */
+.skill-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* 技能名称、等级和熟练度样式 - 现代简约 */
+.skill-name {
+  font-size: 24rpx;
+  color: #2d3748;
+  font-weight: 500;
+}
+
+.skill-level {
+  font-size: 20rpx;
+  color: #718096;
+  margin-left: 12rpx;
+}
+
+.skill-proficiency {
+  font-size: 22rpx;
+  color: #4a5568;
+  background: #f7fafc;
+  padding: 6rpx 16rpx;
+  border-radius: 16rpx;
+}
+
+/* 兴趣爱好文本样式 - 现代简约 */
+.hobby {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+
+.hobby text {
+  font-size: 22rpx;
+  color: #4a5568;
+  background: #f7fafc;
+  padding: 10rpx 20rpx;
+  border-radius: 20rpx;
+  border: 1rpx solid #e2e8f0;
+}

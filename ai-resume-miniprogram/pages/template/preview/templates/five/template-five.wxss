@@ -1,0 +1,456 @@
+/* WXSS代码 - template-two 简历模板样式 */
+
+/* 模板样式 - 创意现代版 */
+
+/* 容器样式 */
+.container {
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  min-height: 100vh;
+  padding: 30rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow-y: auto;
+}
+
+/* 简历主体样式 */
+.resume {
+  width: 100%;
+  max-width: 820rpx;
+  background-color: #ffffff;
+  border-radius: 24rpx;
+  box-shadow: 0 15rpx 40rpx rgba(0, 0, 0, 0.15);
+  padding: 50rpx;
+  position: relative;
+  overflow: hidden;
+  line-height: 1.6;
+  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, sans-serif;
+  color: #333;
+  box-sizing: border-box;
+}
+
+.resume::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 280rpx;
+  height: 280rpx;
+  background: linear-gradient(135deg, #8b5cf6, #ec4899);
+  border-radius: 0 0 0 280rpx;
+  opacity: 0.08;
+  z-index: 0;
+}
+
+.resume::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 200rpx;
+  height: 200rpx;
+  background: linear-gradient(135deg, #3b82f6, #06b6d4);
+  border-radius: 200rpx 0 0 0;
+  opacity: 0.08;
+  z-index: 0;
+}
+
+/* 头部信息样式 - 创意现代 */
+.header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 50rpx 0;
+  margin-bottom: 40rpx;
+  position: relative;
+  z-index: 1;
+  background: linear-gradient(135deg, #8b5cf6, #ec4899);
+  border-radius: 20rpx;
+  color: white;
+  overflow: hidden;
+}
+
+.header::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: repeating-linear-gradient(45deg, transparent, transparent 40rpx, rgba(255,255,255,0.1) 40rpx, rgba(255,255,255,0.1) 80rpx);
+  opacity: 0.2;
+  animation: gradientShift 15s ease infinite;
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0 0; }
+  100% { background-position: 400rpx 400rpx; }
+}
+
+.header-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  position: relative;
+  z-index: 1;
+  width: 100%;
+}
+
+.header-left {
+  margin-bottom: 24rpx;
+  width: 100%;
+}
+
+.header-right {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+/* 姓名卡片样式 - 创意现代 */
+.name-card {
+  margin-bottom: 24rpx;
+}
+
+.name {
+  font-size: 48rpx;
+  font-weight: 800;
+  color: #ffffff;
+  margin-bottom: 12rpx;
+  letter-spacing: 2rpx;
+  text-shadow: 0 4rpx 8rpx rgba(0, 0, 0, 0.2);
+}
+
+.position-title {
+  font-size: 28rpx;
+  color: rgba(255,255,255,0.9);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 3rpx;
+}
+
+/* 核心标签样式 - 创意现代 */
+.core-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  justify-content: center;
+  margin-top: 24rpx;
+}
+
+.tag {
+  padding: 12rpx 24rpx;
+  border-radius: 30rpx;
+  font-size: 20rpx;
+  color: #8b5cf6;
+  background-color: rgba(255,255,255,0.95);
+  border: none;
+  font-weight: 500;
+  box-shadow: 0 6rpx 16rpx rgba(0, 0, 0, 0.12);
+}
+
+.tag:hover {
+  transform: translateY(-4rpx);
+  box-shadow: 0 8rpx 20rpx rgba(0, 0, 0, 0.16);
+}
+
+/* 信息组 - 创意现代 */
+.info-group {
+  background: rgba(255, 255, 255, 0.95);
+  padding: 24rpx;
+  border-radius: 16rpx;
+  border-left: 4rpx solid #8b5cf6;
+  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(10rpx);
+}
+
+.info-item {
+  margin-bottom: 16rpx;
+  position: relative;
+}
+
+.info-item:last-child {
+  margin-bottom: 0;
+}
+
+.info-label {
+  font-size: 20rpx;
+  font-weight: 600;
+  color: #8b5cf6;
+  margin-bottom: 8rpx;
+  text-transform: uppercase;
+  letter-spacing: 1.5rpx;
+}
+
+.info-value {
+  font-size: 24rpx;
+  color: #1f2937;
+  line-height: 1.6;
+  font-weight: 500;
+}
+
+/* 联系方式组 - 创意现代 */
+.contact-group {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.contact-item {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  padding: 16rpx 24rpx;
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: 24rpx;
+  border: none;
+  transition: all 0.3s ease;
+  box-shadow: 0 6rpx 16rpx rgba(0, 0, 0, 0.06);
+  position: relative;
+  overflow: hidden;
+}
+
+.contact-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4rpx;
+  background: linear-gradient(180deg, #8b5cf6, #ec4899);
+}
+
+.contact-item:hover {
+  background: rgba(255, 255, 255, 1);
+  transform: translateX(8rpx);
+  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.12);
+}
+
+.contact-icon {
+  width: 32rpx;
+  height: 32rpx;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  flex-shrink: 0;
+  border-radius: 8rpx;
+}
+
+.phone-icon {
+  background-color: #8b5cf6;
+  mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20,15.5C18.8,15.5 17.5,15.3 16.4,14.9C16.3,14.9 16.2,14.9 16.1,15C15.8,15.3 15.5,15.5 15.2,15.5H14.8C14.5,15.5 14.2,15.3 13.9,15C13.8,14.9 13.7,14.9 13.6,14.9C12.5,15.3 11.2,15.5 10,15.5C8.8,15.5 7.5,15.3 6.4,14.9C6.3,14.9 6.2,14.9 6.1,15C5.8,15.3 5.5,15.5 5.2,15.5H4.8C4.5,15.5 4.2,15.3 3.9,15C3.8,14.9 3.7,14.9 3.6,14.9C2.5,15.3 1.2,15.5 0,15.5V18.5C1.2,18.5 2.5,18.3 3.6,17.9C3.7,17.9 3.8,17.9 3.9,17.8C4.2,17.5 4.5,17.3 4.8,17.3H5.2C5.5,17.3 5.8,17.5 6.1,17.8C6.2,17.9 6.3,17.9 6.4,17.9C7.5,18.3 8.8,18.5 10,18.5C11.2,18.5 12.5,18.3 13.6,17.9C13.7,17.9 13.8,17.9 13.9,17.8C14.2,17.5 14.5,17.3 14.8,17.3H15.2C15.5,17.3 15.8,17.5 16.1,17.8C16.2,17.9 16.3,17.9 16.4,17.9C17.5,18.3 18.8,18.5 20,18.5V15.5Z"/></svg>');
+  -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20,15.5C18.8,15.5 17.5,15.3 16.4,14.9C16.3,14.9 16.2,14.9 16.1,15C15.8,15.3 15.5,15.5 15.2,15.5H14.8C14.5,15.5 14.2,15.3 13.9,15C13.8,14.9 13.7,14.9 13.6,14.9C12.5,15.3 11.2,15.5 10,15.5C8.8,15.5 7.5,15.3 6.4,14.9C6.3,14.9 6.2,14.9 6.1,15C5.8,15.3 5.5,15.5 5.2,15.5H4.8C4.5,15.5 4.2,15.3 3.9,15C3.8,14.9 3.7,14.9 3.6,14.9C2.5,15.3 1.2,15.5 0,15.5V18.5C1.2,18.5 2.5,18.3 3.6,17.9C3.7,17.9 3.8,17.9 3.9,17.8C4.2,17.5 4.5,17.3 4.8,17.3H5.2C5.5,17.3 5.8,17.5 6.1,17.8C6.2,17.9 6.3,17.9 6.4,17.9C7.5,18.3 8.8,18.5 10,18.5C11.2,18.5 12.5,18.3 13.6,17.9C13.7,17.9 13.8,17.9 13.9,17.8C14.2,17.5 14.5,17.3 14.8,17.3H15.2C15.5,17.3 15.8,17.5 16.1,17.8C16.2,17.9 16.3,17.9 16.4,17.9C17.5,18.3 18.8,18.5 20,18.5V15.5Z"/></svg>');
+}
+
+.email-icon {
+  background-color: #ec4899;
+  mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20,4H4C2.9,4 2,4.9 2,6V18C2,19.1 2.9,20 4,20H20C21.1,20 22,19.1 22,18V6C22,4.9 21.1,4 20,4M20,8L12,13L4,8V6L12,11L20,6V8Z"/></svg>');
+  -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20,4H4C2.9,4 2,4.9 2,6V18C2,19.1 2.9,20 4,20H20C21.1,20 22,19.1 22,18V6C22,4.9 21.1,4 20,4M20,8L12,13L4,8V6L12,11L20,6V8Z"/></svg>');
+}
+
+.contact-text {
+  font-size: 22rpx;
+  color: #1f2937;
+  font-weight: 500;
+  flex: 1;
+}
+
+/* 装饰元素 */
+.header-decoration {
+  position: absolute;
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(67, 97, 238, 0.08) 0%, transparent 70%);
+  z-index: 0;
+}
+
+.header-decoration.top-left {
+  top: -40rpx;
+  left: -40rpx;
+}
+
+.header-decoration.bottom-right {
+  bottom: -40rpx;
+  right: -40rpx;
+  background: radial-gradient(circle, rgba(236, 72, 153, 0.08) 0%, transparent 70%);
+}
+
+/* 分隔线样式 - 创意现代 */
+.divider {
+  height: 2rpx;
+  background: linear-gradient(90deg, #8b5cf6 0%, #ec4899 100%);
+  margin: 20rpx 0 32rpx 0;
+  border-radius: 1rpx;
+}
+
+/* 各部分标题容器样式 - 创意现代 */
+.section {
+  margin-bottom: 36rpx;
+  position: relative;
+}
+
+/* 部分标题样式 - 创意现代 */
+.section-title {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 20rpx;
+  position: relative;
+  display: inline-block;
+  padding-left: 20rpx;
+}
+
+.section-title::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 4rpx;
+  bottom: 4rpx;
+  width: 6rpx;
+  background: linear-gradient(180deg, #8b5cf6, #ec4899);
+  border-radius: 3rpx;
+}
+
+/* 经历项目样式 - 创意现代 */
+.experience-item {
+  margin-bottom: 24rpx;
+  padding: 24rpx;
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: 16rpx;
+  box-shadow: 0 6rpx 16rpx rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+.experience-item:hover {
+  transform: translateY(-4rpx);
+  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.1);
+}
+
+/* 工作经历头部样式 - 创意现代 */
+.job-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12rpx;
+  flex-wrap: wrap;
+  gap: 12rpx;
+}
+
+/* 公司名称样式 - 创意现代 */
+.company {
+  font-size: 24rpx;
+  font-weight: 700;
+  color: #8b5cf6;
+}
+
+/* 职位样式 - 创意现代 */
+.position {
+  font-size: 22rpx;
+  color: #1f2937;
+  font-weight: 600;
+  margin-bottom: 8rpx;
+}
+
+/* 时间样式 - 创意现代 */
+.time {
+  font-size: 18rpx;
+  color: #6b7280;
+  background: rgba(139, 92, 246, 0.08);
+  padding: 4rpx 12rpx;
+  border-radius: 12rpx;
+  font-weight: 500;
+}
+
+/* 工作职责样式 - 创意现代 */
+.job-duties {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+  margin-top: 16rpx;
+}
+
+/* 工作职责文本样式 - 创意现代 */
+.job-duties text {
+  font-size: 20rpx;
+  color: #4b5563;
+  line-height: 1.5;
+  word-break: break-all;
+  position: relative;
+  padding-left: 24rpx;
+}
+
+.job-duties text::before {
+  content: '';
+  position: absolute;
+  left: 8rpx;
+  top: 10rpx;
+  width: 4rpx;
+  height: 4rpx;
+  background: linear-gradient(135deg, #8b5cf6, #ec4899);
+  border-radius: 50%;
+}
+
+/* 技能特长容器样式 - 创意现代 */
+.skills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+
+/* 单个技能项样式 - 创意现代 */
+.skill-item {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 20rpx;
+  padding: 12rpx 20rpx;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+.skill-item:hover {
+  transform: translateY(-2rpx);
+  box-shadow: 0 6rpx 16rpx rgba(0, 0, 0, 0.08);
+}
+
+/* 技能名称、等级和熟练度样式 - 创意现代 */
+.skill-name {
+  font-size: 20rpx;
+  color: #1f2937;
+  font-weight: 500;
+  margin-right: 12rpx;
+}
+
+.skill-level,
+.skill-proficiency {
+  font-size: 16rpx;
+  color: #8b5cf6;
+  font-weight: 600;
+}
+
+/* 兴趣爱好样式 - 创意现代 */
+.hobby {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+
+.hobby text {
+  font-size: 20rpx;
+  color: #6b7280;
+  background: rgba(255, 255, 255, 0.85);
+  padding: 10rpx 20rpx;
+  border-radius: 20rpx;
+  border-left: 3rpx solid #ec4899;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.04);
+  transition: all 0.3s ease;
+}
+
+.hobby text:hover {
+  color: #1f2937;
+  background: rgba(255, 255, 255, 1);
+  transform: translateX(4rpx);
+}

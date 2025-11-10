@@ -7,6 +7,54 @@
   padding-bottom: 120rpx; /* 为底部固定按钮留出空间 */
 }
 
+/* 新模板样式支持 */
+.resume-card .template-three {
+  width: 100%;
+  height: auto;
+}
+
+.resume-card .template-four {
+  width: 100%;
+  height: auto;
+}
+
+.resume-card .template-five {
+  width: 100%;
+  height: auto;
+}
+
+.resume-card .template-six {
+  width: 100%;
+  height: auto;
+}
+
+/* 确保所有模板在预览容器中正确缩放 */
+.preview-container {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.resume-preview {
+  display: flex;
+  justify-content: center;
+  padding: 20rpx;
+}
+
+.resume-card {
+  transition: all 0.3s ease;
+}
+
+/* 响应式调整 */
+@media screen and (max-width: 768rpx) {
+  .resume-preview {
+    padding: 10rpx;
+  }
+  
+  .resume-card {
+    transform: scale(0.95);
+  }
+}
+
 .preview-container {
   background: white;
   padding: 0;

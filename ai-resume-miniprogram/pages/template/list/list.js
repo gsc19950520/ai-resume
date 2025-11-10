@@ -37,18 +37,46 @@ Page({
   getMockData: function() {
     return [
       {
-        id: '1',
+        id: 'template-one', 
+        name: '技术人才模板',
+        preview: '/images/template-technical.png',
+        type: 'technical',
+        description: '突出技能和项目经验的技术导向模板'
+      },
+      {
+        id: 'template-two',
         name: '简约专业模板',
         preview: '/images/template-basic.png',
         type: 'basic',
         description: '清晰简洁的专业风格，适合各类职位申请'
       },
       {
-        id: '2', 
-        name: '技术人才模板',
-        preview: '/images/template-technical.png',
-        type: 'technical',
-        description: '突出技能和项目经验的技术导向模板'
+        id: 'template-three',
+        name: '左侧导航型模板',
+        preview: '/images/template-three.png',
+        type: 'modern',
+        description: '左侧导航设计，内容展示清晰有条理'
+      },
+      {
+        id: 'template-four',
+        name: '现代卡片式模板',
+        preview: '/images/template-four.png',
+        type: 'card',
+        description: '时尚的卡片式布局，内容分区清晰'
+      },
+      {
+        id: 'template-five',
+        name: '深色主题模板',
+        preview: '/images/template-five.png',
+        type: 'dark',
+        description: '专业的深色主题设计，现代感强'
+      },
+      {
+        id: 'template-six',
+        name: '时尚简约模板',
+        preview: '/images/template-six.png',
+        type: 'fashion',
+        description: '时尚简约的设计风格，视觉效果出众'
       }
     ]
   },

@@ -1,0 +1,309 @@
+/* WXSS代码 - template-six 简历模板样式 - 极简主义 */
+
+/* 容器样式 - 极简主义 */
+.container {
+  padding: 0;
+  background-color: #f8f9fa;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+  margin: 0;
+}
+
+/* 简历主体样式 - 极简主义 */
+.resume {
+  background-color: #ffffff;
+  padding: 40rpx;
+  box-sizing: border-box;
+  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, sans-serif;
+  color: #333333;
+  line-height: 1.6;
+  max-width: 1000rpx;
+  margin: 0 auto;
+  width: 100%;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* 头部信息样式 - 极简主义 */
+.header {
+  margin-bottom: 48rpx;
+  text-align: center;
+  border-bottom: 1rpx solid #e0e0e0;
+  padding-bottom: 32rpx;
+}
+
+/* 左右布局 - 极简主义 */
+.header-left,
+.header-right {
+  width: 100%;
+}
+
+/* 姓名卡片 - 极简主义 */
+.name-card {
+  margin-bottom: 24rpx;
+}
+
+.name {
+  font-size: 48rpx;
+  font-weight: 300;
+  color: #333333;
+  margin-bottom: 16rpx;
+  letter-spacing: 4rpx;
+  text-transform: uppercase;
+}
+
+.position-title {
+  font-size: 26rpx;
+  color: #666666;
+  font-weight: 400;
+  letter-spacing: 1rpx;
+}
+
+/* 核心标签 - 极简主义 */
+.core-tags {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16rpx;
+  margin-top: 24rpx;
+}
+
+.tag {
+  padding: 8rpx 20rpx;
+  font-size: 20rpx;
+  font-weight: 400;
+  color: #333333;
+  border: 1rpx solid #e0e0e0;
+  border-radius: 0;
+  background: transparent;
+  transition: all 0.2s ease;
+}
+
+.tag.primary,
+.tag.secondary,
+.tag.salary {
+  background: transparent;
+  border: 1rpx solid #e0e0e0;
+  color: #333333;
+}
+
+.tag:hover {
+  border-color: #333333;
+  background: #333333;
+  color: #ffffff;
+}
+
+/* 信息组 - 极简主义 */
+.info-group {
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  border: none;
+  margin-bottom: 32rpx;
+}
+
+.info-item {
+  margin-bottom: 20rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+  padding-bottom: 16rpx;
+}
+
+.info-item:last-child {
+  margin-bottom: 0;
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.info-label {
+  font-size: 20rpx;
+  font-weight: 400;
+  color: #666666;
+  margin-bottom: 8rpx;
+  text-transform: uppercase;
+  letter-spacing: 2rpx;
+}
+
+.info-value {
+  font-size: 24rpx;
+  color: #333333;
+  line-height: 1.5;
+}
+
+/* 联系方式组 - 极简主义 */
+.contact-group {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+  margin-bottom: 40rpx;
+}
+
+.contact-item {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.contact-item:hover {
+  background: transparent;
+  transform: none;
+}
+
+.contact-icon {
+  width: 28rpx;
+  height: 28rpx;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  flex-shrink: 0;
+}
+
+.phone-icon {
+  background-color: #333333;
+  mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20,15.5C18.8,15.5 17.5,15.3 16.4,14.9C16.3,14.9 16.2,14.9 16.1,15C15.8,15.3 15.5,15.5 15.2,15.5H14.8C14.5,15.5 14.2,15.3 13.9,15C13.8,14.9 13.7,14.9 13.6,14.9C12.5,15.3 11.2,15.5 10,15.5C8.8,15.5 7.5,15.3 6.4,14.9C6.3,14.9 6.2,14.9 6.1,15C5.8,15.3 5.5,15.5 5.2,15.5H4.8C4.5,15.5 4.2,15.3 3.9,15C3.8,14.9 3.7,14.9 3.6,14.9C2.5,15.3 1.2,15.5 0,15.5V18.5C1.2,18.5 2.5,18.3 3.6,17.9C3.7,17.9 3.8,17.9 3.9,17.8C4.2,17.5 4.5,17.3 4.8,17.3H5.2C5.5,17.3 5.8,17.5 6.1,17.8C6.2,17.9 6.3,17.9 6.4,17.9C7.5,18.3 8.8,18.5 10,18.5C11.2,18.5 12.5,18.3 13.6,17.9C13.7,17.9 13.8,17.9 13.9,17.8C14.2,17.5 14.5,17.3 14.8,17.3H15.2C15.5,17.3 15.8,17.5 16.1,17.8C16.2,17.9 16.3,17.9 16.4,17.9C17.5,18.3 18.8,18.5 20,18.5V15.5Z"/></svg>');
+  -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20,15.5C18.8,15.5 17.5,15.3 16.4,14.9C16.3,14.9 16.2,14.9 16.1,15C15.8,15.3 15.5,15.5 15.2,15.5H14.8C14.5,15.5 14.2,15.3 13.9,15C13.8,14.9 13.7,14.9 13.6,14.9C12.5,15.3 11.2,15.5 10,15.5C8.8,15.5 7.5,15.3 6.4,14.9C6.3,14.9 6.2,14.9 6.1,15C5.8,15.3 5.5,15.5 5.2,15.5H4.8C4.5,15.5 4.2,15.3 3.9,15C3.8,14.9 3.7,14.9 3.6,14.9C2.5,15.3 1.2,15.5 0,15.5V18.5C1.2,18.5 2.5,18.3 3.6,17.9C3.7,17.9 3.8,17.9 3.9,17.8C4.2,17.5 4.5,17.3 4.8,17.3H5.2C5.5,17.3 5.8,17.5 6.1,17.8C6.2,17.9 6.3,17.9 6.4,17.9C7.5,18.3 8.8,18.5 10,18.5C11.2,18.5 12.5,18.3 13.6,17.9C13.7,17.9 13.8,17.9 13.9,17.8C14.2,17.5 14.5,17.3 14.8,17.3H15.2C15.5,17.3 15.8,17.5 16.1,17.8C16.2,17.9 16.3,17.9 16.4,17.9C17.5,18.3 18.8,18.5 20,18.5V15.5Z"/></svg>');
+}
+
+.email-icon {
+  background-color: #333333;
+  mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20,4H4C2.9,4 2,4.9 2,6V18C2,19.1 2.9,20 4,20H20C21.1,20 22,19.1 22,18V6C22,4.9 21.1,4 20,4M20,8L12,13L4,8V6L12,11L20,6V8Z"/></svg>');
+  -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20,4H4C2.9,4 2,4.9 2,6V18C2,19.1 2.9,20 4,20H20C21.1,20 22,19.1 22,18V6C22,4.9 21.1,4 20,4M20,8L12,13L4,8V6L12,11L20,6V8Z"/></svg>');
+}
+
+.contact-text {
+  font-size: 22rpx;
+  color: #333333;
+  font-weight: 400;
+}
+
+/* 分隔线样式 - 极简主义 */
+.divider {
+  height: 1rpx;
+  background-color: #e0e0e0;
+  margin: 40rpx 0;
+}
+
+/* 各部分标题容器样式 - 极简主义 */
+.section {
+  margin-bottom: 48rpx;
+}
+
+/* 部分标题样式 - 极简主义 */
+.section-title {
+  font-size: 24rpx;
+  font-weight: 400;
+  color: #333333;
+  margin-bottom: 24rpx;
+  padding-bottom: 12rpx;
+  text-transform: uppercase;
+  letter-spacing: 2rpx;
+  border-bottom: 1rpx solid #e0e0e0;
+}
+
+/* 经历项目样式 - 极简主义 */
+.experience-item {
+  margin-bottom: 40rpx;
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+
+/* 工作经历头部样式 - 极简主义 */
+.job-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+  margin-bottom: 16rpx;
+}
+
+/* 公司名称样式 - 极简主义 */
+.company {
+  font-size: 24rpx;
+  font-weight: 500;
+  color: #333333;
+}
+
+/* 职位样式 - 极简主义 */
+.position {
+  font-size: 22rpx;
+  color: #666666;
+  font-weight: 400;
+}
+
+/* 时间样式 - 极简主义 */
+.time {
+  font-size: 20rpx;
+  color: #999999;
+  font-weight: 400;
+}
+
+/* 工作职责样式 - 极简主义 */
+.job-duties {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+/* 工作职责文本样式 - 极简主义 */
+.job-duties text {
+  font-size: 22rpx;
+  color: #333333;
+  line-height: 1.5;
+  word-break: break-all;
+  padding-left: 16rpx;
+}
+
+/* 技能特长容器样式 - 极简主义 */
+.skills {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+/* 单个技能项样式 - 极简主义 */
+.skill-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16rpx 0;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.skill-item:last-child {
+  border-bottom: none;
+}
+
+/* 技能名称、等级和熟练度样式 - 极简主义 */
+.skill-name {
+  font-size: 22rpx;
+  color: #333333;
+  font-weight: 400;
+}
+
+.skill-level,
+.skill-proficiency {
+  font-size: 20rpx;
+  color: #666666;
+  font-weight: 400;
+}
+
+/* 兴趣爱好样式 - 极简主义 */
+.hobby {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+
+.hobby text {
+  font-size: 22rpx;
+  color: #333333;
+  padding: 8rpx 20rpx;
+  border: 1rpx solid #e0e0e0;
+  border-radius: 0;
+}

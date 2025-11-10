@@ -36,7 +36,7 @@
           <view class="module-title">AI职业成长报告</view>
           <view class="module-desc">基于面试历史自动生成</view>
         </view>
-        <view class="trend-indicator" wx:if="lastInterviewScore">
+        <view class="trend-indicator" wx:if="{{lastInterviewScore}}">
           <text class="trend-text">上次得分: {{lastInterviewScore}}</text>
         </view>
       </view>
@@ -55,7 +55,7 @@
   </view>
   
   <!-- 智能推荐模块 -->
-  <view class="smart-recommend-section" wx:if="userInfo">
+  <view class="smart-recommend-section" wx:if="{{userInfo}}">
     <view class="section-header">
       <text class="section-title">智能推荐</text>
     </view>
