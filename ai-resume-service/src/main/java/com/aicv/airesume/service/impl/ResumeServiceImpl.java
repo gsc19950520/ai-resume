@@ -1,18 +1,21 @@
 package com.aicv.airesume.service.impl;
 
 import com.aicv.airesume.entity.Resume;
+import com.aicv.airesume.entity.Template;
 import com.aicv.airesume.entity.User;
 import com.aicv.airesume.repository.ResumeRepository;
 import com.aicv.airesume.service.ResumeService;
+import com.aicv.airesume.service.TemplateRendererService;
+import com.aicv.airesume.service.TemplateService;
 import com.aicv.airesume.service.UserService;
 import com.aicv.airesume.utils.AiServiceUtils;
 import com.aicv.airesume.utils.FileUtils;
 import com.aicv.airesume.utils.OssUtils;
+import com.aicv.airesume.utils.RetryUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-import com.aicv.airesume.utils.RetryUtils;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -154,18 +157,70 @@ public class ResumeServiceImpl implements ResumeService {
         });
     }
 
+    @Autowired
+    private TemplateRendererService templateRendererService;
+    
+    @Autowired
+    private TemplateService templateService;
+    
     // 添加缺失的exportResumeToWord方法（单参数版本）
     @Override
     public byte[] exportResumeToWord(Long resumeId) {
-        // 临时返回空字节数组
-        return new byte[0];
+        try {
+            return retryUtils.executeWithDefaultRetry(() -> {
+                Resume resume = resumeRepository.findById(resumeId)
+                        .orElseThrow(() -> new RuntimeException("简历不存在"));
+                
+                // 获取模板信息
+                Template template = null;
+                if (resume.getTemplateId() != null) {
+                    template = templateService.getTemplateById(resume.getTemplateId());
+                }
+                
+                // 如果没有指定模板或模板不存在，使用默认模板
+                if (template == null) {
+                    List<Template> templates = templateService.getAllTemplates();
+                    if (!templates.isEmpty()) {
+                        template = templates.get(0);
+                    }
+                }
+                
+                // 使用模板渲染服务生成Word文档
+                return templateRendererService.renderResumeToWord(template, resume);
+            });
+        } catch (Exception e) {
+            throw new RuntimeException("导出Word文档失败", e);
+        }
     }
     
     // 添加缺失的exportResumeToPdf方法（单参数版本）
     @Override
     public byte[] exportResumeToPdf(Long resumeId) {
-        // 临时返回空字节数组
-        return new byte[0];
+        try {
+            return retryUtils.executeWithDefaultRetry(() -> {
+                Resume resume = resumeRepository.findById(resumeId)
+                        .orElseThrow(() -> new RuntimeException("简历不存在"));
+                
+                // 获取模板信息
+                Template template = null;
+                if (resume.getTemplateId() != null) {
+                    template = templateService.getTemplateById(resume.getTemplateId());
+                }
+                
+                // 如果没有指定模板或模板不存在，使用默认模板
+                if (template == null) {
+                    List<Template> templates = templateService.getAllTemplates();
+                    if (!templates.isEmpty()) {
+                        template = templates.get(0);
+                    }
+                }
+                
+                // 使用模板渲染服务生成PDF文档
+                return templateRendererService.renderResumeToPdf(template, resume);
+            });
+        } catch (Exception e) {
+            throw new RuntimeException("导出PDF文档失败", e);
+        }
     }
     
 

@@ -4,7 +4,7 @@ App({
     userInfo: null,
     userProfile: null, // 用户头像和昵称等信息
     token: '',
-    baseUrl: 'http://localhost:8080/api', // 本地开发环境
+    baseUrl: 'https://7465-test-env-55252f-1258669146.tcb.qcloud.la/api', // 云托管环境
     cloudBaseUrl: '', // 云托管服务地址，使用callContainer时无需配置
     useCloud: true, // 使用云托管服务（通过callContainer调用）
     cloudEnvId: 'prod-1gwm267i6a10e7cb' // 微信云托管环境ID

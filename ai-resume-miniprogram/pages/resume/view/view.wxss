@@ -174,15 +174,65 @@
   font-size: 28rpx;
 }
 
+/* 加载状态 */
+.loading-state {
+  text-align: center;
+  padding: 60rpx 0;
+}
+
+.loading-container {
+  text-align: center;
+  padding: 80rpx 0;
+}
+
+.loading-spinner {
+  width: 60rpx;
+  height: 60rpx;
+  margin: 0 auto 20rpx;
+  border: 4rpx solid #f3f3f3;
+  border-top: 4rpx solid #3498db;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-text {
+  color: #666;
+  font-size: 28rpx;
+}
+
 /* 空状态 */
 .empty-state {
   text-align: center;
   padding: 100rpx 0;
 }
 
+.empty-icon {
+  font-size: 100rpx;
+  margin-bottom: 30rpx;
+}
+
 .empty-text {
-  font-size: 32rpx;
   color: #999;
+  font-size: 28rpx;
+  margin-bottom: 40rpx;
+}
+
+.empty-btn {
+  background-color: #1aad19;
+  color: white;
+  font-size: 28rpx;
+  padding: 20rpx 60rpx;
+  margin-bottom: 20rpx;
+}
+
+.empty-btn.secondary {
+  background-color: #f0f0f0;
+  color: #333;
 }
 
 /* 底部按钮 */

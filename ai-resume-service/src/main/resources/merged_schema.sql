@@ -69,6 +69,9 @@ CREATE TABLE IF NOT EXISTS template (
     description TEXT COMMENT '模板描述',
     thumbnail_url VARCHAR(255) NOT NULL COMMENT '缩略图URL',
     template_url VARCHAR(255) NOT NULL COMMENT '模板URL',
+    word_template_url VARCHAR(255) DEFAULT NULL COMMENT 'Word模板URL',
+    html_template_content TEXT COMMENT 'HTML模板内容',
+    template_type VARCHAR(20) NOT NULL DEFAULT 'fixed' COMMENT '模板类型：fixed(固定模板)、dynamic(动态模板)',
     job_type VARCHAR(50) NOT NULL COMMENT '职位类型',
     price INT NOT NULL COMMENT '价格(分)',
     is_free TINYINT NOT NULL DEFAULT 0 COMMENT '是否免费 0:否 1:是',
@@ -78,7 +81,8 @@ CREATE TABLE IF NOT EXISTS template (
     update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     INDEX idx_job_type (job_type),
     INDEX idx_is_free (is_free),
-    INDEX idx_vip_only (vip_only)
+    INDEX idx_vip_only (vip_only),
+    INDEX idx_template_type (template_type)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='模板表';
 
 -- 简历表
@@ -89,10 +93,21 @@ CREATE TABLE IF NOT EXISTS resume (
     file_path VARCHAR(255) NOT NULL COMMENT '文件路径',
     file_type VARCHAR(50) NOT NULL COMMENT '文件类型',
     job_type VARCHAR(100) NOT NULL COMMENT '职位类型',
+    name VARCHAR(50) DEFAULT NULL COMMENT '姓名',
+    email VARCHAR(100) DEFAULT NULL COMMENT '邮箱',
+    phone VARCHAR(20) DEFAULT NULL COMMENT '电话',
+    address VARCHAR(255) DEFAULT NULL COMMENT '地址',
+    birth_date VARCHAR(20) DEFAULT NULL COMMENT '出生日期',
+    objective TEXT COMMENT '求职目标',
+    profile TEXT COMMENT '个人简介',
     original_content TEXT COMMENT '原始内容',
     optimized_content TEXT COMMENT '优化后内容',
     ai_score INT DEFAULT NULL COMMENT 'AI评分',
     ai_suggestion TEXT COMMENT 'AI建议',
+    education TEXT COMMENT '教育经历(JSON格式)',
+    work_experience TEXT COMMENT '工作经验(JSON格式)',
+    skills TEXT COMMENT '技能列表(JSON格式)',
+    projects TEXT COMMENT '项目经历(JSON格式)',
     download_url_pdf VARCHAR(255) DEFAULT NULL COMMENT 'PDF下载链接',
     download_url_word VARCHAR(255) DEFAULT NULL COMMENT 'Word下载链接',
     template_id BIGINT DEFAULT NULL COMMENT '模板ID',

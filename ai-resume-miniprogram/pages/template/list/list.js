@@ -23,14 +23,6 @@ Page({
       })
       console.log('使用模拟数据显示简历模板')
     }, 1000)
-    
-    /* 保留原始API调用，但优先使用模拟数据
-    // 调用获取模板列表API
-    app.request('/api/template/list', 'GET', {}, res => {
-      console.log('模板列表API返回:', res)
-      // API调用结果不会覆盖已设置的模拟数据
-    })
-    */
   },
 
   // 获取模拟数据
@@ -39,44 +31,16 @@ Page({
       {
         id: 'template-one', 
         name: '技术人才模板',
-        preview: '/images/template-technical.png',
+        preview: '/images/template-one.png',
         type: 'technical',
         description: '突出技能和项目经验的技术导向模板'
       },
       {
         id: 'template-two',
         name: '简约专业模板',
-        preview: '/images/template-basic.png',
+        preview: '/images/template-two.png',
         type: 'basic',
         description: '清晰简洁的专业风格，适合各类职位申请'
-      },
-      {
-        id: 'template-three',
-        name: '左侧导航型模板',
-        preview: '/images/template-three.png',
-        type: 'modern',
-        description: '左侧导航设计，内容展示清晰有条理'
-      },
-      {
-        id: 'template-four',
-        name: '现代卡片式模板',
-        preview: '/images/template-four.png',
-        type: 'card',
-        description: '时尚的卡片式布局，内容分区清晰'
-      },
-      {
-        id: 'template-five',
-        name: '深色主题模板',
-        preview: '/images/template-five.png',
-        type: 'dark',
-        description: '专业的深色主题设计，现代感强'
-      },
-      {
-        id: 'template-six',
-        name: '时尚简约模板',
-        preview: '/images/template-six.png',
-        type: 'fashion',
-        description: '时尚简约的设计风格，视觉效果出众'
       }
     ]
   },

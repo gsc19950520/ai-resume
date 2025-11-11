@@ -11,11 +11,6 @@ Page({
     createMode: 'template',
     
     // 模板模式相关数据
-    templates: [
-      { id: 'basic', name: '基础简历' },
-      { id: 'technical', name: '技术简历' },
-      { id: 'creative', name: '创意简历' }
-    ],
     selectedTemplateId: '',
     
     // AI生成模式相关数据
@@ -34,14 +29,6 @@ Page({
         wx.navigateTo({ url: '/pages/login/login' })
       }, 1500)
       return
-    }
-    
-    // 页面加载时的逻辑
-    // 默认选择第一个模板
-    if (this.data.templates.length > 0) {
-      this.setData({
-        selectedTemplateId: this.data.templates[0].id
-      });
     }
   },
 
@@ -86,6 +73,8 @@ Page({
       createMode: 'ai'
     });
   },
+
+
 
   // 选择模板
   selectTemplate: function(e) {

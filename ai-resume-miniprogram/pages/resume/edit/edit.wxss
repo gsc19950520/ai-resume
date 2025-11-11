@@ -129,12 +129,29 @@
 
 .item-header {
   margin-bottom: 30rpx;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .item-title {
   font-size: 32rpx;
   font-weight: bold;
   color: #333;
+}
+
+/* 删除按钮样式 */
+.delete-btn {
+  font-size: 28rpx;
+  color: #ff4d4f;
+  padding: 8rpx 20rpx;
+  border-radius: 15rpx;
+  background-color: #fff1f0;
+  border: 1rpx solid #ffccc7;
+}
+
+.delete-btn:active {
+  background-color: #ffccc7;
 }
 
 /* 添加按钮 */

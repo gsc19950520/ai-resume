@@ -1,5 +1,7 @@
 package com.aicv.airesume.repository;
 
+import java.util.Optional;
+
 import com.aicv.airesume.entity.Template;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -31,4 +33,16 @@ public interface TemplateRepository extends JpaRepository<Template, Long> {
      * 根据岗位类型和VIP状态查询模板
      */
     List<Template> findByJobTypeAndVipOnlyOrderByUseCountDesc(String jobType, Boolean vipOnly);
+    
+    /**
+     * 根据模板类型查询模板
+     */
+    List<Template> findByTemplateType(String templateType);
+    
+    /**
+     * 根据Word模板URL查询模板
+     */
+    Optional<Template> findByWordTemplateUrl(String wordTemplateUrl);
+    
+
 }

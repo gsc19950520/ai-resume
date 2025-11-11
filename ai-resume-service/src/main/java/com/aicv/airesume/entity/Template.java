@@ -30,6 +30,15 @@ public class Template {
     @Column(nullable = false)
     private String templateUrl;
 
+    @Column(name = "word_template_url")
+    private String wordTemplateUrl;
+
+    @Column(name = "html_template_content", columnDefinition = "text")
+    private String htmlTemplateContent;
+
+    @Column(name = "template_type", nullable = false, columnDefinition = "varchar(20) default 'fixed'")
+    private String templateType = "fixed";
+
     @Column(nullable = false)
     private String jobType;
 

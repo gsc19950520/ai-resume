@@ -42,6 +42,11 @@
           <text class="label">地址</text>
           <input class="input" placeholder="请输入居住地址" value="{{resumeInfo.personalInfo.address}}" bindinput="savePersonalInfo" data-field="address" />
         </view>
+        
+        <view class="form-item">
+          <text class="label">出生日期</text>
+          <input class="input" placeholder="请输入出生日期，如：1990-01-01" value="{{resumeInfo.personalInfo.birthDate}}" bindinput="savePersonalInfo" data-field="birthDate" />
+        </view>
     </view>
 
     <!-- 教育经历部分 -->
@@ -49,32 +54,34 @@
         <view class="education-item" wx:for="{{resumeInfo.education}}" wx:key="id">
         <view class="item-header">
           <text class="item-title">教育经历 {{index + 1}}</text>
+          <!-- 只有当项目数量大于1时才显示删除按钮 -->
+          <text wx:if="{{resumeInfo.education.length > 1}}" class="delete-btn" bindtap="removeEducation" data-index="{{index}}">删除</text>
         </view>
         
         <view class="form-item">
           <text class="label">学校名称</text>
-          <input class="input" placeholder="请输入学校名称" bindinput="onEducationInput" data-index="{{index}}" data-field="school" />
+          <input class="input" placeholder="请输入学校名称" value="{{item.school}}" bindinput="onEducationInput" data-index="{{index}}" data-field="school" />
         </view>
         
         <view class="form-item">
           <text class="label">专业</text>
-          <input class="input" placeholder="请输入专业名称" bindinput="onEducationInput" data-index="{{index}}" data-field="major" />
+          <input class="input" placeholder="请输入专业名称" value="{{item.major}}" bindinput="onEducationInput" data-index="{{index}}" data-field="major" />
         </view>
         
         <view class="form-item">
           <text class="label">学历</text>
-          <input class="input" placeholder="请输入学历" bindinput="onEducationInput" data-index="{{index}}" data-field="degree" />
+          <input class="input" placeholder="请输入学历" value="{{item.degree}}" bindinput="onEducationInput" data-index="{{index}}" data-field="degree" />
         </view>
         
         <view class="date-row">
           <view class="form-item date-item">
             <text class="label">开始时间</text>
-            <input class="input" placeholder="YYYY-MM" bindinput="onEducationInput" data-index="{{index}}" data-field="startDate" />
+            <input class="input" placeholder="YYYY-MM" value="{{item.startDate}}" bindinput="onEducationInput" data-index="{{index}}" data-field="startDate" />
           </view>
           
           <view class="form-item date-item">
             <text class="label">结束时间</text>
-            <input class="input" placeholder="YYYY-MM" bindinput="onEducationInput" data-index="{{index}}" data-field="endDate" />
+            <input class="input" placeholder="YYYY-MM" value="{{item.endDate}}" bindinput="onEducationInput" data-index="{{index}}" data-field="endDate" />
           </view>
         </view>
       </view>
@@ -87,33 +94,35 @@
         <view class="work-item" wx:for="{{resumeInfo.workExperience}}" wx:key="id">
         <view class="item-header">
           <text class="item-title">工作经历 {{index + 1}}</text>
+          <!-- 只有当项目数量大于1时才显示删除按钮 -->
+          <text wx:if="{{resumeInfo.workExperience.length > 1}}" class="delete-btn" bindtap="removeWorkExperience" data-index="{{index}}">删除</text>
         </view>
         
         <view class="form-item">
           <text class="label">公司名称</text>
-          <input class="input" placeholder="请输入公司名称" bindinput="onWorkInput" data-index="{{index}}" data-field="company" />
+          <input class="input" placeholder="请输入公司名称" value="{{item.company}}" bindinput="onWorkInput" data-index="{{index}}" data-field="company" />
         </view>
         
         <view class="form-item">
           <text class="label">职位</text>
-          <input class="input" placeholder="请输入职位" bindinput="onWorkInput" data-index="{{index}}" data-field="position" />
+          <input class="input" placeholder="请输入职位" value="{{item.position}}" bindinput="onWorkInput" data-index="{{index}}" data-field="position" />
         </view>
         
         <view class="date-row">
           <view class="form-item date-item">
             <text class="label">开始时间</text>
-            <input class="input" placeholder="YYYY-MM" bindinput="onWorkInput" data-index="{{index}}" data-field="startDate" />
+            <input class="input" placeholder="YYYY-MM" value="{{item.startDate}}" bindinput="onWorkInput" data-index="{{index}}" data-field="startDate" />
           </view>
           
           <view class="form-item date-item">
             <text class="label">结束时间</text>
-            <input class="input" placeholder="YYYY-MM" bindinput="onWorkInput" data-index="{{index}}" data-field="endDate" />
+            <input class="input" placeholder="YYYY-MM" value="{{item.endDate}}" bindinput="onWorkInput" data-index="{{index}}" data-field="endDate" />
           </view>
         </view>
         
         <view class="form-item">
           <text class="label">工作描述</text>
-          <textarea class="textarea" placeholder="请描述您的工作职责和成就" bindinput="onWorkInput" data-index="{{index}}" data-field="description" />
+          <textarea class="textarea" placeholder="请描述您的工作职责和成就" value="{{item.description}}" bindinput="onWorkInput" data-index="{{index}}" data-field="description" />
         </view>
       </view>
       

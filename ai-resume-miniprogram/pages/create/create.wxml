@@ -36,9 +36,13 @@
       <view class="form-item">
         <text class="label">选择模板</text>
         <view class="template-list">
-          <view class="template-item" wx:for="{{templates}}" wx:key="id" bindtap="selectTemplate" data-id="{{item.id}}">
-            <view class="template-preview">{{item.name}} 预览</view>
-            <text class="template-name">{{item.name}}</text>
+          <view class="template-item" bindtap="selectTemplate" data-id="template-one">
+            <view class="template-preview">技术人才模板</view>
+            <text class="template-name">技术人才模板</text>
+          </view>
+          <view class="template-item" bindtap="selectTemplate" data-id="template-two">
+            <view class="template-preview">简约专业模板</view>
+            <text class="template-name">简约专业模板</text>
           </view>
         </view>
       </view>

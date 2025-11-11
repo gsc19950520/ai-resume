@@ -1,11 +1,14 @@
 package com.aicv.airesume.controller;
 
 import com.aicv.airesume.entity.Template;
+import com.aicv.airesume.service.TemplateRendererService;
 import com.aicv.airesume.service.TemplateService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 模板控制器
@@ -16,6 +19,9 @@ public class TemplateController {
 
     @Autowired
     private TemplateService templateService;
+    
+    @Autowired
+    private TemplateRendererService templateRendererService;
 
     /**
      * 获取所有模板
@@ -60,8 +66,12 @@ public class TemplateController {
      * @return 模板信息
      */
     @GetMapping("/{id}")
-    public Template getTemplateById(@PathVariable Long id) {
-        return templateService.getTemplateById(id);
+    public Map<String, Object> getTemplateById(@PathVariable Long id) {
+        Template template = templateService.getTemplateById(id);
+        Map<String, Object> response = new HashMap<>();
+        response.put("code", 200);
+        response.put("data", template);
+        return response;
     }
 
     /**
@@ -82,5 +92,36 @@ public class TemplateController {
     @GetMapping("/check-permission")
     public Boolean checkTemplatePermission(@RequestParam Long userId, @RequestParam Long templateId) {
         return templateService.checkTemplatePermission(userId, templateId);
+    }
+    
+    /**
+     * 从Word模板生成HTML内容
+     * @param id 模板ID
+     * @return HTML模板内容
+     */
+    @GetMapping("/{id}/generate-html")
+    public Map<String, Object> generateHtmlFromWordTemplate(@PathVariable Long id) {
+        try {
+            Template template = templateService.getTemplateById(id);
+            if (template == null) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("code", 404);
+                errorResponse.put("message", "模板不存在");
+                return errorResponse;
+            }
+            
+            // 使用模板渲染服务从本地Word模板生成HTML
+            String htmlContent = templateRendererService.generateHtmlFromLocalWordTemplate(template);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 200);
+            response.put("data", htmlContent);
+            return response;
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("code", 500);
+            errorResponse.put("message", "生成HTML模板失败: " + e.getMessage());
+            return errorResponse;
+        }
     }
 }

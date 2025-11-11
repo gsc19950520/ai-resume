@@ -43,4 +43,24 @@ public interface TemplateService {
      * 检查模板使用权限
      */
     boolean checkTemplatePermission(Long userId, Long templateId);
+    
+    /**
+     * 根据模板类型获取模板
+     */
+    List<Template> getTemplatesByType(String templateType);
+    
+    /**
+     * 根据Word模板URL获取模板
+     */
+    Template getTemplateByWordUrl(String wordTemplateUrl);
+    
+    /**
+     * 保存或更新模板
+     */
+    Template saveTemplate(Template template);
+    
+    /**
+     * 更新模板使用次数
+     */
+    void updateTemplateUsageCount(Long templateId);
 }

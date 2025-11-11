@@ -51,7 +51,6 @@
     "downloadFile": 10000
   },
   "cloud": true,
-  "permission": {},
   "style": "v2",
   "sitemapLocation": "sitemap.json"
 }

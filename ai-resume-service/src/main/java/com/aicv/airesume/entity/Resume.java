@@ -34,6 +34,31 @@ public class Resume {
     @Column(nullable = false)
     private String jobType;
 
+    // 个人基本信息字段
+    private String name; // 姓名
+    private String email; // 邮箱
+    private String phone; // 电话
+    private String address; // 地址
+    @Column(name = "birth_date")
+    private String birthDate; // 出生日期
+    private String objective; // 求职目标
+    private String profile; // 个人简介
+    
+    // 项目经历，JSON格式存储
+    private String projects;
+    
+    // 教育经历，JSON格式存储
+    @Column(name = "education")
+    private String education;
+    
+    // 工作经验，JSON格式存储
+    @Column(name = "work_experience")
+    private String workExperience;
+    
+    // 技能列表，JSON格式存储
+    @Column(name = "skills")
+    private String skills;
+    
     private String originalContent;
     @Column(name = "optimized_content")
     private String optimizedContent;
@@ -60,7 +85,7 @@ public class Resume {
     
     @Column(name = "job_type_id")
     private Long jobTypeId;
-    
+
     // 获取templateId
     public Long getTemplateId() {
         return templateId;

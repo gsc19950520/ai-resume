@@ -62,10 +62,65 @@ public class TemplateServiceImpl implements TemplateService {
 
     @Override
     public void addTemplateUseCount(Long templateId) {
+        // 调用更新模板使用次数的方法
+        updateTemplateUsageCount(templateId);
     }
 
     @Override
     public boolean checkTemplatePermission(Long userId, Long templateId) {
         return true;
+    }
+
+    @Override
+    public List<Template> getTemplatesByType(String templateType) {
+        return retryUtils.executeWithDefaultRetrySupplier(() -> {
+            return templateRepository.findByTemplateType(templateType);
+        });
+    }
+
+    @Override
+    public Template getTemplateByWordUrl(String wordTemplateUrl) {
+        return retryUtils.executeWithDefaultRetrySupplier(() -> {
+            return templateRepository.findByWordTemplateUrl(wordTemplateUrl).orElse(null);
+        });
+    }
+
+    @Override
+    public Template saveTemplate(Template template) {
+        return retryUtils.executeWithDefaultRetrySupplier(() -> {
+            // 如果是新模板，设置默认值
+            if (template.getTemplateType() == null) {
+                template.setTemplateType("fixed");
+            }
+            if (template.getUseCount() == null) {
+                template.setUseCount(0);
+            }
+            // 确保wordTemplateUrl存储的是resources/template下的相对路径
+            if (template.getWordTemplateUrl() != null) {
+                String templatePath = template.getWordTemplateUrl();
+                // 移除可能的前缀，确保只存储文件名或相对路径
+                if (templatePath.startsWith("template/") || templatePath.startsWith("/template/")) {
+                    template.setWordTemplateUrl(templatePath.replaceFirst("^/?template/", ""));
+                }
+            }
+            return templateRepository.save(template);
+        });
+    }
+
+    @Override
+    public void updateTemplateUsageCount(Long templateId) {
+        try {
+            retryUtils.executeWithDefaultRetry(() -> {
+                Template template = templateRepository.findById(templateId)
+                        .orElseThrow(() -> new RuntimeException("模板不存在"));
+                
+                // 增加使用次数
+                template.setUseCount(template.getUseCount() + 1);
+                templateRepository.save(template);
+                return null;
+            });
+        } catch (Exception e) {
+            throw new RuntimeException("更新模板使用次数失败", e);
+        }
     }
 }
