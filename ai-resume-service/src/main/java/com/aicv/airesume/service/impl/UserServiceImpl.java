@@ -339,9 +339,4 @@ public class UserServiceImpl implements UserService {
         }
     }
 
-    public static void main(String[] args) {
-        UserServiceImpl userService = new UserServiceImpl();
-        String avatarUrl = userService.generateCartoonAvatar("123456");
-        System.out.println(avatarUrl);
-    }
 }

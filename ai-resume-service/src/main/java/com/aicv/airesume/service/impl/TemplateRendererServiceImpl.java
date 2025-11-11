@@ -562,6 +562,9 @@ public class TemplateRendererServiceImpl implements TemplateRendererService {
      * @return 渲染后的HTML内容
      * @throws Exception 渲染过程中可能出现的异常
      */
+    @Autowired
+    private SpringTemplateEngine springTemplateEngine;
+    
     @Override
     public String renderHtmlTemplate(String htmlTemplate, Map<String, Object> resumeData) throws Exception {
         logger.info("开始渲染HTML模板");
@@ -574,16 +577,8 @@ public class TemplateRendererServiceImpl implements TemplateRendererService {
             Context context = new Context();
             context.setVariables(resumeData);
             
-            // 创建字符串模板解析器
-            StringTemplateResolver templateResolver = new StringTemplateResolver();
-            templateResolver.setTemplateMode(TemplateMode.HTML);
-            
-            // 创建并配置TemplateEngine
-            org.thymeleaf.TemplateEngine templateEngine = new org.thymeleaf.TemplateEngine();
-            templateEngine.setTemplateResolver(templateResolver);
-            
-            // 使用标准方法渲染字符串模板
-            String renderedHtml = templateEngine.process(thymeleafTemplate, context);
+            // 使用Spring自动配置的TemplateEngine，避免手动创建带来的依赖问题
+            String renderedHtml = springTemplateEngine.process(thymeleafTemplate, context);
             
             logger.info("HTML模板渲染完成，生成的HTML长度: {} 字符", renderedHtml.length());
             return renderedHtml;

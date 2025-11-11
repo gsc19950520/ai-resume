@@ -188,8 +188,8 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-thymeleaf</artifactId>
         </dependency>
-        <!-- 移除显式的OGNL依赖，让Spring Boot自动管理兼容版本 -->
-        <!-- Thymeleaf会通过Spring Boot的依赖管理自动引入正确版本的OGNL -->
+        <!-- 不再需要显式的OGNL依赖，因为我们现在使用SpringTemplateEngine -->
+        <!-- Spring Boot会自动管理Thymeleaf及其相关依赖的版本兼容性 -->
         
         <!-- JWT -->
         <dependency>
