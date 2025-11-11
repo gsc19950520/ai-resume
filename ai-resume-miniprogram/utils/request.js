@@ -2,45 +2,12 @@
 const app = getApp()
 
 /**
- * 封装云托管容器调用（使用callContainer方法）
- * @param {string} path - 请求路径
- * @param {object} data - 请求参数
- * @param {string} method - 请求方法
- * @param {object} header - 请求头
- * @returns {Promise} 返回Promise对象
+ * 直接使用app.js中已定义的cloudCall方法
+ * 确保配置一致性，避免重复代码
  */
 const cloudCall = (path, data = {}, method = 'GET', header = {}) => {
-  return new Promise((resolve, reject) => {
-    // 确保云环境ID已配置
-    if (!app.globalData.cloudEnvId) {
-      console.error('云托管环境ID未配置，请在app.js中设置正确的cloudEnvId')
-      reject(new Error('云托管环境ID未配置'))
-      return
-    }
-    
-    wx.cloud.callContainer({
-      config: {
-        env: app.globalData.cloudEnvId // 云托管环境ID
-      },
-      // 确保路径格式正确，避免重复添加/api前缀
-      path: path.startsWith('/api') ? path : `/api${path}`,
-      method: method,
-      header: {
-        'content-type': 'application/json',
-        'token': app.globalData.token || '',
-        'X-WX-SERVICE': 'springboot-bq0e', // 添加服务名
-        ...header
-      },
-      data,
-      success: res => {
-        resolve(res.data)
-      },
-      fail: err => {
-        console.error('云托管调用失败', err)
-        reject(err)
-      }
-    })
-  })
+  console.log('使用app.js中的cloudCall方法进行请求:', { path, method })
+  return app.cloudCall(path, data, method, header)
 }
 
 /**
@@ -57,29 +24,46 @@ const request = (url, data = {}, method = 'GET', header = {}) => {
   return cloudCall(url, data, method, header)
     .then(res => {
       // 业务状态码处理
-      if (res.code === 0) {
-        return res.data
-      } else if (res.code === 401) {
-        // 登录过期，需要重新登录
-        app.logout()
-        wx.navigateTo({ url: '/pages/login/login' })
-        throw new Error('登录已过期，请重新登录')
+      // 检查是否是标准的响应格式（包含code字段）
+      if (res && typeof res === 'object' && 'code' in res) {
+        if (res.code === 0) {
+          return res.data
+        } else if (res.code === 401) {
+          // 登录过期，需要重新登录
+          app.logout()
+          wx.navigateTo({ url: '/pages/login/login' })
+          throw new Error('登录已过期，请重新登录')
+        } else {
+          // 其他错误，提示错误信息
+          wx.showToast({
+            title: res.message || '请求失败',
+            icon: 'none'
+          })
+          throw new Error(res.message || '请求失败')
+        }
       } else {
-        // 其他错误，提示错误信息
-        wx.showToast({
-          title: res.message || '请求失败',
-          icon: 'none'
-        })
-        throw new Error(res.message || '请求失败')
+        // 如果不是标准响应格式，直接返回响应数据
+        // 这处理后端直接返回List或其他非标准格式的情况
+        console.log('接收到非标准响应格式，直接返回数据:', res)
+        return res
       }
     })
     .catch(error => {
-      console.error('云托管请求失败', error)
+      console.error('云托管请求失败，错误详情:', error)
+      console.error('错误类型:', typeof error)
+      console.error('错误消息:', error.message || '无错误消息')
+      console.error('错误堆栈:', error.stack || '无堆栈信息')
+      
       wx.showToast({
         title: '网络错误，请稍后重试',
         icon: 'none'
       })
-      throw error
+      
+      // 返回一个拒绝状态的Promise，确保调用者能感知到错误
+      // 但提供更友好的错误对象
+      const friendlyError = new Error(error.message || '请求失败')
+      friendlyError.originalError = error
+      return Promise.reject(friendlyError)
     })
 }
 

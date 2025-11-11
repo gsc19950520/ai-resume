@@ -1,6 +1,6 @@
 // list.js
 const app = getApp()
-const request = require('../../../utils/request');
+import { get } from '../../../utils/request';
 
 Page({
   data: {
@@ -17,8 +17,10 @@ Page({
     this.setData({ loading: true })
     
     // 调用后端API获取模板列表
-    request.get('/api/template/all')
+    console.log('开始调用模板列表API...');
+    get('/api/template/all')
       .then(res => {
+        console.log('从后端API获取模板列表成功，响应数据:', res);
         // 确保返回的数据是数组格式
         const templateList = Array.isArray(res) ? res : [];
         
@@ -28,7 +30,6 @@ Page({
           id: template.id || `template-${Math.random().toString(36).substr(2, 9)}`,
           name: template.name || '未知模板',
           preview: template.preview || `/images/${template.id || 'default-template'}.png`,
-          type: template.type || template.templateType || 'basic',
           description: template.description || '暂无描述',
           vipOnly: template.vip_only || false,
           isFree: template.is_free || false
@@ -42,26 +43,31 @@ Page({
         console.log('从后端API获取模板列表成功:', enhancedTemplates);
       })
       .catch(err => {
-        console.error('获取模板列表失败:', err);
+        console.error('获取模板列表失败，错误详情:', err);
+        console.error('错误类型:', typeof err);
+        console.error('错误堆栈:', err.stack || '无堆栈信息');
         this.setData({ loading: false });
         
-        // 出错时可以提供一些默认模板作为备用
+        // 出错时提供默认模板作为备用
         const defaultTemplates = [
           {
             id: 'template-one', 
-            name: '技术人才模板',
+            name: '专业简约模板',
             preview: '/images/template-one.png',
-            type: 'technical',
-            description: '突出技能和项目经验的技术导向模板'
+            description: '清晰简洁的专业风格，适合各类职位申请',
+            vipOnly: false,
+            isFree: true
           },
           {
             id: 'template-two',
-            name: '简约专业模板',
+            name: '创意设计模板',
             preview: '/images/template-two.png',
-            type: 'basic',
-            description: '清晰简洁的专业风格，适合各类职位申请'
+            description: '富有创意的设计风格模板',
+            vipOnly: false,
+            isFree: true
           }
         ];
+        
         
         this.setData({ templateList: defaultTemplates });
         wx.showToast({

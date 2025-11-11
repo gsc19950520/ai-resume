@@ -183,33 +183,23 @@ App({
       requestData.userInfo = userInfo
     }
     
-    wx.cloud.callContainer({
-      config: {
-        env: this.globalData.cloudEnvId
-      },
-      path: '/api/user/wechat-login',
-      method: 'POST',
-      header: {
-        'X-WX-SERVICE': 'springboot-bq0e',
-        'content-type': 'application/json'
-      },
-      data: requestData,
-      success: result => {
+    // 使用统一的cloudCall方法
+    this.cloudCall('/user/wechat-login', requestData, 'POST')
+      .then(result => {
         console.info('登录接口调用成功', result)
-        this.handleLoginResult(result, callback)
-      },
-      fail: error => {
-        console.error('云托管登录请求失败', error)
-        console.log('环境ID:', this.globalData.cloudEnvId)
-        console.log('服务名:', 'springboot-bq0e')
-        console.log('请求路径:', '/api/user/wechat-login')
+        this.handleLoginResult({data: result}, callback)
+      })
+      .catch(error => {
+        console.error('登录接口调用失败', error)
         wx.showToast({
           title: '登录失败，请重试',
           icon: 'none'
         })
         if (callback) callback(error)
-      }
-    })
+      })
+      .finally(() => {
+        if (callback) callback()
+      })
   },
   
   // 处理登录结果
@@ -369,109 +359,13 @@ App({
 
   // 退出登录
   logout: function() {
-    wx.removeStorageSync('token')
-    wx.removeStorageSync('userInfo')
-    this.globalData.token = ''
-    this.globalData.userInfo = null
-  },
-  // 统一请求方法（已迁移到utils/request.js中使用callContainer）
-  request: function(url, method, data, callback) {
-    // 注意：此方法已保留以兼容旧代码，新代码应使用utils/request.js中的方法
-    // 确保callback存在，避免调用不存在的函数
-    const safeCallback = callback || function() {};
-    
-    // 兼容对象参数形式
-    let requestParams = {};
-    if (typeof url === 'object') {
-      requestParams = url;
-      url = requestParams.url;
-      method = requestParams.method;
-      data = requestParams.data;
-      callback = requestParams.success || safeCallback;
-      // 同时支持对象参数中的fail和complete回调
-      const failCallback = requestParams.fail || function() {};
-      const completeCallback = requestParams.complete || function() {};
-      
-      // 使用Promise处理请求，确保能正确解析
-      return new Promise((resolve, reject) => {
-        try {
-          // 确保URL是字符串且以/api开头，如果不是则添加
-          const requestUrl = (typeof url === 'string' && url.startsWith('/api')) ? url : `/api${url}`;
-          
-          wx.cloud.callContainer({
-            config: {
-              env: this.globalData.cloudEnvId
-            },
-            path: requestUrl,
-            method: method || 'GET',
-            header: {
-              'X-WX-SERVICE': 'springboot-bq0e', // 添加服务名
-              'content-type': 'application/json',
-              'token': this.globalData.token || ''
-            },
-            data: data || {},
-            success: res => {
-              // 确保返回的数据格式正确，即使API返回异常也不会导致页面错误
-              const responseData = res.data && typeof res.data === 'object' ? res.data : { code: -1, message: '返回数据格式异常' };
-              console.log('API响应数据:', responseData);
-              // 调用用户传入的success回调
-              callback(responseData);
-              // 解析Promise，确保Promise链能继续执行
-              resolve(responseData);
-            },
-            fail: err => {
-              console.error('云托管调用失败', err);
-              console.log('环境ID:', this.globalData.cloudEnvId);
-              console.log('服务名:', 'springboot-bq0e');
-              console.log('请求路径:', requestUrl);
-              // 返回标准错误格式
-              const errorData = { code: -1, message: '网络请求失败', error: err };
-              // 调用用户传入的fail回调
-              failCallback(errorData);
-              // 拒绝Promise
-              reject(errorData);
-            },
-            complete: res => {
-              // 调用用户传入的complete回调
-              completeCallback(res);
-            }
-          });
-        } catch (e) {
-          console.error('请求异常:', e);
-          reject({ code: -1, message: '请求处理异常', error: e });
-        }
-      });
-    }
-    
-    // 原始参数形式的处理（强制使用云托管调用）
-    // 确保URL是字符串且以/api开头，如果不是则添加
-    const requestUrl = (typeof url === 'string' && url.startsWith('/api')) ? url : `/api${url}`;
-    
-    return wx.cloud.callContainer({
-      config: {
-        env: this.globalData.cloudEnvId
-      },
-      path: requestUrl,
-      method: method || 'GET',
-      header: {
-        'X-WX-SERVICE': 'springboot-bq0e', // 添加服务名
-        'content-type': 'application/json',
-        'token': this.globalData.token || ''
-      },
-      data: data || {},
-      success: res => {
-        // 确保返回的数据格式正确，即使API返回异常也不会导致页面错误
-        const responseData = res.data && typeof res.data === 'object' ? res.data : { code: -1, message: '返回数据格式异常' };
-        safeCallback(responseData)
-      },
-      fail: err => {
-        console.error('云托管调用失败', err);
-        console.log('环境ID:', this.globalData.cloudEnvId);
-        console.log('服务名:', 'springboot-bq0e');
-        console.log('请求路径:', requestUrl);
-        // 返回标准错误格式
-        safeCallback({ code: -1, message: '网络请求失败', error: err });
-      }
-    });
+    console.log('退出登录');
+    // 清除用户信息和token
+    this.globalData.userInfo = null;
+    this.globalData.token = '';
+    // 清除本地存储的用户信息
+    wx.removeStorageSync('userInfo');
+    wx.removeStorageSync('token');
+    console.log('已清除用户登录状态');
   },
 })

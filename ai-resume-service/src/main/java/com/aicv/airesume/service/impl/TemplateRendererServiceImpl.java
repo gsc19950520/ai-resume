@@ -20,8 +20,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring5.SpringTemplateEngine;
+import org.thymeleaf.templateresolver.StringTemplateResolver;
+import org.thymeleaf.templatemode.TemplateMode;
 
-// Flying Saucer和iText相关导入
 import org.xhtmlrenderer.pdf.ITextRenderer;
 import com.itextpdf.text.DocumentException;
 import com.itextpdf.text.pdf.BaseFont;
@@ -32,7 +33,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.io.StringReader;
 
 /**
  * 模板渲染服务实现类
@@ -42,8 +42,7 @@ public class TemplateRendererServiceImpl implements TemplateRendererService {
 
     private static final Logger logger = LoggerFactory.getLogger(TemplateRendererServiceImpl.class);
 
-    @Autowired
-    private SpringTemplateEngine templateEngine;
+
 
     @Override
     public String generateHtmlTemplateFromWord(InputStream wordTemplateStream) throws Exception {
@@ -575,16 +574,16 @@ public class TemplateRendererServiceImpl implements TemplateRendererService {
             Context context = new Context();
             context.setVariables(resumeData);
             
-            // 使用Thymeleaf引擎渲染模板
-            // 创建一个临时的TemplateEngine实例来避免修改注入的实例
-            org.thymeleaf.TemplateEngine tempTemplateEngine = new org.thymeleaf.TemplateEngine();
+            // 创建字符串模板解析器
+            StringTemplateResolver templateResolver = new StringTemplateResolver();
+            templateResolver.setTemplateMode(TemplateMode.HTML);
             
-            // 配置字符串模板解析器
-            org.thymeleaf.templateresolver.StringTemplateResolver templateResolver = new org.thymeleaf.templateresolver.StringTemplateResolver();
-            tempTemplateEngine.setTemplateResolver(templateResolver);
+            // 创建并配置TemplateEngine
+            org.thymeleaf.TemplateEngine templateEngine = new org.thymeleaf.TemplateEngine();
+            templateEngine.setTemplateResolver(templateResolver);
             
             // 使用标准方法渲染字符串模板
-            String renderedHtml = tempTemplateEngine.process(thymeleafTemplate, context);
+            String renderedHtml = templateEngine.process(thymeleafTemplate, context);
             
             logger.info("HTML模板渲染完成，生成的HTML长度: {} 字符", renderedHtml.length());
             return renderedHtml;
