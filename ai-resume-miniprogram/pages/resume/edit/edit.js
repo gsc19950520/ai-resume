@@ -411,61 +411,58 @@ Page({
       console.log('传递的简历数据:', JSON.stringify(resumeData.data));
       
       // 调用后端API根据选定模板生成简历HTML
-      wx.request({
-        url: 'https://7465-test-env-55252f-1258669146.tcb.qcloud.la/api/resume/render',
-        method: 'POST',
-        data: {
-          templateId: this.data.resumeInfo.templateId,
-          resumeData: resumeData.data
-        },
-        success: (res) => {
-          console.log('后端API调用成功:', res);
-          
-          // 将后端返回的HTML保存到数据中
-          if (res.data && res.data.html) {
-            resumeData.renderedHtml = res.data.html;
-            console.log('成功获取后端渲染的HTML');
-          } else {
-            console.warn('后端未返回HTML内容');
-          }
-          
-          // 保存到本地存储
-          wx.setStorageSync('resumeData', resumeData);
-          console.log('已保存简历数据到本地存储');
-          
-          wx.hideLoading();
-          wx.showToast({
-            title: '保存成功',
-            icon: 'success',
-          });
-          
-          // 跳转到简历预览页面，传递模板ID
-          setTimeout(() => {
-            wx.navigateTo({
-              url: `/pages/resume/view/view?source=template&templateId=${this.data.resumeInfo.templateId}`
-            });
-          }, 1500);
-        },
-        fail: (error) => {
-          console.error('后端API调用失败:', error);
-          
-          // 即使API调用失败，也保存数据到本地，确保基本功能可用
-          wx.setStorageSync('resumeData', resumeData);
-          console.log('API调用失败，但已保存基本数据到本地');
-          
-          wx.hideLoading();
-          wx.showToast({
-            title: '简历已保存，但模板渲染失败',
-            icon: 'none'
-          });
-          
-          // 跳转到简历预览页面，传递模板ID
-          setTimeout(() => {
-            wx.navigateTo({
-              url: `/pages/resume/view/view?source=template&templateId=${this.data.resumeInfo.templateId}`
-            });
-          }, 1500);
+      const app = getApp();
+      app.cloudCall('/api/resume/render', {
+        templateId: this.data.resumeInfo.templateId,
+        resumeData: resumeData.data
+      }, 'POST')
+      .then(res => {
+        console.log('后端API调用成功:', res);
+        
+        // 将后端返回的HTML保存到数据中
+        if (res && res.html) {
+          resumeData.renderedHtml = res.html;
+          console.log('成功获取后端渲染的HTML');
+        } else {
+          console.warn('后端未返回HTML内容');
         }
+        
+        // 保存到本地存储
+        wx.setStorageSync('resumeData', resumeData);
+        console.log('已保存简历数据到本地存储');
+        
+        wx.hideLoading();
+        wx.showToast({
+          title: '保存成功',
+          icon: 'success',
+        });
+        
+        // 跳转到简历预览页面，传递模板ID
+        setTimeout(() => {
+          wx.navigateTo({
+            url: `/pages/resume/view/view?source=template&templateId=${this.data.resumeInfo.templateId}`
+          });
+        }, 1500);
+      })
+      .catch(err => {
+        console.error('后端API调用失败:', err);
+        
+        // 即使API调用失败，也保存数据到本地，确保基本功能可用
+        wx.setStorageSync('resumeData', resumeData);
+        console.log('API调用失败，但已保存基本数据到本地');
+        
+        wx.hideLoading();
+        wx.showToast({
+          title: '简历已保存，但模板渲染失败',
+          icon: 'none'
+        });
+        
+        // 跳转到简历预览页面，传递模板ID
+        setTimeout(() => {
+          wx.navigateTo({
+            url: `/pages/resume/view/view?source=template&templateId=${this.data.resumeInfo.templateId}`
+          });
+        }, 1500);
       });
     } catch (error) {
       console.error('保存简历异常:', error);

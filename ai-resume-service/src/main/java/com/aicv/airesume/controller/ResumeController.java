@@ -2,8 +2,13 @@ package com.aicv.airesume.controller;
 
 import com.aicv.airesume.annotation.Log;
 import com.aicv.airesume.entity.Resume;
+import com.aicv.airesume.entity.Template;
 import com.aicv.airesume.service.ResumeService;
+import com.aicv.airesume.service.TemplateRendererService;
+import com.aicv.airesume.service.TemplateService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -20,6 +25,12 @@ public class ResumeController {
 
     @Autowired
     private ResumeService resumeService;
+    
+    @Autowired
+    private TemplateRendererService templateRendererService;
+    
+    @Autowired
+    private TemplateService templateService;
 
     /**
      * 上传简历
@@ -182,5 +193,46 @@ public class ResumeController {
     @PostMapping("/{resumeId}/template-config")
     public Resume setResumeTemplateConfig(@RequestParam Long userId, @PathVariable Long resumeId, @RequestBody String templateConfig) {
         return resumeService.setResumeTemplateConfig(userId, resumeId, templateConfig);
+    }
+    
+    /**
+     * 渲染简历为HTML
+     * @param requestData 请求数据，包含templateId和resumeData
+     * @return 渲染后的HTML内容
+     */
+    @PostMapping("/render")
+    public ResponseEntity<String> renderResume(@RequestBody Map<String, Object> requestData) {
+        try {
+            // 获取模板ID
+            Long templateId = Long.valueOf(requestData.get("templateId").toString());
+            // 获取简历数据
+            Map<String, Object> resumeData = (Map<String, Object>) requestData.get("resumeData");
+            
+            // 验证参数
+            if (templateId == null || resumeData == null) {
+                return ResponseEntity.badRequest().body("缺少必要参数: templateId或resumeData");
+            }
+            
+            // 获取模板信息
+            Template template = templateService.getTemplateById(templateId);
+            if (template == null) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            // 从模板生成HTML
+            String htmlTemplate = templateRendererService.generateHtmlFromLocalWordTemplate(template);
+            
+            // 渲染HTML
+            String renderedHtml = templateRendererService.renderHtmlTemplate(htmlTemplate, resumeData);
+            
+            // 返回渲染后的HTML
+            return ResponseEntity.ok(renderedHtml);
+        } catch (NumberFormatException e) {
+            return ResponseEntity.badRequest().body("无效的templateId格式");
+        } catch (ClassCastException e) {
+            return ResponseEntity.badRequest().body("resumeData格式错误");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("渲染简历失败: " + e.getMessage());
+        }
     }
 }

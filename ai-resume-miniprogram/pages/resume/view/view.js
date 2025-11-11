@@ -21,8 +21,7 @@ Page({
     // 保存templateId到页面数据
     this.setData({
       templateId: this.templateId,
-      source: options.source || 'template',
-      loading: true
+      source: options.source || 'template'
     });
     
     // 根据模板ID应用样式
@@ -37,37 +36,56 @@ Page({
   },
 
   // 加载AI生成的简历
-  loadAiGeneratedResume: function(resumeInfo) {
-    // 模拟AI生成的简历数据
-    // 在实际项目中，这里应该使用deepseek API生成的真实数据
-    const aiResumeData = {
-      title: resumeInfo.title,
-      isAiGenerated: true,
-      personalInfo: {
-        name: '张先生',
-        jobTitle: resumeInfo.occupation,
-        phone: '138****1234',
-        email: 'example@email.com',
-        address: '北京市朝阳区',
-        birthDate: ''
-      },
-      summary: '拥有丰富的' + resumeInfo.occupation + '经验，专注于' + this.extractSkillsFromExperience(resumeInfo.workExperience) + '。' + resumeInfo.workExperience.substring(0, 100) + '...',
-      workExperience: this.parseWorkExperience(resumeInfo.workExperience),
-      education: [
-        {
-          school: '北京大学',
-          degree: '本科',
-          major: '计算机科学与技术',
-          period: '2015.09 - 2019.06'
-        }
-      ],
-      skills: this.extractSkillsFromExperience(resumeInfo.workExperience).split('、'),
-      selfEvaluation: ''
-    };
-
-    this.setData({
-      resumeData: aiResumeData
+  loadAiGeneratedResume: function() {
+    this.setData({ loading: true });
+    wx.showLoading({
+      title: '正在生成简历...',
     });
+    
+    try {
+      // 从本地存储获取AI生成的简历数据
+      const resumeInfo = wx.getStorageSync('resumeInfo') || {};
+      
+      // 模拟AI生成的简历数据
+      // 在实际项目中，这里应该使用deepseek API生成的真实数据
+      const aiResumeData = {
+        title: resumeInfo.title,
+        isAiGenerated: true,
+        personalInfo: {
+          name: '张先生',
+          jobTitle: resumeInfo.occupation,
+          phone: '138****1234',
+          email: 'example@email.com',
+          address: '北京市朝阳区',
+          birthDate: ''
+        },
+        summary: '拥有丰富的' + resumeInfo.occupation + '经验，专注于' + this.extractSkillsFromExperience(resumeInfo.workExperience) + '。' + resumeInfo.workExperience.substring(0, 100) + '...',
+        workExperience: this.parseWorkExperience(resumeInfo.workExperience),
+        education: [
+          {
+            school: '北京大学',
+            degree: '本科',
+            major: '计算机科学与技术',
+            period: '2015.09 - 2019.06'
+          }
+        ],
+        skills: this.extractSkillsFromExperience(resumeInfo.workExperience).split('、'),
+        selfEvaluation: ''
+      };
+
+      this.setData({
+        resumeData: aiResumeData
+      });
+    } catch (error) {
+      console.error('加载AI生成简历时发生异常:', error);
+      wx.showToast({
+        title: '加载失败，请重试',
+        icon: 'none'
+      });
+    } finally {
+      wx.hideLoading();
+      this.setData({ loading: false });
+    }
   },
 
   /**
@@ -112,6 +130,7 @@ Page({
     
     // 只有在有templateId时才调用后端API
     if (templateId) {
+      this.setData({ loading: true });
       wx.showLoading({
         title: '正在应用模板样式...',
       });
@@ -119,46 +138,44 @@ Page({
       try {
         console.log('调用后端渲染API，templateId:', templateId);
         
-        // 调用后端API渲染模板
-        wx.request({
-          url: 'https://7465-test-env-55252f-1258669146.tcb.qcloud.la/api/resume/render',
-          method: 'POST',
-          data: {
-            templateId: templateId,
-            resumeData: templateResumeData
-          },
-          success: (res) => {
-            console.log('渲染模板成功，响应状态:', res.statusCode);
+        // 使用app.js中定义的cloudCall方法
+        const app = getApp();
+        
+        app.cloudCall('/api/resume/render', {
+          templateId: templateId,
+          resumeData: templateResumeData
+        }, 'POST')
+        .then(res => {
+          console.log('渲染模板成功，响应:', res);
+          
+          if (res && res.html) {
+            // 保存渲染结果到本地存储，以便下次直接使用
+            wx.setStorageSync('renderedResumeHtml', res.html);
             
-            if (res.data && res.data.html) {
-              // 保存渲染结果到本地存储，以便下次直接使用
-              wx.setStorageSync('renderedResumeHtml', res.data.html);
-              
-              this.setData({
-                renderedHtml: res.data.html
-              });
-            } else {
-              console.error('渲染失败，响应数据不包含html:', res.data);
-              wx.showToast({
-                title: '渲染模板失败: 无有效返回数据',
-                icon: 'none'
-              });
-            }
-          },
-          fail: (err) => {
-            console.error('调用渲染API失败:', err);
-            
-            if (!savedRenderedHtml) {
-              wx.showToast({
-                title: '加载简历失败，请检查网络',
-                icon: 'none'
-              });
-            }
-          },
-          complete: () => {
+            this.setData({
+              renderedHtml: res.html
+            });
+          } else {
+            console.error('渲染失败，响应数据不包含html:', res);
+            wx.showToast({
+              title: '渲染模板失败: 无有效返回数据',
+              icon: 'none'
+            });
+          }
+        })
+        .catch(err => {
+          console.error('调用渲染API失败:', err);
+          
+          if (!savedRenderedHtml) {
+            wx.showToast({
+              title: '加载简历失败，请检查网络',
+              icon: 'none'
+            });
+          }
+        })
+        .finally(() => {
             wx.hideLoading();
             this.setData({ loading: false });
-          }
         });
       } catch (error) {
         console.error('加载模板简历时发生异常:', error);
@@ -321,64 +338,76 @@ Page({
 
   // 导出PDF
   exportToPdf: function() {
+    this.setData({ loading: true });
     wx.showLoading({
       title: '生成PDF中...',
     });
 
-    // 导入request工具
-    const app = getApp();
-    const cloudCall = app.cloudCall || function(path, data = {}, method = 'GET', header = {}) {
-      return new Promise((resolve, reject) => {
-        wx.cloud.callContainer({
-          config: {
-            env: app.globalData.cloudEnvId
-          },
-          path: path.startsWith('/api') ? path : `/api${path}`,
-          method: method,
-          header: {
-            'content-type': 'application/json',
-            'token': app.globalData.token || '',
-            'X-WX-SERVICE': 'springboot-bq0e',
-            ...header
-          },
-          data,
-          success: res => resolve(res.data),
-          fail: err => reject(err)
-        });
-      });
-    };
-
-    // 调用后端API导出PDF
-    // 注意：在实际使用时，需要传递真实的resumeId
-    // 这里暂时使用1作为示例ID
-    const resumeId = 1;
-    
-    cloudCall(`/api/resume/export/pdf?resumeId=${resumeId}`, {}, 'GET')
-      .then(res => {
-        wx.hideLoading();
-        
-        // 如果返回的是文件流，使用wx.downloadFile下载
-        // 这里简化处理，实际项目中需要根据后端返回的数据格式进行调整
-        wx.showToast({
-          title: 'PDF生成成功',
-          icon: 'success'
-        });
-        
-        setTimeout(() => {
-          wx.showModal({
-            title: '导出成功',
-            content: 'PDF已成功导出，可在下载管理中查看',
-            showCancel: false
+    try {
+      // 导入request工具
+      const app = getApp();
+      
+      // 使用app.js中定义的cloudCall方法
+      if (!app.cloudCall) {
+        // 如果app.js中没有定义cloudCall，使用默认实现
+        app.cloudCall = function(path, data = {}, method = 'GET', header = {}) {
+          return new Promise((resolve, reject) => {
+            wx.cloud.callContainer({
+              config: {
+                env: app.globalData.cloudEnvId
+              },
+              path: path.startsWith('/api') ? path : `/api${path}`,
+              method: method,
+              header: {
+                'content-type': 'application/json',
+                'token': app.globalData.token || '',
+                'X-WX-SERVICE': 'springboot-bq0e',
+                ...header
+              },
+              data,
+              success: res => resolve(res.data),
+              fail: err => reject(err)
+            });
           });
-        }, 1000);
-      })
-      .catch(err => {
-        wx.hideLoading();
-        console.error('导出PDF失败:', err);
-        wx.showToast({
-          title: '导出失败，请重试',
-          icon: 'none'
+        };
+      }
+
+      // 从本地存储获取简历ID或使用模板ID
+      const resumeInfo = wx.getStorageSync('resumeInfo') || {};
+      const resumeId = resumeInfo.id || this.data.templateId || 1;
+      
+      console.log('导出PDF，使用resumeId:', resumeId);
+      
+      app.cloudCall(`/api/resume/export/pdf?resumeId=${resumeId}`, {}, 'GET')
+        .then(res => {
+          console.log('PDF导出成功，响应:', res);
+          
+          // 如果返回的是文件流，使用wx.downloadFile下载
+          // 这里简化处理，实际项目中需要根据后端返回的数据格式进行调整
+          wx.showToast({
+            title: 'PDF生成成功',
+            icon: 'success'
+          });
+        })
+        .catch(err => {
+          console.error('PDF导出失败:', err);
+          wx.showToast({
+            title: 'PDF生成失败，请重试',
+            icon: 'none'
+          });
+        })
+        .finally(() => {
+          wx.hideLoading();
+          this.setData({ loading: false });
         });
+    } catch (error) {
+      console.error('导出PDF时发生异常:', error);
+      wx.hideLoading();
+      this.setData({ loading: false });
+      wx.showToast({
+        title: '操作异常，请重试',
+        icon: 'none'
       });
+    }
   }
 });

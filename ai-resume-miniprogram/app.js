@@ -4,10 +4,11 @@ App({
     userInfo: null,
     userProfile: null, // 用户头像和昵称等信息
     token: '',
-    baseUrl: 'https://7465-test-env-55252f-1258669146.tcb.qcloud.la/api', // 云托管环境
+    baseUrl: '', // 使用云托管时无需配置具体URL
     cloudBaseUrl: '', // 云托管服务地址，使用callContainer时无需配置
     useCloud: true, // 使用云托管服务（通过callContainer调用）
-    cloudEnvId: 'prod-1gwm267i6a10e7cb' // 微信云托管环境ID
+    cloudEnvId: 'prod-1gwm267i6a10e7cb', // 微信云托管环境ID
+    cloudServiceName: 'springboot-bq0e' // 云托管服务名称
   },
   
   // 初始化云开发环境
@@ -18,6 +19,28 @@ App({
         traceUser: true
       });
     }
+  },
+  
+  // 云托管调用方法
+  cloudCall: function(path, data = {}, method = 'GET', header = {}) {
+    return new Promise((resolve, reject) => {
+      wx.cloud.callContainer({
+        config: {
+          env: this.globalData.cloudEnvId
+        },
+        path: path.startsWith('/api') ? path : `/api${path}`,
+        method: method,
+        header: {
+          'content-type': 'application/json',
+          'token': this.globalData.token || '',
+          'X-WX-SERVICE': this.globalData.cloudServiceName,
+          ...header
+        },
+        data,
+        success: res => resolve(res.data),
+        fail: err => reject(err)
+      });
+    });
   },
 
   onLaunch: function () {
