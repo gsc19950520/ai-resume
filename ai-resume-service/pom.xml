@@ -188,12 +188,8 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-thymeleaf</artifactId>
         </dependency>
-        <!-- OGNL表达式语言库 - Thymeleaf所需的依赖，使用与Spring Boot 2.7.15兼容的版本 -->
-        <dependency>
-            <groupId>ognl</groupId>
-            <artifactId>ognl</artifactId>
-            <version>3.2.19</version>
-        </dependency>
+        <!-- 移除显式的OGNL依赖，让Spring Boot自动管理兼容版本 -->
+        <!-- Thymeleaf会通过Spring Boot的依赖管理自动引入正确版本的OGNL -->
         
         <!-- JWT -->
         <dependency>
