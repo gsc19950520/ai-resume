@@ -12,7 +12,7 @@ import java.util.List;
  * 模板数据访问接口
  */
 @Repository
-public interface TemplateRepository extends JpaRepository<Template, Long> {
+public interface TemplateRepository extends JpaRepository<Template, String> {
     
     /**
      * 查询所有可用模板，按使用次数排序

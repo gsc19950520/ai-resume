@@ -121,7 +121,7 @@ public class ResumeServiceImpl implements ResumeService {
     }
     
     @Override
-    public Resume setResumeTemplate(Long userId, Long resumeId, Long templateId) {
+    public Resume setResumeTemplate(Long userId, Long resumeId, String templateId) {
         return retryUtils.executeWithDefaultRetrySupplier(() -> {
             // 检查简历权限
             if (!checkResumePermission(userId, resumeId)) {
@@ -132,7 +132,7 @@ public class ResumeServiceImpl implements ResumeService {
                 new RuntimeException("简历不存在")
             );
             
-            // 直接设置templateId，JPA会自动关联
+            // 直接设置templateId
             resume.setTemplateId(null); // 先清空以避免潜在的缓存问题
             resume.setTemplateId(templateId);
             

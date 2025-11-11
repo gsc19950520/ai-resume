@@ -32,17 +32,17 @@ public interface TemplateService {
     /**
      * 根据ID获取模板
      */
-    Template getTemplateById(Long id);
+    Template getTemplateById(String id);
     
     /**
      * 增加模板使用次数
      */
-    void addTemplateUseCount(Long templateId);
+    void addTemplateUseCount(String templateId);
     
     /**
      * 检查模板使用权限
      */
-    boolean checkTemplatePermission(Long userId, Long templateId);
+    boolean checkTemplatePermission(Long userId, String templateId);
     
     /**
      * 根据模板类型获取模板
@@ -62,5 +62,5 @@ public interface TemplateService {
     /**
      * 更新模板使用次数
      */
-    void updateTemplateUsageCount(Long templateId);
+    void updateTemplateUsageCount(String templateId);
 }

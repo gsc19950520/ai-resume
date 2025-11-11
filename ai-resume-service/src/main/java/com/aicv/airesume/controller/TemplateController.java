@@ -66,7 +66,7 @@ public class TemplateController {
      * @return 模板信息
      */
     @GetMapping("/{id}")
-    public Map<String, Object> getTemplateById(@PathVariable Long id) {
+    public Map<String, Object> getTemplateById(@PathVariable String id) {
         Template template = templateService.getTemplateById(id);
         Map<String, Object> response = new HashMap<>();
         response.put("code", 200);
@@ -79,7 +79,7 @@ public class TemplateController {
      * @param templateId 模板ID
      */
     @PostMapping("/{templateId}/use")
-    public void addTemplateUseCount(@PathVariable Long templateId) {
+    public void addTemplateUseCount(@PathVariable String templateId) {
         templateService.addTemplateUseCount(templateId);
     }
 
@@ -90,7 +90,7 @@ public class TemplateController {
      * @return 是否有权限
      */
     @GetMapping("/check-permission")
-    public Boolean checkTemplatePermission(@RequestParam Long userId, @RequestParam Long templateId) {
+    public Boolean checkTemplatePermission(@RequestParam Long userId, @RequestParam String templateId) {
         return templateService.checkTemplatePermission(userId, templateId);
     }
     
@@ -100,7 +100,7 @@ public class TemplateController {
      * @return HTML模板内容
      */
     @GetMapping("/{id}/generate-html")
-    public Map<String, Object> generateHtmlFromWordTemplate(@PathVariable Long id) {
+    public Map<String, Object> generateHtmlFromWordTemplate(@PathVariable String id) {
         try {
             Template template = templateService.getTemplateById(id);
             if (template == null) {

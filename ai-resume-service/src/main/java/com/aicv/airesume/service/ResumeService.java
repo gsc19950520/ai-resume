@@ -74,7 +74,7 @@ public interface ResumeService {
     /**
      * 设置简历模板
      */
-    Resume setResumeTemplate(Long userId, Long resumeId, Long templateId);
+    Resume setResumeTemplate(Long userId, Long resumeId, String templateId);
     
     /**
      * 设置简历模板配置

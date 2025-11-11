@@ -75,7 +75,7 @@ public class Resume {
     // 简历与模板的关联（不使用外键约束）
     // 直接使用template_id字段
     @Column(name = "template_id")
-    private Long templateId;
+    private String templateId;
     
     // private Template template; // 暂时注释掉关联对象
     
@@ -87,12 +87,12 @@ public class Resume {
     private Long jobTypeId;
 
     // 获取templateId
-    public Long getTemplateId() {
+    public String getTemplateId() {
         return templateId;
     }
     
     // 设置templateId
-    public void setTemplateId(Long templateId) {
+    public void setTemplateId(String templateId) {
         this.templateId = templateId;
         // 实际应用中可能需要添加验证或其他业务逻辑
     }

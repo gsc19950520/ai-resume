@@ -178,7 +178,7 @@ public class ResumeController {
      */
     @Log(description = "设置简历模板", recordParams = true, recordResult = true)
     @PostMapping("/{resumeId}/template")
-    public Resume setResumeTemplate(@RequestParam Long userId, @PathVariable Long resumeId, @RequestParam Long templateId) {
+    public Resume setResumeTemplate(@RequestParam Long userId, @PathVariable Long resumeId, @RequestParam String templateId) {
         return resumeService.setResumeTemplate(userId, resumeId, templateId);
     }
     
@@ -201,16 +201,26 @@ public class ResumeController {
      * @return 渲染后的HTML内容
      */
     @PostMapping("/render")
-    public ResponseEntity<String> renderResume(@RequestBody Map<String, Object> requestData) {
+    public ResponseEntity<?> renderResume(@RequestBody Map<String, Object> requestData) {
         try {
+            // 参数验证
+            if (requestData == null || !requestData.containsKey("templateId") || !requestData.containsKey("resumeData")) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("code", 400);
+                errorResponse.put("message", "请求数据必须包含templateId和resumeData字段");
+                return ResponseEntity.badRequest().body(errorResponse);
+            }
+            
             // 获取模板ID
-            Long templateId = Long.valueOf(requestData.get("templateId").toString());
+            String templateId = requestData.get("templateId").toString();
             // 获取简历数据
             Map<String, Object> resumeData = (Map<String, Object>) requestData.get("resumeData");
             
-            // 验证参数
-            if (templateId == null || resumeData == null) {
-                return ResponseEntity.badRequest().body("缺少必要参数: templateId或resumeData");
+            if (templateId.isEmpty() || resumeData == null) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("code", 400);
+                errorResponse.put("message", "模板ID不能为空且简历数据格式错误");
+                return ResponseEntity.badRequest().body(errorResponse);
             }
             
             // 获取模板信息
@@ -228,11 +238,20 @@ public class ResumeController {
             // 返回渲染后的HTML
             return ResponseEntity.ok(renderedHtml);
         } catch (NumberFormatException e) {
-            return ResponseEntity.badRequest().body("无效的templateId格式");
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("code", 400);
+            errorResponse.put("message", "无效的templateId格式");
+            return ResponseEntity.badRequest().body(errorResponse);
         } catch (ClassCastException e) {
-            return ResponseEntity.badRequest().body("resumeData格式错误");
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("code", 400);
+            errorResponse.put("message", "resumeData格式错误");
+            return ResponseEntity.badRequest().body(errorResponse);
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("渲染简历失败: " + e.getMessage());
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("code", 500);
+            errorResponse.put("message", "渲染简历失败: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
 }

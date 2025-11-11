@@ -56,18 +56,18 @@ public class TemplateServiceImpl implements TemplateService {
     }
 
     @Override
-    public Template getTemplateById(Long id) {
+    public Template getTemplateById(String id) {
         return templateRepository.findById(id).orElse(null);
     }
 
     @Override
-    public void addTemplateUseCount(Long templateId) {
+    public void addTemplateUseCount(String templateId) {
         // 调用更新模板使用次数的方法
         updateTemplateUsageCount(templateId);
     }
 
     @Override
-    public boolean checkTemplatePermission(Long userId, Long templateId) {
+    public boolean checkTemplatePermission(Long userId, String templateId) {
         return true;
     }
 
@@ -108,7 +108,7 @@ public class TemplateServiceImpl implements TemplateService {
     }
 
     @Override
-    public void updateTemplateUsageCount(Long templateId) {
+    public void updateTemplateUsageCount(String templateId) {
         try {
             retryUtils.executeWithDefaultRetry(() -> {
                 Template template = templateRepository.findById(templateId)

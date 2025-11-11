@@ -16,8 +16,8 @@ import java.util.Date;
 public class Template {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Column(name = "id", nullable = false)
+    private String id;
 
     @Column(nullable = false)
     private String name;

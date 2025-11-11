@@ -8,7 +8,7 @@
 export function getTemplateData(templateId) {
   // 为每个模板准备不同的数据
   const templateDatas = {
-    '1': {
+    'template-one': {
       // 简约专业模板数据
       name: '周星星',
       age: '28',
@@ -83,7 +83,7 @@ export function getTemplateData(templateId) {
       // 自我评价
       selfEvaluation: '工作积极一丝不苟，认真负责，熟练运用专业软件，踏实肯干，动手能力强，有很强的自驱力，坚韧不拔的精神，喜欢迎接新挑战。'
     },
-    '2': {
+    'template-two': {
       // 技术人才模板数据
       name: '周星星',
       age: '28',
@@ -323,7 +323,7 @@ export function getTemplateData(templateId) {
   };
   
   // 返回对应模板的数据，如果不存在则返回默认数据
-  return templateDatas[templateId] || templateDatas['1'];
+  return templateDatas[templateId] || templateDatas['template-one'];
 }
 
 /**
