@@ -1,5 +1,6 @@
 // interview.js
 const app = getApp()
+import { get, post } from '../../utils/request.js'
 
 Page({
   data: {
@@ -114,25 +115,22 @@ Page({
     getDynamicConfig: async function() {
       return new Promise((resolve, reject) => {
         try {
-          app.request({
-            url: '/api/interview/get-config',
-            method: 'GET',
-            success: (res) => {
+          get('/api/interview/get-config')
+            .then(res => {
               console.log('获取动态配置响应:', res);
-              if (res && (res.code === 0 || res.success)) {
-                resolve(res.data || {});
+              if (res) {
+                resolve(res);
               } else {
                 // 接口调用失败时抛出错误，不再自动使用默认配置
-                console.warn('接口调用失败:', res.data?.message || '配置获取失败');
-                reject(new Error(res.data?.message || '面试官配置获取失败'));
+                console.warn('接口调用失败: 配置获取失败');
+                reject(new Error('面试官配置获取失败'));
               }
-            },
-            fail: (err) => {
-              console.error('获取动态配置请求失败:', err);
+            })
+            .catch(error => {
+              console.error('获取动态配置请求失败:', error);
               // 请求失败时抛出错误
               reject(new Error('面试官配置获取失败'));
-            }
-          });
+            });
         } catch (error) {
           console.error('获取配置过程异常:', error);
           reject(new Error('面试官配置获取异常'));
@@ -159,14 +157,19 @@ Page({
     analyzeResume: async function(resumeId) {
       try {
         return new Promise((resolve, reject) => {
-          app.request('/api/interview/analyze-resume', 'POST', { resumeId }, res => {
-            if (res.code === 0 || res.success) {
-              resolve(res);
-            } else {
-              console.error('分析简历失败:', res);
+          post('/api/interview/analyze-resume', { resumeId })
+            .then(res => {
+              if (res) {
+                resolve(res);
+              } else {
+                console.error('分析简历失败');
+                resolve(null);
+              }
+            })
+            .catch(error => {
+              console.error('分析简历失败:', error);
               resolve(null);
-            }
-          });
+            });
         });
       } catch (error) {
         console.error('分析简历失败:', error);
@@ -184,14 +187,10 @@ Page({
         
         // 尝试从服务器获取随机多样性控制
         try {
-          const diversityResult = await new Promise((resolve, reject) => {
-            app.request('/api/interview/random-diversity', 'POST', { 
-              techItems: safeTechItems, 
-              projectSummaries: safeProjectSummaries, 
-              userPerformance: safeUserPerformance 
-            }, res => {
-              resolve(res);
-            });
+          const diversityResult = await post('/api/interview/random-diversity', {
+            techItems: safeTechItems,
+            projectSummaries: safeProjectSummaries,
+            userPerformance: safeUserPerformance
           });
           
           // 验证返回数据的有效性
@@ -285,15 +284,15 @@ Page({
     
     // 自然语言化AI提问引擎
     generateQuestion: async function(jobType, questionFocus, styleHint, persona, lastAnswer, randomFactor) {
+      // 参数验证和默认值处理 - 移到try块外部以确保作用域正确
+      const safeJobType = jobType || '通用面试';
+      const safeQuestionFocus = questionFocus || '基础知识';
+      const safeStyleHint = styleHint || '引导式';
+      const safePersona = persona || '正式面试';
+      const safeLastAnswer = lastAnswer || '';
+      const safeRandomFactor = randomFactor !== undefined ? randomFactor : 0.5; // 添加默认的随机性因子
+      
       try {
-        // 参数验证和默认值处理
-        const safeJobType = jobType || '通用面试';
-        const safeQuestionFocus = questionFocus || '基础知识';
-        const safeStyleHint = styleHint || '引导式';
-        const safePersona = persona || '正式面试';
-        const safeLastAnswer = lastAnswer || '';
-        const safeRandomFactor = randomFactor !== undefined ? randomFactor : 0.5; // 添加默认的随机性因子
-        
         // 准备请求参数
         const requestData = {
           jobType: safeJobType,
@@ -305,11 +304,10 @@ Page({
         };
         
         // 调用API生成问题
-        try {
-          const questionResult = await new Promise((resolve, reject) => {
-            app.request('/api/interview/generate-question', 'POST', requestData, res => {
-              resolve(res);
-            });
+        const questionResult = await post('/api/interview/generate-question', requestData)
+          .catch(error => {
+            console.error('生成问题请求失败:', error);
+            throw error;
           });
           
           // 验证返回数据的有效性
@@ -319,11 +317,8 @@ Page({
             }
             return questionResult.question;
           }
-        } catch (error) {
-          console.error('生成问题Promise处理失败:', error);
-        }
-      } catch (apiError) {
-        console.error('生成问题API调用失败:', apiError);
+      } catch (error) {
+        console.error('生成问题处理失败:', error);
       }
       
       // 本地备选逻辑：当API调用失败时生成默认问题
@@ -394,25 +389,19 @@ Page({
     // 评估回答
     assessAnswer: async function(question, userAnswer, expectedKeyPoints) {
       try {
-        return new Promise((resolve, reject) => {
-          app.request({
-            url: '/api/interview/assess-answer',
-            method: 'POST',
-            data: { question, userAnswer, expectedKeyPoints },
-            success: res => {
-              // 根据响应格式返回数据
-              if (res && (res.code === 0 || res.success) && res.data) {
-                resolve(res.data);
-              } else {
-                resolve(res || {});
-              }
-            },
-            fail: error => {
-              console.error('评估回答失败:', error);
-              resolve(null);
+        return await post('/api/interview/assess-answer', { question, userAnswer, expectedKeyPoints })
+          .then(res => {
+            // 根据响应格式返回数据
+            if (res && (res.code === 0 || res.success) && res.data) {
+              return res.data;
+            } else {
+              return res || {};
             }
+          })
+          .catch(error => {
+            console.error('评估回答失败:', error);
+            return null;
           });
-        });
       } catch (error) {
         console.error('评估回答异常:', error);
         return null;
@@ -422,26 +411,19 @@ Page({
     // 获取成长报告
     getGrowthReport: async function(userId, sessionHistory) {
       try {
-        return new Promise((resolve, reject) => {
-          app.request({
-            url: '/api/interview/growth-report',
-            method: 'POST',
-            data: { userId, sessionHistory },
-            header: { 'content-type': 'application/json' },
-            success: res => {
-              // 根据响应格式返回数据
-              if (res && (res.code === 0 || res.success) && res.data) {
-                resolve(res.data);
-              } else {
-                resolve(res || {});
-              }
-            },
-            fail: error => {
-              console.error('获取成长报告失败:', error);
-              resolve(null);
+        return await post('/api/interview/growth-report', { userId, sessionHistory }, { 'content-type': 'application/json' })
+          .then(res => {
+            // 根据响应格式返回数据
+            if (res && (res.code === 0 || res.success) && res.data) {
+              return res.data;
+            } else {
+              return res || {};
             }
+          })
+          .catch(error => {
+            console.error('获取成长报告失败:', error);
+            return null;
           });
-        });
       } catch (error) {
         console.error('获取成长报告异常:', error);
         return null;
@@ -676,16 +658,12 @@ Page({
         duration: this.data.sessionSeconds
       };
       
-      // 调用后端API创建面试会话 - 使用app.request代替直接wx.request
-      const sessionResponse = await new Promise((resolve, reject) => {
-        app.request({
-          url: '/api/interview/start-session',
-          method: 'POST',
-          data: sessionConfig,
-          success: res => resolve(res),
-          fail: error => reject(error)
+      // 调用后端API创建面试会话
+      const sessionResponse = await post('/api/interview/start-session', sessionConfig)
+        .catch(error => {
+          console.error('创建面试会话请求失败:', error);
+          throw error;
         });
-      });
       
       if (sessionResponse && (sessionResponse.code === 0 || sessionResponse.success) && sessionResponse.data && sessionResponse.data.sessionId) {
         this.setData({
@@ -1551,18 +1529,20 @@ Page({
         }
         
         // 调用后端API处理回答
-        app.request('/api/interview/answer', 'POST', params, res => {
-          if (res && res.code === 0 && res.data) {
-            this.handleAnswerResponse(res.data)
-          } else {
+        post('/api/interview/answer', params)
+          .then(res => {
+            if (res && res.code === 0 && res.data) {
+              this.handleAnswerResponse(res.data)
+            } else {
+              // 使用模拟评分
+              this.useMockScore(assessment);
+            }
+          })
+          .catch(err => {
+            console.error('提交回答失败:', err)
             // 使用模拟评分
             this.useMockScore(assessment);
-          }
-        }, err => {
-          console.error('提交回答失败:', err)
-          // 使用模拟评分
-          this.useMockScore(assessment);
-        })
+          })
       });
   },
   
@@ -1786,16 +1766,18 @@ Page({
         currentDepthLevel: nextDepthLevel
       }
       
-      app.request('/api/interview/followup', 'POST', params, res => {
-        if (res && res.code === 0 && res.data) {
-          this.handleFollowUpResponse(res.data, nextDepthLevel)
-        } else {
+      post('/api/interview/followup', params)
+        .then(res => {
+          if (res && res.code === 0 && res.data) {
+            this.handleFollowUpResponse(res.data, nextDepthLevel)
+          } else {
+            this.useMockFollowUp(nextDepthLevel)
+          }
+        })
+        .catch(err => {
+          console.error('获取追问失败:', err)
           this.useMockFollowUp(nextDepthLevel)
-        }
-      }, err => {
-        console.error('获取追问失败:', err)
-        this.useMockFollowUp(nextDepthLevel)
-      })
+        })
     } else {
       // 检查是否达到最大轮数
       if (this.data.currentRound >= this.data.maxRounds) {
@@ -2303,31 +2285,33 @@ Page({
       skills: this.extractSkillsFromSession()
     }
     
-    app.request('/api/salary/match', 'POST', params, res => {
-      if (res && res.code === 0 && res.data) {
-        // 保存薪资数据到全局，供报告页使用
-        app.globalData.salaryMatchResult = res.data
-        
-        // 设置薪资匹配结果并触发动画
-        this.setData({
-          salaryMatchResult: res.data,
-          animationState: {
-            ...this.data.animationState,
-            salaryCard: 'show'
-          }
-        });
-        
-        // 保存到用户历史
-        this.saveToHistory()
-      } else {
+    post('/api/salary/match', params)
+      .then(res => {
+        if (res && res.code === 0 && res.data) {
+          // 保存薪资数据到全局，供报告页使用
+          app.globalData.salaryMatchResult = res.data
+          
+          // 设置薪资匹配结果并触发动画
+          this.setData({
+            salaryMatchResult: res.data,
+            animationState: {
+              ...this.data.animationState,
+              salaryCard: 'show'
+            }
+          });
+          
+          // 保存到用户历史
+          this.saveToHistory()
+        } else {
+          this.setMockSalaryData()
+          this.saveToHistory()
+        }
+      })
+      .catch(err => {
+        console.error('获取薪资匹配失败:', err)
         this.setMockSalaryData()
         this.saveToHistory()
-      }
-    }, err => {
-      console.error('获取薪资匹配失败:', err)
-      this.setMockSalaryData()
-      this.saveToHistory()
-    })
+      })
   },
   
   // 设置模拟薪资数据
@@ -2393,13 +2377,15 @@ Page({
     // 跳转到报告页，传递jobType和domain
     const reportUrl = `/pages/report/report?sessionId=${this.data.sessionId}&jobType=${encodeURIComponent(this.data.jobType)}&domain=${encodeURIComponent(this.data.domain)}`
     
-    app.request('/api/user/history/add', 'POST', params, res => {
-      // 无论成功失败都跳转到报告页
-      wx.redirectTo({ url: reportUrl })
-    }, err => {
-      console.error('保存历史失败:', err)
-      wx.redirectTo({ url: reportUrl })
-    })
+    post('/api/user/history/add', params)
+      .then(res => {
+        // 无论成功失败都跳转到报告页
+        wx.redirectTo({ url: reportUrl })
+      })
+      .catch(err => {
+        console.error('保存历史失败:', err)
+        wx.redirectTo({ url: reportUrl })
+      })
   },
   
   // 计算总分

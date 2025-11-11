@@ -1,5 +1,6 @@
 // report.js
 const app = getApp();
+import { post } from '../../utils/request.js';
 
 Page({
   data: {
@@ -123,18 +124,20 @@ Page({
     this.setData({ loading: true });
     
     // 调用后端API获取报告
-    app.request('/api/interview/finish', 'POST', { sessionId: this.data.sessionId }, res => {
-      if (res && res.code === 0 && res.data) {
-        this.renderReport(res.data);
-      } else {
+    post('/api/interview/finish', { sessionId: this.data.sessionId })
+      .then(res => {
+        if (res && res.code === 0 && res.data) {
+          this.renderReport(res.data);
+        } else {
+          // 使用模拟数据
+          this.useMockData();
+        }
+      })
+      .catch(err => {
+        console.error('加载报告失败:', err);
         // 使用模拟数据
         this.useMockData();
-      }
-    }, err => {
-      console.error('加载报告失败:', err);
-      // 使用模拟数据
-      this.useMockData();
-    });
+      });
   },
   
   // 生成职业成长报告（从数据库获取）

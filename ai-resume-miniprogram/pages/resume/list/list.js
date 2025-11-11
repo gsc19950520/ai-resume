@@ -1,5 +1,6 @@
 // list.js
 const app = getApp()
+import { get, post } from '../../../utils/request.js'
 
 Page({
   data: {
@@ -40,13 +41,15 @@ Page({
       console.log('使用模拟数据显示简历列表')
     }, 1000)
     
-    /* 保留原始API调用，但优先使用模拟数据
     // 调用获取简历列表API
-    app.request('/api/resume/list', 'GET', {}, res => {
-      console.log('简历列表API返回:', res)
-      // API调用结果不会覆盖已设置的模拟数据
-    })
-    */
+    get('/api/resume/list')
+      .then(res => {
+        console.log('简历列表API返回:', res)
+        // API调用结果不会覆盖已设置的模拟数据
+      })
+      .catch(error => {
+        console.error('获取简历列表失败:', error)
+      })
   },
 
   // 获取模拟数据
@@ -104,18 +107,17 @@ Page({
             const newResumeList = this.data.resumeList.filter(item => item.id !== id)
             this.setData({ resumeList: newResumeList })
             
-            // 调用API删除（实际环境中取消注释）
-            /*
-            app.request('/api/resume/delete', 'POST', { resumeId: id }, res => {
-              if (res && res.code === 0) {
-                wx.showToast({ title: '删除成功' })
-              } else {
+            // 调用API删除
+            post('/api/resume/delete', { resumeId: id })
+              .then(() => {
+                // 删除已成功，不需要额外提示
+              })
+              .catch(error => {
+                console.error('删除简历失败:', error)
                 wx.showToast({ title: '删除失败', icon: 'none' })
                 // 恢复数据
                 this.loadResumeList()
-              }
-            })
-            */
+              })
             
             wx.hideLoading()
             wx.showToast({ title: '删除成功' })

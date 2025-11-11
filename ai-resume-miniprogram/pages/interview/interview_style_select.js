@@ -1,5 +1,6 @@
 // interview_style_select.js
 const app = getApp();
+import { get, post } from '../../utils/request.js';
 
 // 静态引用标记 - 确保代码依赖分析工具能识别此文件
 // eslint-disable-next-line
@@ -91,24 +92,19 @@ Page({
         reject(new Error('获取简历超时'));
       }, 15000);
       
-      app.request({
-        url: '/api/resume/user-resumes',
-        method: 'GET',
-        data: {
-          userId: this.data.userId
-        },
-        success: (resData) => {
-          clearTimeout(timeoutId);
-          // request.js已经处理了res.code，这里直接使用返回的数据
-          resolve(resData);
-        },
-        fail: (error) => {
-          clearTimeout(timeoutId);
-          reject(error);
-        },
-        complete: () => {
-          clearTimeout(timeoutId);
-        }
+      get('/api/resume/user-resumes', {
+        userId: this.data.userId
+      })
+      .then(resData => {
+        clearTimeout(timeoutId);
+        resolve(resData);
+      })
+      .catch(error => {
+        clearTimeout(timeoutId);
+        reject(error);
+      })
+      .finally(() => {
+        clearTimeout(timeoutId);
       });
     });
   },
@@ -196,40 +192,24 @@ Page({
         reject(new Error('获取面试官风格配置超时'));
       }, 15000);
       
-      app.request({
-        url: '/api/interview/get-config',
-        method: 'GET',
-        success: (resData) => {
-          clearTimeout(timeoutId);
-          // request.js已经处理了res.code，这里直接使用返回的数据
-          resolve(resData);
-        },
-        fail: (error) => {
-          clearTimeout(timeoutId);
-          reject(error);
-        },
-        complete: () => {
-          clearTimeout(timeoutId);
-        }
+      get('/api/interview/get-config')
+      .then(resData => {
+        clearTimeout(timeoutId);
+        resolve(resData);
+      })
+      .catch(error => {
+        clearTimeout(timeoutId);
+        reject(error);
+      })
+      .finally(() => {
+        clearTimeout(timeoutId);
       });
     });
   },
 
   // 获取动态配置的API调用
   getDynamicConfig: function() {
-    return new Promise((resolve, reject) => {
-      app.request({
-        url: '/api/interview/get-config',
-        method: 'GET',
-        success: (resData) => {
-          // request.js已经处理了res.code，这里直接使用返回的数据
-          resolve(resData);
-        },
-        fail: (error) => {
-          reject(error);
-        }
-      });
-    });
+    return get('/api/interview/get-config');
   },
 
   // 选择面试官风格
@@ -284,36 +264,28 @@ Page({
   
   // 调用后端API生成第一个问题
   generateFirstQuestion: function() {
-    const app = getApp();
-    
     return new Promise((resolve, reject) => {
       // 添加超时处理，延长超时时间为15秒
       const timeoutId = setTimeout(() => {
         reject(new Error('请求超时，请检查网络连接'));
       }, 15000); // 15秒超时
       
-      app.request({
-        url: '/api/interview/generate-first-question',
-        method: 'POST',
-        data: {
-          resumeId: this.data.resumeId,
-          personaId: this.data.selectedPersona,
-          industryJobTag: this.data.industryJobTag
-        },
-        success: (resData) => {
-          clearTimeout(timeoutId);
-          // request.js已经处理了res.code，这里直接使用返回的数据
-          resolve(resData);
-        },
-        fail: (error) => {
-          clearTimeout(timeoutId);
-          console.error('API请求失败:', error);
-          // 立即抛出异常
-          reject(new Error('网络连接异常，请检查网络后重试'));
-        },
-        complete: () => {
-          clearTimeout(timeoutId);
-        }
+      post('/api/interview/generate-first-question', {
+        resumeId: this.data.resumeId,
+        personaId: this.data.selectedPersona,
+        industryJobTag: this.data.industryJobTag
+      })
+      .then(resData => {
+        clearTimeout(timeoutId);
+        resolve(resData);
+      })
+      .catch(error => {
+        clearTimeout(timeoutId);
+        console.error('API请求失败:', error);
+        reject(new Error('网络连接异常，请检查网络后重试'));
+      })
+      .finally(() => {
+        clearTimeout(timeoutId);
       });
     });
   },

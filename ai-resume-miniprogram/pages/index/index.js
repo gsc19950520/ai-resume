@@ -1,5 +1,6 @@
 //index.js
 const app = getApp()
+import { get } from '../../utils/request.js'
 
 Page({
   data: {
@@ -69,16 +70,21 @@ Page({
   loadData: function() {
     wx.showLoading({ title: '加载中' })
     // 实际调用API获取推荐列表
-    app.request('/api/recommend/list', 'GET', {}, res => {
-      if (res && res.code === 0 && res.data && res.data.list) {
-        this.setData({
-          recommendList: res.data.list
-        })
-      } else {
-        console.log('获取推荐列表失败或返回格式异常，使用模拟数据')
-        // 继续使用页面中定义的模拟数据，不进行修改
-      }
-    })
+    get('/api/recommend/list')
+      .then(res => {
+        if (res && res.list) {
+          this.setData({
+            recommendList: res.list
+          })
+        } else {
+          console.log('获取推荐列表失败或返回格式异常，使用模拟数据')
+          // 继续使用页面中定义的模拟数据，不进行修改
+        }
+      })
+      .catch(error => {
+        console.error('获取推荐列表失败:', error)
+        // 使用模拟数据，不进行修改
+      })
     
     // 获取用户上次面试数据和推荐
     this.getUserInterviewSummary()
