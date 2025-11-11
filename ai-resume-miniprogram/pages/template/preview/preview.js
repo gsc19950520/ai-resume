@@ -14,15 +14,26 @@ Page({
   onLoad: function(options) {
     console.log('预览页面接收到的参数:', options);
     
+    // 有效的模板ID列表 - 确保与实际存在的图片文件匹配
+    const validTemplateIds = ['template-one', 'template-two', 'template-three', 'template-four', 'template-five'];
+    
     // 处理传入的参数
     if (options && options.templateId) {
-      const templateId = options.templateId;
+      let templateId = options.templateId;
+      
+      // 防御性检查：如果传入的templateId无效，使用默认值
+      if (!validTemplateIds.includes(templateId)) {
+        console.warn('无效的模板ID:', templateId, '，使用默认模板');
+        templateId = 'template-one'; // 使用默认模板ID
+      }
+      
       // 设置图片路径和模板ID
+      const imagePath = `/images/${templateId}.png`;
       this.setData({
         templateId: templateId,
-        imagePath: `/images/${templateId}.png`
+        imagePath: imagePath
       });
-      console.log('已设置模板ID:', templateId, '图片路径:', this.data.imagePath);
+      console.log('已设置模板ID:', templateId, '图片路径:', imagePath);
     }
     
     // 处理模板名称

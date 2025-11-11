@@ -18,6 +18,8 @@
         <!-- 缩略图区域 - 只显示模板小图 -->
         <view class="thumbnail-container">
           <image class="template-thumbnail" src="{{item.preview || '/images/default-template.png'}}" mode="aspectFill"></image>
+      <view wx:if="{{item.vipOnly}}" class="vip-badge">VIP专享</view>
+      <view wx:if="{{item.isFree}}" class="free-badge">免费</view>
         </view>
       </view>
     </view>

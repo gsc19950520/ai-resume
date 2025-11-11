@@ -48,7 +48,7 @@ public class Template {
     @Column(name = "is_free", nullable = false, columnDefinition = "tinyint default 0")
     private Boolean free = false;
 
-    @Column(name = "is_vip_only", nullable = false, columnDefinition = "tinyint default 0")
+    @Column(name = "vip_only", nullable = false, columnDefinition = "tinyint default 0")
     private Boolean vipOnly = false;
 
     @Column(name = "use_count", nullable = false, columnDefinition = "int default 0")

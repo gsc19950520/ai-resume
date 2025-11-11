@@ -14,8 +14,19 @@ Page({
   onLoad: function(options) {
     console.log('onLoad view page with options:', options);
     
+    // 有效的模板ID列表 - 确保与实际存在的图片文件匹配
+    const validTemplateIds = ['template-one', 'template-two', 'template-three', 'template-four', 'template-five'];
+    
     // 处理模板ID优先级：1. 从options获取 2. 从本地存储获取
-    this.templateId = options.templateId || wx.getStorageSync('tempResumeInfo')?.templateId || '';
+    let templateId = options.templateId || wx.getStorageSync('tempResumeInfo')?.templateId || '';
+    
+    // 防御性检查：如果传入的templateId无效，使用默认值
+    if (templateId && !validTemplateIds.some(validId => String(templateId).toLowerCase().includes(validId))) {
+      console.warn('无效的模板ID:', templateId, '，使用默认模板');
+      templateId = 'template-one'; // 使用默认模板ID
+    }
+    
+    this.templateId = templateId;
     console.log('最终使用的templateId:', this.templateId);
     
     // 保存templateId到页面数据
