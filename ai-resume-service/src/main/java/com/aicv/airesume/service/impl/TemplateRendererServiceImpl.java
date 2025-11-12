@@ -18,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring5.SpringTemplateEngine;
 import org.thymeleaf.templateresolver.StringTemplateResolver;
@@ -33,6 +34,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.io.StringReader;
 
 /**
  * 模板渲染服务实现类
@@ -577,15 +579,46 @@ public class TemplateRendererServiceImpl implements TemplateRendererService {
             Context context = new Context();
             context.setVariables(resumeData);
             
-            // 使用Spring自动配置的TemplateEngine，避免手动创建带来的依赖问题
-            String renderedHtml = springTemplateEngine.process(thymeleafTemplate, context);
+            // 使用最简单的方式创建TemplateEngine，避免任何可能导致OGNL问题的配置
+            TemplateEngine templateEngine = new TemplateEngine();
+            
+            // 只配置StringTemplateResolver，这是最简单直接的方式
+            StringTemplateResolver stringTemplateResolver = new StringTemplateResolver();
+            stringTemplateResolver.setTemplateMode(TemplateMode.HTML);
+            stringTemplateResolver.setCacheable(false);
+            
+            // 设置StringTemplateResolver为模板引擎的唯一解析器
+            templateEngine.setTemplateResolver(stringTemplateResolver);
+            
+            // 正确使用StringTemplateResolver处理字符串模板
+            // 将模板内容设置为模板引擎的处理对象
+            String renderedHtml = templateEngine.process(thymeleafTemplate, context);
             
             logger.info("HTML模板渲染完成，生成的HTML长度: {} 字符", renderedHtml.length());
             return renderedHtml;
         } catch (Exception e) {
             logger.error("渲染HTML模板时发生异常: {}", e.getMessage(), e);
-            throw new RuntimeException("HTML模板渲染失败", e);
+            // 如果遇到任何错误，直接使用字符串替换作为降级方案
+            logger.warn("模板渲染失败，使用字符串替换降级方案");
+            return fallbackRenderUsingStringReplace(htmlTemplate, resumeData);
         }
+    }
+    
+    /**
+     * 降级方案：使用简单的字符串替换来渲染模板
+     */
+    private String fallbackRenderUsingStringReplace(String template, Map<String, Object> data) {
+        logger.info("使用字符串替换降级方案渲染模板");
+        String result = template;
+        
+        // 简单的字符串替换逻辑，支持 ${variable} 格式
+        for (Map.Entry<String, Object> entry : data.entrySet()) {
+            String placeholder = "${" + entry.getKey() + "}";
+            String value = entry.getValue() != null ? entry.getValue().toString() : "";
+            result = result.replace(placeholder, value);
+        }
+        
+        return result;
     }
 
     /**

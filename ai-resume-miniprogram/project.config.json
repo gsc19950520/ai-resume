@@ -30,7 +30,7 @@
       "outputPath": ""
     },
     "enableEngineNative": false,
-    "enablePluginComponents": true,
+    "enablePluginComponents": false,
     "enableComponentFrameworkRuntime": true,
     "packNpmManually": false,
     "packNpmRelationList": [],

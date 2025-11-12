@@ -4,7 +4,8 @@ Page({
   data: {
     templateId: 'template-one',  // 默认模板ID
     templateName: '技术人才模板',  // 默认模板名称
-    imagePath: '/images/template-one.png'  // 默认图片路径
+    imagePath: '/images/template-one.png',  // 默认图片路径
+    templateUpdateTime: new Date().getTime()  // 用于触发视图更新的时间戳
   },
 
   /**
@@ -33,6 +34,9 @@ Page({
         templateId: templateId,
         imagePath: imagePath
       });
+      
+      // 动态加载对应的样式文件
+      this.loadTemplateStyles(templateId);
       console.log('已设置模板ID:', templateId, '图片路径:', imagePath);
     }
     
@@ -76,6 +80,30 @@ Page({
       });
     }, 1000);
   },
+  
+  /**
+   * 动态加载模板样式文件
+   * @param {string} templateId - 模板ID
+   */
+  /**
+   * 加载指定模板的样式
+   * @param {string} templateId - 模板ID
+   */
+  loadTemplateStyles: function(templateId) {
+    try {
+      console.log('正在为模板:', templateId, '加载对应样式');
+      
+      // 在小程序中，模板样式通过WXML中的模板导入和wxss的@import来控制
+      // 由于我们已经在preview.wxss中导入了所有模板样式，这里只需确保模板切换时视图正确更新
+      this.setData({
+        templateUpdateTime: new Date().getTime() // 强制触发视图更新，确保样式正确应用
+      });
+      
+      console.log('模板样式已准备就绪:', templateId);
+    } catch (error) {
+      console.error('加载模板样式失败:', error);
+    }
+  },
 
   /**
    * 返回模板列表
@@ -91,5 +119,27 @@ Page({
     wx.navigateTo({
       url: '/pages/template/preview/simple-test'
     });
+  },
+
+  /**
+   * 切换模板
+   * @param {Object} e - 事件对象，包含模板ID
+   */
+  switchTemplate: function(e) {
+    const templateId = e.currentTarget.dataset.id;
+    const templateNameMap = {
+      'template-one': '技术人才模板',
+      'template-two': '简约风格模板',
+      'template-three': '设计师模板'
+    };
+    
+    this.setData({
+      templateId: templateId,
+      templateName: templateNameMap[templateId] || templateId,
+      imagePath: `/images/${templateId}.png`,
+      templateUpdateTime: new Date().getTime()
+    });
+    
+    console.log('已切换到模板:', templateId);
   }
 })

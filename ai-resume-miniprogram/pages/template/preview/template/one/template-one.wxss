@@ -1,0 +1,126 @@
+/* 根容器 */
+.template-one-container {
+  width: 210mm;
+  min-height: 297mm;
+  display: flex;
+  background: #fff;
+  padding: 24rpx;
+  box-sizing: border-box;
+  font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+  transform: scale(0.9);
+  transform-origin: top left;
+}
+
+/* 左侧栏 */
+.template-one-container .left-panel {
+  width: 35%;
+  background: linear-gradient(135deg, #4facfe, #00f2fe);
+  border-radius: 16rpx;
+  padding: 20rpx;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* 头像与姓名 */
+.template-one-container .avatar-container {
+  text-align: center;
+}
+
+.template-one-container .avatar {
+  width: 140rpx;
+  height: 140rpx;
+  border-radius: 50%;
+  margin-bottom: 12rpx;
+  border: 3rpx solid rgba(255,255,255,0.8);
+}
+
+.template-one-container .name {
+  font-size: 32rpx;
+  font-weight: 700;
+  margin-bottom: 6rpx;
+}
+
+.template-one-container .title {
+  font-size: 18rpx;
+  opacity: 0.9;
+}
+
+/* 联系方式 */
+.template-one-container .contact-section {
+  width: 100%;
+  margin-top: 24rpx;
+}
+
+.template-one-container .section-title {
+  font-size: 20rpx;
+  font-weight: 700;
+  margin-bottom: 8rpx;
+  border-bottom: 2rpx solid rgba(255,255,255,0.5);
+  padding-bottom: 4rpx;
+}
+
+.template-one-container .contact-item {
+  font-size: 14rpx;
+  margin-bottom: 4rpx;
+}
+
+/* 技能 */
+.template-one-container .skills-section {
+  width: 100%;
+  margin-top: 20rpx;
+}
+
+.template-one-container .skill-list {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.template-one-container .skill {
+  background: rgba(255,255,255,0.2);
+  border-radius: 8rpx;
+  padding: 4rpx 8rpx;
+  font-size: 12rpx;
+  margin: 2rpx;
+}
+
+/* 右侧栏 */
+.template-one-container .right-panel {
+  width: 65%;
+  padding-left: 20rpx;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Section 卡片 */
+.template-one-container .section {
+  background: #f7f9fc;
+  border-radius: 12rpx;
+  padding: 16rpx;
+  margin-bottom: 16rpx;
+  box-shadow: 0 4rpx 8rpx rgba(0,0,0,0.1);
+}
+
+/* 工作 / 教育 / 项目 */
+.template-one-container .job, 
+.template-one-container .project {
+  margin-bottom: 10rpx;
+}
+
+.template-one-container .job-title {
+  font-weight: 600;
+  font-size: 16rpx;
+}
+
+.template-one-container .job-period {
+  font-size: 14rpx;
+  color: #666;
+  margin-bottom: 4rpx;
+}
+
+.template-one-container .job-desc {
+  font-size: 14rpx;
+  line-height: 1.4;
+  color: #444;
+}

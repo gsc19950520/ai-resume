@@ -1,0 +1,89 @@
+<template name="template-one">
+  <view class="template-one-container">
+  <!-- 左侧栏：个人信息 + 技能 -->
+  <view class="left-panel">
+    <view class="avatar-container">
+      <image class="avatar" src="https://via.placeholder.com/120" mode="cover" />
+      <view class="name">张三</view>
+      <view class="title">前端工程师</view>
+    </view>
+    <view class="contact-section">
+      <view class="section-title">联系方式</view>
+      <view class="contact-item">📞 123-4567-8901</view>
+      <view class="contact-item">✉ zhangsan@example.com</view>
+      <view class="contact-item">📍 北京</view>
+    </view>
+    <view class="skills-section">
+      <view class="section-title">专业技能</view>
+      <view class="skill-list">
+        <view class="skill">HTML</view>
+        <view class="skill">CSS</view>
+        <view class="skill">JavaScript</view>
+        <view class="skill">Vue.js</view>
+        <view class="skill">React</view>
+        <view class="skill">小程序开发</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 右侧栏：教育经历 / 工作经历 / 项目经验 / 自我评价 -->
+  <view class="right-panel">
+    <!-- 教育经历 -->
+    <view class="section">
+      <view class="section-title">教育经历</view>
+      <view class="job">
+        <view class="job-title">清华大学 - 本科</view>
+        <view class="job-period">2015年9月 - 2019年7月</view>
+        <view class="job-desc">计算机科学与技术专业，主修软件开发、数据结构与算法。</view>
+      </view>
+    </view>
+
+    <!-- 工作经历 -->
+    <view class="section">
+      <view class="section-title">工作经历</view>
+      <view class="job">
+        <view class="job-title">字节跳动 - 前端开发工程师</view>
+        <view class="job-period">2019年8月 - 至今</view>
+        <view class="job-desc">
+          负责小程序前端开发与维护，优化渲染性能和用户体验，参与核心组件库建设。
+        </view>
+      </view>
+      <view class="job">
+        <view class="job-title">腾讯 - 实习前端工程师</view>
+        <view class="job-period">2018年7月 - 2018年12月</view>
+        <view class="job-desc">
+          协助开发企业微信小程序，优化页面布局与交互设计。
+        </view>
+      </view>
+    </view>
+
+    <!-- 项目经验 -->
+    <view class="section">
+      <view class="section-title">项目经验</view>
+      <view class="project">
+        <view class="job-title">企业微信小程序</view>
+        <view class="job-period">2018年7月 - 2018年12月</view>
+        <view class="job-desc">
+          前端页面设计与组件封装，优化加载速度，提高用户留存率。
+        </view>
+      </view>
+      <view class="project">
+        <view class="job-title">内部管理系统</view>
+        <view class="job-period">2019年9月 - 2020年6月</view>
+        <view class="job-desc">
+          前端架构设计，使用 Vue.js 和 ElementUI 构建响应式界面。
+        </view>
+      </view>
+    </view>
+
+    <!-- 自我评价 -->
+    <view class="section">
+      <view class="section-title">自我评价</view>
+      <view class="job-desc">
+        拥有扎实前端技术基础，热衷新技术研究，具备团队协作与问题解决能力。
+      </view>
+    </view>
+  </view>
+</view>
+
+</template>

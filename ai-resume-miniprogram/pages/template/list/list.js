@@ -1,80 +1,42 @@
 // list.js
 const app = getApp()
-import { get } from '../../../utils/request';
 
 Page({
   data: {
-    templateList: [],
-    loading: true
+    templateList: []
   },
 
   onLoad: function() {
-    this.loadTemplateList()
-  },
-
-  // 加载模板列表
-  loadTemplateList: function() {
-    this.setData({ loading: true })
+    // 直接设置固定的模板列表，只显示template-one和template-two
+    const defaultTemplates = [
+      {
+        id: 'template-one', 
+        name: '专业简约模板',
+        preview: '/images/template-one.png',
+        description: '清晰简洁的专业风格，适合各类职位申请',
+        vipOnly: false,
+        isFree: true
+      },
+      {
+        id: 'template-two',
+        name: '创意设计模板',
+        preview: '/images/template-two.png',
+        description: '富有创意的设计风格模板',
+        vipOnly: false,
+        isFree: true
+      },
+      {
+        id: 'template-three',
+        name: '创意设计模板',
+        preview: '/images/template-three.png',
+        description: '富有创意的设计风格模板',
+        vipOnly: false,
+        isFree: true
+      }
+    ];
     
-    // 调用后端API获取模板列表
-    console.log('开始调用模板列表API...');
-    get('/api/template/all')
-      .then(res => {
-        console.log('从后端API获取模板列表成功，响应数据:', res);
-        // 确保返回的数据是数组格式
-        const templateList = Array.isArray(res) ? res : [];
-        
-        // 为每个模板添加预览图片路径（如果后端没有提供）
-        const enhancedTemplates = templateList.map(template => {
-        return {
-          id: template.id || `template-${Math.random().toString(36).substr(2, 9)}`,
-          name: template.name || '未知模板',
-          preview: template.preview || `/images/${template.id || 'default-template'}.png`,
-          description: template.description || '暂无描述',
-          vipOnly: template.vip_only || false,
-          isFree: template.is_free || false
-        };
-      });
-        
-        this.setData({
-          loading: false,
-          templateList: enhancedTemplates
-        })
-        console.log('从后端API获取模板列表成功:', enhancedTemplates);
-      })
-      .catch(err => {
-        console.error('获取模板列表失败，错误详情:', err);
-        console.error('错误类型:', typeof err);
-        console.error('错误堆栈:', err.stack || '无堆栈信息');
-        this.setData({ loading: false });
-        
-        // 出错时提供默认模板作为备用
-        const defaultTemplates = [
-          {
-            id: 'template-one', 
-            name: '专业简约模板',
-            preview: '/images/template-one.png',
-            description: '清晰简洁的专业风格，适合各类职位申请',
-            vipOnly: false,
-            isFree: true
-          },
-          {
-            id: 'template-two',
-            name: '创意设计模板',
-            preview: '/images/template-two.png',
-            description: '富有创意的设计风格模板',
-            vipOnly: false,
-            isFree: true
-          }
-        ];
-        
-        
-        this.setData({ templateList: defaultTemplates });
-        wx.showToast({
-          title: '获取模板失败，显示默认模板',
-          icon: 'none'
-        });
-      })
+    this.setData({ templateList: defaultTemplates });
+    console.log('模板列表已设置:', defaultTemplates);
   },
 
   // 选择模板

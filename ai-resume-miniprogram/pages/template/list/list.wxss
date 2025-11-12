@@ -17,18 +17,6 @@
   color: #333;
 }
 
-.loading-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 400rpx;
-}
-
-.loading {
-  font-size: 32rpx;
-  color: #666;
-}
-
 /* 模板网格布局 - 左右两列 */
 .template-grid {
   display: grid;

@@ -1,12 +1,44 @@
 <!-- 动态模板预览页面 -->
-<view style="width: 100%; height: 100vh; background: white; margin: 0; padding: 0;">
-  <!-- 显示当前模板图片 -->
+<view class="preview-container">
+  <!-- 根据模板ID动态加载不同的模板组件 -->
+  <view class="template-content">
+  <block wx:if="{{templateId === 'template-one'}}">
+    <import src="./template/one/template-one.wxml"/>
+    <view class="template-one-container">
+      <template is="template-one"/>
+    </view>
+  </block>
+  
+  <block wx:elif="{{templateId === 'template-two'}}">
+    <import src="./template/two/template-two.wxml"/>
+    <view class="template-two-container">
+      <template is="template-two"/>
+    </view>
+  </block>
+  
+  <block wx:elif="{{templateId === 'template-three'}}">
+    <import src="./template/three/template-three.wxml"/>
+    <view class="template-three-container">
+      <template is="template-three"/>
+    </view>
+  </block>
+</view>
+  
+  <!-- 显示当前模板图片作为备用 -->
   <image 
+    wx:if="{{!templateId || (templateId !== 'template-one' && templateId !== 'template-two')}}" 
     src="{{imagePath}}" 
     mode="aspectFit" 
     style="width: 100%; height: 70vh; display: block; background: #f9f9f9;"> 
   </image>
   
+  <!-- 模板切换按钮 -->
+  <view class="template-switcher">
+    <button size="mini" bindtap="switchTemplate" data-id="template-one">模板一</button>
+    <button size="mini" bindtap="switchTemplate" data-id="template-two">模板二</button>
+    <button size="mini" bindtap="switchTemplate" data-id="template-three">模板三</button>
+  </view>
+
   <!-- 使用模板按钮 -->
   <view class="action-container">
     <button class="use-template-btn" bindtap="useTemplate">使用此模板</button>

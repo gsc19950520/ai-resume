@@ -1,0 +1,172 @@
+/* 根容器，A4比例保持不变 */
+.template-three-container {
+  width: 210mm;
+  min-height: 297mm;
+  background: #ffffff;
+  padding: 24rpx;
+  box-sizing: border-box;
+  transform: scale(0.9); /* 保持与之前放大20%一致 */
+  transform-origin: top left;
+  font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+  color: #333;
+}
+
+/* 顶部 Header */
+.template-three-container .header {
+  background: linear-gradient(120deg, #6a82fb, #fc5c7d);
+  border-radius: 20rpx;
+  display: flex;
+  align-items: center;
+  padding: 32rpx;
+  box-shadow: 0 10rpx 20rpx rgba(0,0,0,0.15);
+  position: relative;
+}
+
+.template-three-container .header::before,
+.template-three-container .header::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.08);
+}
+
+.template-three-container .header::before {
+  width: 200rpx; height: 200rpx; top: -50rpx; right: -60rpx;
+}
+
+.template-three-container .header::after {
+  width: 160rpx; height: 160rpx; bottom: -40rpx; left: -50rpx;
+}
+
+.template-three-container .avatar {
+  width: 144rpx;
+  height: 144rpx;
+  border-radius: 50%;
+  border: 4rpx solid rgba(255,255,255,0.9);
+  margin-right: 28rpx;
+  object-fit: cover;
+}
+
+/* 个人信息 */
+.template-three-container .info {
+  flex: 1;
+}
+
+.template-three-container .name {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10rpx;
+}
+
+.template-three-container .name-text {
+  font-size: 36rpx;
+  font-weight: 800;
+  letter-spacing: 1.2rpx;
+  color: #fff;
+}
+
+.template-three-container .tag {
+  font-size: 18rpx;
+  background: rgba(255,255,255,0.2);
+  border-radius: 16rpx;
+  padding: 4rpx 10rpx;
+  margin-left: 12rpx;
+}
+
+.template-three-container .contact {
+  font-size: 16rpx;
+  line-height: 1.4;
+  margin-bottom: 8rpx;
+}
+
+.template-three-container .contact-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 3rpx;
+}
+
+.template-three-container .icon {
+  margin-right: 6rpx;
+  font-size: 18rpx;
+}
+
+.template-three-container .highlight {
+  margin-top: 10rpx;
+  font-size: 16rpx;
+  background: rgba(255,255,255,0.18);
+  border-radius: 8rpx;
+  padding: 6rpx 10rpx;
+  line-height: 1.4;
+}
+
+/* 通用 Section */
+.template-three-container .section {
+  margin-top: 24rpx;
+  padding: 18rpx 18rpx 12rpx 18rpx;
+  background: #f7f9fc;
+  border-radius: 14rpx;
+  box-shadow: 0 4rpx 10rpx rgba(0,0,0,0.08);
+}
+
+.template-three-container .section-title {
+  font-weight: 700;
+  font-size: 22rpx;
+  margin-bottom: 10rpx;
+  color: #1e73be;
+  border-left: 6rpx solid #1e73be;
+  padding-left: 12rpx;
+}
+
+/* 工作 / 教育经历 */
+.template-three-container .job {
+  margin-bottom: 12rpx;
+}
+
+.template-three-container .job-title {
+  font-weight: 700;
+  font-size: 17rpx;
+  color: #333;
+}
+
+.template-three-container .job-period {
+  font-size: 14rpx;
+  color: #666;
+  margin-bottom: 4rpx;
+}
+
+.template-three-container .job-desc {
+  font-size: 14rpx;
+  line-height: 1.45;
+  color: #555;
+}
+
+/* 技能 */
+.template-three-container .skill-list {
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: 6rpx;
+}
+
+.template-three-container .skill {
+  display: inline-block;
+  background: #6a82fb;
+  color: #fff;
+  border-radius: 6rpx;
+  padding: 4rpx 8rpx;
+  margin: 2rpx;
+  font-size: 13rpx;
+  font-weight: 500;
+  box-shadow: 0 2rpx 4rpx rgba(0,0,0,0.1);
+}
+
+/* 项目经验 */
+.template-three-container .project {
+  margin-bottom: 12rpx;
+}
+
+/* 自我评价 */
+.template-three-container .self-evaluation {
+  font-size: 15rpx;
+  line-height: 1.45;
+  color: #444;
+}

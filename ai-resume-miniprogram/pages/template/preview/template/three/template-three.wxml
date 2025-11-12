@@ -1,0 +1,90 @@
+<template name="template-three">
+ <scroll-view scroll-y="true" style="height:100vh; background:#eceff4;">
+  <view class="resume-page">
+    <!-- 顶部 Header -->
+    <view class="header">
+      <image class="avatar" src="https://via.placeholder.com/120" mode="aspectFill"></image>
+      <view class="info">
+        <view class="name">
+          <text class="name-text">李四</text>
+          <text class="tag">UI/UX设计师</text>
+        </view>
+        <view class="contact">
+          <view class="contact-item"><text class="icon">📞</text><text>138-1234-5678</text></view>
+          <view class="contact-item"><text class="icon">✉️</text><text>lisi@example.com</text></view>
+          <view class="contact-item"><text class="icon">📍</text><text>上海</text></view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 教育经历 -->
+    <view class="section">
+      <view class="section-title">教育经历</view>
+      <view class="job">
+        <view class="job-title">上海交通大学 - 本科</view>
+        <view class="job-period">2014年9月 - 2018年7月</view>
+        <view class="job-desc">视觉传达设计专业，主修界面设计与用户体验研究。</view>
+      </view>
+    </view>
+
+    <!-- 工作经历 -->
+    <view class="section">
+      <view class="section-title">工作经历</view>
+      <view class="job">
+        <view class="job-title">阿里巴巴 - UI设计师</view>
+        <view class="job-period">2018年8月 - 至今</view>
+        <view class="job-desc">
+          负责电商小程序和移动端界面设计，优化用户操作流程，提高转化率。
+        </view>
+      </view>
+      <view class="job">
+        <view class="job-title">腾讯 - 实习设计师</view>
+        <view class="job-period">2017年7月 - 2017年12月</view>
+        <view class="job-desc">
+          参与移动端App界面设计和图标制作。
+        </view>
+      </view>
+    </view>
+
+    <!-- 技能 -->
+    <view class="section">
+      <view class="section-title">技能</view>
+      <view class="skill-list">
+        <text class="skill">Photoshop</text>
+        <text class="skill">Sketch</text>
+        <text class="skill">Figma</text>
+        <text class="skill">Adobe XD</text>
+        <text class="skill">小程序设计</text>
+      </view>
+    </view>
+
+    <!-- 项目经验 -->
+    <view class="section">
+      <view class="section-title">项目经验</view>
+      <view class="project">
+        <view class="job-title">电商小程序界面优化</view>
+        <view class="job-period">2018年10月 - 2019年3月</view>
+        <view class="job-desc">
+          完成小程序首页和详情页的UI优化设计，提高用户留存率。
+        </view>
+      </view>
+      <view class="project">
+        <view class="job-title">企业内部管理系统</view>
+        <view class="job-period">2019年6月 - 2020年2月</view>
+        <view class="job-desc">
+          负责整体界面风格统一和交互流程设计。
+        </view>
+      </view>
+    </view>
+
+    <!-- 自我评价 -->
+    <view class="section">
+      <view class="section-title">自我评价</view>
+      <view class="job-desc">
+        注重用户体验和界面美观，具备创新能力和团队协作精神。
+      </view>
+    </view>
+  </view>
+</scroll-view>
+
+</template>

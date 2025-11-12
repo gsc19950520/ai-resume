@@ -27,7 +27,7 @@
         <!-- 依赖版本管理 -->
         <spring-boot.version>2.7.15</spring-boot.version>
         <mysql.version>8.0.30</mysql.version>
-        <poi.version>5.2.3</poi.version>
+        <poi.version>3.15</poi.version>
         <pdfbox.version>2.0.27</pdfbox.version>
         <fastjson.version>1.2.83</fastjson.version>
         <commons-lang3.version>3.12.0</commons-lang3.version>
@@ -129,11 +129,38 @@
             <scope>compile</scope>
         </dependency>
         
-        <!-- File Processing -->
+        <!-- File Processing - 完整的POI文档处理依赖 -->
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi</artifactId>
+            <version>${poi.version}</version>
+        </dependency>
+        <!-- 包含POIXMLDocumentPart类的关键依赖 -->
         <dependency>
             <groupId>org.apache.poi</groupId>
             <artifactId>poi-ooxml</artifactId>
             <version>${poi.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml-schemas</artifactId>
+            <version>${poi.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>ooxml-schemas</artifactId>
+            <version>1.4</version>
+        </dependency>
+        <!-- XHTML转换器依赖 -->
+        <dependency>
+            <groupId>fr.opensagres.xdocreport</groupId>
+            <artifactId>org.apache.poi.xwpf.converter.core</artifactId>
+            <version>1.0.6</version>
+        </dependency>
+        <dependency>
+            <groupId>fr.opensagres.xdocreport</groupId>
+            <artifactId>org.apache.poi.xwpf.converter.xhtml</artifactId>
+            <version>1.0.6</version>
         </dependency>
         <dependency>
             <groupId>org.apache.pdfbox</groupId>
@@ -170,6 +197,12 @@
             <artifactId>jsoup</artifactId>
             <version>1.17.1</version>
         </dependency>
+        <!-- XML解析器 -->
+        <dependency>
+            <groupId>xerces</groupId>
+            <artifactId>xercesImpl</artifactId>
+            <version>2.12.2</version>
+        </dependency>
         
         <!-- PDF生成相关依赖 -->
         <dependency>
@@ -183,13 +216,20 @@
             <version>5.5.13.3</version>
         </dependency>
         
+
+        
         <!-- Thymeleaf模板引擎 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-thymeleaf</artifactId>
         </dependency>
-        <!-- 不再需要显式的OGNL依赖，因为我们现在使用SpringTemplateEngine -->
-        <!-- Spring Boot会自动管理Thymeleaf及其相关依赖的版本兼容性 -->
+        <!-- OGNL依赖，用于Thymeleaf表达式求值 -->
+        <dependency>
+            <groupId>ognl</groupId>
+            <artifactId>ognl</artifactId>
+            <version>3.2.21</version>
+            <scope>compile</scope>
+        </dependency>
         
         <!-- JWT -->
         <dependency>

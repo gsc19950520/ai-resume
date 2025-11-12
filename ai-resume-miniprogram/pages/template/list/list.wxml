@@ -5,13 +5,8 @@
     <text class="section-title">简历模板</text>
   </view>
   
-  <!-- 加载中 -->
-  <view class="loading-container" wx:if="{{loading}}">
-    <loading class="loading">加载中...</loading>
-  </view>
-
   <!-- 模板列表 - 左右两列网格布局 -->
-  <view class="template-grid" wx:else>
+  <view class="template-grid">
     <view class="template-card" wx:for="{{templateList}}" wx:key="id">
       <!-- 模板卡片容器 - 点击整个卡片预览模板 -->
       <view class="template-wrapper" bindtap="previewTemplate" data-id="{{item.id}}" data-name="{{item.name}}">
