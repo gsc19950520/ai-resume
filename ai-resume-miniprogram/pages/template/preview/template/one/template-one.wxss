@@ -1,126 +1,148 @@
-/* 根容器 */
 .template-one-container {
-  width: 210mm;
-  min-height: 297mm;
+  width: 100%;
+  min-height: 150mm;
   display: flex;
-  background: #fff;
-  padding: 24rpx;
-  box-sizing: border-box;
   font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
-  transform: scale(0.9);
+  background: #fff;
+  padding: 15rpx 10rpx;
+  box-sizing: border-box;
+  transform: scale(1);
   transform-origin: top left;
 }
 
-/* 左侧栏 */
-.template-one-container .left-panel {
-  width: 35%;
-  background: linear-gradient(135deg, #4facfe, #00f2fe);
-  border-radius: 16rpx;
-  padding: 20rpx;
+/* 左侧主内容区（原右侧） */
+.template-one-container .left-panel-swapped {
+  width: 70%;
+  padding-right: 15rpx;
+  padding-left: 15rpx;
+  padding-top: 20rpx;
+  padding-bottom: 20rpx;
+  background: #ffffff8e;
+  display: flex;
+  flex-direction: column;
+  border-radius: 10rpx;
+}
+
+/* 右侧信息区（原左侧） */
+.template-one-container .right-panel-swapped {
+  width: 30%;
+  background: #572dca8e;
+  border-radius: 10rpx;
+  padding: 24rpx;
   color: #fff;
   display: flex;
   flex-direction: column;
   align-items: center;
+  box-shadow: 0 6rpx 12rpx rgba(0,0,0,0.2);
 }
 
-/* 头像与姓名 */
+/* 头像与基本信息 */
 .template-one-container .avatar-container {
   text-align: center;
+  margin-bottom: 30rpx;
 }
-
 .template-one-container .avatar {
   width: 140rpx;
   height: 140rpx;
   border-radius: 50%;
-  margin-bottom: 12rpx;
   border: 3rpx solid rgba(255,255,255,0.8);
+  margin-bottom: 12rpx;
 }
-
 .template-one-container .name {
   font-size: 32rpx;
   font-weight: 700;
   margin-bottom: 6rpx;
 }
-
 .template-one-container .title {
   font-size: 18rpx;
+  color: #fff;
   opacity: 0.9;
 }
 
 /* 联系方式 */
 .template-one-container .contact-section {
   width: 100%;
-  margin-top: 24rpx;
+  margin-top: 30rpx;
 }
-
-.template-one-container .section-title {
+.template-one-container .contact-section .section-title {
   font-size: 20rpx;
-  font-weight: 700;
-  margin-bottom: 8rpx;
-  border-bottom: 2rpx solid rgba(255,255,255,0.5);
+  font-weight: 600;
+  margin-bottom: 16rpx;
+  border-bottom: 1rpx solid rgba(255,255,255,0.4);
   padding-bottom: 4rpx;
 }
-
 .template-one-container .contact-item {
-  font-size: 14rpx;
-  margin-bottom: 4rpx;
-}
-
-/* 技能 */
-.template-one-container .skills-section {
-  width: 100%;
-  margin-top: 20rpx;
-}
-
-.template-one-container .skill-list {
+  font-size: 15rpx;
   display: flex;
   flex-wrap: wrap;
+  line-height: 30rpx;
+  margin-bottom: 10rpx;
+}
+.template-one-container .contact-label {
+  font-weight: 500;
+  margin-right: 4rpx;
+  white-space: nowrap;
+}
+.template-one-container .contact-value {
+  flex: 1;
+  word-break: break-word;
 }
 
-.template-one-container .skill {
-  background: rgba(255,255,255,0.2);
+/* 技能栏 */
+.template-one-container .skills-section {
+  width: 100%;
+  margin-top: 40rpx;
+}
+.template-one-container .skill-item {
+  margin-bottom: 12rpx;
+}
+.template-one-container .skill-name {
+  font-size: 16rpx;
+  margin-bottom: 4rpx;
+}
+.template-one-container .skill-bar {
+  width: 100%;
+  height: 10rpx;
+  background: rgba(255,255,255,0.3);
   border-radius: 8rpx;
-  padding: 4rpx 8rpx;
-  font-size: 12rpx;
-  margin: 2rpx;
+  overflow: hidden;
+}
+.template-one-container .skill-fill {
+  height: 100%;
+  background: #fff;
 }
 
-/* 右侧栏 */
-.template-one-container .right-panel {
-  width: 65%;
-  padding-left: 20rpx;
-  display: flex;
-  flex-direction: column;
-}
-
-/* Section 卡片 */
+/* Section 通用样式 */
 .template-one-container .section {
-  background: #f7f9fc;
+  background: #ffffff;
   border-radius: 12rpx;
   padding: 16rpx;
   margin-bottom: 16rpx;
-  box-shadow: 0 4rpx 8rpx rgba(0,0,0,0.1);
+  box-shadow: 0 4rpx 8rpx rgba(0,0,0,0.08);
 }
-
-/* 工作 / 教育 / 项目 */
-.template-one-container .job, 
-.template-one-container .project {
-  margin-bottom: 10rpx;
-}
-
-.template-one-container .job-title {
+.template-one-container .section-title {
+  font-size: 20rpx;
   font-weight: 600;
-  font-size: 16rpx;
+  margin-bottom: 20rpx;
+  border-left: 6rpx solid #148291;
+  padding-left: 10rpx;
 }
-
-.template-one-container .job-period {
-  font-size: 14rpx;
-  color: #666;
-  margin-bottom: 4rpx;
+.template-one-container .job-header {
+  font-size: 15rpx;
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10rpx;
+  color: #333;
 }
-
 .template-one-container .job-desc {
   font-size: 14rpx;
-  line-height: 1.4;
+  line-height: 1.9;
   color: #444;
+}
+.template-one-container .section .job-desc::before {
+  content: "·";
+  color: #000;
+  font-weight: bold;
+  margin-right: 6rpx;
 }

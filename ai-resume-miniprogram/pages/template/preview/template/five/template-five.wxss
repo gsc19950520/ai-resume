@@ -1,0 +1,188 @@
+.template-five-container {
+  width: 100%;
+  min-height: 120mm;
+  display: flex;
+  flex-direction: column;
+  font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+  background: #fff;
+  padding: 15rpx 5rpx;
+  box-sizing: border-box;
+}
+
+/* 顶部栏背景 */
+.template-five-container .top-bar-full {
+  background: #1482918e;
+  padding: 20rpx;
+  border-top-left-radius: 20rpx;
+  border-top-right-radius: 20rpx;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 头像 + 姓名 + 期望薪资 */
+.template-five-container .avatar-name-section {
+  display: flex;
+  gap: 20rpx;
+  align-items: center;
+}
+
+/* 头像 */
+.template-five-container .avatar {
+  width: 140rpx;
+  height: 140rpx;
+  border-radius: 50%;
+  border: 3rpx solid rgba(255,255,255,0.8);
+}
+
+/* 姓名 + 期望薪资 */
+.template-five-container .name-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+/* 顶部姓名 */
+.template-five-container .top-name {
+  font-size: 32rpx;
+  font-weight: 700;
+}
+
+/* 期望薪资信息 */
+.template-five-container .top-extra-info {
+  font-size: 14rpx;
+  line-height: 28rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+/* 两行信息 */
+.template-five-container .info-row {
+  display: flex;
+  gap: 10rpx;
+}
+
+/* 主体内容左右布局 */
+.template-five-container .main-content {
+  display: flex;
+  gap: 10rpx;
+}
+
+/* 左侧面板：联系方式 + 技能 */
+.template-five-container .left-panel-full {
+  width: 25%;
+  background: #1482918e;
+  border-bottom-left-radius: 20rpx;
+  border-top-right-radius: 12rpx;
+  padding: 24rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 40rpx; /* 间隔加宽 */
+  color: #fff;
+}
+
+/* Section标题 */
+.template-five-container .section-title {
+  font-size: 20rpx;
+  font-weight: 600;
+  margin-bottom: 16rpx;
+  border-left: 6rpx solid #fff;
+  padding-left: 10rpx;
+  color: #fff;
+}
+
+.template-five-container .section .section-title {
+  font-size: 20rpx;
+  font-weight: 600;
+  margin-bottom: 16rpx;
+  border-left: 0rpx solid #fff;
+  padding-left: 1rpx;
+  color: rgb(0, 0, 0);
+}
+
+.template-five-container .contact-item {
+  display: flex;
+  flex-direction: column; /* 垂直排列 label 和 value */
+  align-items: flex-start; /* 左对齐 */
+  margin-bottom: 16rpx; /* 每个项目间距 */
+}
+
+.template-five-container .contact-label {
+  font-weight: 600;
+  font-size: 14rpx;
+  margin-bottom: 4rpx; /* label 与 value 间距 */
+}
+
+.template-five-container .contact-value {
+  font-size: 15rpx;
+  color: #fff; /* 在深色左侧背景上显示白色 */
+}
+
+
+/* 技能进度条 */
+.template-five-container .skill-item {
+  margin-bottom: 12rpx;
+}
+.template-five-container .skill-name {
+  font-size: 16rpx;
+  margin-bottom: 4rpx;
+}
+.template-five-container .skill-bar {
+  width: 100%;
+  height: 10rpx;
+  background: rgba(255,255,255,0.3);
+  border-radius: 8rpx;
+  overflow: hidden;
+}
+.template-five-container .skill-fill {
+  height: 100%;
+  background: #fff;
+  border-radius: 8rpx;
+}
+
+/* 右侧内容 */
+.template-five-container .right-panel-full {
+  width: 75%;
+  display: flex;
+  flex-direction: column;
+  padding: 24rpx;
+  background: #fff;
+  gap: 16rpx;
+  border-radius: 0 20rpx 20rpx 0;
+}
+
+/* 横线分隔 */
+.template-five-container .section-separator {
+  height: 1rpx;
+  background: #148291;
+  margin: 20rpx 0;
+}
+
+/* Job Header */
+.template-five-container .job-header {
+  font-size: 15rpx;
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10rpx;
+  color: #333;
+}
+
+/* Job Description */
+.template-five-container .job-desc {
+  font-size: 14rpx;
+  line-height: 1.9;
+  color: #444;
+  position: relative;
+  padding-left: 12rpx;
+  margin-bottom: 25rpx;
+}
+.template-five-container .job-desc::before {
+  content: "·";
+  position: absolute;
+  left: 0;
+  color: #000;
+  font-weight: bold;
+  font-size: 15rpx;
+}

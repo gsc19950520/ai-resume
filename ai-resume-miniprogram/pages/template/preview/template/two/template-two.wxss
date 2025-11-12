@@ -1,6 +1,6 @@
 /* 模板二样式 - 通过命名空间隔离 */
 .template-two-container .resume-page {
-  width: 210mm;
+  width: 110%;
   min-height: 297mm;
   background: #ffffff;
   padding: 24rpx;

@@ -141,5 +141,91 @@ Page({
     });
     
     console.log('已切换到模板:', templateId);
+  },
+  
+  /**
+   * 下载PDF文件
+   * 调用后端API生成并下载PDF
+   */
+  downloadPdf: function() {
+    const { templateId } = this.data;
+    
+    wx.showLoading({
+      title: '正在生成PDF...',
+    });
+    
+    // 获取全局应用实例
+    const app = getApp();
+    
+    try {
+      // 调用后端API生成PDF
+      app.cloudCall({
+        path: `/api/template/${templateId}/generate-pdf-from-frontend`,
+        method: 'GET',
+        responseType: 'arraybuffer', // 响应类型为数组缓冲区
+        success: (res) => {
+          console.log('PDF生成成功:', res);
+          
+          // 将arraybuffer转换为临时文件
+          const fs = wx.getFileSystemManager();
+          const tempFilePath = `${wx.env.USER_DATA_PATH}/resume_${Date.now()}.pdf`;
+          
+          // 写入临时文件
+          fs.writeFileSync(tempFilePath, res.data, 'binary');
+          
+          // 保存文件到用户设备
+          wx.saveFile({
+            tempFilePath: tempFilePath,
+            success: (saveRes) => {
+              console.log('文件保存成功:', saveRes);
+              wx.hideLoading();
+              
+              wx.showModal({
+                title: 'PDF下载成功',
+                content: '文件已保存，请在文件管理器中查看',
+                showCancel: false,
+                success: (res) => {
+                  // 打开文件
+                  wx.openDocument({
+                    filePath: saveRes.savedFilePath,
+                    fileType: 'pdf',
+                    showMenu: true,
+                    success: (openRes) => {
+                      console.log('文档打开成功');
+                    },
+                    fail: (openError) => {
+                      console.error('文档打开失败:', openError);
+                    }
+                  });
+                }
+              });
+            },
+            fail: (saveError) => {
+              console.error('文件保存失败:', saveError);
+              wx.hideLoading();
+              wx.showToast({
+                title: '保存失败',
+                icon: 'none'
+              });
+            }
+          });
+        },
+        fail: (error) => {
+          console.error('生成PDF失败:', error);
+          wx.hideLoading();
+          wx.showToast({
+            title: '生成失败',
+            icon: 'none'
+          });
+        }
+      });
+    } catch (e) {
+      console.error('下载PDF过程中发生异常:', e);
+      wx.hideLoading();
+      wx.showToast({
+        title: '操作失败',
+        icon: 'none'
+      });
+    }
   }
 })

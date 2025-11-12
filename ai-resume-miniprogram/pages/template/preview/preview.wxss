@@ -3,7 +3,8 @@
 @import './template/one/template-one.wxss';
 @import './template/two/template-two.wxss';
 @import './template/three/template-three.wxss';
-
+@import './template/four/template-four.wxss';
+@import './template/five/template-five.wxss';
 /* 基础样式设置，确保模板内容正常显示 */
 
 /* 确保模板内容区域样式正确应用 */
@@ -22,7 +23,7 @@ page {
 /* 预览容器样式 */
 .preview-container {
   width: 100%;
-  min-height: 100vh;
+  min-height: 10vh;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;

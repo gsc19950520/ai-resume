@@ -1,0 +1,205 @@
+.template-four-container {
+  width: 100%;
+  min-height: 150mm;
+  display: flex;
+  font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+  background: #fff;
+  padding: 2rpx;
+  padding: 15rpx 5rpx;
+  box-sizing: border-box;
+  transform: scale(1);
+  transform-origin: top left;
+}
+
+/* 左侧栏 */
+.template-four-container .left-panel {
+  width: 30%;
+  background: #1482918e;
+  border-radius: 19rpx;
+  padding: 24rpx;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 0 6rpx 12rpx rgba(0,0,0,0.2);
+}
+
+/* 头像与姓名 */
+.template-four-container .avatar-container {
+  text-align: center;
+}
+
+.template-four-container .avatar {
+  width: 140rpx;
+  height: 140rpx;
+  border-radius: 50%;
+  margin-bottom: 12rpx;
+  border: 3rpx solid rgba(255,255,255,0.8);
+}
+
+.template-four-container .name {
+  font-size: 32rpx;
+  
+  font-weight: 700;
+  margin-bottom: 6rpx;
+}
+
+.template-four-container .title {
+  font-size: 18rpx;
+  color: #fff;
+  opacity: 0.9;
+}
+
+.template-four-container .contact-section {
+  width: 100%;
+  margin-top: 30rpx; /* 增加上间距 */
+}
+
+.template-four-container .contact-section .section-title {
+  font-size: 20rpx;
+  font-weight: 600;
+  margin-bottom: 20rpx; /* 行间距更大 */
+  border-bottom: 1rpx solid rgba(255,255,255,0.5);
+  padding-bottom: 4rpx;
+}
+
+.template-four-container .skills-section .section-title {
+  font-size: 20rpx;
+  font-weight: 600;
+  margin-bottom: 20rpx; /* 行间距更大 */
+  border-bottom: 1rpx solid rgba(255,255,255,0.5);
+  padding-bottom: 4rpx;
+}
+
+.template-four-container .section .section-title {
+  font-size: 20rpx;
+  font-weight: 600;
+  margin-bottom: 20rpx; /* 行间距更大 */
+  border-bottom: 1rpx solid rgba(255,255,255,0.5);
+  padding-bottom: 4rpx;
+}
+
+.template-four-container .contact-item {
+  font-size: 15rpx;
+  align-items: flex-start;
+  line-height: 28rpx; /* 行间距加大 */
+  margin-bottom: 6rpx;
+  display: flex;
+  flex-wrap: wrap; /* 超长换行 */
+}
+
+.template-four-container .contact-icon {
+  margin-right: 6rpx;
+}
+
+.template-four-container .contact-label {
+  font-weight: 500;
+  font-size: 16rpx;
+  margin-right: 4rpx;
+  white-space: nowrap;
+}
+
+.template-four-container .contact-value {
+  flex: 1;
+  white-space: normal;
+  word-break: break-word; /* 自动换行超长内容 */
+}
+
+/* 技能进度条 */
+.template-four-container .skills-section {
+  width: 100%;
+  margin-top: 80rpx;
+}
+
+.template-four-container .skill-item {
+  margin-bottom: 12rpx;
+}
+
+.template-four-container .skill-name {
+  font-size: 16rpx;
+  margin-bottom: 4rpx;
+}
+
+.template-four-container .skill-bar {
+  width: 100%;
+  height: 10rpx;
+  background: rgba(255,255,255,0.3);
+  border-radius: 8rpx;
+  overflow: hidden;
+}
+
+.template-four-container .skill-fill {
+  height: 100%;
+  background: #fff;
+  border-radius: 8rpx;
+}
+
+/* 右侧栏 */
+.template-four-container .right-panel {
+  width: 70%;
+  padding-left: 20rpx;
+  gap: 10rpx;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Section 卡片 */
+.template-four-container .section {
+  background: #ffffff;
+  border-radius: 12rpx;
+  padding: 16rpx;
+  margin-bottom: 16rpx;
+  box-shadow: 0 4rpx 8rpx rgba(0,0,0,0.1);
+}
+
+/* 工作 / 教育 / 项目 */
+.template-four-container .job,
+.template-four-container .project {
+  margin-bottom: 20rpx;
+}
+
+/* 顶部标题行（公司、职位、时间） */
+.template-four-container .job-header {
+  font-size: 15rpx;
+  font-weight: 600;
+  color: #333;
+  display: flex;
+  justify-content: space-between; /* 三端分布 */
+  align-items: center;
+  margin-bottom: 10rpx;
+  gap: 10rpx;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 公司名（左） */
+.template-four-container .job-company {
+  text-align: left;
+}
+
+/* 职位（中） */
+.template-four-container .job-position {
+  text-align: center;
+}
+
+/* 时间（右） */
+.template-four-container .job-period {
+  text-align: right;
+}
+
+.template-four-container .job-desc {
+  font-size: 14rpx;
+  line-height: 1.9;
+  color: #444;
+}
+
+/* 在文本前加一个“·” */
+.template-four-container .section .job-desc::before {
+  content: "·";
+  left: 0;
+  color: #000000; 
+  font-weight: bold;
+  font-size: 15rpx;
+}

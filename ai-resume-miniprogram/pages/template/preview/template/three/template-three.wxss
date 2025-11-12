@@ -1,7 +1,7 @@
 /* 根容器，A4比例保持不变 */
 .template-three-container {
   width: 210mm;
-  min-height: 297mm;
+  min-height: 100mm;
   background: #ffffff;
   padding: 24rpx;
   box-sizing: border-box;
