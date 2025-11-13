@@ -74,19 +74,19 @@
 }
 
 .form-item {
-  margin-bottom: 40rpx;
+  margin-bottom: 5rpx;
 }
 
 .label {
   display: block;
   font-size: 28rpx;
   color: #666;
-  margin-bottom: 16rpx;
+  margin-bottom: 5rpx;
 }
 
 .input {
   width: 100%;
-  height: 80rpx;
+  height: 70rpx;
   border: 2rpx solid #e0e0e0;
   border-radius: 10rpx;
   padding: 0 20rpx;
@@ -121,8 +121,9 @@
 }
 
 .skill-name {
-  width: 100%;
-  padding: 15rpx;
+  width: 85%;
+  padding: 0rpx 15rpx;
+  height: 70rpx;
   font-size: 28rpx;
   color: #333;
   background-color: white;
@@ -197,10 +198,11 @@
 
 .add-skill-btn {
   margin-top: 20rpx;
+  padding: 12rpx 20rpx;
   background-color: #07c160;
   color: white;
   font-size: 28rpx;
-  border-radius: 8rpx;
+  border-radius: 80rpx;
 }
 
 /* 日期行 */

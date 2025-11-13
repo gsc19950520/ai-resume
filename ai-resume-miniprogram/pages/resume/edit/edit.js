@@ -5,6 +5,7 @@ Page({
       { id: 'personal', name: '个人信息' },
       { id: 'education', name: '教育经历' },
       { id: 'work', name: '工作经历' },
+      { id: 'projects', name: '项目经验' },
       { id: 'skills', name: '专业技能' },
       { id: 'hobbies', name: '兴趣爱好' },
       { id: 'self', name: '自我评价' }
@@ -49,6 +50,15 @@ Page({
           description: ''
         }
       ],
+      projectExperienceList: [
+        {
+          id: 1,
+          name: '',
+          description: '',
+          startDate: '',
+          endDate: ''
+        }
+      ],
 
       skills: '',
       selfEvaluation: ''
@@ -90,6 +100,11 @@ Page({
           // 处理技能评分数据
           if (savedData.skillsWithLevel && Array.isArray(savedData.skillsWithLevel)) {
             resumeInfoCopy.skillsWithLevel = savedData.skillsWithLevel;
+          }
+          
+          // 处理项目经验数据
+          if (savedData.projectExperienceList && Array.isArray(savedData.projectExperienceList)) {
+            resumeInfoCopy.projectExperienceList = savedData.projectExperienceList;
           }
           
           // 验证并修复数据结构完整性
@@ -172,6 +187,10 @@ Page({
     
     if (!validated.workExperience || !Array.isArray(validated.workExperience)) {
       validated.workExperience = defaultInfo.workExperience;
+    }
+    
+    if (!validated.projectExperienceList || !Array.isArray(validated.projectExperienceList)) {
+      validated.projectExperienceList = defaultInfo.projectExperienceList;
     }
     
     // 确保personalInfo对象存在
@@ -282,7 +301,7 @@ Page({
   // 添加新技能
   onAddSkill: function() {
     const skills = this.data.resumeInfo.skillsWithLevel;
-    skills.push({ name: '', level: 0 });
+    skills.push({ name: '', level: 1 });
     this.setData({
       'resumeInfo.skillsWithLevel': skills
     });
@@ -326,7 +345,7 @@ Page({
   onSkillLevelChange: function(e) {
     const skillIndex = e.currentTarget.dataset.skillIndex;
     const level = parseInt(e.currentTarget.dataset.level);
-    const skills = this.data.resumeInfo.skillsWithLevel;
+    const skills = [...this.data.resumeInfo.skillsWithLevel];
     skills[skillIndex].level = level;
     this.setData({
       'resumeInfo.skillsWithLevel': skills
@@ -507,7 +526,112 @@ Page({
     }
   },
 
+  // 处理项目经验输入
+  onProjectInput(e) {
+    const { index, field } = e.currentTarget.dataset;
+    const value = e.detail.value;
+    
+    try {
+      // 确保projectExperienceList存在且为数组，并且索引有效
+      if (!this.data.resumeInfo.projectExperienceList || !Array.isArray(this.data.resumeInfo.projectExperienceList) || index < 0 || index >= this.data.resumeInfo.projectExperienceList.length) {
+        console.error('项目经验数据异常或索引无效');
+        return;
+      }
+      
+      // 创建新的projectExperienceList数组副本进行更新
+      const updatedProjectExperienceList = [...this.data.resumeInfo.projectExperienceList];
+      if (!updatedProjectExperienceList[index]) {
+        updatedProjectExperienceList[index] = {};
+      }
+      updatedProjectExperienceList[index][field] = value;
+      
+      this.setData({
+        'resumeInfo.projectExperienceList': updatedProjectExperienceList
+      });
+      
+      // 即时保存数据到本地存储，使用JSON序列化确保复杂数据结构正确存储
+      const resumeInfoString = JSON.stringify(this.data.resumeInfo);
+      wx.setStorageSync('tempResumeInfo', JSON.parse(resumeInfoString));
+      console.log('项目经验数据更新并保存:', {index, field, value});
+    } catch (error) {
+      console.error('处理项目经验输入异常:', error);
+    }
+  },
 
+  // 添加项目经验
+  addProjectExperience: function() {
+    try {
+      // 确保projectExperienceList存在且为数组
+      if (!this.data.resumeInfo.projectExperienceList || !Array.isArray(this.data.resumeInfo.projectExperienceList)) {
+        this.setData({
+          'resumeInfo.projectExperienceList': []
+        });
+      }
+      const projectExperienceList = [...this.data.resumeInfo.projectExperienceList];
+      projectExperienceList.push({
+        id: Date.now(), // 添加唯一ID
+        name: '',
+        description: '',
+        startDate: '',
+        endDate: ''
+      });
+      this.setData({
+        'resumeInfo.projectExperienceList': projectExperienceList
+      });
+      
+      // 即时保存数据到本地存储，使用JSON序列化确保复杂数据结构正确存储
+      const resumeInfoString = JSON.stringify(this.data.resumeInfo);
+      wx.setStorageSync('tempResumeInfo', JSON.parse(resumeInfoString));
+      console.log('添加项目经验成功，当前数量:', projectExperienceList.length);
+    } catch (error) {
+      console.error('添加项目经验异常:', error);
+      wx.showToast({
+        title: '添加失败，请重试',
+        icon: 'none'
+      });
+    }
+  },
+  
+  // 删除项目经验
+  removeProjectExperience: function(e) {
+    const index = e.currentTarget.dataset.index;
+    
+    try {
+      // 确保projectExperienceList存在且为数组
+      if (!this.data.resumeInfo.projectExperienceList || !Array.isArray(this.data.resumeInfo.projectExperienceList) || this.data.resumeInfo.projectExperienceList.length === 0) {
+        wx.showToast({
+          title: '数据异常',
+          icon: 'none'
+        });
+        return;
+      }
+      
+      const projectExperienceList = [...this.data.resumeInfo.projectExperienceList];
+      
+      if (projectExperienceList.length > 1) {
+        projectExperienceList.splice(index, 1);
+        this.setData({
+          'resumeInfo.projectExperienceList': projectExperienceList
+        });
+        
+        // 即时保存数据到本地存储，使用JSON序列化确保复杂数据结构正确存储
+        const resumeInfoString = JSON.stringify(this.data.resumeInfo);
+        wx.setStorageSync('tempResumeInfo', JSON.parse(resumeInfoString));
+        console.log('删除项目经验成功，当前数量:', projectExperienceList.length);
+      } else {
+        wx.showToast({
+          title: '至少保留一个项目经验',
+          icon: 'none'
+        });
+      }
+    } catch (error) {
+      console.error('删除项目经验异常:', error);
+      wx.showToast({
+        title: '删除失败，请重试',
+        icon: 'none'
+      });
+    }
+  },
 
   // 保存简历
   saveResume: function() {
@@ -527,26 +651,41 @@ Page({
     try {
       // 准备简历数据，包含模板ID
       // 处理兴趣爱好，将文本转换为数组
-      const hobbies = this.data.resumeInfo.hobbiesText ? 
+      const interests = this.data.resumeInfo.hobbiesText ? 
         this.data.resumeInfo.hobbiesText.split(',').map(hobby => hobby.trim()).filter(hobby => hobby !== '') : [];
       
       // 处理技能评分数据，过滤掉空技能名称
+      console.log('开始处理技能数据:');
+      console.log('- this.data.resumeInfo.skillsWithLevel:', this.data.resumeInfo.skillsWithLevel);
+      
       const skillsWithLevel = this.data.resumeInfo.skillsWithLevel.filter(skill => skill.name.trim() !== '');
+      console.log('- 过滤后的 skillsWithLevel:', skillsWithLevel);
       
       // 为了兼容，也生成简单的技能数组
       const skills = skillsWithLevel.map(skill => skill.name);
+      console.log('- 提取的 skills:', skills);
+      
+      // 处理项目经验数据，过滤掉空项目名称
+      const projectExperienceList = this.data.resumeInfo.projectExperienceList.filter(project => project.name.trim() !== '');
+      console.log('- 过滤后的 projectExperienceList:', projectExperienceList);
+      
+      // 确保personalInfo对象存在并包含interests
+      const personalInfo = {
+        ...this.data.resumeInfo.personalInfo,
+        interests: interests
+      };
       
       const resumeData = {
         isAiGenerated: false,
         templateId: this.data.resumeInfo.templateId,
         data: {
           title: this.data.resumeInfo.title,
-          personalInfo: this.data.resumeInfo.personalInfo,
+          personalInfo: personalInfo,
           education: this.data.resumeInfo.education,
           workExperience: this.data.resumeInfo.workExperience,
+          projectExperienceList: projectExperienceList,
           skills: skills,
           skillsWithLevel: skillsWithLevel,
-          hobbies: hobbies,
           selfEvaluation: this.data.resumeInfo.selfEvaluation
         }
       };

@@ -132,7 +132,7 @@ Page({
       // 新增字段
       expectedSalary: resumeInfo.personalInfo?.expectedSalary || '',
       startTime: resumeInfo.personalInfo?.startTime || '',
-      hobbies: JSON.stringify(resumeInfo.hobbies || []),
+      interests: JSON.stringify(resumeInfo.personalInfo?.interests || []),
       skillsWithLevel: JSON.stringify(resumeInfo.skillsWithLevel || [])
     };
     

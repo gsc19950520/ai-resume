@@ -4,23 +4,23 @@
     <!-- 顶部横幅 -->
     <view class="header-banner">
       <view class="header-content">
-        <image class="avatar" src="{{resumeData.personalInfo.avatar || '/images/avatar.jpg'}}" mode="cover"></image>
+        <image class="avatar" src="{{resumeData.personalInfo.avatar || resumeData.avatar || '/images/avatar.jpg'}}" mode="cover"></image>
 
         <view class="name-box">
-          <text class="name-text">{{resumeData.personalInfo.name || '请输入姓名'}}</text>
-          <text class="tag">{{resumeData.personalInfo.position || '请输入职位'}}</text>
+          <text class="name-text">{{resumeData.personalInfo.name || resumeData.name || '请输入姓名'}}</text>
+          <text class="tag">{{resumeData.personalInfo.jobTitle || resumeData.personalInfo.position || resumeData.title || '请输入职位'}}</text>
         </view>
 
         <!-- 顶部联系方式 -->
         <view class="contact-top">
           <view class="contact-row">
-            <text class="contact-item">电话：{{resumeData.contact.phone || '请输入电话'}}</text>
+            <text class="contact-item">电话：{{resumeData.personalInfo.phone || resumeData.contact.phone || '请输入电话'}}</text>
           </view>
-          <view class="contact-row"><text class="contact-item">邮箱：{{resumeData.contact.email || '请输入邮箱'}}</text></view>
-          <view class="contact-row"><text class="contact-item">地址：{{resumeData.contact.address || '请输入地址'}}</text></view>
-          <view class="contact-row"><text class="contact-item">出生日期：{{resumeData.personalInfo.birthDate || '请输入出生日期'}}</text></view>
-            <view class="contact-row"><text class="contact-item">期望薪资：{{resumeData.personalInfo.expectedSalary || '请输入期望薪资'}}</text></view>
-          <view class="contact-row"><text class="contact-item">到岗：{{resumeData.personalInfo.startDate || '请输入到岗时间'}}</text></view>
+          <view class="contact-row"><text class="contact-item">邮箱：{{resumeData.personalInfo.email || resumeData.contact.email || '请输入邮箱'}}</text></view>
+          <view class="contact-row"><text class="contact-item">地址：{{resumeData.personalInfo.address || resumeData.contact.address || '请输入地址'}}</text></view>
+          <view class="contact-row"><text class="contact-item">出生日期：{{resumeData.personalInfo.birthDate || resumeData.birth || '请输入出生日期'}}</text></view>
+            <view class="contact-row"><text class="contact-item">期望薪资：{{resumeData.personalInfo.expectedSalary || resumeData.salary || '请输入期望薪资'}}</text></view>
+          <view class="contact-row"><text class="contact-item">到岗：{{resumeData.personalInfo.startTime || resumeData.entryTime || '请输入到岗时间'}}</text></view>
         </view>
       </view>
     </view>
@@ -28,18 +28,31 @@
     <!-- 主体内容 -->
     <view class="main-content-six">
 
-      <!-- 左侧：技能 -->
+      <!-- 左侧：技能和兴趣爱好 -->
       <view class="left-panel-six">
         <view class="section">
           <view class="section-title">专业技能</view>
-          <block wx:if="{{resumeData.skills && resumeData.skills.length > 0}}">
-            <view wx:for="{{resumeData.skills}}" wx:key="index" class="skill-item">
-              <text class="skill-name">{{item.name || '未命名技能'}}</text>
-              <view class="skill-bar"><view class="skill-fill" style="width:{{item.level || 50}}%;"></view></view>
+          <block wx:if="{{(resumeData.skillsWithLevel && resumeData.skillsWithLevel.length > 0) || (resumeData.skills && resumeData.skills.length > 0)}}">
+            <view wx:for="{{resumeData.skillsWithLevel || resumeData.skills}}" wx:key="index" class="skill-item">
+              <text class="skill-name">{{item.name || item || '未命名技能'}}</text>
+              <view class="skill-bar"><view class="skill-fill" style="width:{{item.level * 20}}%;"></view></view>
             </view>
           </block>
           <view wx:else class="empty-tip">
             <text>请添加专业技能</text>
+          </view>
+        </view>
+
+        <!-- 兴趣爱好 -->
+        <view class="section">
+          <view class="section-title">兴趣爱好</view>
+          <block wx:if="{{resumeData.personalInfo.interests && resumeData.personalInfo.interests.length > 0}}">
+            <view class="hobbies-list">
+              <text class="hobby-item" wx:for="{{resumeData.personalInfo.interests}}" wx:key="index">{{item}}</text>
+            </view>
+          </block>
+          <view wx:else class="empty-tip">
+            <text></text>
           </view>
         </view>
       </view>
@@ -75,16 +88,29 @@
         <!-- 工作经历 -->
         <view class="timeline-section">
           <view class="section-title">工作经历</view>
-          <block wx:if="{{resumeData.work && resumeData.work.length > 0}}">
+          <block wx:if="{{resumeData.workExperience && resumeData.workExperience.length > 0}}">
+            <view wx:for="{{resumeData.workExperience}}" wx:key="index" class="timeline-item">
+              <view class="timeline-dot"></view>
+              <view class="timeline-content">
+                <view class="job-header">
+                  <view class="job-period">{{item.startDate || item.startTime || ''}} - {{item.endDate || item.endTime || '至今'}}</view>
+                  <view class="job-company">{{item.company || item.companyName || '未填写公司'}}</view>
+                  <view class="job-position">{{item.position || item.jobTitle || '未填写职位'}}</view>
+                </view>
+                <view class="job-desc">{{item.description || item.workContent || '未填写工作描述'}}</view>
+              </view>
+            </view>
+          </block>
+          <block wx:elif="{{resumeData.work && resumeData.work.length > 0}}">
             <view wx:for="{{resumeData.work}}" wx:key="index" class="timeline-item">
               <view class="timeline-dot"></view>
               <view class="timeline-content">
                 <view class="job-header">
-                  <view class="job-period">{{item.startDate || ''}} - {{item.endDate || '至今'}}</view>
-                  <view class="job-company">{{item.company || '未填写公司'}}</view>
-                  <view class="job-position">{{item.position || '未填写职位'}}</view>
+                  <view class="job-period">{{item.startDate || item.startTime || ''}} - {{item.endDate || item.endTime || '至今'}}</view>
+                  <view class="job-company">{{item.company || item.companyName || '未填写公司'}}</view>
+                  <view class="job-position">{{item.position || item.jobTitle || '未填写职位'}}</view>
                 </view>
-                <view class="job-desc">{{item.description || '未填写工作描述'}}</view>
+                <view class="job-desc">{{item.description || item.workContent || '未填写工作描述'}}</view>
               </view>
             </view>
           </block>
@@ -100,13 +126,13 @@
         <!-- 项目经验 -->
         <view class="timeline-section">
           <view class="section-title">项目经验</view>
-          <block wx:if="{{resumeData.projects && resumeData.projects.length > 0}}">
-            <view wx:for="{{resumeData.projects}}" wx:key="index" class="timeline-item">
+          <block wx:if="{{resumeData.projectExperienceList && resumeData.projectExperienceList.length > 0}}">
+            <view wx:for="{{resumeData.projectExperienceList}}" wx:key="index" class="timeline-item">
               <view class="timeline-dot"></view>
               <view class="timeline-content">
                 <view class="job-header">
-                  <view class="job-period">{{item.startDate || ''}} - {{item.endDate || '至今'}}</view>
-                  <view class="job-project">{{item.name || '未填写项目名称'}}</view>
+                  <view class="job-period">{{item.startDate || item.startTime || ''}} - {{item.endDate || item.endTime || '至今'}}</view>
+                  <view class="job-project">{{item.name || item.projectName || '未填写项目名称'}}</view>
                 </view>
                 <view class="job-desc">{{item.description || '未填写项目描述'}}</view>
               </view>
@@ -126,7 +152,7 @@
           <view class="section-title">自我评价</view>
           <view class="timeline-item">
             <view class="timeline-content">
-              <view class="job-desc">{{resumeData.summary || '请添加自我评价'}}</view>
+              <view class="job-desc">{{resumeData.personalInfo.selfEvaluation || resumeData.selfEvaluation || '请添加自我评价'}}</view>
             </view>
           </view>
         </view>

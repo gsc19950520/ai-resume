@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>技能数据流测试报告</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        .test-data {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+        }
+        .success {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .error {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .warning {
+            color: #ffc107;
+            font-weight: bold;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 15px;
+            border-left: 4px solid #007bff;
+            background-color: #f8f9fa;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        th, td {
+            border: 1px solid #dee2e6;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #007bff;
+            color: white;
+        }
+        .code {
+            background-color: #f1f3f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 技能数据流测试报告</h1>
+        
+        <div class="section">
+            <h2>📊 测试数据</h2>
+            <p>您提供的保存时数据：</p>
+            <div class="test-data">{
+  "title": "我的新简历",
+  "personalInfo": {
+    "name": "高先生",
+    "jobTitle": "软件开发",
+    "phone": "17855555555",
+    "email": "28754@qq.com",
+    "address": "北京市朝阳区",
+    "birthDate": "2000.05",
+    "expectedSalary": "12120",
+    "startTime": "一周内",
+    "interests": ["打篮球"]
+  },
+  "education": [{"id":1,"school":"北京大学","major":"计算机软件","degree":"本科","startDate":"2015","endDate":"2019"}],
+  "workExperience": [{"id":1,"company":"深圳科技网络","position":"java开发","startDate":"2017","endDate":"至今","description":"写代码阿达打撒打撒夫人翁帆士大夫VS光和热通过"}],
+  <span class="success">"skills": ["js","java1"],</span>
+  <span class="success">"skillsWithLevel": [{"name":"js","level":4},{"name":"java1","level":2}],</span>
+  "selfEvaluation": "认真"
+}</div>
+        </div>
+
+        <div class="section">
+            <h2>🔍 问题分析</h2>
+            <p>根据您描述的问题：</p>
+            <ul>
+                <li>✅ 保存时数据正常：<span class="code">skills</span> 和 <span class="code">skillsWithLevel</span> 都有数据</li>
+                <li>❌ 规范化后数据丢失：两个字段都为空</li>
+            </ul>
+            
+            <h3>数据流路径检查：</h3>
+            <table>
+                <tr>
+                    <th>步骤</th>
+                    <th>位置</th>
+                    <th>预期行为</th>
+                    <th>状态</th>
+                </tr>
+                <tr>
+                    <td>1</td>
+                    <td>编辑页面保存</td>
+                    <td>将数据保存到 <span class="code">wx.setStorageSync('resumeData')</span></td>
+                    <td class="success">✅ 正常</td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td>预览页面加载</td>
+                    <td>从 <span class="code">wx.getStorageSync('resumeData')</span> 获取数据</td>
+                    <td class="warning">⚠️ 需验证</td>
+                </tr>
+                <tr>
+                    <td>3</td>
+                    <td>数据标准化</td>
+                    <td><span class="code">normalizeResumeData()</span> 处理技能数据</td>
+                    <td class="warning">⚠️ 需验证</td>
+                </tr>
+                <tr>
+                    <td>4</td>
+                    <td>模板渲染</td>
+                    <td>使用标准化后的数据渲染模板</td>
+                    <td class="warning">⚠️ 需验证</td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="section">
+            <h2>🔧 数据标准化逻辑检查</h2>
+            <p>预览页面的 <span class="code">normalizeResumeData()</span> 函数处理逻辑：</p>
+            
+            <h4>对于 template-four/five/six：</h4>
+            <div class="test-data">// template-four/five/six 的技能格式
+const skillsData = rawData.skills || rawData.skillsWithLevel || [];
+normalizedData.skills = skillsData.map(item => ({
+  name: item.name || item.skillName || '',
+  level: item.level || item.proficiency || 80 // 默认80%熟练度
+}));</div>
+            <p>✅ 这段代码应该能正确处理您的数据，因为它优先使用 <span class="code">rawData.skills</span>，如果不存在则使用 <span class="code">rawData.skillsWithLevel</span>。</p>
+            
+            <h4>对于 template-one 和默认情况：</h4>
+            <div class="test-data">// template-one 和其他模板的标准格式
+normalizedData.skillsWithLevel = this.normalizeSkillsData(rawData);
+normalizedData.skills = normalizedData.skills || this.normalizeSkillsData(rawData);</div>
+            <div class="test-data">normalizeSkillsData: function(rawData) {
+  const skills = rawData.skills || rawData.skillsWithLevel || [];
+  return skills.map(item => ({
+    name: item.name || item.skillName || '',
+    level: item.level || item.proficiency || 50 // 默认50%熟练度
+  }));
+}</div>
+            <p>✅ 这段代码也应该能正确处理您的数据。</p>
+        </div>
+
+        <div class="section">
+            <h2>🐛 可能的问题根源</h2>
+            <h4>1. 数据获取路径问题</h4>
+            <p>预览页面加载数据时：</p>
+            <div class="test-data">let storedData = wx.getStorageSync('resumeData');
+let rawData = null;
+
+if (storedData && storedData.data) {
+  console.log('成功从本地存储加载简历数据');
+  rawData = storedData.data;
+} else {
+  console.warn('未找到简历数据，使用默认数据');
+  // 使用默认数据...
+}</div>
+            <p>问题可能在 <span class="code">storedData.data</span> 的结构上。</p>
+            
+            <h4>2. 数据格式不匹配</h4>
+            <p>编辑页面保存的数据结构：</p>
+            <div class="test-data">const resumeData = {
+  isAiGenerated: false,
+  templateId: this.data.resumeInfo.templateId,
+  data: {  // ← 这里嵌套了一层 data
+    title: this.data.resumeInfo.title,
+    personalInfo: personalInfo,
+    education: this.data.resumeInfo.education,
+    workExperience: this.data.resumeInfo.workExperience,
+    skills: skills,
+    skillsWithLevel: skillsWithLevel,
+    selfEvaluation: this.data.resumeInfo.selfEvaluation
+  }
+};</div>
+            <p>预览页面期望获取 <span class="code">storedData.data</span>，但如果保存时结构有问题，可能导致数据丢失。</p>
+        </div>
+
+        <div class="section">
+            <h2>🛠️ 修复方案</h2>
+            
+            <h4>方案一：添加数据验证和调试日志</h4>
+            <p>修改预览页面的数据加载逻辑，添加详细的调试信息：</p>
+            <div class="test-data">loadResumeData: function() {
+  try {
+    console.log('开始加载简历数据');
+    
+    // 从本地存储获取简历数据
+    let storedData = wx.getStorageSync('resumeData');
+    console.log('从本地存储获取的原始数据:', storedData);
+    
+    let rawData = null;
+    
+    if (storedData && storedData.data) {
+      console.log('成功从本地存储加载简历数据');
+      rawData = storedData.data;
+      
+      // 验证技能数据
+      console.log('技能数据检查:');
+      console.log('- rawData.skills:', rawData.skills);
+      console.log('- rawData.skillsWithLevel:', rawData.skillsWithLevel);
+      console.log('- rawData.skills 类型:', typeof rawData.skills);
+      console.log('- rawData.skillsWithLevel 类型:', typeof rawData.skillsWithLevel);
+      console.log('- rawData.skills 长度:', rawData.skills ? rawData.skills.length : 'undefined');
+      console.log('- rawData.skillsWithLevel 长度:', rawData.skillsWithLevel ? rawData.skillsWithLevel.length : 'undefined');
+    } else {
+      console.warn('未找到简历数据，使用默认数据');
+      rawData = this.getDefaultData();
+    }
+    
+    // 使用规范化函数处理数据
+    const normalizedResumeData = this.normalizeResumeData(rawData);
+    console.log('规范化后的简历数据:', normalizedResumeData);
+    
+    this.setData({
+      resumeData: normalizedResumeData,
+      loading: false
+    });
+  } catch (error) {
+    console.error('加载简历数据失败:', error);
+    this.setData({
+      loading: false
+    });
+  }
+}</div>
+        </div>
+
+        <div class="section">
+            <h2>🧪 建议的测试步骤</h2>
+            <ol>
+                <li>在编辑页面保存时，检查控制台输出的 <span class="code">传递的简历数据</span></li>
+                <li>在预览页面加载时，检查控制台输出的 <span class="code">从本地存储获取的原始数据</span></li>
+                <li>对比两个数据结构中 <span class="code">skills</span> 和 <span class="code">skillsWithLevel</span> 字段</li>
+                <li>检查数据标准化过程中的详细日志</li>
+            </ol>
+        </div>
+
+        <div class="section">
+            <h2>📝 总结</h2>
+            <p>根据代码分析，数据标准化逻辑是正确的，问题很可能出现在：</p>
+            <ol>
+                <li><strong>数据获取路径</strong> - 预览页面获取的 <span class="code">storedData.data</span> 结构可能与预期不符</li>
+                <li><strong>数据丢失</strong> - 在保存或获取过程中，技能数据可能被意外覆盖或清空</li>
+                <li><strong>异步问题</strong> - 可能存在时序问题导致数据未正确保存或加载</li>
+            </ol>
+            <p>建议添加详细的调试日志来定位具体在哪一步出现了问题。</p>
+        </div>
+    </div>
+</body>
+</html>

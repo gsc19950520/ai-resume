@@ -1,11 +1,14 @@
 /* 样式隔离机制：通过容器类名隔离不同模板的样式 */
 /* 各模板样式将通过各自的命名空间前缀实现隔离 */
-@import './template/one/template-one.wxss';
-@import './template/two/template-two.wxss';
-@import './template/three/template-three.wxss';
-@import './template/four/template-four.wxss';
-@import './template/five/template-five.wxss';
-@import './template/six/template-six.wxss';
+
+/* 导入各模板样式 */
+@import "./template/one/template-one.wxss";
+@import "./template/two/template-two.wxss";
+@import "./template/three/template-three.wxss";
+@import "./template/four/template-four.wxss";
+@import "./template/five/template-five.wxss";
+@import "./template/six/template-six.wxss";
+
 /* 基础样式设置，确保模板内容正常显示 */
 
 /* 重置所有可能泄漏的页面级样式 */
@@ -77,4 +80,24 @@ page {
 
 .use-template-btn:active {
   background-color: #0958d9;
+}
+
+/* 下载PDF按钮样式 */
+.download-pdf-btn {
+  width: 100%;
+  background-color: #52c41a;
+  color: white;
+  border: none;
+  padding: 20rpx 0;
+  font-size: 32rpx;
+  border-radius: 8rpx;
+  box-shadow: 0 2rpx 8rpx rgba(82, 196, 26, 0.3);
+  margin-top: 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.download-pdf-btn:active {
+  background-color: #389e0d;
 }

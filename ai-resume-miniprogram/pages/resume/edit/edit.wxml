@@ -1,9 +1,5 @@
 <!-- edit.wxml -->
 <view class="container">
-  <view class="header">
-    <text class="title">编辑简历</text>
-    <text class="subtitle">{{resumeInfo && resumeInfo.title ? resumeInfo.title : ''}}</text>
-  </view>
 
   <!-- 编辑部分导航 -->
   <scroll-view class="section-nav" scroll-x>
@@ -140,7 +136,40 @@
       <button class="add-btn" bindtap="addWorkExperience">+ 添加工作经历</button>
     </view>
 
-
+    <!-- 项目经验部分 -->
+    <view class="edit-section" wx:if="{{currentSection === 'projects'}}">
+      <view class="project-item" wx:for="{{resumeInfo.projectExperienceList}}" wx:key="id">
+        <view class="item-header">
+          <text class="item-title">项目经验 {{index + 1}}</text>
+          <!-- 只有当项目数量大于1时才显示删除按钮 -->
+          <text wx:if="{{resumeInfo.projectExperienceList.length > 1}}" class="delete-btn" bindtap="removeProjectExperience" data-index="{{index}}">删除</text>
+        </view>
+        
+        <view class="form-item">
+          <text class="label">项目名称</text>
+          <input class="input" placeholder="请输入项目名称" value="{{item.name}}" bindinput="onProjectInput" data-index="{{index}}" data-field="name" />
+        </view>
+        
+        <view class="date-row">
+          <view class="form-item date-item">
+            <text class="label">开始时间</text>
+            <input class="input" placeholder="YYYY-MM" value="{{item.startDate}}" bindinput="onProjectInput" data-index="{{index}}" data-field="startDate" />
+          </view>
+          
+          <view class="form-item date-item">
+            <text class="label">结束时间</text>
+            <input class="input" placeholder="YYYY-MM" value="{{item.endDate}}" bindinput="onProjectInput" data-index="{{index}}" data-field="endDate" />
+          </view>
+        </view>
+        
+        <view class="form-item">
+          <text class="label">项目描述</text>
+          <textarea class="textarea" placeholder="请描述项目内容、技术栈和您的职责" value="{{item.description}}" bindinput="onProjectInput" data-index="{{index}}" data-field="description" />
+        </view>
+      </view>
+      
+      <button class="add-btn" bindtap="addProjectExperience">+ 添加项目经验</button>
+    </view>
 
     <!-- 专业技能部分 -->
     <view class="edit-section" wx:if="{{currentSection === 'skills'}}">
@@ -150,11 +179,11 @@
           <view class="skill-header">
             <input class="skill-name" placeholder="技能名称" value="{{item.name}}" bindinput="onSkillNameInput" data-index="{{index}}" />
             <view class="skill-actions">
-              <view class="level-label">{{skillLevels[item.level] || '选择等级'}}</view>
+              <view class="level-label">{{skillLevels[item.level - 1] || '选择等级'}}</view>
               <view class="skill-levels">
                 <view class="level-item" wx:for="{{skillLevels}}" wx:for-item="levelName" wx:for-index="levelValue" wx:key="levelValue" 
-                      class="level-item {{item.level === levelValue ? 'active' : ''}}" 
-                      bindtap="onSkillLevelChange" data-skill-index="{{index}}" data-level="{{levelValue}}">
+                      class="level-item {{item.level === levelValue + 1 ? 'active' : ''}}" 
+                      bindtap="onSkillLevelChange" data-skill-index="{{index}}" data-level="{{levelValue + 1}}">
                   <text>{{levelName}}</text>
                 </view>
               </view>
@@ -163,7 +192,7 @@
           </view>
           <view class="progress-container">
             <view class="progress-bar">
-              <view class="progress-fill" style="width: {{(item.level + 1) * 20}}%;"></view>
+              <view class="progress-fill" style="width: {{item.level * 20}}%;"></view>
             </view>
           </view>
         </view>

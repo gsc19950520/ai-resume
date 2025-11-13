@@ -63,70 +63,95 @@ Page({
    */
   loadResumeData: function() {
     try {
-      console.log('开始加载简历数据');
-      
-      // 从本地存储获取简历数据
-      let storedData = wx.getStorageSync('resumeData');
+      // 优先尝试从tempResumeInfo获取用户填写的数据
+      let tempResumeInfo = wx.getStorageSync('tempResumeInfo');
       let rawData = null;
       
-      if (storedData && storedData.data) {
-        console.log('成功从本地存储加载简历数据');
-        rawData = storedData.data;
-      } else {
-        console.warn('未找到简历数据，使用默认数据');
-        // 如果没有数据，使用默认的示例数据
+      if (tempResumeInfo && (tempResumeInfo.personalInfo || tempResumeInfo.name)) {
+        // 如果tempResumeInfo中有用户数据，使用这些数据
+        console.log('从tempResumeInfo获取用户数据:', tempResumeInfo);
+        
+        // 标准化数据结构
         rawData = {
-          personalInfo: {
-            name: '刘豆豆',
-            jobTitle: 'UI/UX 设计师',
-            phone: '138-0000-0000',
-            email: 'lisi@qq.com',
-            address: '上海',
-            birthDate: '1999.09',
-            expectedSalary: '20000',
-            startTime: '一周内'
+          personalInfo: tempResumeInfo.personalInfo || {
+            name: tempResumeInfo.name || '',
+            jobTitle: tempResumeInfo.jobTitle || tempResumeInfo.position || '',
+            phone: tempResumeInfo.phone || '',
+            email: tempResumeInfo.email || '',
+            address: tempResumeInfo.address || '',
+            birthDate: tempResumeInfo.birthDate || '',
+            expectedSalary: tempResumeInfo.expectedSalary || '',
+            startTime: tempResumeInfo.startTime || ''
           },
-          education: [
-            {
-              school: '中央美术学院',
-              degree: '本科',
-              major: '视觉传达设计专业',
-              startDate: '2014年9月',
-              endDate: '2018年7月'
-            }
-          ],
-          workExperience: [
-            {
-              company: '腾讯网络科技有限公司',
-              position: 'UI设计师',
-              startDate: '2018年8月',
-              endDate: '至今',
-              description: '负责移动端产品界面设计、交互优化，提升用户体验。'
-            },
-            {
-              company: '字节跳动',
-              position: 'UI实习生',
-              startDate: '2017年7月',
-              endDate: '2017年12月',
-              description: '参与小程序界面与交互设计，提升组件一致性与美观性。'
-            }
-          ],
-          skillsWithLevel: [
-            { name: 'Photoshop', level: 4 },
-            { name: 'Sketch', level: 3 },
-            { name: 'Figma', level: 3 }
-          ],
-          hobbies: ['设计', '交互'],
-          selfEvaluation: '热爱设计与交互，注重用户体验与界面细节，具备团队协作与独立思考能力。'
+          education: tempResumeInfo.education || [],
+          workExperience: tempResumeInfo.workExperience || tempResumeInfo.work || [],
+          projectExperienceList: tempResumeInfo.projectExperienceList || tempResumeInfo.projects || [],
+          skillsWithLevel: tempResumeInfo.skillsWithLevel || tempResumeInfo.skills || [],
+          hobbies: tempResumeInfo.hobbies || [],
+          selfEvaluation: tempResumeInfo.selfEvaluation || tempResumeInfo.selfAssessment || ''
         };
+        
+        console.log('标准化后的用户数据:', rawData);
+      } else {
+        // 如果没有用户数据，尝试从resumeData获取
+        let storedData = wx.getStorageSync('resumeData');
+        console.log('从resumeData获取数据:', JSON.stringify(storedData, null, 2));
+        
+        if (storedData && storedData.data) {
+          rawData = storedData.data;
+        } else {
+          // 使用默认的示例数据
+          rawData = {
+            personalInfo: {
+              name: '刘豆豆',
+              jobTitle: 'UI/UX 设计师',
+              phone: '138-0000-0000',
+              email: 'lisi@qq.com',
+              address: '上海',
+              birthDate: '1999.09',
+              expectedSalary: '20000',
+              startTime: '一周内'
+            },
+            education: [
+              {
+                school: '中央美术学院',
+                degree: '本科',
+                major: '视觉传达设计专业',
+                startDate: '2014年9月',
+                endDate: '2018年7月'
+              }
+            ],
+            workExperience: [
+              {
+                company: '腾讯网络科技有限公司',
+                position: 'UI设计师',
+                startDate: '2018年8月',
+                endDate: '至今',
+                description: '负责移动端产品界面设计、交互优化，提升用户体验。'
+              },
+              {
+                company: '字节跳动',
+                position: 'UI实习生',
+                startDate: '2017年7月',
+                endDate: '2017年12月',
+                description: '参与小程序界面与交互设计，提升组件一致性与美观性。'
+              }
+            ],
+            skillsWithLevel: [
+              { name: 'Photoshop', level: 4 },
+              { name: 'Sketch', level: 3 },
+              { name: 'Figma', level: 3 }
+            ],
+            hobbies: ['设计', '交互'],
+            selfEvaluation: '热爱设计与交互，注重用户体验与界面细节，具备团队协作与独立思考能力。'
+          };
+        }
       }
       
       // 使用规范化函数处理数据，确保数据结构与模板一致
-      const normalizedResumeData = this.normalizeResumeData(rawData);
-      console.log('规范化后的简历数据:', normalizedResumeData);
-      
+      console.log('最终使用的数据:', rawData);
       this.setData({
-        resumeData: normalizedResumeData,
+        resumeData: rawData,
         loading: false
       });
     } catch (error) {
@@ -139,18 +164,25 @@ Page({
 
   /**
    * 使用当前模板
-   * 将选择的模板信息保存到本地存储，并跳转到简历编辑页面
+   * 将选择的模板信息和当前简历数据保存到本地存储，并跳转到简历编辑页面
    */
   useTemplate: function() {
-    const { templateId, templateName } = this.data;
+    const { templateId, templateName, resumeData } = this.data;
     
-    // 保存选择的模板信息
-    wx.setStorageSync('tempResumeInfo', {
+    // 保存选择的模板信息和当前简历数据
+    const templateInfo = {
       templateId: templateId,
       templateName: templateName,
       title: '我的新简历',
       isAiGenerated: false
-    });
+    };
+    
+    // 如果有简历数据，合并到模板信息中
+    if (resumeData) {
+      Object.assign(templateInfo, resumeData);
+    }
+    
+    wx.setStorageSync('tempResumeInfo', templateInfo);
     
     wx.showToast({
       title: '正在准备模板...',
@@ -314,24 +346,21 @@ Page({
           technologies: 'React、TypeScript、Ant Design、Webpack'
         }
       ],
-      skills: [
-        { name: 'HTML/CSS', level: 95 },
-        { name: 'JavaScript/TypeScript', level: 90 },
-        { name: 'React/Vue', level: 85 },
-        { name: '微信小程序', level: 80 },
-        { name: 'Node.js', level: 75 },
-        { name: 'Webpack/Vite', level: 70 }
+      skillsWithLevel: [
+        { name: 'HTML/CSS', level: 3 },
+        { name: 'JavaScript/TypeScript', level: 4 },
+        { name: 'React/Vue', level: 5 },
+        { name: '微信小程序', level: 2 },
+        { name: 'Node.js', level: 2 },
+        { name: 'Webpack/Vite', level: 1 }
       ],
       interests: '摄影、跑步、读书、旅游',
       selfAssessment: '拥有5年前端开发经验，精通现代前端技术栈，善于解决复杂问题，具有良好的团队协作精神和沟通能力。'
     };
     
-    // 规范化测试数据
-    const normalizedData = this.normalizeResumeData(testData);
-    
     // 更新数据到页面
     this.setData({
-      resumeData: normalizedData,
+      resumeData: testData,
       loading: false
     });
     
@@ -350,161 +379,6 @@ Page({
     // 每次显示页面时重新加载数据，确保数据同步
     console.log('页面显示，重新加载简历数据');
     this.loadResumeData();
-  },
-  
-  /**
-   * 规范化简历数据结构
-   * 根据当前使用的模板ID动态调整数据字段名称，确保所有模板都能正确显示数据
-   * @param {Object} rawData - 原始简历数据
-   * @returns {Object} 规范化后的数据结构
-   */
-  normalizeResumeData: function(rawData) {
-    if (!rawData) return null;
-    
-    const { templateId } = this.data;
-    const normalizedData = {};
-    
-    // 基础个人信息 - 支持所有模板
-    normalizedData.personalInfo = {
-      name: rawData.personalInfo?.name || rawData.name || '',
-      // 支持template-one的jobTitle和template-two的position
-      jobTitle: rawData.personalInfo?.jobTitle || rawData.personalInfo?.position || rawData.position || '',
-      position: rawData.personalInfo?.position || rawData.personalInfo?.jobTitle || rawData.jobTitle || '',
-      avatar: rawData.personalInfo?.avatar || '',
-      // 支持template-one直接在personalInfo中访问联系方式
-      phone: rawData.personalInfo?.phone || rawData.contact?.phone || rawData.phone || '',
-      email: rawData.personalInfo?.email || rawData.contact?.email || rawData.email || '',
-      address: rawData.personalInfo?.address || rawData.contact?.address || rawData.address || '',
-      birthDate: rawData.personalInfo?.birthDate || '',
-      expectedSalary: rawData.personalInfo?.expectedSalary || rawData.salary || '',
-      // 支持不同的入职时间字段名
-      startTime: rawData.personalInfo?.startTime || rawData.personalInfo?.startDate || '',
-      availableTime: rawData.personalInfo?.availableTime || rawData.personalInfo?.startTime || rawData.personalInfo?.startDate || '',
-      // 支持template-two中的兴趣爱好和自我评价字段
-      interests: rawData.personalInfo?.interests || rawData.hobbies || rawData.interests || '',
-      selfEvaluation: rawData.personalInfo?.selfEvaluation || rawData.selfEvaluation || rawData.summary || ''
-    };
-    
-    // 根据模板ID添加特定字段
-    switch (templateId) {
-      case 'template-two':
-      case 'template-three':
-        // template-two和template-three特定字段
-        normalizedData.contactInfo = {
-          phone: rawData.contactInfo?.phone || rawData.personalInfo?.phone || rawData.contact?.phone || rawData.phone || '',
-          email: rawData.contactInfo?.email || rawData.personalInfo?.email || rawData.contact?.email || rawData.email || '',
-          address: rawData.contactInfo?.address || rawData.personalInfo?.address || rawData.contact?.address || rawData.address || ''
-        };
-        
-        // template-two和template-three的教育经历格式
-        const eduData = rawData.educationList || rawData.education || [];
-        normalizedData.educationList = eduData.map(item => ({
-          schoolName: item.schoolName || item.school || '',
-          degree: item.degree || '',
-          startTime: item.startTime || item.startDate || '',
-          endTime: item.endTime || item.endDate || '',
-          description: item.description || item.major || ''
-        }));
-        
-        // template-two和template-three的工作经历格式
-        const workData = rawData.workExperienceList || rawData.workExperience || rawData.work || [];
-        normalizedData.workExperienceList = workData.map(item => ({
-          companyName: item.companyName || item.company || '',
-          position: item.position || '',
-          startTime: item.startTime || item.startDate || '',
-          endTime: item.endTime || item.endDate || '',
-          description: item.description || item.details || ''
-        }));
-        
-        // template-two和template-three的项目经验格式
-        const projectData = rawData.projectExperienceList || rawData.projects || [];
-        normalizedData.projectExperienceList = projectData.map(item => ({
-          projectName: item.projectName || item.name || '',
-          startTime: item.startTime || item.startDate || '',
-          endTime: item.endTime || item.endDate || '',
-          description: item.description || item.details || ''
-        }));
-        break;
-        
-      case 'template-four':
-      case 'template-five':
-      case 'template-six':
-        // template-four/five/six特定格式 - 直接在resumeData根级别设置字段
-        normalizedData.avatar = rawData.personalInfo?.avatar || rawData.avatar || '/images/avatar.jpg';
-        normalizedData.name = rawData.personalInfo?.name || rawData.name || '';
-        normalizedData.title = rawData.personalInfo?.jobTitle || rawData.personalInfo?.position || rawData.position || rawData.title || '';
-        normalizedData.phone = rawData.personalInfo?.phone || rawData.contact?.phone || rawData.phone || '';
-        normalizedData.email = rawData.personalInfo?.email || rawData.contact?.email || rawData.email || '';
-        normalizedData.address = rawData.personalInfo?.address || rawData.contact?.address || rawData.address || '';
-        normalizedData.birth = rawData.personalInfo?.birthDate || rawData.birth || '';
-        normalizedData.salary = rawData.personalInfo?.expectedSalary || rawData.salary || '';
-        normalizedData.entryTime = rawData.personalInfo?.startTime || rawData.personalInfo?.startDate || rawData.entryTime || '';
-        
-        // template-four/five/six的技能格式
-        const skillsData = rawData.skills || rawData.skillsWithLevel || [];
-        normalizedData.skills = skillsData.map(item => ({
-          name: item.name || item.skillName || '',
-          level: item.level || item.proficiency || 80 // 默认80%熟练度
-        }));
-        
-        // template-four/five/six的教育经历格式
-        const eduList = rawData.education || [];
-        normalizedData.education = eduList.map(item => ({
-          school: item.school || '',
-          major: item.major || '',
-          degree: item.degree || '',
-          startDate: item.startDate || '',
-          endDate: item.endDate || '',
-          description: item.description || ''
-        }));
-        
-        // template-four/five/six的工作经历格式
-        const workList = rawData.workExperience || rawData.work || [];
-        normalizedData.workExperience = workList.map(item => ({
-          company: item.company || '',
-          position: item.position || '',
-          startDate: item.startDate || '',
-          endDate: item.endDate || '',
-          description: item.description || ''
-        }));
-        break;
-        
-      case 'template-one':
-      default:
-        // template-one和其他模板的标准格式
-        normalizedData.education = this.normalizeEducationData(rawData);
-        normalizedData.workExperience = this.normalizeWorkExperience(rawData);
-        normalizedData.skillsWithLevel = this.normalizeSkillsData(rawData);
-        break;
-    }
-    
-    // 通用字段 - 确保所有模板都能访问
-    normalizedData.education = normalizedData.education || this.normalizeEducationData(rawData);
-    normalizedData.workExperience = normalizedData.workExperience || this.normalizeWorkExperience(rawData);
-    normalizedData.skillsWithLevel = normalizedData.skillsWithLevel || this.normalizeSkillsData(rawData);
-    normalizedData.skills = normalizedData.skills || this.normalizeSkillsData(rawData);
-    normalizedData.hobbies = rawData.hobbies || rawData.interests || [];
-    normalizedData.selfEvaluation = rawData.selfEvaluation || rawData.summary || '';
-    normalizedData.contact = {
-      phone: rawData.contact?.phone || rawData.personalInfo?.phone || rawData.phone || '',
-      email: rawData.contact?.email || rawData.personalInfo?.email || rawData.email || '',
-      address: rawData.contact?.address || rawData.personalInfo?.address || rawData.address || ''
-    };
-    normalizedData.work = this.normalizeWorkExperience(rawData);
-    normalizedData.projects = this.normalizeProjectExperience(rawData);
-    
-    // 为template-four/five/six确保根级别字段存在
-    normalizedData.avatar = normalizedData.avatar || rawData.personalInfo?.avatar || '/images/avatar.jpg';
-    normalizedData.name = normalizedData.name || rawData.personalInfo?.name || rawData.name || '';
-    normalizedData.title = normalizedData.title || rawData.personalInfo?.jobTitle || rawData.personalInfo?.position || rawData.position || '';
-    normalizedData.phone = normalizedData.phone || rawData.personalInfo?.phone || rawData.contact?.phone || rawData.phone || '';
-    normalizedData.email = normalizedData.email || rawData.personalInfo?.email || rawData.contact?.email || rawData.email || '';
-    normalizedData.address = normalizedData.address || rawData.personalInfo?.address || rawData.contact?.address || rawData.address || '';
-    normalizedData.birth = normalizedData.birth || rawData.personalInfo?.birthDate || '';
-    normalizedData.salary = normalizedData.salary || rawData.personalInfo?.expectedSalary || rawData.salary || '';
-    normalizedData.entryTime = normalizedData.entryTime || rawData.personalInfo?.startTime || rawData.personalInfo?.startDate || '';
-    
-    return normalizedData;
   },
   
   /**
@@ -561,10 +435,26 @@ Page({
    * @returns {Array} 规范化的技能数组
    */
   normalizeSkillsData: function(rawData) {
+    console.log('normalizeSkillsData - 原始数据:', rawData);
+    console.log('normalizeSkillsData - rawData.skills:', rawData.skills);
+    console.log('normalizeSkillsData - rawData.skillsWithLevel:', rawData.skillsWithLevel);
+    
     const skills = rawData.skills || rawData.skillsWithLevel || [];
-    return skills.map(item => ({
-      name: item.name || item.skillName || '',
-      level: item.level || item.proficiency || 50 // 默认50%熟练度
-    }));
+    console.log('normalizeSkillsData - 最终使用的 skills:', skills);
+    console.log('normalizeSkillsData - skills 类型:', typeof skills);
+    console.log('normalizeSkillsData - skills 是数组吗:', Array.isArray(skills));
+    
+    const result = skills.map(item => {
+      console.log('处理技能项:', item);
+      const processed = {
+        name: item.name || item.skillName || '',
+        level: item.level || item.proficiency || 50 // 默认50%熟练度
+      };
+      console.log('处理结果:', processed);
+      return processed;
+    });
+    
+    console.log('normalizeSkillsData - 最终结果:', result);
+    return result;
   }
 })
