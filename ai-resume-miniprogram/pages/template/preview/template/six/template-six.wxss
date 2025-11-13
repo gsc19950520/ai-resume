@@ -1,0 +1,174 @@
+/* 容器 */
+.resume-six-container {
+  width: 100%;
+  min-height: 120mm;
+  font-family: "PingFang SC","Microsoft YaHei",Arial,sans-serif;
+  padding: 20rpx 5rpx;
+  background: #fdfdfd;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 顶部横幅 */
+.resume-six-container .header-banner {
+  position: relative;
+  height: 250rpx;
+  background: linear-gradient(135deg, #1a73e8, #004b9b);
+  border-radius: 16rpx;
+  display: flex;
+  align-items: center;
+  padding: 0 28rpx;
+  box-shadow: 0 6rpx 12rpx rgba(0,0,0,0.15);
+}
+.resume-six-container .banner-bg {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  opacity: 0.1;
+  border-radius: 16rpx;
+}
+.resume-six-container .header-content {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  z-index: 1;
+  justify-content: space-between;
+}
+.resume-six-container .avatar {
+  width: 140rpx;
+  height: 140rpx;
+  border-radius: 50%;
+  border: 3rpx solid #fff;
+  box-shadow: 0 4rpx 8rpx rgba(0,0,0,0.2);
+}
+.resume-six-container .name-box {
+  display: flex;
+  flex-direction: column;
+  margin-left: 20rpx;
+  flex-shrink: 0;
+}
+.resume-six-container .name-text {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #fff;
+}
+.resume-six-container .tag {
+  font-size: 18rpx;
+  background: rgba(255,255,255,0.2);
+  border-radius: 10rpx;
+  padding: 3rpx 10rpx;
+  margin-top: 6rpx;
+  align-self: flex-start;
+  color: #fff;
+}
+
+/* 顶部联系方式 */
+.resume-six-container .contact-top {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin-left: 40rpx;
+}
+.resume-six-container .contact-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  font-size: 15rpx;
+  color: #fff;
+  margin-bottom: 8rpx;
+}
+.resume-six-container .contact-item { color: #fff; }
+.resume-six-container .divider { margin: 0 10rpx; opacity: 0.6; }
+
+/* 主体布局 */
+.resume-six-container .main-content-six {
+  display: flex;
+  margin-top: 30rpx;
+  gap: 20rpx;
+}
+.resume-six-container .left-panel-six {
+  width: 30%;
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+.resume-six-container .right-panel-six {
+  width: 70%;
+  display: flex;
+  flex-direction: column;
+  padding-right: 5%;
+  gap: 10rpx;
+}
+
+/* Section 公共样式 */
+.resume-six-container .section {
+  font-size: 15rpx;
+  background: #fff;
+  border-radius: 12rpx;
+  padding: 16rpx;
+  box-shadow: 0 2rpx 6rpx rgba(0,0,0,0.05);
+}
+.resume-six-container .section-title {
+  font-size: 20rpx;
+  font-weight: 600;
+  color: #0072ff;
+  margin-bottom: 20rpx;
+}
+.resume-six-container .section-title::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -4rpx;
+  width: 36rpx;
+  height: 3rpx;
+  background: #00c6ff;
+  border-radius: 2rpx;
+}
+
+/* 技能进度条 */
+.resume-six-container .skill-item { margin-top: 12rpx; }
+.resume-six-container .skill-name { font-size: 15rpx; margin-bottom: 4rpx; margin-top: 5rpx; color: #333; }
+.resume-six-container .skill-bar {
+  width: 100%;
+  height: 10rpx;
+  background: rgba(0,114,255,0.15);
+  border-radius: 8rpx;
+  margin-top: 10rpx;
+  overflow: hidden;
+}
+.resume-six-container .skill-fill {
+  height: 100%;
+  border-radius: 8rpx;
+  background: linear-gradient(90deg,#00c6ff,#0072ff);
+  transition: width 1s ease-in-out;
+}
+
+.resume-six-container .timeline-item {
+  display: flex;
+  position: relative;
+  margin-bottom: 10rpx;
+}
+.resume-six-container .timeline-dot {
+  width: 5rpx;
+  height: 5rpx;
+  background: #000000;
+  border-radius: 50%;
+  margin-right: 12rpx;
+  margin-top: 6rpx;
+}
+.resume-six-container .timeline-content { flex: 1; }
+.resume-six-container .job-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 15rpx;
+  font-weight: 600;
+  margin-top: 1rpx;
+}
+.resume-six-container .job-desc {
+  font-size: 14rpx;
+  line-height: 20rpx;
+  color: #555;
+}
+

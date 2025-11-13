@@ -4,7 +4,7 @@
     <!-- 顶部栏（包含头像 + 姓名 + 期望薪资信息） -->
     <view class="top-bar-full">
       <view class="avatar-name-section">
-        <image class="avatar" src="/images/template-one.png" mode="cover" />
+        <image class="avatar" src="/images/avatar.png" mode="cover" />
         <view class="name-info">
           <view class="top-name">刘豆豆</view>
           <view class="top-extra-info">
@@ -105,7 +105,7 @@
               <view class="job-period">2018年8月 - 至今</view>
             </view>
             <view class="job-desc">
-              负责小程序前端开发与维护，优化渲染性能和用户体验；参与核心组件库建设，提升团队开发效率。负责小程序前端开发与维护，优化渲染性能和用户体验；参与核心组件库建设，提升团队开发效率。
+              负责小程序前端开发与维护，优化渲染性能和用户体验；参与核心组件库建设，提升团队开发效率。
             </view>
           </view>
           <view class="section-separator"></view>
@@ -122,6 +122,14 @@
             <view class="job-desc">
               完成首页与视频页视觉设计，提高用户留存。
             </view>
+          </view>
+          <view class="section-separator"></view>
+        </view>
+
+        <view class="section">
+          <view class="section-title">兴趣爱好</view>
+          <view class="job-desc">
+            拥有扎实的UI/UX设计能力，熟悉多种设计工具，注重用户体验与细节。
           </view>
           <view class="section-separator"></view>
         </view>

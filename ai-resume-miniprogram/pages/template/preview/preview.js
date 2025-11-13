@@ -16,7 +16,7 @@ Page({
     console.log('预览页面接收到的参数:', options);
     
     // 有效的模板ID列表 - 确保与实际存在的图片文件匹配
-    const validTemplateIds = ['template-one', 'template-two', 'template-three', 'template-four', 'template-five'];
+    const validTemplateIds = ['template-one', 'template-two', 'template-three', 'template-four', 'template-five', 'template-six'];
     
     // 处理传入的参数
     if (options && options.templateId) {

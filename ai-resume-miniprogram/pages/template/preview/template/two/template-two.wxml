@@ -1,68 +1,118 @@
 <template name="template-two">
  <view class="resume-page">
+
   <!-- 顶部 Header -->
   <view class="header">
-    <image class="avatar" src="https://via.placeholder.com/144" mode="cover"></image>
-    <view class="info">
-      <view class="name">
-        <text class="name-text">张三</text>
+    <image class="avatar" src="/images/avatar.png" mode="cover"></image>
+
+    <view class="header-info-box">
+      <!-- 左列：姓名、职位 -->
+      <view class="header-left">
+        <view class="name">
+          <text class="name-text">刘豆豆</text>
+        </view>
         <text class="tag">前端工程师</text>
+        <view class="divider"></view>
       </view>
-      <view class="divider"></view>
-      <view class="contact">
+
+      <!-- 中间竖线分隔 -->
+      <view class="header-divider"></view>
+
+      <!-- 右列：联系方式 -->
+      <view class="header-right">
         <view class="contact-item">
-          <text class="icon">📞</text>
-          <text>123-4567-8901</text>
+          <text class="icon">手机号：</text>
+          <text class="contact-value">123-4567-8901</text>
         </view>
         <view class="contact-item">
-          <text class="icon">✉️</text>
-          <text>zhangsan@example.com</text>
+          <text class="icon">邮箱：</text>
+          <text class="contact-value">zhangsan@example.com</text>
         </view>
         <view class="contact-item">
-          <text class="icon">📍</text>
-          <text>北京</text>
+          <text class="icon">地址：</text>
+          <text class="contact-value">北京市朝阳区建国路88号SOHO</text>
+        </view>
+        <view class="contact-item">
+          <text class="icon">出生日期：</text>
+          <text class="contact-value">1999.09</text>
+        </view>
+        <view class="contact-item">
+          <text class="icon">期望薪资：</text>
+          <text class="contact-value">20000</text>
+        </view>
+        <view class="contact-item">
+          <text class="icon">入职时间：</text>
+          <text class="contact-value">一周之内</text>
         </view>
       </view>
     </view>
+
+    <!-- 装饰条 -->
+    <view class="header-deco-strip"></view>
   </view>
 
   <!-- 教育经历 -->
   <view class="section">
     <view class="section-title">教育经历</view>
     <view class="job">
-      <view class="job-title">清华大学 - 本科</view>
-      <view class="job-period">2015年9月 - 2019年7月</view>
-      <view class="job-desc">计算机科学与技术专业，主修软件开发、数据结构与算法。</view>
+      <view class="job-header">
+        <text class="job-company">清华大学</text>
+        <text class="job-position">本科</text>
+        <text class="job-period">2015年9月 - 2019年7月</text>
+      </view>
     </view>
+    <view class="job-desc">计算机科学与技术专业，主修软件开发、数据结构与算法。</view>
   </view>
 
   <!-- 工作经历 -->
   <view class="section">
     <view class="section-title">工作经历</view>
     <view class="job">
-      <view class="job-title">字节跳动 - 前端开发工程师</view>
-      <view class="job-period">2019年8月 - 至今</view>
+      <view class="job-header">
+        <text class="job-company">字节跳动</text>
+        <text class="job-position">前端开发工程师</text>
+        <text class="job-period">2019年8月 - 至今</text>
+      </view>
       <view class="job-desc">
-        负责小程序前端开发与维护，优化渲染性能和用户体验；参与核心组件库建设，提升团队开发效率。
-        负责小程序前端开发与维护，优化渲染性能和用户体验；参与核心组件库建设，提升团队开发效率。
-        负责小程序前端开发与维护，优化渲染性能和用户体验；参与核心组件库建设，提升团队开发效率。负责小程序前端开发与维护，优化渲染性能和用户体验；参与核心组件库建设，提升团队开发效率。负责小程序前端开发与维护，优化渲染性能和用户体验；参与核心组件库建设，提升团队开发效率。负责小程序前端开发与维护，优化渲染性能和用户体验；参与核心组件库建设，提升团队开发效率。负责小程序前端开发与维护，优化渲染性能和用户体验；参与核心组件库建设，提升团队开发效率。负责小程序前端开发与维护，优化渲染性能和用户体验；参与核心组件库建设，提升团队开发效率。负责小程序前端开发与维护，优化渲染性能和用户体验；参与核心组件库建设，提升团队开发效率。负责小程序前端开发与维护，优化渲染性能和用户体验；参与核心组件库建设，提升团队开发效率。负责小程序前端开发与维护，优化渲染性能和用户体验；参与核心组件库建设，提升团队开发效率。负责小程序前端开发与维护，优化渲染性能和用户体验；参与核心组件库建设，提升团队开发效率。
-
-
-
-
-        负责小程序前端开发与维护，优化渲染性能和用户体验；参与核心组件库建设，提升团队开发效率。负责小程序前端开发与维护，优化渲染性能和用户体验；参与核心组件库建设，提升团队开发效率。负责小程序前端开发与维护，优化渲染性能和用户体验；参与核心组件库建设，提升团队开发效率。负责小程序前端开发与维护，优化渲染性能和用户体验；参与核心组件库建设，提升团队开发效率。负责小程序前端开发与维护，优化渲染性能和用户体验；参与核心组件库建设，提升团队开发效率。负责小程序前端开发与维护，优化渲染性能和用户体验；参与核心组件库建设，提升团队开发效率。
+        参与小程序界面与交互设计，提升组件一致性与美观性。
       </view>
     </view>
     <view class="job">
-      <view class="job-title">腾讯 - 实习前端工程师</view>
-      <view class="job-period">2018年7月 - 2018年12月</view>
+      <view class="job-header">
+        <text class="job-company">腾讯网络科技有限公司</text>
+        <text class="job-position">实习前端工程师</text>
+        <text class="job-period">2018年7月 - 2018年12月</text>
+      </view>
       <view class="job-desc">
-        协助开发企业微信小程序，优化页面布局与交互设计。
+        负责移动端产品界面设计、交互优化，提升用户体验。负责移动端产品界面设计、交互优化，提升用户体验。负责移动端产品界面设计、交互优化。
       </view>
     </view>
   </view>
 
-  <!-- 技能 -->
+  <!-- 项目经验 -->
+  <view class="section">
+    <view class="section-title">项目经验</view>
+    <view class="project">
+      <view class="job-header">
+        <view class="job-position">企业微信小程序</view>
+        <view class="job-period">2018年7月 - 2018年12月</view>
+      </view>
+      <view class="job-desc">
+        参与前端页面设计与组件封装，优化页面加载速度，提高用户留存率。拥有扎实的前端技术基础，热衷新技术研究，具备团队协作与问题解决能力。
+      </view>
+    </view>
+    <view class="project">
+      <view class="job-header">
+        <view class="job-position">内部管理系统</view>
+        <view class="job-period">2019年9月 - 2020年6月</view>
+      </view>
+      <view class="job-desc">
+        负责前端架构设计，使用 Vue.js 和 ElementUI 构建响应式界面。拥有扎实的前端技术基础，热衷新技术研究，具备团队协作与问题解决能力。
+      </view>
+    </view>
+  </view>
+
+<!-- 技能 -->
   <view class="section">
     <view class="section-title">专业技能</view>
     <view class="skill-list">
@@ -75,32 +125,20 @@
     </view>
   </view>
 
-  <!-- 项目经验 -->
   <view class="section">
-    <view class="section-title">项目经验</view>
-    <view class="project">
-      <view class="job-title">企业微信小程序</view>
-      <view class="job-period">2018年7月 - 2018年12月</view>
+      <view class="section-title">兴趣爱好</view>
       <view class="job-desc">
-        参与前端页面设计与组件封装，优化页面加载速度，提高用户留存率。
+        拥有扎实的UI/UX设计能力，熟悉多种设计工具，注重用户体验与细节。拥有扎实的前端技术基础，热衷新技术研究，具备团队协作与问题解决能力。
       </view>
     </view>
-    <view class="project">
-      <view class="job-title">内部管理系统</view>
-      <view class="job-period">2019年9月 - 2020年6月</view>
-      <view class="job-desc">
-        负责前端架构设计，使用 Vue.js 和 ElementUI 构建响应式界面。
-      </view>
-    </view>
-  </view>
-
+    
   <!-- 自我评价 -->
   <view class="section">
     <view class="section-title">自我评价</view>
     <view class="job-desc">
-      拥有扎实的前端技术基础，热衷新技术研究，具备团队协作与问题解决能力。
+      拥有扎实的前端技术基础，热衷新技术研究，具备团队协作与问题解决能力。拥有扎实的前端技术基础，热衷新技术研究，具备团队协作与问题解决能力。
     </view>
   </view>
-</view>
 
+</view>
 </template>

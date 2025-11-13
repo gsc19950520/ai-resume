@@ -1,6 +1,6 @@
 .template-four-container {
   width: 100%;
-  min-height: 150mm;
+  min-height: 100mm;
   display: flex;
   font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
   background: #fff;
@@ -14,6 +14,7 @@
 /* 左侧栏 */
 .template-four-container .left-panel {
   width: 30%;
+  min-height: 100mm;
   background: #1482918e;
   border-radius: 19rpx;
   padding: 24rpx;

@@ -1,6 +1,6 @@
 .template-one-container {
   width: 100%;
-  min-height: 150mm;
+  min-height: 100mm;
   display: flex;
   font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
   background: #fff;
@@ -13,6 +13,7 @@
 /* 左侧主内容区（原右侧） */
 .template-one-container .left-panel-swapped {
   width: 70%;
+  min-height: 100mm;
   padding-right: 15rpx;
   padding-left: 15rpx;
   padding-top: 20rpx;
@@ -26,6 +27,7 @@
 /* 右侧信息区（原左侧） */
 .template-one-container .right-panel-swapped {
   width: 30%;
+  min-height: 100mm;
   background: #572dca8e;
   border-radius: 10rpx;
   padding: 24rpx;
@@ -71,6 +73,7 @@
   border-bottom: 1rpx solid rgba(255,255,255,0.4);
   padding-bottom: 4rpx;
 }
+
 .template-one-container .contact-item {
   font-size: 15rpx;
   display: flex;
@@ -127,6 +130,9 @@
   border-left: 6rpx solid #148291;
   padding-left: 10rpx;
 }
+.template-one-container .job {
+  margin-bottom: 10rpx;
+}
 .template-one-container .job-header {
   font-size: 15rpx;
   font-weight: 600;
@@ -139,6 +145,7 @@
   font-size: 14rpx;
   line-height: 1.9;
   color: #444;
+  margin-bottom: 10rpx;
 }
 .template-one-container .section .job-desc::before {
   content: "·";

@@ -26,7 +26,7 @@
             <view class="job-period">2018年8月 - 至今</view>
           </view>
           <view class="job-desc">
-            负责移动端产品界面设计、交互优化，提升用户体验。
+            负责移动端产品界面设计、交互优化，提升用户体验。负责移动端产品界面设计、交互优化，提升用户体验。
           </view>
         </view>
         <view class="job">
@@ -36,7 +36,7 @@
             <view class="job-period">2017年7月 - 2017年12月</view>
           </view>
           <view class="job-desc">
-            参与小程序界面与交互设计，提升组件一致性与美观性。
+            参与小程序界面与交互设计，提升组件一致性与美观性。参与小程序界面与交互设计，提升组件一致性与美观性。
           </view>
         </view>
       </view>
@@ -50,7 +50,7 @@
             <view class="job-period">2018年9月 - 2019年3月</view>
           </view>
           <view class="job-desc">
-            优化首页与视频页视觉层次，提高用户留存。
+            优化首页与视频页视觉层次，提高用户留存。优化首页与视频页视觉层次，提高用户留存。
           </view>
         </view>
         <view class="project">
@@ -59,11 +59,18 @@
             <view class="job-period">2019年4月 - 2020年2月</view>
           </view>
           <view class="job-desc">
-            设计响应式界面与交互原型，提高团队使用效率。
+            设计响应式界面与交互原型，提高团队使用效率。设计响应式界面与交互原型，提高团队使用效率。设计响应式界面与交互原型，提高团队使用效率。设计响应式界面与交互原型，提高团队使用效率。
           </view>
         </view>
       </view>
 
+      <view class="section">
+        <view class="section-title">兴趣爱好</view>
+        <view class="job-desc">
+          拥有扎实的UI/UX设计能力，熟悉多种设计工具，注重用户体验与细节。
+        </view>
+      </view>
+      
       <!-- 自我评价 -->
       <view class="section">
         <view class="section-title">自我评价</view>
@@ -76,7 +83,7 @@
     <!-- 右侧：头像 + 联系方式 + 技能 -->
     <view class="right-panel-swapped">
       <view class="avatar-container">
-        <image class="avatar" src="/images/template-one.png" mode="cover" />
+        <image class="avatar" src="/images/avatar.png" mode="cover" />
         <view class="name">刘豆豆</view>
         <view class="title">UI/UX 设计师</view>
       </view>
@@ -85,7 +92,7 @@
       <view class="contact-section">
         <view class="section-title">个人信息</view>
         <view class="contact-item"><text class="contact-label">电话：</text><text class="contact-value">138-0000-0000</text></view>
-        <view class="contact-item"><text class="contact-label">邮箱：</text><text class="contact-value">lisi@example.com</text></view>
+        <view class="contact-item"><text class="contact-label">邮箱：</text><text class="contact-value">lisi@qq.com</text></view>
         <view class="contact-item"><text class="contact-label">地址：</text><text class="contact-value">上海</text></view>
         <view class="contact-item"><text class="contact-label">出生日期：</text><text class="contact-value">1999.09</text></view>
         <view class="contact-item"><text class="contact-label">期望薪资：</text><text class="contact-value">20000</text></view>

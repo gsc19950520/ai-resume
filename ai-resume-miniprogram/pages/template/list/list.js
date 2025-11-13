@@ -48,6 +48,14 @@ Page({
         description: '富有创意的设计风格模板',
         vipOnly: false,
         isFree: true
+      },
+      {
+        id: 'template-six',
+        name: '创意设计模板',
+        preview: '/images/template-six.png',
+        description: '富有创意的设计风格模板',
+        vipOnly: false,
+        isFree: true
       }
     ];
     
