@@ -4,7 +4,7 @@
     <!-- 顶部横幅 -->
     <view class="header-banner">
       <view class="header-content">
-        <image class="avatar" src="/images/avatar.png" mode="cover"></image>
+        <image class="avatar" src="/images/avatar.jpg" mode="cover"></image>
 
         <view class="name-box">
           <text class="name-text">刘豆豆</text>

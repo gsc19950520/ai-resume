@@ -3,7 +3,7 @@
 
   <!-- 顶部 Header -->
   <view class="header">
-    <image class="avatar" src="/images/avatar.png" mode="cover"></image>
+    <image class="avatar" src="/images/avatar.jpg" mode="cover"></image>
 
     <view class="header-info-box">
       <!-- 左列：姓名、职位 -->

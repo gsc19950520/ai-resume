@@ -20,7 +20,7 @@ export function getTemplateData(templateId) {
       phone: '16888888888',
       email: 'jianli@qq.com',
       wechat: 'wx123456',
-      avatarUrl: '/images/avatar.png',
+      avatarUrl: '/images/avatar.jpg',
       
       // 教育背景
       education: [
@@ -95,7 +95,7 @@ export function getTemplateData(templateId) {
       phone: '16888888888',
       email: 'dev@qq.com',
       wechat: 'dev123456',
-      avatarUrl: '/images/avatar.png',
+      avatarUrl: '/images/avatar.jpg',
       
       // 教育背景
       education: [
@@ -173,7 +173,7 @@ export function getTemplateData(templateId) {
       phone: '16888888888',
       email: 'design@qq.com',
       wechat: 'design123456',
-      avatarUrl: '/images/avatar.png',
+      avatarUrl: '/images/avatar.jpg',
       
       // 教育背景
       education: [
@@ -242,7 +242,7 @@ export function getTemplateData(templateId) {
       phone: '16888888888',
       email: 'research@qq.com',
       wechat: 'research123456',
-      avatarUrl: '/images/avatar.png',
+      avatarUrl: '/images/avatar.jpg',
       
       // 教育背景
       education: [

@@ -3,7 +3,7 @@
   <!-- 用户信息区域 -->
   <view class="user-info-section" bindtap="onUserInfoTap">
     <view class="avatar">
-      <image src="{{userInfo ? userInfo.avatarUrl : '/images/avatar.png'}}" mode="aspectFill"></image>
+      <image src="{{userInfo ? userInfo.avatarUrl : '/images/avatar.jpg'}}" mode="aspectFill"></image>
     </view>
     <view class="user-info">
       <view class="nickname">{{userInfo ? userInfo.nickName : '点击登录'}}</view>

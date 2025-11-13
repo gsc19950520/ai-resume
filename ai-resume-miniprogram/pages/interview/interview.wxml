@@ -35,7 +35,7 @@
   <!-- 顶部导航栏 -->
   <view class="header">
     <view class="header-left" bindtap="goBack">
-      <image src="/images/avatar.png" mode="aspectFit" class="avatar-icon"></image>
+      <image src="/images/avatar.jpg" mode="aspectFit" class="avatar-icon"></image>
       <view class="job-badge">{{industryJobTag || '技术面试'}}</view>
     </view>
     <view class="header-center">AI 模拟面试</view>

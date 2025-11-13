@@ -3,7 +3,7 @@
   <!-- 左侧栏：个人信息+技能 -->
   <view class="left-panel">
     <view class="avatar-container">
-      <image class="avatar" src="/images/avatar.png" mode="cover" />
+      <image class="avatar" src="/images/avatar.jpg" mode="cover" />
       <view class="name">刘豆豆</view>
       <view class="title">UI/UX 设计师</view>
     </view>

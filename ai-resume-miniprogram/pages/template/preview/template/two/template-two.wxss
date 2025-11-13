@@ -173,19 +173,10 @@
 }
 .template-two-container .section-title { 
   font-weight: bold; 
-  font-size: 21.6rpx; 
+  font-size: 21rpx; 
   margin-bottom: 7.2rpx; 
   color: #1e73be;
   position: relative;
-}
-.template-two-container .section-title::after {
-  content: "";
-  display: block;
-  width: 32rpx;
-  height: 3rpx;
-  background: #1e73be;
-  margin-top: 4rpx;
-  border-radius: 2rpx;
 }
 /* 顶部标题行（公司、职位、时间） */
 .template-two-container .job-header {

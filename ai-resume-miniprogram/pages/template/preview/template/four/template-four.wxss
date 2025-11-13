@@ -46,7 +46,7 @@
 }
 
 .template-four-container .title {
-  font-size: 18rpx;
+  font-size: 20rpx;
   color: #fff;
   opacity: 0.9;
 }
@@ -81,7 +81,7 @@
 }
 
 .template-four-container .contact-item {
-  font-size: 15rpx;
+  font-size: 16rpx;
   align-items: flex-start;
   line-height: 28rpx; /* 行间距加大 */
   margin-bottom: 6rpx;
@@ -161,7 +161,7 @@
 
 /* 顶部标题行（公司、职位、时间） */
 .template-four-container .job-header {
-  font-size: 15rpx;
+  font-size: 16rpx;
   font-weight: 600;
   color: #333;
   display: flex;
@@ -191,8 +191,8 @@
 }
 
 .template-four-container .job-desc {
-  font-size: 14rpx;
-  line-height: 1.9;
+  font-size: 15rpx;
+  line-height: 1.4;
   color: #444;
 }
 

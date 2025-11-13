@@ -142,8 +142,8 @@
   color: #333;
 }
 .template-one-container .job-desc {
-  font-size: 14rpx;
-  line-height: 1.9;
+  font-size: 16rpx;
+  line-height: 1.5;
   color: #444;
   margin-bottom: 10rpx;
 }

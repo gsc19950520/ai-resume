@@ -42,16 +42,19 @@
   box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
 }
 
-/* 缩略图容器 */
+/* 缩略图容器 - 改进版本，避免绝对定位导致的渲染问题 */
 .thumbnail-container {
   position: relative;
   width: 100%;
+  height: 0;
   padding-top: 140%; /* 保持简历的宽高比 */
   overflow: hidden;
   border-radius: 16rpx;
+  background-color: #f8f8f8; /* 添加背景色，避免空白闪烁 */
+  z-index: 1; /* 确保正确的层级关系 */
 }
 
-/* 缩略图样式 */
+/* 缩略图样式 - 使用更安全的定位方式 */
 .template-thumbnail {
   position: absolute;
   top: 0;
@@ -60,6 +63,20 @@
   height: 100%;
   object-fit: cover;
   border-radius: 16rpx;
+  display: block; /* 确保正确渲染 */
+  transform: translateZ(0); /* 触发硬件加速，减少渲染闪烁 */
+}
+
+/* 缩略图占位元素样式 - 确保与图片大小一致 */
+.thumbnail-placeholder {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #f0f0f0;
+  border-radius: 16rpx;
+  display: block;
 }
 
 .vip-badge {
@@ -89,3 +106,19 @@
 }
 
 /* 模板样式已简化，只显示缩略图 */
+
+/* 占位元素样式 - 确保页面加载过程中布局稳定 */
+.template-grid-placeholder {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24rpx;
+}
+
+.template-card-placeholder {
+  width: 100%;
+  height: 0;
+  padding-top: 140%; /* 与实际卡片保持相同的宽高比 */
+  border-radius: 16rpx;
+  background-color: #f8f8f8; /* 使用与容器相同的背景色 */
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.05); /* 与实际卡片保持相同的阴影效果 */
+}

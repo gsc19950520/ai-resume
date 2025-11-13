@@ -4,7 +4,7 @@
     <!-- 顶部栏（包含头像 + 姓名 + 期望薪资信息） -->
     <view class="top-bar-full">
       <view class="avatar-name-section">
-        <image class="avatar" src="/images/avatar.png" mode="cover" />
+        <image class="avatar" src="/images/avatar.jpg" mode="cover" />
         <view class="name-info">
           <view class="top-name">刘豆豆</view>
           <view class="top-extra-info">

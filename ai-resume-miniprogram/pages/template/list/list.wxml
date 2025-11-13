@@ -6,17 +6,38 @@
   </view>
   
   <!-- 模板列表 - 左右两列网格布局 -->
-  <view class="template-grid">
+  <!-- 使用pageReady状态控制渲染，确保页面完全就绪后再渲染内容 -->
+  <view wx:if="{{pageReady}}" class="template-grid">
     <view class="template-card" wx:for="{{templateList}}" wx:key="id">
       <!-- 模板卡片容器 - 点击整个卡片预览模板 -->
       <view class="template-wrapper" bindtap="previewTemplate" data-id="{{item.id}}" data-name="{{item.name}}">
         <!-- 缩略图区域 - 只显示模板小图 -->
         <view class="thumbnail-container">
-          <image class="template-thumbnail" src="{{item.preview || '/images/default-template.png'}}" mode="aspectFill"></image>
-      <view wx:if="{{item.vipOnly}}" class="vip-badge">VIP专享</view>
-      <view wx:if="{{item.isFree}}" class="free-badge">免费</view>
+          <!-- 使用条件渲染控制图片加载，避免提前渲染 -->
+          <image class="template-thumbnail" 
+                 src="{{item.preview || '/images/default-template.png'}}" 
+                 mode="aspectFill" 
+                 wx:if="{{item.preview}}">
+          </image>
+          <!-- 当图片还未加载时显示一个占位元素 -->
+          <view class="thumbnail-placeholder" wx:else>
+            <!-- 占位元素，与图片大小一致 -->
+          </view>
+          <view wx:if="{{item.vipOnly}}" class="vip-badge">VIP专享</view>
+          <view wx:if="{{item.isFree}}" class="free-badge">免费</view>
         </view>
       </view>
     </view>
+  </view>
+  
+  <!-- 页面未就绪时显示空白占位，避免闪烁 -->
+  <view wx:else class="template-grid-placeholder">
+    <!-- 空白占位元素，与实际内容保持相同的结构和布局占位 -->
+    <view class="template-card-placeholder"></view>
+    <view class="template-card-placeholder"></view>
+    <view class="template-card-placeholder"></view>
+    <view class="template-card-placeholder"></view>
+    <view class="template-card-placeholder"></view>
+    <view class="template-card-placeholder"></view>
   </view>
 </view>

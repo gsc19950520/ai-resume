@@ -6,7 +6,7 @@
   <!-- 顶部导航栏 -->
   <view class="header">
     <view class="header-left">
-      <image class="avatar-icon" src="/assets/images/avatar.png"></image>
+      <image class="avatar-icon" src="/assets/images/avatar.jpg"></image>
     </view>
     <view class="header-right"></view>
   </view>

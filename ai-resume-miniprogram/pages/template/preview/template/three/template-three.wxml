@@ -3,7 +3,7 @@
   <view class="resume-page">
     <!-- 顶部 Header -->
     <view class="header">
-      <image class="avatar" src="/images/avatar.png" mode="aspectFill"></image>
+      <image class="avatar" src="/images/avatar.jpg" mode="aspectFill"></image>
       <view class="info">
         <view class="name">
           <view class="name-text">刘豆豆</view>
@@ -60,7 +60,7 @@
       </view>
       <view class="job">
         <view class="job-header">
-          <view class="job-company">腾讯</view>
+          <view class="job-company">腾讯网络科技有限公司</view>
           <view class="job-position">实习设计师</view>
           <view class="job-period">2017年7月 - 2017年12月</view>
         </view>

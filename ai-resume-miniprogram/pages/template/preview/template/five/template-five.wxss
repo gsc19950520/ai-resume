@@ -50,7 +50,7 @@
 
 /* 期望薪资信息 */
 .template-five-container .top-extra-info {
-  font-size: 14rpx;
+  font-size: 15rpx;
   line-height: 28rpx;
   display: flex;
   flex-direction: column;
@@ -110,7 +110,7 @@
 
 .template-five-container .contact-label {
   font-weight: 600;
-  font-size: 14rpx;
+  font-size: 16rpx;
   margin-bottom: 4rpx; /* label 与 value 间距 */
 }
 
@@ -175,12 +175,12 @@
 
 /* Job Description */
 .template-five-container .job-desc {
-  font-size: 14rpx;
-  line-height: 1.9;
+  font-size: 15rpx;
+  line-height: 1.4;
   color: #444;
   position: relative;
   padding-left: 12rpx;
-  margin-bottom: 25rpx;
+  margin-bottom: 18rpx;
 }
 .template-five-container .job-desc::before {
   content: "·";

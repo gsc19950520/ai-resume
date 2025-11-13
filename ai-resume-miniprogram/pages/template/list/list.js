@@ -3,16 +3,28 @@ const app = getApp()
 
 Page({
   data: {
-    templateList: []
+    templateList: [],
+    pageReady: false // 添加页面就绪状态标记
   },
 
   onLoad: function() {
-    // 直接设置固定的模板列表，只显示template-one和template-two
+    // 页面加载时不立即设置数据，避免提前渲染
+    console.log('简历模板页面加载中...');
+  },
+
+  onReady: function() {
+    // 页面渲染完成后再设置数据，确保页面切换时不会提前渲染不相关内容
+    this.loadTemplateList();
+  },
+
+  // 加载模板列表数据
+  loadTemplateList: function() {
+    // 1. 先设置基础数据但不含图片地址，避免提前加载图片
     const defaultTemplates = [
       {
         id: 'template-one', 
         name: '专业简约模板',
-        preview: '/images/template-one.png',
+        // 初始不设置preview，避免提前加载图片
         description: '清晰简洁的专业风格，适合各类职位申请',
         vipOnly: false,
         isFree: true
@@ -20,7 +32,7 @@ Page({
       {
         id: 'template-two',
         name: '创意设计模板',
-        preview: '/images/template-two.png',
+        // 初始不设置preview
         description: '富有创意的设计风格模板',
         vipOnly: false,
         isFree: true
@@ -28,7 +40,7 @@ Page({
       {
         id: 'template-three',
         name: '创意设计模板',
-        preview: '/images/template-three.png',
+        // 初始不设置preview
         description: '富有创意的设计风格模板',
         vipOnly: false,
         isFree: true
@@ -36,7 +48,7 @@ Page({
       {
         id: 'template-four',
         name: '创意设计模板',
-        preview: '/images/template-four.png',
+        // 初始不设置preview
         description: '富有创意的设计风格模板',
         vipOnly: false,
         isFree: true
@@ -44,7 +56,7 @@ Page({
       {
         id: 'template-five',
         name: '创意设计模板',
-        preview: '/images/template-five.png',
+        // 初始不设置preview
         description: '富有创意的设计风格模板',
         vipOnly: false,
         isFree: true
@@ -52,15 +64,40 @@ Page({
       {
         id: 'template-six',
         name: '创意设计模板',
-        preview: '/images/template-six.png',
+        // 初始不设置preview
         description: '富有创意的设计风格模板',
         vipOnly: false,
         isFree: true
       }
     ];
     
-    this.setData({ templateList: defaultTemplates });
-    console.log('模板列表已设置:', defaultTemplates);
+    // 第一步：先设置基本数据和pageReady状态
+    this.setData({
+      templateList: defaultTemplates,
+      pageReady: true // 标记页面已就绪
+    });
+    
+    console.log('模板列表基础数据已设置，等待页面完全渲染后加载图片');
+    
+    // 2. 更大延迟后再设置图片URL，确保页面完全切换完成后才开始加载图片
+    setTimeout(() => {
+      // 创建英文数字映射数组
+      const numberToEnglish = ['one', 'two', 'three', 'four', 'five', 'six'];
+      
+      const templatesWithImages = [...defaultTemplates].map((template, index) => {
+        // 只在页面完全就绪后才设置preview图片地址，使用英文命名而非数字
+        return {
+          ...template,
+          preview: `/images/template-${numberToEnglish[index]}.jpg`
+        };
+      });
+      
+      this.setData({
+        templateList: templatesWithImages
+      });
+      
+      console.log('模板列表图片URL已设置，开始加载图片');
+    }, 500); // 更大的延迟确保页面完全切换后再加载图片
   },
 
   // 选择模板
