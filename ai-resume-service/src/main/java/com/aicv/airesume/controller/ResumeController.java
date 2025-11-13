@@ -4,7 +4,7 @@ import com.aicv.airesume.annotation.Log;
 import com.aicv.airesume.entity.Resume;
 import com.aicv.airesume.entity.Template;
 import com.aicv.airesume.service.ResumeService;
-import com.aicv.airesume.service.TemplateRendererService;
+
 import com.aicv.airesume.service.TemplateService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -26,8 +26,7 @@ public class ResumeController {
     @Autowired
     private ResumeService resumeService;
     
-    @Autowired
-    private TemplateRendererService templateRendererService;
+
     
     @Autowired
     private TemplateService templateService;
@@ -196,62 +195,46 @@ public class ResumeController {
     }
     
     /**
-     * 渲染简历为HTML
-     * @param requestData 请求数据，包含templateId和resumeData
-     * @return 渲染后的HTML内容
+     * 更新简历内容
+     * @param userId 用户ID
+     * @param resumeId 简历ID
+     * @param resumeData 简历数据，包含所有需要更新的字段
+     * @return 更新后的简历信息
      */
-    @PostMapping("/render")
-    public ResponseEntity<?> renderResume(@RequestBody Map<String, Object> requestData) {
+    @Log(description = "更新简历内容", recordParams = true, recordResult = true)
+    @PostMapping("/{resumeId}/content")
+    public ResponseEntity<?> updateResumeContent(@RequestParam Long userId, @PathVariable Long resumeId, @RequestBody Map<String, Object> resumeData) {
         try {
             // 参数验证
-            if (requestData == null || !requestData.containsKey("templateId") || !requestData.containsKey("resumeData")) {
+            if (resumeData == null) {
                 Map<String, Object> errorResponse = new HashMap<>();
                 errorResponse.put("code", 400);
-                errorResponse.put("message", "请求数据必须包含templateId和resumeData字段");
+                errorResponse.put("message", "简历数据不能为空");
                 return ResponseEntity.badRequest().body(errorResponse);
             }
             
-            // 获取模板ID
-            String templateId = requestData.get("templateId").toString();
-            // 获取简历数据
-            Map<String, Object> resumeData = (Map<String, Object>) requestData.get("resumeData");
+            // 更新简历内容
+            Resume updatedResume = resumeService.updateResumeContent(userId, resumeId, resumeData);
             
-            if (templateId.isEmpty() || resumeData == null) {
-                Map<String, Object> errorResponse = new HashMap<>();
-                errorResponse.put("code", 400);
-                errorResponse.put("message", "模板ID不能为空且简历数据格式错误");
-                return ResponseEntity.badRequest().body(errorResponse);
-            }
+            // 构造返回结果
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("data", updatedResume);
+            response.put("message", "简历内容更新成功");
             
-            // 获取模板信息
-            Template template = templateService.getTemplateById(templateId);
-            if (template == null) {
-                return ResponseEntity.notFound().build();
-            }
-            
-            // 从模板生成HTML
-            String htmlTemplate = templateRendererService.generateHtmlFromLocalWordTemplate(template);
-            
-            // 渲染HTML
-            String renderedHtml = templateRendererService.renderHtmlTemplate(htmlTemplate, resumeData);
-            
-            // 返回渲染后的HTML
-            return ResponseEntity.ok(renderedHtml);
-        } catch (NumberFormatException e) {
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("code", 400);
-            errorResponse.put("message", "无效的templateId格式");
-            return ResponseEntity.badRequest().body(errorResponse);
-        } catch (ClassCastException e) {
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("code", 400);
-            errorResponse.put("message", "resumeData格式错误");
+            errorResponse.put("message", e.getMessage());
             return ResponseEntity.badRequest().body(errorResponse);
         } catch (Exception e) {
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("code", 500);
-            errorResponse.put("message", "渲染简历失败: " + e.getMessage());
+            errorResponse.put("message", "更新简历内容失败: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
+    
+
 }

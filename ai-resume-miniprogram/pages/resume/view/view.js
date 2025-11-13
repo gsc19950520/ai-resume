@@ -128,7 +128,12 @@ Page({
       skills: JSON.stringify(resumeInfo.skills || []),
       projects: JSON.stringify(resumeInfo.projects || []),
       objective: resumeInfo.selfEvaluation || '',
-      profile: resumeInfo.summary || ''
+      profile: resumeInfo.summary || '',
+      // 新增字段
+      expectedSalary: resumeInfo.personalInfo?.expectedSalary || '',
+      startTime: resumeInfo.personalInfo?.startTime || '',
+      hobbies: JSON.stringify(resumeInfo.hobbies || []),
+      skillsWithLevel: JSON.stringify(resumeInfo.skillsWithLevel || [])
     };
     
     // 先使用本地保存的HTML（如果有）
@@ -149,45 +154,22 @@ Page({
       try {
         console.log('调用后端渲染API，templateId:', templateId);
         
-        // 使用app.js中定义的cloudCall方法
-        const app = getApp();
+        // 不再调用后端渲染接口，直接使用本地数据
+        console.log('使用本地模板数据，不调用渲染接口');
         
-        app.cloudCall('/api/resume/render', {
-          templateId: templateId,
-          resumeData: templateResumeData
-        }, 'POST')
-        .then(res => {
-          console.log('渲染模板成功，响应:', res);
-          
-          if (res && res.html) {
-            // 保存渲染结果到本地存储，以便下次直接使用
-            wx.setStorageSync('renderedResumeHtml', res.html);
-            
-            this.setData({
-              renderedHtml: res.html
-            });
-          } else {
-            console.error('渲染失败，响应数据不包含html:', res);
-            wx.showToast({
-              title: '渲染模板失败: 无有效返回数据',
-              icon: 'none'
-            });
-          }
-        })
-        .catch(err => {
-          console.error('调用渲染API失败:', err);
-          
-          if (!savedRenderedHtml) {
-            wx.showToast({
-              title: '加载简历失败，请检查网络',
-              icon: 'none'
-            });
-          }
-        })
-        .finally(() => {
-            wx.hideLoading();
-            this.setData({ loading: false });
+        wx.hideLoading();
+        this.setData({
+          loading: false,
+          hasResumeData: true
         });
+        
+        // 如果没有本地保存的HTML，设置一个状态以显示提示
+        if (!savedRenderedHtml) {
+          wx.showToast({
+            title: '使用本地模板数据',
+            icon: 'none'
+          });
+        }
       } catch (error) {
         console.error('加载模板简历时发生异常:', error);
         wx.hideLoading();

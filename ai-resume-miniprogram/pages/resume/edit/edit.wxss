@@ -105,6 +105,104 @@
   resize: none;
 }
 
+/* 技能相关样式 */
+.skill-item {
+  margin-bottom: 30rpx;
+  padding: 20rpx;
+  background-color: #f8f8f8;
+  border-radius: 8rpx;
+  border: 1rpx solid #e0e0e0;
+}
+
+.skill-header {
+  display: flex;
+  flex-direction: column;
+  gap: 15rpx;
+}
+
+.skill-name {
+  width: 100%;
+  padding: 15rpx;
+  font-size: 28rpx;
+  color: #333;
+  background-color: white;
+  border: 1rpx solid #e0e0e0;
+  border-radius: 6rpx;
+  box-sizing: border-box;
+}
+
+.skill-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 15rpx;
+}
+
+.level-label {
+  font-size: 26rpx;
+  color: #666;
+  min-width: 100rpx;
+}
+
+.skill-levels {
+  display: flex;
+  gap: 10rpx;
+  flex: 1;
+}
+
+.level-item {
+  padding: 8rpx 16rpx;
+  font-size: 24rpx;
+  color: #666;
+  background-color: white;
+  border: 1rpx solid #e0e0e0;
+  border-radius: 6rpx;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.level-item.active {
+  background-color: #07c160;
+  color: white;
+  border-color: #07c160;
+}
+
+.delete-btn {
+  padding: 8rpx 20rpx;
+  font-size: 24rpx;
+  color: #ee0a24;
+  border: 1rpx solid #ee0a24;
+  border-radius: 6rpx;
+  cursor: pointer;
+}
+
+.progress-container {
+  margin-top: 15rpx;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 16rpx;
+  background-color: #e0e0e0;
+  border-radius: 8rpx;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background-color: #07c160;
+  transition: width 0.3s;
+}
+
+.add-skill-btn {
+  margin-top: 20rpx;
+  background-color: #07c160;
+  color: white;
+  font-size: 28rpx;
+  border-radius: 8rpx;
+}
+
 /* 日期行 */
 .date-row {
   display: flex;

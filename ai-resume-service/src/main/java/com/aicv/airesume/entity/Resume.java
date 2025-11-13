@@ -59,6 +59,22 @@ public class Resume {
     @Column(name = "skills")
     private String skills;
     
+    // 技能评分，JSON格式存储，包含技能名称和熟练度
+    @Column(name = "skills_with_level")
+    private String skillsWithLevel;
+    
+    // 期望薪资
+    @Column(name = "expected_salary")
+    private String expectedSalary;
+    
+    // 到岗时间
+    @Column(name = "start_time")
+    private String startTime;
+    
+    // 兴趣爱好，JSON格式存储
+    @Column(name = "hobbies")
+    private String hobbies;
+    
     private String originalContent;
     @Column(name = "optimized_content")
     private String optimizedContent;

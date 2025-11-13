@@ -80,4 +80,13 @@ public interface ResumeService {
      * 设置简历模板配置
      */
     Resume setResumeTemplateConfig(Long userId, Long resumeId, String templateConfig);
+    
+    /**
+     * 更新简历内容
+     * @param userId 用户ID
+     * @param resumeId 简历ID
+     * @param resumeData 简历数据Map，包含所有需要更新的字段
+     * @return 更新后的简历对象
+     */
+    Resume updateResumeContent(Long userId, Long resumeId, Map<String, Object> resumeData);
 }

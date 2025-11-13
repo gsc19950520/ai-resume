@@ -12,6 +12,7 @@
           bindtap="switchSection" data-id="{{item.id}}">
       <text>{{item.name}}</text>
     </view>
+    <!-- 确保兴趣爱好选项在sections数组中存在 -->
   </scroll-view>
 
   <!-- 编辑内容区域 -->
@@ -46,6 +47,16 @@
         <view class="form-item">
           <text class="label">出生日期</text>
           <input class="input" placeholder="请输入出生日期，如：1990-01-01" value="{{resumeInfo.personalInfo.birthDate}}" bindinput="savePersonalInfo" data-field="birthDate" />
+        </view>
+        
+        <view class="form-item">
+          <text class="label">期望薪资</text>
+          <input class="input" placeholder="请输入您的期望薪资（如：15k-20k）" value="{{resumeInfo.personalInfo.expectedSalary}}" bindinput="savePersonalInfo" data-field="expectedSalary" />
+        </view>
+        
+        <view class="form-item">
+          <text class="label">到岗时间</text>
+          <input class="input" placeholder="请输入您的可到岗时间（如：一周内、一个月内）" value="{{resumeInfo.personalInfo.startTime}}" bindinput="savePersonalInfo" data-field="startTime" />
         </view>
     </view>
 
@@ -135,11 +146,45 @@
     <view class="edit-section" wx:if="{{currentSection === 'skills'}}">
       <view class="form-item">
         <text class="label">专业技能</text>
-        <textarea class="textarea" placeholder="请列出您的专业技能，如：JavaScript、React、UI设计等，用逗号分隔" value="{{resumeInfo.skills}}" bindinput="onSkillsInput" />
+        <view class="skill-item" wx:for="{{resumeInfo.skillsWithLevel}}" wx:key="index" wx:for-index="index">
+          <view class="skill-header">
+            <input class="skill-name" placeholder="技能名称" value="{{item.name}}" bindinput="onSkillNameInput" data-index="{{index}}" />
+            <view class="skill-actions">
+              <view class="level-label">{{skillLevels[item.level] || '选择等级'}}</view>
+              <view class="skill-levels">
+                <view class="level-item" wx:for="{{skillLevels}}" wx:for-item="levelName" wx:for-index="levelValue" wx:key="levelValue" 
+                      class="level-item {{item.level === levelValue ? 'active' : ''}}" 
+                      bindtap="onSkillLevelChange" data-skill-index="{{index}}" data-level="{{levelValue}}">
+                  <text>{{levelName}}</text>
+                </view>
+              </view>
+              <view class="delete-btn" bindtap="onDeleteSkill" data-index="{{index}}">删除</view>
+            </view>
+          </view>
+          <view class="progress-container">
+            <view class="progress-bar">
+              <view class="progress-fill" style="width: {{(item.level + 1) * 20}}%;"></view>
+            </view>
+          </view>
+        </view>
+        
+        <button class="add-skill-btn" type="primary" bindtap="onAddSkill">添加技能</button>
       </view>
       
       <view class="tips">
-        <text>提示：请尽量详细地列出您掌握的技能，这将有助于提高简历的竞争力</text>
+        <text>提示：请列出与应聘职位相关的关键技能，提高简历匹配度</text>
+      </view>
+    </view>
+
+    <!-- 兴趣爱好部分 -->
+    <view class="edit-section" wx:if="{{currentSection === 'hobbies'}}">
+      <view class="form-item">
+        <text class="label">兴趣爱好</text>
+        <textarea class="textarea" placeholder="请列出您的兴趣爱好，如：阅读、运动、摄影等，用逗号分隔" value="{{resumeInfo.hobbiesText}}" bindinput="onHobbiesInput" />
+      </view>
+      
+      <view class="tips">
+        <text>提示：适当的兴趣爱好可以展示您的个性特点和生活态度</text>
       </view>
     </view>
 

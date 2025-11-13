@@ -6,68 +6,40 @@
       <!-- 教育经历 -->
       <view class="section">
         <view class="section-title">教育经历</view>
-        <view class="job">
-          <view class="job-header">
-            <view class="job-company">中央美术学院</view>
-            <view class="job-position">本科</view>
-            <view class="job-period">2014年9月 - 2018年7月</view>
+        <block wx:for="{{resumeData.education}}" wx:key="index">
+          <view class="job">
+            <view class="job-header">
+              <view class="job-company">{{item.school || '学校名称'}}</view>
+              <view class="job-position">{{item.degree || '学位'}}</view>
+              <view class="job-period">{{item.startDate || ''}}{{item.startDate && item.endDate ? ' - ' : ''}}{{item.endDate || ''}}</view>
+            </view>
+            <view class="job-desc">{{item.major || ''}}</view>
           </view>
-          <view class="job-desc">视觉传达设计专业，主修UI/UX与交互设计。</view>
-        </view>
+        </block>
       </view>
 
       <!-- 工作经历 -->
       <view class="section">
         <view class="section-title">工作经历</view>
-        <view class="job">
-          <view class="job-header">
-            <view class="job-company">腾讯网络科技有限公司</view>
-            <view class="job-position">UI设计师</view>
-            <view class="job-period">2018年8月 - 至今</view>
+        <block wx:for="{{resumeData.workExperience}}" wx:key="index">
+          <view class="job">
+            <view class="job-header">
+              <view class="job-company">{{item.company || '公司名称'}}</view>
+              <view class="job-position">{{item.position || '职位名称'}}</view>
+              <view class="job-period">{{item.startDate || ''}}{{item.startDate && item.endDate ? ' - ' : ''}}{{item.endDate || ''}}</view>
+            </view>
+            <view class="job-desc">
+              {{item.description || '工作描述'}}
+            </view>
           </view>
-          <view class="job-desc">
-            负责移动端产品界面设计、交互优化，提升用户体验。负责移动端产品界面设计、交互优化，提升用户体验。
-          </view>
-        </view>
-        <view class="job">
-          <view class="job-header">
-            <view class="job-company">字节跳动</view>
-            <view class="job-position">UI实习生</view>
-            <view class="job-period">2017年7月 - 2017年12月</view>
-          </view>
-          <view class="job-desc">
-            参与小程序界面与交互设计，提升组件一致性与美观性。参与小程序界面与交互设计，提升组件一致性与美观性。
-          </view>
-        </view>
+        </block>
       </view>
 
-      <!-- 项目经验 -->
-      <view class="section">
-        <view class="section-title">项目经验</view>
-        <view class="project">
-          <view class="job-header">
-            <view class="job-company">短视频小程序UI优化</view>
-            <view class="job-period">2018年9月 - 2019年3月</view>
-          </view>
-          <view class="job-desc">
-            优化首页与视频页视觉层次，提高用户留存。优化首页与视频页视觉层次，提高用户留存。
-          </view>
-        </view>
-        <view class="project">
-          <view class="job-header">
-            <view class="job-company">企业管理系统UI重构</view>
-            <view class="job-period">2019年4月 - 2020年2月</view>
-          </view>
-          <view class="job-desc">
-            设计响应式界面与交互原型，提高团队使用效率。设计响应式界面与交互原型，提高团队使用效率。设计响应式界面与交互原型，提高团队使用效率。设计响应式界面与交互原型，提高团队使用效率。
-          </view>
-        </view>
-      </view>
-
+      <!-- 兴趣爱好 -->
       <view class="section">
         <view class="section-title">兴趣爱好</view>
         <view class="job-desc">
-          拥有扎实的UI/UX设计能力，熟悉多种设计工具，注重用户体验与细节。
+          {{resumeData.hobbies && resumeData.hobbies.join('、') || '无'}}
         </view>
       </view>
       
@@ -75,7 +47,7 @@
       <view class="section">
         <view class="section-title">自我评价</view>
         <view class="job-desc">
-          热爱设计与交互，注重用户体验与界面细节，具备团队协作与独立思考能力。
+          {{resumeData.selfEvaluation || '无'}}
         </view>
       </view>
     </view>
@@ -84,36 +56,30 @@
     <view class="right-panel-swapped">
       <view class="avatar-container">
         <image class="avatar" src="/images/avatar.jpg" mode="cover" />
-        <view class="name">刘豆豆</view>
-        <view class="title">UI/UX 设计师</view>
+        <view class="name">{{resumeData.personalInfo.name || '姓名'}}</view>
+        <view class="title">{{resumeData.personalInfo.jobTitle || '职位'}}</view>
       </view>
 
       <!-- 联系方式 -->
       <view class="contact-section">
         <view class="section-title">个人信息</view>
-        <view class="contact-item"><text class="contact-label">电话：</text><text class="contact-value">138-0000-0000</text></view>
-        <view class="contact-item"><text class="contact-label">邮箱：</text><text class="contact-value">lisi@qq.com</text></view>
-        <view class="contact-item"><text class="contact-label">地址：</text><text class="contact-value">上海</text></view>
-        <view class="contact-item"><text class="contact-label">出生日期：</text><text class="contact-value">1999.09</text></view>
-        <view class="contact-item"><text class="contact-label">期望薪资：</text><text class="contact-value">20000</text></view>
-        <view class="contact-item"><text class="contact-label">入职时间：</text><text class="contact-value">一周内</text></view>
+        <view wx:if="{{resumeData.personalInfo.phone}}" class="contact-item"><text class="contact-label">电话：</text><text class="contact-value">{{resumeData.personalInfo.phone}}</text></view>
+        <view wx:if="{{resumeData.personalInfo.email}}" class="contact-item"><text class="contact-label">邮箱：</text><text class="contact-value">{{resumeData.personalInfo.email}}</text></view>
+        <view wx:if="{{resumeData.personalInfo.address}}" class="contact-item"><text class="contact-label">地址：</text><text class="contact-value">{{resumeData.personalInfo.address}}</text></view>
+        <view wx:if="{{resumeData.personalInfo.birthDate}}" class="contact-item"><text class="contact-label">出生日期：</text><text class="contact-value">{{resumeData.personalInfo.birthDate}}</text></view>
+        <view wx:if="{{resumeData.personalInfo.expectedSalary}}" class="contact-item"><text class="contact-label">期望薪资：</text><text class="contact-value">{{resumeData.personalInfo.expectedSalary}}</text></view>
+        <view wx:if="{{resumeData.personalInfo.startTime}}" class="contact-item"><text class="contact-label">入职时间：</text><text class="contact-value">{{resumeData.personalInfo.startTime}}</text></view>
       </view>
 
       <!-- 技能进度条 -->
       <view class="skills-section">
         <view class="section-title">专业技能</view>
-        <view class="skill-item">
-          <view class="skill-name">Photoshop</view>
-          <view class="skill-bar"><view class="skill-fill" style="width:90%;"></view></view>
-        </view>
-        <view class="skill-item">
-          <view class="skill-name">Sketch</view>
-          <view class="skill-bar"><view class="skill-fill" style="width:85%;"></view></view>
-        </view>
-        <view class="skill-item">
-          <view class="skill-name">Figma</view>
-          <view class="skill-bar"><view class="skill-fill" style="width:80%;"></view></view>
-        </view>
+        <block wx:for="{{resumeData.skillsWithLevel}}" wx:key="index">
+          <view wx:if="{{item.name}}" class="skill-item">
+            <view class="skill-name">{{item.name}}</view>
+            <view class="skill-bar"><view class="skill-fill" style="width:{{item.level * 25}}%;"></view></view>
+          </view>
+        </block>
       </view>
     </view>
   </view>

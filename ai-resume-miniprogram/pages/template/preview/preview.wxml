@@ -1,43 +1,48 @@
 <!-- 动态模板预览页面 -->
 <view class="preview-container">
+  <!-- 加载提示 -->
+  <view wx:if="{{loading}}" class="loading-container">
+    <view class="loading">加载中...</view>
+  </view>
+  
   <!-- 根据模板ID动态加载不同的模板组件 -->
-  <view class="template-content">
+  <view wx:elif="{{resumeData}}" class="template-content">
     <block wx:if="{{templateId === 'template-one'}}">
       <import src="./template/one/template-one.wxml"/>
       <view class="template-one-container">
-        <template is="template-one"/>
+        <template is="template-one" data="{{resumeData}}"/>
       </view>
     </block>
     
     <block wx:elif="{{templateId === 'template-two'}}">
       <import src="./template/two/template-two.wxml"/>
       <view class="template-two-container">
-        <template is="template-two"/>
+        <template is="template-two" data="{{resumeData}}"/>
       </view>
     </block>
     
     <block wx:elif="{{templateId === 'template-three'}}">
       <import src="./template/three/template-three.wxml"/>
       <view class="template-three-container">
-        <template is="template-three"/>
+        <template is="template-three" data="{{resumeData}}"/>
       </view>
     </block>
     <block wx:elif="{{templateId === 'template-four'}}">
       <import src="./template/four/template-four.wxml"/>
       <view class="template-four-container">
-        <template is="template-four"/>
+        <template is="template-four" data="{{resumeData}}"/>
       </view>
     </block>
     <block wx:elif="{{templateId === 'template-five'}}">
       <import src="./template/five/template-five.wxml"/>
       <view class="template-five-container">
-        <template is="template-five"/>
+        <template is="template-five" data="{{resumeData}}"/>
       </view>
     </block>
     <block wx:elif="{{templateId === 'template-six'}}">
       <import src="./template/six/template-six.wxml"/>
       <view class="template-six-container">
-        <template is="template-six"/>
+        <template is="template-six" data="{{resumeData}}"/>
       </view>
     </block>
   </view>
@@ -46,5 +51,6 @@
   <view class="action-container">
     <button class="use-template-btn" bindtap="useTemplate">使用此模板</button>
     <button class="download-pdf-btn" bindtap="downloadPdf">下载PDF</button>
+    <button class="test-btn" type="warn" bindtap="testTemplateRendering">加载测试数据</button>
   </view>
 </view>

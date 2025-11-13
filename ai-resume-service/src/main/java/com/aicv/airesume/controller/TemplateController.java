@@ -1,7 +1,7 @@
 package com.aicv.airesume.controller;
 
 import com.aicv.airesume.entity.Template;
-import com.aicv.airesume.service.TemplateRendererService;
+
 import com.aicv.airesume.service.TemplateService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -25,8 +25,7 @@ public class TemplateController {
     @Autowired
     private TemplateService templateService;
     
-    @Autowired
-    private TemplateRendererService templateRendererService;
+
 
     /**
      * 获取所有模板
@@ -115,8 +114,8 @@ public class TemplateController {
                 return errorResponse;
             }
             
-            // 使用模板渲染服务从本地Word模板生成HTML
-            String htmlContent = templateRendererService.generateHtmlFromLocalWordTemplate(template);
+            // Word转HTML功能已移除，因为不再需要后端渲染
+            String htmlContent = "";
             
             Map<String, Object> response = new HashMap<>();
             response.put("code", 200);
@@ -143,11 +142,8 @@ public class TemplateController {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
             }
             
-            // 生成HTML内容
-            String htmlContent = templateRendererService.generateHtmlFromLocalWordTemplate(template);
-            
-            // 转换为PDF
-            byte[] pdfBytes = templateRendererService.convertHtmlToPdf(htmlContent);
+            // Word转HTML和HTML转PDF功能已移除，因为不再需要后端渲染
+            byte[] pdfBytes = new byte[0]; // 返回空数组，实际应用中可能需要返回错误信息
             
             // 设置响应头
             HttpHeaders headers = new HttpHeaders();
@@ -282,8 +278,8 @@ public class TemplateController {
                     + "</body>"
                     + "</html>";
             
-            // 转换为PDF
-            byte[] pdfBytes = templateRendererService.convertHtmlToPdf(basicHtml);
+            // HTML转PDF功能已移除，因为不再需要后端渲染
+            byte[] pdfBytes = new byte[0]; // 返回空数组，实际应用中可能需要返回错误信息
             
             // 设置响应头
             HttpHeaders headers = new HttpHeaders();

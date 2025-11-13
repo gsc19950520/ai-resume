@@ -5,7 +5,7 @@ import com.aicv.airesume.entity.Template;
 import com.aicv.airesume.entity.User;
 import com.aicv.airesume.repository.ResumeRepository;
 import com.aicv.airesume.service.ResumeService;
-import com.aicv.airesume.service.TemplateRendererService;
+
 import com.aicv.airesume.service.TemplateService;
 import com.aicv.airesume.service.UserService;
 import com.aicv.airesume.utils.AiServiceUtils;
@@ -20,6 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -156,9 +157,76 @@ public class ResumeServiceImpl implements ResumeService {
             return resumeRepository.save(resume);
         });
     }
+    
+    @Override
+    public Resume updateResumeContent(Long userId, Long resumeId, Map<String, Object> resumeData) {
+        return retryUtils.executeWithDefaultRetrySupplier(() -> {
+            // 检查权限
+            if (!checkResumePermission(userId, resumeId)) {
+                throw new RuntimeException("无权限操作此简历");
+            }
+            
+            // 获取简历
+            Resume resume = resumeRepository.findById(resumeId).orElseThrow(() -> 
+                new RuntimeException("简历不存在")
+            );
+            
+            // 更新基本信息字段
+            if (resumeData.containsKey("name")) {
+                resume.setName((String) resumeData.get("name"));
+            }
+            if (resumeData.containsKey("email")) {
+                resume.setEmail((String) resumeData.get("email"));
+            }
+            if (resumeData.containsKey("phone")) {
+                resume.setPhone((String) resumeData.get("phone"));
+            }
+            if (resumeData.containsKey("address")) {
+                resume.setAddress((String) resumeData.get("address"));
+            }
+            if (resumeData.containsKey("birthDate")) {
+                resume.setBirthDate((String) resumeData.get("birthDate"));
+            }
+            if (resumeData.containsKey("objective")) {
+                resume.setObjective((String) resumeData.get("objective"));
+            }
+            if (resumeData.containsKey("profile")) {
+                resume.setProfile((String) resumeData.get("profile"));
+            }
+            
+            // 更新新增字段
+            if (resumeData.containsKey("expectedSalary")) {
+                resume.setExpectedSalary((String) resumeData.get("expectedSalary"));
+            }
+            if (resumeData.containsKey("startTime")) {
+                resume.setStartTime((String) resumeData.get("startTime"));
+            }
+            if (resumeData.containsKey("hobbies")) {
+                resume.setHobbies((String) resumeData.get("hobbies"));
+            }
+            if (resumeData.containsKey("skillsWithLevel")) {
+                resume.setSkillsWithLevel((String) resumeData.get("skillsWithLevel"));
+            }
+            if (resumeData.containsKey("skills")) {
+                resume.setSkills((String) resumeData.get("skills"));
+            }
+            
+            // 更新教育经历、工作经验、项目经历
+            if (resumeData.containsKey("education")) {
+                resume.setEducation((String) resumeData.get("education"));
+            }
+            if (resumeData.containsKey("workExperience")) {
+                resume.setWorkExperience((String) resumeData.get("workExperience"));
+            }
+            if (resumeData.containsKey("projects")) {
+                resume.setProjects((String) resumeData.get("projects"));
+            }
+            
+            return resumeRepository.save(resume);
+        });
+    }
 
-    @Autowired
-    private TemplateRendererService templateRendererService;
+
     
     @Autowired
     private TemplateService templateService;
@@ -185,8 +253,9 @@ public class ResumeServiceImpl implements ResumeService {
                     }
                 }
                 
-                // 使用模板渲染服务生成Word文档
-                return templateRendererService.renderResumeToWord(template, resume);
+                // PDF和Word导出功能已移除，因为不再需要后端渲染
+                // 返回空的byte数组作为默认值
+                return new byte[0];
             });
         } catch (Exception e) {
             throw new RuntimeException("导出Word文档失败", e);
@@ -215,8 +284,9 @@ public class ResumeServiceImpl implements ResumeService {
                     }
                 }
                 
-                // 使用模板渲染服务生成PDF文档
-                return templateRendererService.renderResumeToPdf(template, resume);
+                // PDF和Word导出功能已移除，因为不再需要后端渲染
+                // 返回空的byte数组作为默认值
+                return new byte[0];
             });
         } catch (Exception e) {
             throw new RuntimeException("导出PDF文档失败", e);

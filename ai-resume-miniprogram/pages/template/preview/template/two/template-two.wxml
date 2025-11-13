@@ -3,15 +3,15 @@
 
   <!-- 顶部 Header -->
   <view class="header">
-    <image class="avatar" src="/images/avatar.jpg" mode="cover"></image>
+    <image class="avatar" src="{{resumeData.personalInfo.avatar || '/images/avatar.jpg'}}" mode="cover"></image>
 
     <view class="header-info-box">
       <!-- 左列：姓名、职位 -->
       <view class="header-left">
         <view class="name">
-          <text class="name-text">刘豆豆</text>
+          <text class="name-text">{{resumeData.personalInfo.name || '姓名'}}</text>
         </view>
-        <text class="tag">前端工程师</text>
+        <text class="tag">{{resumeData.personalInfo.position || '职位'}}</text>
         <view class="divider"></view>
       </view>
 
@@ -22,27 +22,27 @@
       <view class="header-right">
         <view class="contact-item">
           <text class="icon">手机号：</text>
-          <text class="contact-value">123-4567-8901</text>
+          <text class="contact-value">{{resumeData.contactInfo.phone || '未填写'}}</text>
         </view>
         <view class="contact-item">
           <text class="icon">邮箱：</text>
-          <text class="contact-value">zhangsan@example.com</text>
+          <text class="contact-value">{{resumeData.contactInfo.email || '未填写'}}</text>
         </view>
         <view class="contact-item">
           <text class="icon">地址：</text>
-          <text class="contact-value">北京市朝阳区建国路88号SOHO</text>
+          <text class="contact-value">{{resumeData.contactInfo.address || '未填写'}}</text>
         </view>
         <view class="contact-item">
           <text class="icon">出生日期：</text>
-          <text class="contact-value">1999.09</text>
+          <text class="contact-value">{{resumeData.personalInfo.birthDate || '未填写'}}</text>
         </view>
         <view class="contact-item">
           <text class="icon">期望薪资：</text>
-          <text class="contact-value">20000</text>
+          <text class="contact-value">{{resumeData.personalInfo.expectedSalary || '未填写'}}</text>
         </view>
         <view class="contact-item">
           <text class="icon">入职时间：</text>
-          <text class="contact-value">一周之内</text>
+          <text class="contact-value">{{resumeData.personalInfo.availableTime || '未填写'}}</text>
         </view>
       </view>
     </view>
@@ -54,90 +54,86 @@
   <!-- 教育经历 -->
   <view class="section">
     <view class="section-title">教育经历</view>
-    <view class="job">
-      <view class="job-header">
-        <text class="job-company">清华大学</text>
-        <text class="job-position">本科</text>
-        <text class="job-period">2015年9月 - 2019年7月</text>
-      </view>
-    </view>
-    <view class="job-desc">计算机科学与技术专业，主修软件开发、数据结构与算法。</view>
+    <block wx:if="{{resumeData.educationList && resumeData.educationList.length > 0}}">
+      <block wx:for="{{resumeData.educationList}}" wx:key="index">
+        <view class="job">
+          <view class="job-header">
+            <text class="job-company">{{item.schoolName || '学校名称'}}</text>
+            <text class="job-position">{{item.degree || '学历'}}</text>
+            <text class="job-period">{{item.startTime || ''}} - {{item.endTime || '至今'}}</text>
+          </view>
+          <view class="job-desc">{{item.description || '专业描述'}}</view>
+        </view>
+      </block>
+    </block>
+    <block wx:else>
+      <view class="job-desc">暂无教育经历</view>
+    </block>
   </view>
 
   <!-- 工作经历 -->
   <view class="section">
     <view class="section-title">工作经历</view>
-    <view class="job">
-      <view class="job-header">
-        <text class="job-company">字节跳动</text>
-        <text class="job-position">前端开发工程师</text>
-        <text class="job-period">2019年8月 - 至今</text>
-      </view>
-      <view class="job-desc">
-        参与小程序界面与交互设计，提升组件一致性与美观性。
-      </view>
-    </view>
-    <view class="job">
-      <view class="job-header">
-        <text class="job-company">腾讯网络科技有限公司</text>
-        <text class="job-position">实习前端工程师</text>
-        <text class="job-period">2018年7月 - 2018年12月</text>
-      </view>
-      <view class="job-desc">
-        负责移动端产品界面设计、交互优化，提升用户体验。负责移动端产品界面设计、交互优化，提升用户体验。负责移动端产品界面设计、交互优化。
-      </view>
-    </view>
+    <block wx:if="{{resumeData.workExperienceList && resumeData.workExperienceList.length > 0}}">
+      <block wx:for="{{resumeData.workExperienceList}}" wx:key="index">
+        <view class="job">
+          <view class="job-header">
+            <text class="job-company">{{item.companyName || '公司名称'}}</text>
+            <text class="job-position">{{item.position || '职位'}}</text>
+            <text class="job-period">{{item.startTime || ''}} - {{item.endTime || '至今'}}</text>
+          </view>
+          <view class="job-desc">{{item.description || '工作描述'}}</view>
+        </view>
+      </block>
+    </block>
+    <block wx:else>
+      <view class="job-desc">暂无工作经历</view>
+    </block>
   </view>
 
   <!-- 项目经验 -->
   <view class="section">
     <view class="section-title">项目经验</view>
-    <view class="project">
-      <view class="job-header">
-        <view class="job-position">企业微信小程序</view>
-        <view class="job-period">2018年7月 - 2018年12月</view>
-      </view>
-      <view class="job-desc">
-        参与前端页面设计与组件封装，优化页面加载速度，提高用户留存率。拥有扎实的前端技术基础，热衷新技术研究，具备团队协作与问题解决能力。
-      </view>
-    </view>
-    <view class="project">
-      <view class="job-header">
-        <view class="job-position">内部管理系统</view>
-        <view class="job-period">2019年9月 - 2020年6月</view>
-      </view>
-      <view class="job-desc">
-        负责前端架构设计，使用 Vue.js 和 ElementUI 构建响应式界面。拥有扎实的前端技术基础，热衷新技术研究，具备团队协作与问题解决能力。
-      </view>
-    </view>
+    <block wx:if="{{resumeData.projectExperienceList && resumeData.projectExperienceList.length > 0}}">
+      <block wx:for="{{resumeData.projectExperienceList}}" wx:key="index">
+        <view class="project">
+          <view class="job-header">
+            <view class="job-position">{{item.projectName || '项目名称'}}</view>
+            <view class="job-period">{{item.startTime || ''}} - {{item.endTime || '至今'}}</view>
+          </view>
+          <view class="job-desc">{{item.description || '项目描述'}}</view>
+        </view>
+      </block>
+    </block>
+    <block wx:else>
+      <view class="job-desc">暂无项目经验</view>
+    </block>
   </view>
 
-<!-- 技能 -->
+  <!-- 技能 -->
   <view class="section">
     <view class="section-title">专业技能</view>
-    <view class="skill-list">
-      <view class="skill">HTML</view>
-      <view class="skill">CSS</view>
-      <view class="skill">JavaScript</view>
-      <view class="skill">Vue.js</view>
-      <view class="skill">React</view>
-      <view class="skill">小程序开发</view>
-    </view>
+    <block wx:if="{{resumeData.skills && resumeData.skills.length > 0}}">
+      <view class="skill-list">
+        <block wx:for="{{resumeData.skills}}" wx:key="index">
+          <view class="skill">{{item.name || '技能'}}</view>
+        </block>
+      </view>
+    </block>
+    <block wx:else>
+      <view class="job-desc">暂无技能信息</view>
+    </block>
   </view>
 
   <view class="section">
-      <view class="section-title">兴趣爱好</view>
-      <view class="job-desc">
-        拥有扎实的UI/UX设计能力，熟悉多种设计工具，注重用户体验与细节。拥有扎实的前端技术基础，热衷新技术研究，具备团队协作与问题解决能力。
-      </view>
-    </view>
+    <view class="section-title">兴趣爱好</view>
+    <view class="job-desc">{{resumeData.personalInfo.interests || '暂无兴趣爱好信息'}}</view>
+  </view>
     
   <!-- 自我评价 -->
   <view class="section">
     <view class="section-title">自我评价</view>
-    <view class="job-desc">
-      拥有扎实的前端技术基础，热衷新技术研究，具备团队协作与问题解决能力。拥有扎实的前端技术基础，热衷新技术研究，具备团队协作与问题解决能力。
-    </view>
+    <view class="job-desc">{{resumeData.personalInfo.selfEvaluation || '暂无自我评价'}}</view>
   </view>
 
 </view>

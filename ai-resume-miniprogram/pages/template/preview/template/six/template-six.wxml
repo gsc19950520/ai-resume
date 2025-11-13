@@ -4,23 +4,23 @@
     <!-- 顶部横幅 -->
     <view class="header-banner">
       <view class="header-content">
-        <image class="avatar" src="/images/avatar.jpg" mode="cover"></image>
+        <image class="avatar" src="{{resumeData.personalInfo.avatar || '/images/avatar.jpg'}}" mode="cover"></image>
 
         <view class="name-box">
-          <text class="name-text">刘豆豆</text>
-          <text class="tag">UI/UX设计师</text>
+          <text class="name-text">{{resumeData.personalInfo.name || '请输入姓名'}}</text>
+          <text class="tag">{{resumeData.personalInfo.position || '请输入职位'}}</text>
         </view>
 
         <!-- 顶部联系方式 -->
         <view class="contact-top">
           <view class="contact-row">
-            <text class="contact-item">电话：138-0000-0000</text>
+            <text class="contact-item">电话：{{resumeData.contact.phone || '请输入电话'}}</text>
           </view>
-          <view class="contact-row"><text class="contact-item">邮箱：lisi@example.com</text></view>
-          <view class="contact-row"><text class="contact-item">地址：北京市朝阳区建国路88号SOHO</text></view>
-          <view class="contact-row"><text class="contact-item">出生日期：1999.09</text></view>
-          <view class="contact-row"><text class="contact-item">期望薪资：20000</text></view>
-          <view class="contact-row"><text class="contact-item">到岗：一周之内</text></view>
+          <view class="contact-row"><text class="contact-item">邮箱：{{resumeData.contact.email || '请输入邮箱'}}</text></view>
+          <view class="contact-row"><text class="contact-item">地址：{{resumeData.contact.address || '请输入地址'}}</text></view>
+          <view class="contact-row"><text class="contact-item">出生日期：{{resumeData.personalInfo.birthDate || '请输入出生日期'}}</text></view>
+            <view class="contact-row"><text class="contact-item">期望薪资：{{resumeData.personalInfo.expectedSalary || '请输入期望薪资'}}</text></view>
+          <view class="contact-row"><text class="contact-item">到岗：{{resumeData.personalInfo.startDate || '请输入到岗时间'}}</text></view>
         </view>
       </view>
     </view>
@@ -32,29 +32,14 @@
       <view class="left-panel-six">
         <view class="section">
           <view class="section-title">专业技能</view>
-          <view class="skill-item">
-            <text class="skill-name">Photoshop</text>
-            <view class="skill-bar"><view class="skill-fill" style="width:90%;"></view></view>
-          </view>
-          <view class="skill-item">
-            <text class="skill-name">Sketch</text>
-            <view class="skill-bar"><view class="skill-fill" style="width:65%;"></view></view>
-          </view>
-          <view class="skill-item">
-            <text class="skill-name">Figma</text>
-            <view class="skill-bar"><view class="skill-fill" style="width:40%;"></view></view>
-          </view>
-          <view class="skill-item">
-            <text class="skill-name">Figma</text>
-            <view class="skill-bar"><view class="skill-fill" style="width:40%;"></view></view>
-          </view>
-          <view class="skill-item">
-            <text class="skill-name">Figma</text>
-            <view class="skill-bar"><view class="skill-fill" style="width:40%;"></view></view>
-          </view>
-          <view class="skill-item">
-            <text class="skill-name">Figma</text>
-            <view class="skill-bar"><view class="skill-fill" style="width:40%;"></view></view>
+          <block wx:if="{{resumeData.skills && resumeData.skills.length > 0}}">
+            <view wx:for="{{resumeData.skills}}" wx:key="index" class="skill-item">
+              <text class="skill-name">{{item.name || '未命名技能'}}</text>
+              <view class="skill-bar"><view class="skill-fill" style="width:{{item.level || 50}}%;"></view></view>
+            </view>
+          </block>
+          <view wx:else class="empty-tip">
+            <text>请添加专业技能</text>
           </view>
         </view>
       </view>
@@ -65,15 +50,24 @@
         <!-- 教育经历 -->
         <view class="timeline-section">
           <view class="section-title">教育经历</view>
-          <view class="timeline-item">
-            <view class="timeline-dot"></view>
-            <view class="timeline-content">
-              <view class="job-header">
-                <view class="job-period">2014.09 - 2018.07</view>
-                <view class="job-school">中央美术学院</view>
-                <view class="job-position">本科</view>
+          <block wx:if="{{resumeData.education && resumeData.education.length > 0}}">
+            <view wx:for="{{resumeData.education}}" wx:key="index" class="timeline-item">
+              <view class="timeline-dot"></view>
+              <view class="timeline-content">
+                <view class="job-header">
+                  <view class="job-period">{{item.startDate || ''}} - {{item.endDate || '至今'}}</view>
+                  <view class="job-school">{{item.school || '未填写学校'}}</view>
+                  <view class="job-position">{{item.degree || '未填写学历'}}</view>
+                </view>
+                <view class="job-desc">{{item.major || '未填写专业'}}{{item.description ? '，' + item.description : ''}}</view>
               </view>
-              <view class="job-desc">视觉传达设计专业，主修UI/UX与交互设计。</view>
+            </view>
+          </block>
+          <view wx:else class="empty-tip">
+            <view class="timeline-item">
+              <view class="timeline-content">
+                <view class="job-desc">请添加教育经历</view>
+              </view>
             </view>
           </view>
         </view>
@@ -81,27 +75,24 @@
         <!-- 工作经历 -->
         <view class="timeline-section">
           <view class="section-title">工作经历</view>
-          <view class="timeline-item">
-            <view class="timeline-dot"></view>
-            <view class="timeline-content">
-              <view class="job-header">
-                <view class="job-period">2018.08 - 至今</view>
-                <view class="job-company">腾讯网络科技有限公司</view>
-                <view class="job-position">UI设计师</view>
+          <block wx:if="{{resumeData.work && resumeData.work.length > 0}}">
+            <view wx:for="{{resumeData.work}}" wx:key="index" class="timeline-item">
+              <view class="timeline-dot"></view>
+              <view class="timeline-content">
+                <view class="job-header">
+                  <view class="job-period">{{item.startDate || ''}} - {{item.endDate || '至今'}}</view>
+                  <view class="job-company">{{item.company || '未填写公司'}}</view>
+                  <view class="job-position">{{item.position || '未填写职位'}}</view>
+                </view>
+                <view class="job-desc">{{item.description || '未填写工作描述'}}</view>
               </view>
-              <view class="job-desc">负责移动端产品界面设计、交互优化，提升用户体验。负责移动端产品界面设计、交互优化，提升用户体验。负责移动端产品界面设计、交互优化，提升用户体验。</view>
             </view>
-          </view>
-
-          <view class="timeline-item">
-            <view class="timeline-dot"></view>
-            <view class="timeline-content">
-              <view class="job-header">
-                <view class="job-period">2015.08 - 2018.08</view>
-                <view class="job-company">字节跳动网络科技有限公司</view>
-                <view class="job-position">UI设计师</view>
+          </block>
+          <view wx:else class="empty-tip">
+            <view class="timeline-item">
+              <view class="timeline-content">
+                <view class="job-desc">请添加工作经历</view>
               </view>
-              <view class="job-desc">负责移动端产品界面设计、交互优化，提升用户体验。负责移动端产品界面设计、交互优化，提升用户体验。负责移动端产品界面设计、交互优化，提升用户体验。</view>
             </view>
           </view>
         </view>
@@ -109,24 +100,23 @@
         <!-- 项目经验 -->
         <view class="timeline-section">
           <view class="section-title">项目经验</view>
-          <view class="timeline-item">
-            <view class="timeline-dot"></view>
-            <view class="timeline-content">
-              <view class="job-header">
-                <view class="job-period">2019.03 - 至今</view>
-                <view class="job-project">短视频小程序UI优化</view>
+          <block wx:if="{{resumeData.projects && resumeData.projects.length > 0}}">
+            <view wx:for="{{resumeData.projects}}" wx:key="index" class="timeline-item">
+              <view class="timeline-dot"></view>
+              <view class="timeline-content">
+                <view class="job-header">
+                  <view class="job-period">{{item.startDate || ''}} - {{item.endDate || '至今'}}</view>
+                  <view class="job-project">{{item.name || '未填写项目名称'}}</view>
+                </view>
+                <view class="job-desc">{{item.description || '未填写项目描述'}}</view>
               </view>
-              <view class="job-desc">完成首页与视频页视觉设计，提高用户留存。完成首页与视频页视觉设计，提高用户留存。完成首页与视频页视觉设计，提高用户留存。</view>
             </view>
-          </view>
-          <view class="timeline-item">
-            <view class="timeline-dot"></view>
-            <view class="timeline-content">
-              <view class="job-header">
-                <view class="job-period">2016.03 - 2019.03</view>
-                <view class="job-project">短视频小程序UI优化</view>
+          </block>
+          <view wx:else class="empty-tip">
+            <view class="timeline-item">
+              <view class="timeline-content">
+                <view class="job-desc">请添加项目经验</view>
               </view>
-              <view class="job-desc">完成首页与视频页视觉设计，提高用户留存。完成首页与视频页视觉设计，提高用户留存。完成首页与视频页视觉设计，提高用户留存。完成首页与视频页视觉设计，提高用户留存。完成首页与视频页视觉设计，提高用户留存。</view>
             </view>
           </view>
         </view>
@@ -136,7 +126,7 @@
           <view class="section-title">自我评价</view>
           <view class="timeline-item">
             <view class="timeline-content">
-              <view class="job-desc">热爱设计与交互，注重用户体验与界面细节，具备团队协作与独立思考能力。热爱设计与交互，注重用户体验与界面细节，具备团队协作与独立思考能力。热爱设计与交互，注重用户体验与界面细节，具备团队协作与独立思考能力。</view>
+              <view class="job-desc">{{resumeData.summary || '请添加自我评价'}}</view>
             </view>
           </view>
         </view>
