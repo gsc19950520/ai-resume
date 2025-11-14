@@ -111,17 +111,12 @@ Page({
     // 调用用户服务获取详细信息和统计数据
     if (userInfo.openId) {
       console.info('使用openId获取用户信息:', userInfo.openId);
-      // 使用wx.cloud.callContainer调用云托管后端API
-      wx.cloud.callContainer({
-        path: `/api/user/info?openId=${encodeURIComponent(userInfo.openId)}`,
-        method: 'GET',
-        header: {
-          'content-type': 'application/json'
-        },
-        success: res => {
+      // 使用app.cloudCall方法调用后端API，确保路径格式正确
+      app.cloudCall('/user/info', { openId: userInfo.openId }, 'GET')
+        .then(res => {
           console.info('获取用户信息成功，响应:', res);
           try {
-            const response = res.data;
+            const response = res;
             // 处理用户信息数据
             if (response.success && response.data) {
               const userData = response.data;
@@ -162,11 +157,10 @@ Page({
           } catch (e) {
             console.error('解析响应数据失败:', e);
           }
-        },
-        fail: err => {
+        })
+        .catch(err => {
           console.error('调用用户信息接口失败:', err);
-        }
-      });
+        });
     } else {
       console.error('无法获取用户openId，无法调用用户信息接口');
     }

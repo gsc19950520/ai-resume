@@ -1,6 +1,6 @@
 const app = getApp()
 // 导入云托管请求工具
-const { request } = require('../../../utils/request')
+const request = require('../../../utils/request').default
 Page({
   data: {
     currentSection: 'personal', // 当前编辑的部分
@@ -198,7 +198,7 @@ Page({
     const userId = wx.getStorageSync('userId');
     if (userId) {
       // 使用云托管方式请求用户信息
-      request(`/user/${userId}`, {}, 'GET')
+      request.get(`/user/${userId}`, {})
         .then(res => {
           if (res && res.success) {
             this.setData({
@@ -270,7 +270,7 @@ Page({
   loadJobTypes: function() {
     console.log('开始加载职位类型...')
     // 使用云托管方式请求职位类型
-    request('/job-types', {}, 'GET')
+    request.get('/job-types', {})
       .then(res => {
         console.log('职位类型加载成功', res)
         this.setData({

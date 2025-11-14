@@ -15,60 +15,76 @@
   <scroll-view class="content" scroll-y>
     <!-- 个人信息部分 -->
     <view class="edit-section" wx:if="{{currentSection === 'personal'}}">
-      <!-- 只读个人信息 -->
-      <view class="readonly-section">
-        <view class="form-item readonly-item">
-          <text class="label">姓名</text>
-          <view class="readonly-text">{{userInfo.name || '未设置'}}</view>
+      <!-- 个人信息卡片 -->
+      <view class="info-card">
+        <view class="card-header">
+          <text class="card-title">基本个人信息</text>
+          <view class="card-icon">👤</view>
         </view>
         
-        <view class="form-item readonly-item">
-          <text class="label">电话</text>
-          <view class="readonly-text">{{userInfo.phone || '未设置'}}</view>
-        </view>
-        
-        <view class="form-item readonly-item">
-          <text class="label">邮箱</text>
-          <view class="readonly-text">{{userInfo.email || '未设置'}}</view>
-        </view>
-        
-        <view class="form-item readonly-item">
-          <text class="label">地址</text>
-          <view class="readonly-text">{{userInfo.address || '未设置'}}</view>
-        </view>
-        
-        <view class="form-item readonly-item">
-          <text class="label">出生日期</text>
-          <view class="readonly-text">{{userInfo.birthDate || '未设置'}}</view>
+        <!-- 只读个人信息 -->
+        <view class="readonly-section">
+          <view class="personal-info-grid">
+            <view class="form-item readonly-item">
+              <text class="label">姓名</text>
+              <view class="readonly-text">{{userInfo.name || '未设置'}}</view>
+            </view>
+            
+            <view class="form-item readonly-item">
+              <text class="label">电话</text>
+              <view class="readonly-text">{{userInfo.phone || '未设置'}}</view>
+            </view>
+            
+            <view class="form-item readonly-item">
+              <text class="label">邮箱</text>
+              <view class="readonly-text">{{userInfo.email || '未设置'}}</view>
+            </view>
+            
+            <view class="form-item readonly-item">
+              <text class="label">地址</text>
+              <view class="readonly-text">{{userInfo.address || '未设置'}}</view>
+            </view>
+            
+            <view class="form-item readonly-item full-width">
+              <text class="label">出生日期</text>
+              <view class="readonly-text">{{userInfo.birthDate || '未设置'}}</view>
+            </view>
+          </view>
         </view>
       </view>
       
-      <!-- 可编辑的简历相关信息 -->
-      <view class="editable-section">
-        <view class="section-title">简历编辑</view>
-        
-        <view class="form-item">
-          <text class="label">职位</text>
-          <input class="input" placeholder="请输入求职职位" value="{{resumeInfo.personalInfo.jobTitle}}" bindinput="savePersonalInfo" data-field="jobTitle" />
+      <!-- 求职信息卡片 -->
+      <view class="info-card">
+        <view class="card-header">
+          <text class="card-title">求职信息</text>
+          <view class="card-icon">💼</view>
         </view>
         
-        <view class="form-item">
-          <text class="label">职位类型</text>
-          <picker bindchange="onJobTypeChange" value="{{resumeInfo.personalInfo.jobTypeId}}" range="{{jobTypes}}" range-key="name">
-            <view class="picker">
-              {{resumeInfo.personalInfo.jobTitle || '请选择职位类型'}}
-            </view>
-          </picker>
-        </view>
-        
-        <view class="form-item">
-          <text class="label">期望薪资</text>
-          <input class="input" placeholder="请输入您的期望薪资（如：15k-20k）" value="{{resumeInfo.personalInfo.expectedSalary}}" bindinput="savePersonalInfo" data-field="expectedSalary" />
-        </view>
-        
-        <view class="form-item">
-          <text class="label">到岗时间</text>
-          <input class="input" placeholder="请输入您的可到岗时间（如：一周内、一个月内）" value="{{resumeInfo.personalInfo.startTime}}" bindinput="savePersonalInfo" data-field="startTime" />
+        <!-- 可编辑的简历相关信息 -->
+        <view class="editable-section">
+          <view class="form-item">
+            <text class="label">职位</text>
+            <input class="input" placeholder="请输入求职职位" value="{{resumeInfo.personalInfo.jobTitle}}" bindinput="savePersonalInfo" data-field="jobTitle" />
+          </view>
+          
+          <view class="form-item">
+            <text class="label">职位类型</text>
+            <picker bindchange="onJobTypeChange" value="{{resumeInfo.personalInfo.jobTypeId}}" range="{{jobTypes}}" range-key="name">
+              <view class="picker">
+                {{resumeInfo.personalInfo.jobTitle || '请选择职位类型'}}
+              </view>
+            </picker>
+          </view>
+          
+          <view class="form-item">
+            <text class="label">期望薪资</text>
+            <input class="input" placeholder="请输入您的期望薪资（如：15k-20k）" value="{{resumeInfo.personalInfo.expectedSalary}}" bindinput="savePersonalInfo" data-field="expectedSalary" />
+          </view>
+          
+          <view class="form-item">
+            <text class="label">到岗时间</text>
+            <input class="input" placeholder="请输入您的可到岗时间（如：一周内、一个月内）" value="{{resumeInfo.personalInfo.startTime}}" bindinput="savePersonalInfo" data-field="startTime" />
+          </view>
         </view>
       </view>
       

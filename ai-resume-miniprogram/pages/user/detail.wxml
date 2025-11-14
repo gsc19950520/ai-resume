@@ -45,8 +45,8 @@
     
     <view class="form-item">
       <view class="label">出生日期<text class="required">*</text></view>
-      <picker class="picker" mode="date" value="{{userInfo.birthday || ''}}" bindchange="onBirthdayChange" start="1970-01-01" end="2005-12-31">
-        <view class="picker-text">{{userInfo.birthday || '请选择出生日期'}}</view>
+      <picker class="picker" mode="date" value="{{userInfo.birthDate || ''}}" bindchange="onBirthDateChange" start="1970-01-01" end="2005-12-31">
+<view class="picker-text">{{userInfo.birthDate || '请选择出生日期'}}</view>
       </picker>
     </view>
     

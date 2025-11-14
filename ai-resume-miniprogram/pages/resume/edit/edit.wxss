@@ -73,36 +73,72 @@
   box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.05);
 }
 
-.form-item {
-  margin-bottom: 5rpx;
+/* 优化表单项目样式 - 适用于经历部分 */
+.education-item .form-item,
+.work-item .form-item,
+.project-item .form-item {
+  margin-bottom: 35rpx;
 }
 
-.label {
+/* 表单标签样式增强 */
+.education-item .label,
+.work-item .label,
+.project-item .label {
   display: block;
   font-size: 28rpx;
   color: #666;
-  margin-bottom: 5rpx;
+  margin-bottom: 12rpx;
+  font-weight: 500;
 }
 
-.input {
+/* 输入框样式优化 */
+.education-item .input,
+.work-item .input,
+.project-item .input {
   width: 100%;
-  height: 70rpx;
-  border: 2rpx solid #e0e0e0;
-  border-radius: 10rpx;
-  padding: 0 20rpx;
+  height: 80rpx;
+  border: 1rpx solid #e0e0e0;
+  border-radius: 15rpx;
+  padding: 0 24rpx;
   font-size: 32rpx;
   box-sizing: border-box;
+  background-color: #fafbfc;
+  transition: all 0.3s ease;
 }
 
-.textarea {
+/* 输入框聚焦效果优化 */
+.education-item .input:focus,
+.work-item .input:focus,
+.project-item .input:focus {
+  border-color: #667eea;
+  background-color: white;
+  box-shadow: 0 0 0 6rpx rgba(102, 126, 234, 0.1);
+}
+
+/* 多行文本框样式优化 */
+.education-item .textarea,
+.work-item .textarea,
+.project-item .textarea {
   width: 100%;
-  height: 200rpx;
-  border: 2rpx solid #e0e0e0;
-  border-radius: 10rpx;
-  padding: 20rpx;
+  min-height: 220rpx;
+  border: 1rpx solid #e0e0e0;
+  border-radius: 15rpx;
+  padding: 24rpx;
   font-size: 32rpx;
   box-sizing: border-box;
-  resize: none;
+  resize: vertical;
+  background-color: #fafbfc;
+  transition: all 0.3s ease;
+  line-height: 1.6;
+}
+
+/* 多行文本框聚焦效果 */
+.education-item .textarea:focus,
+.work-item .textarea:focus,
+.project-item .textarea:focus {
+  border-color: #667eea;
+  background-color: white;
+  box-shadow: 0 0 0 6rpx rgba(102, 126, 234, 0.1);
 }
 
 /* 技能相关样式 */
@@ -205,122 +241,256 @@
   border-radius: 80rpx;
 }
 
-/* 日期行 */
+/* 日期行优化 */
 .date-row {
   display: flex;
-  gap: 30rpx;
+  gap: 40rpx;
+  align-items: flex-start;
 }
 
 .date-item {
   flex: 1;
-  margin-bottom: 40rpx;
+  margin-bottom: 0;
 }
 
-/* 项目/教育/工作经历项 */
+/* 日期输入框特殊样式 */
+.date-item .input {
+  background-color: #f5f7fa;
+  position: relative;
+}
+
+/* 日期项标签样式 */
+.date-item .label {
+  display: flex;
+  align-items: center;
+  font-size: 28rpx;
+  color: #666;
+  margin-bottom: 12rpx;
+  font-weight: 500;
+}
+
+/* 项目/教育/工作经历项 - 优化版 */
 .education-item,
 .work-item,
 .project-item {
-  margin-bottom: 40rpx;
-  padding: 30rpx;
-  border: 2rpx solid #f0f0f0;
-  border-radius: 15rpx;
-  background-color: #fafafa;
+  margin-bottom: 50rpx;
+  padding: 40rpx;
+  border: 1rpx solid #e8e8e8;
+  border-radius: 20rpx;
+  background-color: white;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
 }
 
+.education-item:active,
+.work-item:active,
+.project-item:active {
+  transform: translateY(2rpx);
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.03);
+}
+
+/* 经历项头部优化 */
 .item-header {
-  margin-bottom: 30rpx;
+  margin-bottom: 35rpx;
+  padding-bottom: 20rpx;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  border-bottom: 1rpx solid #f0f0f0;
 }
 
+/* 经历项标题样式增强 */
 .item-title {
-  font-size: 32rpx;
-  font-weight: bold;
+  font-size: 34rpx;
+  font-weight: 600;
   color: #333;
+  display: flex;
+  align-items: center;
 }
 
-/* 删除按钮样式 */
-.delete-btn {
+/* 不同类型经历的图标标识 */
+.project-item .item-title::before {
+  content: '📊';
+  margin-right: 12rpx;
+  font-size: 38rpx;
+}
+
+.education-item .item-title::before {
+  content: '🎓';
+  margin-right: 12rpx;
+  font-size: 38rpx;
+}
+
+.work-item .item-title::before {
+  content: '💼';
+  margin-right: 12rpx;
+  font-size: 38rpx;
+}
+
+/* 删除按钮样式优化 */
+.education-item .delete-btn,
+.work-item .delete-btn,
+.project-item .delete-btn {
   font-size: 28rpx;
   color: #ff4d4f;
-  padding: 8rpx 20rpx;
+  padding: 12rpx 24rpx;
   border-radius: 15rpx;
   background-color: #fff1f0;
   border: 1rpx solid #ffccc7;
+  transition: all 0.3s ease;
+  font-weight: 500;
+  line-height: 1.4;
 }
 
-.delete-btn:active {
+.education-item .delete-btn:active,
+.work-item .delete-btn:active,
+.project-item .delete-btn:active {
   background-color: #ffccc7;
+  transform: scale(0.98);
 }
 
-/* 添加按钮 */
+/* 添加按钮样式优化 */
 .add-btn {
-  margin-top: 20rpx;
+  margin-top: 30rpx;
+  margin-bottom: 20rpx;
   background-color: transparent;
   color: #667eea;
   border: 2rpx dashed #667eea;
-  border-radius: 10rpx;
-  font-size: 30rpx;
+  border-radius: 20rpx;
+  font-size: 32rpx;
+  padding: 24rpx 0;
+  font-weight: 500;
+  transition: all 0.3s ease;
 }
 
 .add-btn::after {
   border: none;
 }
 
-/* 只读个人信息部分样式 */
-.readonly-section {
-  background-color: #f5f7fa;
-  padding: 30rpx;
-  border-radius: 15rpx;
-  margin-bottom: 30rpx;
-  border-left: 8rpx solid #667eea;
+.add-btn:active {
+  background-color: #f0f2ff;
+  border-color: #5a67d8;
+  transform: scale(0.98);
 }
 
-.readonly-section .section-title {
-  font-size: 32rpx;
+/* 信息卡片样式 */
+.info-card {
+  background-color: white;
+  border-radius: 20rpx;
+  padding: 30rpx;
+  margin-bottom: 30rpx;
+  box-shadow: 0 6rpx 20rpx rgba(0, 0, 0, 0.08);
+  border: 1rpx solid #f0f0f0;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.info-card:active {
+  transform: translateY(2rpx);
+  box-shadow: 0 3rpx 10rpx rgba(0, 0, 0, 0.05);
+}
+
+/* 卡片头部 */
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 25rpx;
+  padding-bottom: 20rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.card-title {
+  font-size: 34rpx;
   font-weight: bold;
   color: #333;
-  margin-bottom: 20rpx;
 }
 
+.card-icon {
+  font-size: 48rpx;
+  margin-left: 20rpx;
+}
+
+/* 只读个人信息部分样式 */
+.readonly-section {
+  background-color: #fafbfc;
+  border-radius: 15rpx;
+  padding: 0;
+  border: none;
+}
+
+/* 个人信息网格布局 */
+.personal-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0;
+}
+
+/* 只读项目样式 */
 .readonly-item {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20rpx 0;
-  border-bottom: 1rpx solid #e0e0e0;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 20rpx 15rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+  border-right: 1rpx solid #f0f0f0;
+  position: relative;
 }
 
-.readonly-item:last-child {
+/* 清除最后一行的下边框 */
+.readonly-item:nth-last-child(-n+2) {
   border-bottom: none;
 }
 
+/* 清除偶数项的右边框 */
+.readonly-item:nth-child(2n) {
+  border-right: none;
+}
+
+/* 全宽项样式 */
+.readonly-item.full-width {
+  grid-column: span 2;
+  border-right: none;
+}
+
 .readonly-item .label {
-  font-size: 28rpx;
+  font-size: 26rpx;
   color: #666;
-  margin-bottom: 0;
-  min-width: 120rpx;
+  margin-bottom: 8rpx;
+  min-width: auto;
+  opacity: 0.9;
 }
 
 .readonly-text {
   font-size: 30rpx;
   color: #333;
-  text-align: right;
-  flex: 1;
-  margin-left: 20rpx;
+  text-align: left;
+  flex: none;
+  margin-left: 0;
+  font-weight: 500;
 }
 
 /* 可编辑部分样式 */
 .editable-section {
-  margin-bottom: 20rpx;
+  margin-bottom: 0;
 }
 
-.editable-section .section-title {
-  font-size: 32rpx;
-  font-weight: bold;
+/* 输入框聚焦效果 */
+.input:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 4rpx rgba(102, 126, 234, 0.1);
+}
+
+/* picker样式优化 */
+.picker {
+  height: 70rpx;
+  display: flex;
+  align-items: center;
   color: #333;
-  margin-bottom: 20rpx;
+  background-color: #fafbfc;
+  border: 2rpx solid #e0e0e0;
+  border-radius: 10rpx;
+  padding: 0 20rpx;
+  font-size: 32rpx;
 }
 
 /* 提示信息 */

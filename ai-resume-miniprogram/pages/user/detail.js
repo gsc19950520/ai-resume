@@ -10,8 +10,9 @@ Page({
       gender: 0,
       phone: '',
       email: '',
-      birthday: '',
+      birthDate: '',
       city: '',
+      address: '',
       avatarUrl: ''
     },
     genderIndex: 0,
@@ -34,12 +35,61 @@ Page({
     }
     
     this.returnToPage = returnToPage
-    this.loadUserInfo()
+    
+    // 检查登录状态
+    if (!this.isLoggedIn()) {
+      console.log('用户未登录，提示用户登录')
+      this.showLoginTip()
+    } else {
+      console.log('用户已登录，加载用户信息')
+      this.loadUserInfo()
+    }
   },
 
-  // 加载用户信息
+  // 检查用户是否已登录
+  isLoggedIn: function() {
+    // 检查全局数据中是否有有效的用户信息
+    if (app.globalData.userInfo && app.globalData.userInfo.id && app.globalData.userInfo.id !== 'guest') {
+      return true
+    }
+    
+    // 检查本地存储中是否有用户信息
+    try {
+      const storedUserInfo = wx.getStorageSync('userInfo')
+      if (storedUserInfo) {
+        const userInfo = typeof storedUserInfo === 'string' ? JSON.parse(storedUserInfo) : storedUserInfo
+        if (userInfo && userInfo.id && userInfo.id !== 'guest') {
+          return true
+        }
+      }
+    } catch (e) {
+      console.error('检查登录状态时解析本地存储失败:', e)
+    }
+    
+    return false
+  },
+
+  // 显示登录提示并跳转到登录页
+  showLoginTip: function() {
+    wx.showModal({
+      title: '请先登录',
+      content: '您需要登录后才能编辑个人信息',
+      showCancel: false,
+      success: () => {
+        // 保存返回页面信息
+        wx.setStorageSync('returnToAfterLogin', '/pages/user/detail')
+        // 跳转到登录页面
+        wx.navigateTo({
+          url: '/pages/login/login'
+        })
+      }
+    })
+  },
+
+  // 加载用户信息（仅从本地数据获取）
   loadUserInfo: function() {
-    console.log('loadUserInfo调用，尝试加载用户信息')
+    console.log('loadUserInfo调用，从本地数据加载用户信息')
+    let hasLoadedInfo = false
     
     // 首先尝试从全局数据获取用户信息
     if (app.globalData.userInfo && app.globalData.userInfo.id !== 'guest') {
@@ -51,8 +101,11 @@ Page({
         userInfo,
         genderIndex
       })
-    } else {
-      // 尝试从本地存储获取用户信息
+      hasLoadedInfo = true
+    }
+    
+    // 如果全局数据中没有，尝试从本地存储获取用户信息
+    if (!hasLoadedInfo) {
       try {
         const storedUserInfo = wx.getStorageSync('userInfo')
         if (storedUserInfo) {
@@ -65,6 +118,7 @@ Page({
               userInfo,
               genderIndex
             })
+            hasLoadedInfo = true
           }
         }
       } catch (e) {
@@ -72,47 +126,10 @@ Page({
       }
     }
     
-    // 无论如何都尝试从服务器获取最新数据
-    this.fetchUserInfoFromServer()
-  },
-
-  // 从服务器获取用户信息
-  fetchUserInfoFromServer: function() {
-    const token = wx.getStorageSync('token')
-    console.log('获取服务器用户信息：' + token)
-    if (!token) {
-      console.warn('未登录，无法获取用户信息')
-      // 尝试从storage获取之前保存的数据
+    // 如果还是没有加载到信息，尝试从userInfoLocal获取
+    if (!hasLoadedInfo) {
       this.loadUserInfoFromStorage()
-      return
     }
-    
-    // 实际调用后端接口获取用户信息
-    request.get('/user/info', {})
-      .then(res => {
-        console.log('从服务器获取用户信息成功:', res)
-        if (res && res.success && res.data) {
-          // 设置性别索引
-          const genderIndex = res.data.gender === 1 ? 0 : 1 // 1表示男，0表示女
-          
-          // 更新数据
-          this.setData({
-            userInfo: res.data,
-            genderIndex
-          })
-          
-          // 保存到storage，以便后续使用
-          wx.setStorageSync('userInfoLocal', JSON.stringify(res.data))
-        } else {
-          console.warn('服务器返回数据异常，尝试从storage获取')
-          this.loadUserInfoFromStorage()
-        }
-      })
-      .catch(error => {
-        console.error('从服务器获取用户信息失败:', error)
-        // 后端获取失败，从storage获取
-        this.loadUserInfoFromStorage()
-      })
   },
   
   // 从本地存储加载用户信息
@@ -169,10 +186,10 @@ Page({
   },
 
   // 出生日期选择
-  onBirthdayChange: function(e) {
-    const birthday = e.detail.value
+  onBirthDateChange: function(e) {
+    const birthDate = e.detail.value
     this.setData({
-      'userInfo.birthday': birthday
+      'userInfo.birthDate': birthDate
     })
   },
 
@@ -229,11 +246,16 @@ Page({
     
     this.setData({ isLoading: true, loadingMessage: '保存中...' })
     
-    // 使用云托管请求方式保存用户信息
-    request.post('/user/update', {
+    // 准备保存数据，实现address为空时使用city值的逻辑
+    const saveData = {
       userId: userInfo.id,
-      ...this.data.userInfo
-    }).then(res => {
+      ...this.data.userInfo,
+      // 当address为空或未定义时，使用city的值作为address
+      address: this.data.userInfo.address?.trim() || this.data.userInfo.city
+    }
+    
+    // 使用云托管请求方式保存用户信息
+    request.post('/user/update', saveData).then(res => {
         console.log('保存用户信息返回结果:', res)
         
         if (res && res.success) {
@@ -242,11 +264,13 @@ Page({
             icon: 'success'
           })
           
-          // 更新全局用户信息，保留原始用户ID
+          // 更新全局用户信息，保留原始用户ID，并确保address字段使用city值（如果address为空）
           const updatedUserInfo = {
             ...this.data.userInfo,
             id: userInfo.id, // 保留原始的用户ID
-            userId: userInfo.id // 确保userId字段也保持一致
+            userId: userInfo.id, // 确保userId字段也保持一致
+            // 确保address字段使用city值（如果address为空）
+            address: this.data.userInfo.address?.trim() || this.data.userInfo.city
           }
           app.globalData.userInfo = updatedUserInfo
           wx.setStorageSync('userInfo', JSON.stringify(updatedUserInfo))
@@ -282,7 +306,7 @@ Page({
 
   // 表单验证
   validateForm: function() {
-    const { name, gender, phone, email, birthday, city, avatarUrl } = this.data.userInfo
+    const { name, gender, phone, email, birthDate, city, avatarUrl } = this.data.userInfo
     
     // 姓名验证（必填）
     if (!name || name.trim() === '') {
@@ -333,7 +357,7 @@ Page({
     }
     
     // 出生日期验证（必填）
-    if (!birthday || birthday.trim() === '') {
+    if (!birthDate || birthDate.trim() === '') {
       wx.showToast({
         title: '请选择出生日期',
         icon: 'none'
