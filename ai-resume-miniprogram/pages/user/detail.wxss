@@ -94,7 +94,20 @@
   padding: 0 20rpx;
 }
 
-.save-btn {
+/* 必填字段样式 */
+.required {
+  color: #e64340;
+  margin-left: 6rpx;
+}
+
+/* 头像必填提示样式 */
+.required-text {
+  color: #e64340;
+  font-size: 24rpx;
+  margin-top: 10rpx;
+}
+
+save-btn {
   background: linear-gradient(135deg, #07c160, #06a34a);
   color: #fff;
   border-radius: 80rpx;

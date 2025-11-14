@@ -11,7 +11,6 @@ Page({
    * 生命周期函数--监听页面加载
    */
   onLoad: function (options) {
-    console.log('加载完善个人信息提示页面', options);
     // 保存returnTo参数，默认为简历编辑页面
     const returnTo = options.returnTo || '/pages/resume/edit/edit';
     this.setData({

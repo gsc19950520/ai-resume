@@ -197,9 +197,6 @@ App({
         })
         if (callback) callback(error)
       })
-      .finally(() => {
-        if (callback) callback()
-      })
   },
   
   // 处理登录结果

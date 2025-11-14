@@ -77,8 +77,6 @@ Page({
       pageReady: true // 标记页面已就绪
     });
     
-    console.log('模板列表基础数据已设置，等待页面完全渲染后加载图片');
-    
     // 2. 更大延迟后再设置图片URL，确保页面完全切换完成后才开始加载图片
     setTimeout(() => {
       // 创建英文数字映射数组
@@ -96,7 +94,6 @@ Page({
         templateList: templatesWithImages
       });
       
-      console.log('模板列表图片URL已设置，开始加载图片');
     }, 500); // 更大的延迟确保页面完全切换后再加载图片
   },
 

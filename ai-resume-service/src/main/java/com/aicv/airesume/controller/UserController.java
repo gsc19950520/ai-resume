@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
+import java.util.Optional;
 
 /**
  * 用户控制器
@@ -226,7 +226,174 @@ public class UserController {
      * @return 用户信息
      */
     @GetMapping("/info")
-    public User getUserInfo(@RequestParam Long userId) {
-        return null;
+    public ResponseEntity<Map<String, Object>> getUserInfo() {
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("data", null);
+        return ResponseEntity.ok(response);
+    }
+    
+    /**
+     * 保存用户信息修改（前端使用的接口）
+     * @param requestData 请求数据（包含userId和用户信息）
+     * @return 更新后的用户信息
+     */
+    @PostMapping("/update")
+    public ResponseEntity<Map<String, Object>> updateUserInfo(@RequestBody Map<String, Object> requestData) {
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            // 获取userId参数
+            Object userIdObj = requestData.get("userId");
+            if (userIdObj == null) {
+                response.put("success", false);
+                response.put("message", "缺少userId参数");
+                return ResponseEntity.ok(response);
+            }
+            
+            // 转换userId为Long类型
+            Long userId;
+            try {
+                userId = Long.valueOf(userIdObj.toString());
+            } catch (NumberFormatException e) {
+                response.put("success", false);
+                response.put("message", "userId格式错误");
+                return ResponseEntity.ok(response);
+            }
+            
+            // 检查用户是否存在
+            Optional<User> existingUserOpt = userService.getUserById(userId);
+            if (!existingUserOpt.isPresent()) {
+                response.put("success", false);
+                response.put("message", "用户不存在");
+                return ResponseEntity.ok(response);
+            }
+            
+            // 获取现有用户信息
+            User existingUser = existingUserOpt.get();
+            
+            // 创建一个新的User对象用于验证
+            User userToValidate = new User();
+            
+            // 更新用户信息（从requestData中提取字段）
+            if (requestData.containsKey("name")) {
+                String name = requestData.get("name").toString().trim();
+                existingUser.setName(name);
+                userToValidate.setName(name);
+            }
+            if (requestData.containsKey("gender")) {
+                Integer gender = Integer.valueOf(requestData.get("gender").toString());
+                existingUser.setGender(gender);
+                userToValidate.setGender(gender);
+            }
+            if (requestData.containsKey("phone")) {
+                String phone = requestData.get("phone").toString().trim();
+                existingUser.setPhone(phone);
+                userToValidate.setPhone(phone);
+            }
+            if (requestData.containsKey("email")) {
+                String email = requestData.get("email").toString().trim();
+                existingUser.setEmail(email);
+                userToValidate.setEmail(email);
+            }
+            if (requestData.containsKey("birthday")) {
+                String birthDate = requestData.get("birthday").toString();
+                existingUser.setBirthDate(birthDate);
+                userToValidate.setBirthDate(birthDate);
+            }
+            if (requestData.containsKey("city")) {
+                String city = requestData.get("city").toString().trim();
+                existingUser.setCity(city);
+                userToValidate.setCity(city);
+            }
+
+            if (requestData.containsKey("address")) {
+                String address = requestData.get("address").toString().trim();
+                existingUser.setAddress(address);
+                userToValidate.setAddress(address);
+            }
+            if (requestData.containsKey("avatarUrl")) {
+                String avatarUrl = requestData.get("avatarUrl").toString();
+                existingUser.setAvatarUrl(avatarUrl);
+            }
+            
+            // 参数验证
+            String validationError = validateUserInfo(userToValidate);
+            if (validationError != null) {
+                response.put("success", false);
+                response.put("message", validationError);
+                return ResponseEntity.ok(response);
+            }
+            
+            // 保存更新后的用户信息
+            User updatedUser = userService.updateUser(existingUser);
+            
+            // 构建返回数据，避免返回敏感信息
+            Map<String, Object> userData = new HashMap<>();
+            userData.put("id", updatedUser.getId());
+            userData.put("name", updatedUser.getName());
+            userData.put("gender", updatedUser.getGender());
+            userData.put("phone", updatedUser.getPhone());
+            userData.put("email", updatedUser.getEmail());
+            userData.put("birthDate", updatedUser.getBirthDate());
+            userData.put("city", updatedUser.getCity());
+            userData.put("address", updatedUser.getAddress());
+            userData.put("avatarUrl", updatedUser.getAvatarUrl());
+            
+            response.put("success", true);
+            response.put("message", "保存成功");
+            response.put("data", userData);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("message", "保存失败: " + e.getMessage());
+            return ResponseEntity.ok(response);
+        }
+    }
+    
+    /**
+     * 验证用户信息
+     * @param user 用户信息
+     * @return 验证错误信息，如果验证通过则返回null
+     */
+    private String validateUserInfo(User user) {
+        // 验证手机号格式
+        if (user.getPhone() != null && !user.getPhone().trim().isEmpty()) {
+            // 简单的手机号格式验证（中国大陆手机号）
+            if (!user.getPhone().trim().matches("^1[3-9]\\d{9}$")) {
+                return "请输入正确的手机号码";
+            }
+        }
+        
+        // 验证邮箱格式
+        if (user.getEmail() != null && !user.getEmail().trim().isEmpty()) {
+            // 简单的邮箱格式验证
+            if (!user.getEmail().trim().matches("^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$")) {
+                return "请输入正确的邮箱地址";
+            }
+        }
+        
+        // 验证性别值
+        if (user.getGender() != null && user.getGender() != 0 && user.getGender() != 1 && user.getGender() != 2) {
+            return "性别值无效";
+        }
+        
+        // 验证姓名长度
+        if (user.getName() != null && user.getName().trim().length() > 50) {
+            return "姓名长度不能超过50个字符";
+        }
+        
+        // 验证城市和地址长度
+        if (user.getCity() != null && user.getCity().trim().length() > 100) {
+            return "城市名称过长";
+        }
+        
+        if (user.getAddress() != null && user.getAddress().trim().length() > 200) {
+            return "地址长度不能超过200个字符";
+        }
+        
+
+        
+        return null; // 验证通过
     }
 }
