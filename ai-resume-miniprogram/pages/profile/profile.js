@@ -1,5 +1,6 @@
 //profile.js
 const app = getApp()
+import UserService from '../../services/user.js'
 
 Page({
   data: {
@@ -66,88 +67,115 @@ Page({
     }
   },
 
-  // 加载用户数据
+  // 加载用户信息和统计数据
   loadUserData: function() {
     const app = getApp();
-    // 检查用户是否已登录
-    const token = wx.getStorageSync('token');
-    let userInfo = this.data.userInfo || app.globalData.userInfo;
+    let userInfo = this.data.userInfo || app.globalData.userInfo || {};
     
-    // 检查token有效性
-    if (!token || token === 'mock_token') {
-      console.warn('无效的token，不加载用户数据:', token);
-      this.setData({ userInfo: null });
-      return;
-    }
-    
-    // 如果没有用户信息但有token，尝试从token创建一个临时用户对象
-    if (!userInfo && token) {
-      // 避免使用无效的token作为ID
-      let tempId = token.substring(0, 10);
-      if (tempId === 'mock_token') {
-        tempId = 'temp_' + Date.now();
-        console.warn('使用时间戳作为临时用户ID，避免使用无效token');
+    // 首先尝试从本地存储获取用户信息
+    try {
+      const storedUserInfo = wx.getStorageSync('userInfo');
+      if (storedUserInfo) {
+        const parsedUserInfo = JSON.parse(storedUserInfo);
+        // 合并本地存储的用户信息
+        userInfo = { ...userInfo, ...parsedUserInfo };
       }
-      userInfo = { id: tempId };
-      this.setData({ userInfo });
-      app.globalData.userInfo = userInfo;
-      console.info('从token创建临时用户对象，ID:', tempId);
-    }
-    
-    if (!token || !userInfo) {
-      this.setData({ userInfo: null });
-      return;
-    }
-    
-    // 优先使用系统内部userId，其次使用id，确保不使用mock_token
-    let userId = userInfo.userId || userInfo.id;
-    
-    // 验证userId是否有效，避免使用mock_token或无效ID
-    if (!userId || userId === 'mock_token' || userId.toString().includes('mock_token')) {
-      console.warn('发现无效的用户ID，生成临时ID用于统计');
-      userId = 'temp_' + new Date().getTime();
-    }
-    
-    console.info('使用用户ID加载统计数据:', userId);
-    
-    // 更新用户对象中的ID
-    if (userInfo.userId !== userId && userInfo.id !== userId) {
-      userInfo.id = userId;
-      this.setData({ userInfo });
-      app.globalData.userInfo = userInfo;
-    }
-    
-    // 加载用户统计数据，使用云托管调用方式
-    wx.cloud.callContainer({
-      config: {
-        env: app.globalData.cloudEnvId
-      },
-      path: `/api/statistics/user/${userId}`,
-      method: 'GET',
-      header: {
-        'X-WX-SERVICE': 'springboot-bq0e',
-        'content-type': 'application/json',
-        'token': token
-      },
-      success: (res) => {
-        const responseData = res.data || {};
-        if (responseData.code === 0 || responseData.resumeCount !== undefined) {
-          // 兼容不同的响应格式
-          const statsData = responseData.data || responseData;
-          const { resumeCount, interviewCount } = statsData || {};
-          this.setData({ resumeCount, interviewCount });
-        } else {
-          console.error('获取用户统计数据失败:', responseData);
-          // 不显示错误提示，避免影响用户体验
+      
+      // 尝试从userInfoLocal获取openId
+      const storedUserInfoLocal = wx.getStorageSync('userInfoLocal');
+      if (storedUserInfoLocal) {
+        const parsedUserInfoLocal = JSON.parse(storedUserInfoLocal);
+        if (parsedUserInfoLocal.openId && !userInfo.openId) {
+          userInfo.openId = parsedUserInfoLocal.openId;
+          console.info('从userInfoLocal获取到openId');
         }
-      },
-      fail: (error) => {
-        console.error('云托管调用失败:', error);
-        // 不显示错误提示，允许页面继续显示
       }
-    });
+    } catch (e) {
+      console.error('读取本地用户信息失败:', e);
+    }
     
-    // 无需加载详细数据，简化为只显示统计信息
+    // 从全局数据获取openId（优先级：已有openId > 全局数据）
+    if (!userInfo.openId && app.globalData.openId) {
+      userInfo.openId = app.globalData.openId;
+      console.info('从全局数据获取openId');
+    }
+    
+    // 确保用户ID存在
+    if (!userInfo.userId) {
+      userInfo.userId = userInfo.id || 'temp_user_' + new Date().getTime();
+      userInfo.id = userInfo.userId;
+    }
+    
+    this.setData({ userInfo });
+    
+    // 调用用户服务获取详细信息和统计数据
+    if (userInfo.openId) {
+      console.info('使用openId获取用户信息:', userInfo.openId);
+      // 使用wx.cloud.callContainer调用云托管后端API
+      wx.cloud.callContainer({
+        path: `/api/user/info?openId=${encodeURIComponent(userInfo.openId)}`,
+        method: 'GET',
+        header: {
+          'content-type': 'application/json'
+        },
+        success: res => {
+          console.info('获取用户信息成功，响应:', res);
+          try {
+            const response = res.data;
+            // 处理用户信息数据
+            if (response.success && response.data) {
+              const userData = response.data;
+              
+              // 更新用户信息
+              const updatedUserInfo = { ...userInfo, ...userData };
+              this.setData({ userInfo: updatedUserInfo });
+              app.globalData.userInfo = updatedUserInfo;
+              
+              // 更新本地存储
+              try {
+                wx.setStorageSync('userInfo', JSON.stringify(updatedUserInfo));
+                wx.setStorageSync('userInfoLocal', JSON.stringify(updatedUserInfo));
+              } catch (e) {
+                console.error('保存用户信息到本地存储失败:', e);
+              }
+              
+              // 更新统计数据
+              const resumeCount = userData.resumeCount || 0;
+              const interviewCount = userData.interviewCount || 0;
+              const optimizedCount = userData.optimizedCount || 0;
+              const remainingOptimizeCount = userData.remainingOptimizeCount || 0;
+              const vip = userData.vip || false;
+              
+              this.setData({ 
+                resumeCount, 
+                interviewCount,
+                optimizedCount,
+                remainingOptimizeCount,
+                isVip: vip
+              });
+              
+              // 记录用户VIP状态到全局数据
+              app.globalData.isVip = vip;
+            } else {
+              console.error('获取用户信息失败:', response);
+            }
+          } catch (e) {
+            console.error('解析响应数据失败:', e);
+          }
+        },
+        fail: err => {
+          console.error('调用用户信息接口失败:', err);
+        }
+      });
+    } else {
+      console.error('无法获取用户openId，无法调用用户信息接口');
+    }
+  },
+  // 页面相关事件处理函数 - 监听用户下拉刷新
+  onPullDownRefresh: function () {
+    // 刷新时重新加载用户数据
+    this.loadUserData();
+    wx.stopPullDownRefresh();
   },
   
   
@@ -164,7 +192,7 @@ Page({
   // 个人信息编辑
   editProfile: function() {
     console.log('editProfile函数被调用，当前userInfo:', this.data.userInfo)
-    
+    wx.removeStorageSync('returnToAfterCompleteProfile')
     // 检查是否为游客状态
     if (!this.data.userInfo || this.data.userInfo.id === 'guest') {
       console.log('未登录或游客状态，显示登录提示')

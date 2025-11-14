@@ -18,8 +18,25 @@ class UserService {
    * 获取用户信息
    * @returns {Promise} 返回用户信息
    */
-  static async getUserInfo() {
-    return request.get('/api/user/info')
+  static async getUserInfo(openId) {
+    try {
+      const response = await request.get('/api/user/info', {
+        params: { openId }
+      });
+      // 处理后端返回的标准格式：{success: true, data: {用户信息和统计数据}}
+      if (response && response.success === true && response.data) {
+        return response.data;
+      } else if (response && response.data) {
+        // 兼容旧格式，直接返回data
+        return response.data;
+      } else {
+        // 处理错误情况
+        throw new Error(response?.message || '获取用户信息失败');
+      }
+    } catch (error) {
+      console.error('获取用户信息出错:', error);
+      throw error;
+    }
   }
 
   /**
@@ -28,7 +45,20 @@ class UserService {
    * @returns {Promise} 返回更新结果
    */
   static async updateUserInfo(userInfo) {
-    return request.put('/api/user/info', userInfo)
+    try {
+      // 使用正确的接口路径和方法
+      const response = await request.post('/api/user/update', userInfo);
+      // 处理后端返回的标准格式
+      if (response && response.success === true) {
+        return response.data;
+      } else {
+        // 处理错误情况
+        throw new Error(response?.message || '更新用户信息失败');
+      }
+    } catch (error) {
+      console.error('更新用户信息出错:', error);
+      throw error;
+    }
   }
 
   /**

@@ -54,12 +54,6 @@ Page({
           })
           .catch(err => {
             console.error('请求用户信息失败:', err);
-            // 尝试从本地存储获取用户信息（适用于模拟环境）
-            this.loadUserInfoFromStorage().then(userInfo => {
-              resolve(userInfo);
-            }).catch(err => {
-              reject(err);
-            });
           });
       } else {
         // 尝试从本地存储获取用户信息（适用于模拟环境）

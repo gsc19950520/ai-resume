@@ -39,7 +39,40 @@ Page({
 
   // 加载用户信息
   loadUserInfo: function() {
-    // 优先从服务器获取最新数据
+    console.log('loadUserInfo调用，尝试加载用户信息')
+    
+    // 首先尝试从全局数据获取用户信息
+    if (app.globalData.userInfo && app.globalData.userInfo.id !== 'guest') {
+      console.log('从全局数据获取用户信息')
+      const userInfo = app.globalData.userInfo
+      const genderIndex = userInfo.gender === 1 ? 0 : 1 // 1表示男，0表示女
+      
+      this.setData({
+        userInfo,
+        genderIndex
+      })
+    } else {
+      // 尝试从本地存储获取用户信息
+      try {
+        const storedUserInfo = wx.getStorageSync('userInfo')
+        if (storedUserInfo) {
+          const userInfo = typeof storedUserInfo === 'string' ? JSON.parse(storedUserInfo) : storedUserInfo
+          if (userInfo && userInfo.id !== 'guest') {
+            console.log('从本地存储获取用户信息')
+            const genderIndex = userInfo.gender === 1 ? 0 : 1
+            
+            this.setData({
+              userInfo,
+              genderIndex
+            })
+          }
+        }
+      } catch (e) {
+        console.error('解析本地存储用户信息失败:', e)
+      }
+    }
+    
+    // 无论如何都尝试从服务器获取最新数据
     this.fetchUserInfoFromServer()
   },
 
@@ -155,19 +188,26 @@ Page({
   saveUserInfo: function() {
     console.log('点击保存按钮')
     const token = wx.getStorageSync('token')
-    let userInfo = wx.getStorageSync('userInfo')
     
-    // 解析用户信息
-    if (userInfo && typeof userInfo === 'string') {
+    // 尝试从全局数据获取用户信息
+    let userInfo = app.globalData.userInfo
+    
+    // 如果全局数据中没有，则尝试从本地存储获取
+    if (!userInfo || !userInfo.id || userInfo.id === 'guest') {
       try {
-        userInfo = JSON.parse(userInfo)
+        const storedUserInfo = wx.getStorageSync('userInfo')
+        if (storedUserInfo) {
+          userInfo = typeof storedUserInfo === 'string' ? JSON.parse(storedUserInfo) : storedUserInfo
+        }
       } catch (e) {
+        console.error('解析本地存储用户信息失败:', e)
         userInfo = null
       }
     }
     
-    // 登录状态检查：只需要token和有效的用户信息
-    if (!token || !userInfo || !userInfo.id) {
+    // 登录状态检查：需要token和有效的用户信息
+    if (!token || !userInfo || !userInfo.id || userInfo.id === 'guest') {
+      console.warn('登录状态检查失败:', { token: !!token, hasUserInfo: !!userInfo, userId: userInfo?.id })
       wx.showModal({
         title: '提示',
         content: '请先登录',
@@ -202,11 +242,16 @@ Page({
             icon: 'success'
           })
           
-          // 更新全局用户信息
-          app.globalData.userInfo = this.data.userInfo
-          wx.setStorageSync('userInfo', JSON.stringify(this.data.userInfo))
-          // 同时保存到本地存储专用键，用于离线使用
-          wx.setStorageSync('userInfoLocal', JSON.stringify(this.data.userInfo))
+          // 更新全局用户信息，保留原始用户ID
+          const updatedUserInfo = {
+            ...this.data.userInfo,
+            id: userInfo.id, // 保留原始的用户ID
+            userId: userInfo.id // 确保userId字段也保持一致
+          }
+          app.globalData.userInfo = updatedUserInfo
+          wx.setStorageSync('userInfo', JSON.stringify(updatedUserInfo))
+          // 同时保存到本地存储专用键，用于离线使用，同样保留原始用户ID
+            wx.setStorageSync('userInfoLocal', JSON.stringify(updatedUserInfo))
           
           // 根据是否有返回路径参数决定跳转方式
           setTimeout(() => {

@@ -1,8 +1,13 @@
 package com.aicv.airesume.controller;
 
 import com.aicv.airesume.entity.User;
+import com.aicv.airesume.service.StatisticsService;
 import com.aicv.airesume.service.UserService;
+
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -11,16 +16,21 @@ import org.springframework.web.client.RestTemplate;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import javax.servlet.http.HttpServletRequest;
 
 /**
  * 用户控制器
  */
+@Slf4j
 @RestController
 @RequestMapping("/api/user")
 public class UserController {
 
     @Autowired
     private UserService userService;
+    
+    @Autowired
+    private StatisticsService statisticsService;
     
     @Autowired
     private RestTemplate restTemplate;
@@ -221,15 +231,79 @@ public class UserController {
     }
 
     /**
-     * 获取用户信息
-     * @param userId 用户ID
-     * @return 用户信息
+     * 获取用户信息和统计数据
+     * @param openId 用户的微信openId
+     * @return 包含用户信息和统计数据的响应
      */
     @GetMapping("/info")
-    public ResponseEntity<Map<String, Object>> getUserInfo() {
+    public ResponseEntity<Map<String, Object>> getUserInfo(@RequestParam("openId") String openId) {
         Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("data", null);
+        Map<String, Object> data = new HashMap<>();
+        
+        try {
+            // 验证openId参数
+            if (openId == null || openId.isEmpty()) {
+                response.put("success", false);
+                response.put("message", "缺少openId参数");
+                response.put("data", null);
+                return ResponseEntity.ok(response);
+            }
+            
+            log.info("开始获取用户信息，openId: {}", openId);
+            
+            // 使用UserService根据openId获取用户基本信息
+            Optional<User> userOpt = userService.getUserByOpenId(openId);
+            if (!userOpt.isPresent()) {
+                response.put("success", false);
+                response.put("message", "用户不存在");
+                response.put("data", null);
+                return ResponseEntity.ok(response);
+            }
+            
+            User user = userOpt.get();
+            
+            // 构建用户信息
+            data.put("id", user.getId());
+            data.put("userId", user.getId()); // 使用相同的ID字段
+            data.put("nickName", user.getNickname());
+            data.put("avatarUrl", user.getAvatarUrl());
+            data.put("gender", user.getGender() != null ? user.getGender() : 0);
+            data.put("city", user.getCity() != null ? user.getCity() : "");
+            data.put("province", user.getProvince() != null ? user.getProvince() : "");
+            data.put("country", user.getCountry() != null ? user.getCountry() : "");
+            data.put("phone", user.getPhone() != null ? user.getPhone() : "");
+            data.put("email", user.getEmail() != null ? user.getEmail() : "");
+            data.put("name", user.getName() != null ? user.getName() : "");
+            data.put("birthDate", user.getBirthDate() != null ? user.getBirthDate().toString() : "");
+            
+            // 使用StatisticsService获取统计数据
+            Map<String, Object> statistics = statisticsService.getUserStatistics(user.getId());
+            
+            // 添加统计数据到响应中
+            data.put("resumeCount", statistics.getOrDefault("resumeCount", 0L));
+            data.put("optimizedCount", statistics.getOrDefault("optimizedCount", 0L));
+            data.put("remainingOptimizeCount", user.getRemainingOptimizeCount() != null ? user.getRemainingOptimizeCount() : 0);
+            data.put("vip", user.getVip() != null ? user.getVip() : false);
+            data.put("openId", user.getOpenId()); // 返回openId，方便前端使用
+            
+            // 计算VIP过期时间
+            if (user.getVip() != null && user.getVip() && user.getVipExpireTime() != null) {
+                data.put("vipExpireTime", user.getVipExpireTime().toString());
+            }
+            
+            // 默认的面试统计数据
+            data.put("interviewCount", 0); // 面试数量，后续可以从其他服务获取
+            
+            response.put("success", true);
+            response.put("data", data);
+            
+        } catch (Exception e) {
+            log.error("获取用户信息失败", e);
+            response.put("success", false);
+            response.put("message", "获取用户信息失败: " + e.getMessage());
+            response.put("data", null);
+        }
+        
         return ResponseEntity.ok(response);
     }
     
