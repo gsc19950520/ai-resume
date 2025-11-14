@@ -22,6 +22,13 @@ public class User {
     @Column(nullable = false, unique = true)
     private String openId;
 
+    private String name; // 姓名
+    private String email; // 邮箱
+    private String phone; // 电话
+    private String address; // 地址
+    @Column(name = "birth_date")
+    private String birthDate; // 出生日期
+
     private String nickname;
     private String avatarUrl;
     private Integer gender;

@@ -2,10 +2,7 @@ package com.aicv.airesume.controller;
 
 import com.aicv.airesume.annotation.Log;
 import com.aicv.airesume.entity.Resume;
-import com.aicv.airesume.entity.Template;
 import com.aicv.airesume.service.ResumeService;
-
-import com.aicv.airesume.service.TemplateService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,11 +22,6 @@ public class ResumeController {
 
     @Autowired
     private ResumeService resumeService;
-    
-
-    
-    @Autowired
-    private TemplateService templateService;
 
     /**
      * 上传简历
@@ -103,6 +95,18 @@ public class ResumeController {
     @GetMapping("/{id}")
     public Resume getResumeById(@PathVariable Long id) {
         return resumeService.getResumeById(id);
+    }
+    
+    /**
+     * 获取简历完整数据（包含所有关联信息）
+     * @param resumeId 简历ID
+     * @return 完整的简历数据，包含个人信息、联系方式、教育经历、工作经历、项目经历和技能
+     * 注意：个人信息和联系方式现在从User表中获取，而不是存储在Resume表中
+     */
+    @Log(description = "获取简历完整数据", recordParams = true, recordResult = true)
+    @GetMapping("/{resumeId}/full-data")
+    public Map<String, Object> getResumeFullData(@PathVariable Long resumeId) {
+        return resumeService.getResumeFullData(resumeId);
     }
 
     /**
@@ -195,11 +199,40 @@ public class ResumeController {
     }
     
     /**
-     * 更新简历内容
+     * 更新简历内容（结构化格式）
+     * @param userId 用户ID
+     * @param resumeId 简历ID
+     * @param resumeData 简历数据（包含完整的结构化信息）
+     * @return 更新结果
+     * 注意：个人信息和联系方式现在从User表中获取，不再通过此接口更新
+     * 此接口仅更新Resume表中可修改的字段：期望薪资、到岗时间、职位名称、jobTypeId等
+     */
+    @Log(description = "更新简历内容（结构化）", recordParams = true, recordResult = true)
+    @PostMapping("/{resumeId}/structured-content")
+    public ResponseEntity<?> updateResumeStructuredContent(@RequestParam Long userId, @PathVariable Long resumeId, @RequestBody Map<String, Object> resumeData) {
+        try {
+            Resume updatedResume = resumeService.updateResumeContent(userId, resumeId, resumeData);
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", true);
+            result.put("data", updatedResume);
+            result.put("message", "简历内容更新成功");
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", false);
+            result.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result);
+        }
+    }
+    
+    /**
+     * 更新简历内容（兼容格式）
      * @param userId 用户ID
      * @param resumeId 简历ID
      * @param resumeData 简历数据，包含所有需要更新的字段
      * @return 更新后的简历信息
+     * 注意：个人信息和联系方式现在从User表中获取，不再通过此接口更新
+     * 此接口仅更新Resume表中可修改的字段：期望薪资、到岗时间、职位名称、jobTypeId等
      */
     @Log(description = "更新简历内容", recordParams = true, recordResult = true)
     @PostMapping("/{resumeId}/content")

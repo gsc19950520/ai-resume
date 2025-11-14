@@ -1,3 +1,6 @@
+const app = getApp()
+// 导入云托管请求工具
+const { request } = require('../../../utils/request')
 Page({
   data: {
     currentSection: 'personal', // 当前编辑的部分
@@ -12,18 +15,16 @@ Page({
     ],
     // 技能等级
     skillLevels: ['了解', '掌握', '熟练', '精通', '专业'],
+    jobTypes: [], // 职位类型列表
+    userInfo: {}, // 用户基本信息，从User表获取
 
     resumeInfo: {
       title: '',
       personalInfo: {
-        name: '',
         jobTitle: '',
-        phone: '',
-        email: '',
-        address: '',
-        birthDate: '',
         expectedSalary: '',
-        startTime: ''
+        startTime: '',
+        jobTypeId: '' // 新增字段，关联职位类型
       },
       hobbiesText: '',
       // 技能评分列表
@@ -171,6 +172,129 @@ Page({
     } catch (error) {
       console.error('加载简历信息异常:', error);
     }
+    
+    // 加载职位类型数据
+    this.loadJobTypes();
+    
+    // 加载用户信息
+    this.loadUserInfo();
+  },
+  
+  
+  // 检查用户信息是否完整
+  checkUserInfoComplete: function(userInfo) {
+    // 根据业务需求定义用户信息的完整性检查标准
+    // 例如：检查姓名、手机号、邮箱等必要字段
+    const requiredFields = ['name', 'phone', 'email'];
+    const isComplete = requiredFields.every(field => 
+      userInfo && userInfo[field] && userInfo[field].trim() !== ''
+    );
+    
+    return isComplete;
+  },
+  
+  // 加载用户信息并进行完整性检查
+  loadUserInfo: function() {
+    const userId = wx.getStorageSync('userId');
+    if (userId) {
+      // 使用云托管方式请求用户信息
+      request(`/user/${userId}`, {}, 'GET')
+        .then(res => {
+          if (res && res.success) {
+            this.setData({
+              userInfo: res.data
+            });
+            console.log('用户信息加载成功:', res.data);
+            
+            // 检查用户信息是否完整
+            if (!this.checkUserInfoComplete(res.data)) {
+              console.log('用户信息不完整，跳转到提示页面');
+              // 跳转到完善个人信息提示页面
+              wx.navigateTo({
+                url: '/pages/profile/complete-profile/complete-profile'
+              });
+            }
+          } else {
+            console.error('加载用户信息失败:', res);
+            // 尝试从本地存储获取用户信息（适用于模拟环境）
+            this.loadUserInfoFromStorage();
+          }
+        })
+        .catch(err => {
+          console.error('请求用户信息失败:', err);
+          // 尝试从本地存储获取用户信息（适用于模拟环境）
+          this.loadUserInfoFromStorage();
+        });
+    } else {
+      // 尝试从本地存储获取用户信息（适用于模拟环境）
+      this.loadUserInfoFromStorage();
+    }
+  },
+  
+  // 从本地存储加载用户信息（适用于模拟环境）
+  loadUserInfoFromStorage: function() {
+    try {
+      const userInfo = wx.getStorageSync('userInfo');
+      if (userInfo) {
+        const parsedUserInfo = typeof userInfo === 'string' ? JSON.parse(userInfo) : userInfo;
+        this.setData({
+          userInfo: parsedUserInfo
+        });
+        console.log('从本地存储加载用户信息成功:', parsedUserInfo);
+        
+        // 检查用户信息是否完整
+        if (!this.checkUserInfoComplete(parsedUserInfo)) {
+          console.log('用户信息不完整，跳转到提示页面');
+          wx.navigateTo({
+            url: '/pages/profile/complete-profile/complete-profile'
+          });
+        }
+      } else {
+        console.log('未找到用户ID且本地存储中无用户信息，跳转到提示页面');
+        wx.navigateTo({
+          url: '/pages/profile/complete-profile/complete-profile'
+        });
+      }
+    } catch (e) {
+      console.error('解析本地存储的用户信息失败:', e);
+    }
+  },
+  
+  // 页面显示时重新加载用户信息，确保显示最新数据
+  onShow: function() {
+    console.log('edit页面显示，重新加载用户信息');
+    this.loadUserInfo();
+  },
+  
+  // 加载职位类型数据
+  loadJobTypes: function() {
+    console.log('开始加载职位类型...')
+    // 使用云托管方式请求职位类型
+    request('/job-types', {}, 'GET')
+      .then(res => {
+        console.log('职位类型加载成功', res)
+        this.setData({
+          jobTypes: res || []
+        });
+      })
+      .catch(error => {
+        console.error('请求职位类型失败:', error);
+      });
+  },
+  
+  // 选择职位类型
+  onJobTypeChange: function(e) {
+    const jobTypeId = e.detail.value;
+    // 查找对应的职位名称
+    const selectedJobType = this.data.jobTypes.find(type => type.id === jobTypeId);
+    
+    this.setData({
+      [`resumeInfo.personalInfo.jobTypeId`]: jobTypeId,
+      [`resumeInfo.personalInfo.jobTitle`]: selectedJobType ? selectedJobType.name : ''
+    });
+    
+    // 即时保存数据到本地存储
+    wx.setStorageSync('tempResumeInfo', this.data.resumeInfo);
   },
   
   // 验证并修复简历数据结构完整性
@@ -193,9 +317,17 @@ Page({
       validated.projectExperienceList = defaultInfo.projectExperienceList;
     }
     
-    // 确保personalInfo对象存在
+    // 确保personalInfo对象存在，只保留可编辑字段
     if (!validated.personalInfo || typeof validated.personalInfo !== 'object') {
       validated.personalInfo = defaultInfo.personalInfo;
+    } else {
+      // 过滤personalInfo，只保留需要的字段
+      const allowedFields = ['jobTitle', 'expectedSalary', 'startTime', 'jobTypeId'];
+      const filteredPersonalInfo = {};
+      allowedFields.forEach(field => {
+        filteredPersonalInfo[field] = validated.personalInfo[field] || '';
+      });
+      validated.personalInfo = filteredPersonalInfo;
     }
     
     return validated;
@@ -220,16 +352,21 @@ Page({
     });
   },
 
-  // 保存个人信息
+  // 保存个人信息（只保存可编辑字段）
   savePersonalInfo(e) {
     const field = e.currentTarget.dataset.field;
     const value = e.detail.value;
-    this.setData({
-      [`resumeInfo.personalInfo.${field}`]: value
-    });
     
-    // 即时保存数据到本地存储
-    wx.setStorageSync('tempResumeInfo', this.data.resumeInfo);
+    // 只允许修改特定字段
+    const editableFields = ['jobTitle', 'expectedSalary', 'startTime'];
+    if (editableFields.includes(field)) {
+      this.setData({
+        [`resumeInfo.personalInfo.${field}`]: value
+      });
+      
+      // 即时保存数据到本地存储
+      wx.setStorageSync('tempResumeInfo', this.data.resumeInfo);
+    }
   },
 
   // 处理教育经历输入
@@ -633,82 +770,246 @@ Page({
     }
   },
 
-  // 保存简历
-  saveResume: function() {
-    // 检查是否有模板ID
-    if (!this.data.resumeInfo.templateId) {
-      wx.showToast({
-        title: '请先选择简历模板',
-        icon: 'none'
-      });
-      return;
-    }
-
-    wx.showLoading({
-      title: '保存并生成简历中...',
-    });
-
+  // 保存简历信息到本地存储
+  saveResumeToStorage: function(resumeInfo) {
     try {
-      // 准备简历数据，包含模板ID
-      // 处理兴趣爱好，将文本转换为数组
-      const interests = this.data.resumeInfo.hobbiesText ? 
-        this.data.resumeInfo.hobbiesText.split(',').map(hobby => hobby.trim()).filter(hobby => hobby !== '') : [];
+      // 确保必要的数据结构存在
+      if (!resumeInfo.education) {
+        resumeInfo.education = [];
+      }
+      if (!resumeInfo.workExperience) {
+        resumeInfo.workExperience = [];
+      }
+      if (!resumeInfo.projectExperienceList) {
+        resumeInfo.projectExperienceList = [];
+      }
+      if (!resumeInfo.skillsWithLevel) {
+        resumeInfo.skillsWithLevel = [];
+      }
       
-      // 处理技能评分数据，过滤掉空技能名称
-      console.log('开始处理技能数据:');
-      console.log('- this.data.resumeInfo.skillsWithLevel:', this.data.resumeInfo.skillsWithLevel);
+      // 保存到本地存储
+      wx.setStorageSync('tempResumeInfo', resumeInfo);
       
-      const skillsWithLevel = this.data.resumeInfo.skillsWithLevel.filter(skill => skill.name.trim() !== '');
-      console.log('- 过滤后的 skillsWithLevel:', skillsWithLevel);
-      
-      // 为了兼容，也生成简单的技能数组
-      const skills = skillsWithLevel.map(skill => skill.name);
-      console.log('- 提取的 skills:', skills);
-      
-      // 处理项目经验数据，过滤掉空项目名称
-      const projectExperienceList = this.data.resumeInfo.projectExperienceList.filter(project => project.name.trim() !== '');
-      console.log('- 过滤后的 projectExperienceList:', projectExperienceList);
-      
-      // 确保personalInfo对象存在并包含interests
-      const personalInfo = {
-        ...this.data.resumeInfo.personalInfo,
-        interests: interests
-      };
-      
+      // 同时保存到resumeData，便于其他页面使用
       const resumeData = {
-        isAiGenerated: false,
-        templateId: this.data.resumeInfo.templateId,
+        templateId: resumeInfo.templateId || 'template-one',
         data: {
-          title: this.data.resumeInfo.title,
-          personalInfo: personalInfo,
-          education: this.data.resumeInfo.education,
-          workExperience: this.data.resumeInfo.workExperience,
-          projectExperienceList: projectExperienceList,
-          skills: skills,
-          skillsWithLevel: skillsWithLevel,
-          selfEvaluation: this.data.resumeInfo.selfEvaluation
+          personalInfo: resumeInfo.personalInfo,
+          education: resumeInfo.education,
+          workExperience: resumeInfo.workExperience,
+          projectExperienceList: resumeInfo.projectExperienceList,
+          skillsWithLevel: resumeInfo.skillsWithLevel,
+          hobbies: resumeInfo.hobbiesText ? resumeInfo.hobbiesText.split('\n').filter(h => h.trim()) : [],
+          selfEvaluation: resumeInfo.selfEvaluation
         }
       };
       
-      console.log('准备调用后端API，模板ID:', this.data.resumeInfo.templateId);
-      console.log('传递的简历数据:', JSON.stringify(resumeData.data));
-      
-      // 保存到本地存储
       wx.setStorageSync('resumeData', resumeData);
-      console.log('已保存简历数据到本地存储');
       
-      wx.hideLoading();
-      wx.showToast({
-        title: '保存成功',
-        icon: 'success',
+      return true;
+    } catch (error) {
+      console.error('保存简历信息失败:', error);
+      return false;
+    }
+  },
+  
+  // 将前端简历数据转换为后端需要的结构化格式
+  convertToBackendFormat: function(resumeInfo) {
+    const hobbies = resumeInfo.hobbiesText ? resumeInfo.hobbiesText.split('\n').filter(h => h.trim()) : [];
+    
+    return {
+      // 移除个人信息相关字段，这些信息现在存储在User表中
+      // 只保留简历特有的字段
+      personalInfo: {
+        jobTitle: resumeInfo.personalInfo.jobTitle,
+        expectedSalary: resumeInfo.personalInfo.expectedSalary,
+        startTime: resumeInfo.personalInfo.startTime,
+        jobTypeId: resumeInfo.personalInfo.jobTypeId
+      },
+      // 移除contact字段，这些信息现在存储在User表中
+      
+      education: resumeInfo.education.map((edu, index) => ({
+        school: edu.school,
+        degree: edu.degree,
+        major: edu.major,
+        startDate: edu.startDate,
+        endDate: edu.endDate,
+        description: edu.description || '',
+        gpa: edu.gpa || '',
+        orderIndex: index
+      })),
+      workExperience: resumeInfo.workExperience.map((work, index) => ({
+        companyName: work.company,
+        positionName: work.position,
+        startDate: work.startDate,
+        endDate: work.endDate,
+        description: work.description,
+        orderIndex: index
+      })),
+      projects: resumeInfo.projectExperienceList.map((project, index) => ({
+        projectName: project.name,
+        role: project.role || '',
+        startDate: project.startDate,
+        endDate: project.endDate,
+        description: project.description,
+        achievements: project.achievements || '',
+        technologies: project.technologies || '',
+        orderIndex: index
+      })),
+      skills: resumeInfo.skillsWithLevel.map((skill, index) => ({
+        name: skill.name,
+        level: skill.level || 1,
+        category: skill.category || '专业技能',
+        orderIndex: index
+      }))
+    };
+  },
+  
+  // 保存简历数据到后端
+  saveResumeToBackend: function(resumeId, userId, resumeData) {
+    return new Promise((resolve, reject) => {
+      wx.request({
+        url: `https://your-api-base-url/api/resume/${resumeId}/structured-content?userId=${userId}`,
+        method: 'POST',
+        data: resumeData,
+        success: (res) => {
+          if (res.data && res.data.success) {
+            console.log('保存到后端成功:', res.data);
+            resolve(res.data);
+          } else {
+            console.error('保存到后端失败:', res.data);
+            reject(new Error(res.data.message || '保存失败'));
+          }
+        },
+        fail: (err) => {
+          console.error('请求后端失败:', err);
+          reject(new Error('网络错误，请检查网络连接'));
+        }
       });
+    });
+  },
+
+  // 保存简历
+  saveResume: function() {
+    try {
+      const { resumeInfo } = this.data;
       
-      // 跳转到简历预览页面，传递模板ID
-      setTimeout(() => {
-        wx.navigateTo({
-          url: `/pages/template/preview/preview?templateId=${this.data.resumeInfo.templateId}`
+      // 检查是否有模板ID
+      if (!resumeInfo.templateId) {
+        wx.showToast({
+          title: '请先选择简历模板',
+          icon: 'none'
         });
-      }, 1500);
+        return;
+      }
+
+      wx.showLoading({
+        title: '保存并生成简历中...',
+      });
+
+      // 保存到本地存储
+      const saved = this.saveResumeToStorage(resumeInfo);
+      
+      if (saved) {
+        // 准备简历数据，包含模板ID
+        // 处理兴趣爱好，将文本转换为数组
+        const interests = resumeInfo.hobbiesText ? 
+          resumeInfo.hobbiesText.split(',').map(hobby => hobby.trim()).filter(hobby => hobby !== '') : [];
+        
+        // 处理技能评分数据，过滤掉空技能名称
+        const skillsWithLevel = resumeInfo.skillsWithLevel.filter(skill => skill.name.trim() !== '');
+        
+        // 为了兼容，也生成简单的技能数组
+        const skills = skillsWithLevel.map(skill => skill.name);
+        
+        // 处理项目经验数据，过滤掉空项目名称
+        const projectExperienceList = resumeInfo.projectExperienceList.filter(project => project.name.trim() !== '');
+        
+        // 确保personalInfo对象存在并包含interests
+        const personalInfo = {
+          ...resumeInfo.personalInfo,
+          interests: interests
+        };
+        
+        const resumeData = {
+          isAiGenerated: false,
+          templateId: resumeInfo.templateId,
+          data: {
+            title: resumeInfo.title,
+            personalInfo: personalInfo,
+            education: resumeInfo.education,
+            workExperience: resumeInfo.workExperience,
+            projectExperienceList: projectExperienceList,
+            skills: skills,
+            skillsWithLevel: skillsWithLevel,
+            selfEvaluation: resumeInfo.selfEvaluation
+          }
+        };
+        
+        // 保存到本地存储
+        wx.setStorageSync('resumeData', resumeData);
+        
+        // 检查是否有resumeId，如果有则保存到后端
+        const resumeId = resumeInfo.id || wx.getStorageSync('currentResumeId');
+        const userId = wx.getStorageSync('userId');
+        
+        if (resumeId && userId) {
+          // 转换为后端需要的格式
+          const backendData = this.convertToBackendFormat(resumeInfo);
+          
+          // 保存到后端
+          this.saveResumeToBackend(resumeId, userId, backendData)
+            .then(() => {
+              wx.hideLoading();
+              wx.showToast({
+                title: '保存成功并同步到云端',
+                icon: 'success'
+              });
+              
+              // 跳转到简历预览页面，传递模板ID
+              setTimeout(() => {
+                wx.navigateTo({
+                  url: `/pages/template/preview/preview?templateId=${resumeInfo.templateId}`
+                });
+              }, 1500);
+            })
+            .catch((error) => {
+              wx.hideLoading();
+              // 本地保存成功但云端同步失败，仍然提示保存成功
+              wx.showToast({
+                title: '本地保存成功',
+                icon: 'success'
+              });
+              console.warn('云端同步失败，将使用本地数据:', error);
+              
+              // 跳转到简历预览页面，传递模板ID
+              setTimeout(() => {
+                wx.navigateTo({
+                  url: `/pages/template/preview/preview?templateId=${resumeInfo.templateId}`
+                });
+              }, 1500);
+            });
+        } else {
+          wx.hideLoading();
+          wx.showToast({
+            title: '保存成功',
+            icon: 'success'
+          });
+          
+          // 跳转到简历预览页面，传递模板ID
+          setTimeout(() => {
+            wx.navigateTo({
+              url: `/pages/template/preview/preview?templateId=${resumeInfo.templateId}`
+            });
+          }, 1500);
+        }
+      } else {
+        wx.hideLoading();
+        wx.showToast({
+          title: '保存失败',
+          icon: 'none'
+        });
+      }
     } catch (error) {
       console.error('保存简历异常:', error);
       wx.hideLoading();

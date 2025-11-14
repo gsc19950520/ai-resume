@@ -77,7 +77,7 @@
         <block wx:for="{{resumeData.skillsWithLevel || resumeData.skills}}" wx:key="index">
           <view wx:if="{{item.name || item}}" class="skill-item">
             <view class="skill-name">{{item.name || item}}</view>
-            <view class="skill-bar"><view class="skill-fill" style="width:{{(item.level - 1) * 25}}%;"></view></view>
+            <view class="skill-bar"><view class="skill-fill" style="width:{{item.level * 20}}%;"></view></view>
           </view>
         </block>
       </view>

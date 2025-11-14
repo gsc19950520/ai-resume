@@ -52,6 +52,16 @@
       </view>
     </view>
     
+    <view class="menu-item" bindtap="editProfile">
+      <view class="menu-icon">
+        <image src="/images/user.png" mode="aspectFit"></image>
+      </view>
+      <view class="menu-text">个人信息编辑</view>
+      <view class="menu-arrow">
+        <image src="/images/arrow.png" mode="aspectFit"></image>
+      </view>
+    </view>
+    
     <view class="menu-item" bindtap="settings">
       <view class="menu-icon">
         <image src="/images/settings.png" mode="aspectFit"></image>

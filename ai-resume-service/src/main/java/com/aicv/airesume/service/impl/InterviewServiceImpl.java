@@ -101,7 +101,8 @@ public class InterviewServiceImpl implements InterviewService {
             session.setUserId(userId);
             session.setResumeId(resumeId);
             session.setStatus("IN_PROGRESS");
-            session.setJobType(resume.getJobType());
+            // Resume实体中没有jobType属性，使用jobTypeId替代或留空
+            session.setJobType(null); // 或者可以设置为其他合适的值
             session.setQuestionCount(0);
             session.setAdaptiveLevel("auto");
             session.setAiQuestionSeed(new Random().nextInt(1000)); // 设置随机种子

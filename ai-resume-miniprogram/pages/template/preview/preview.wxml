@@ -47,10 +47,41 @@
     </block>
   </view>
 
-  <!-- 使用模板按钮 -->
+  <!-- 操作区域：模板切换和下载功能 -->
   <view class="action-container">
-    <button class="use-template-btn" bindtap="useTemplate">使用此模板</button>
+    <!-- 模板切换区域 -->
+    <view class="template-switch-container">
+      <scroll-view scroll-x="true" class="template-scroll">
+        <view class="template-thumbnails">
+          <view class="template-item {{templateId === 'template-one' ? 'active' : ''}}" bindtap="switchTemplate" data-id="template-one">
+            <image src="/images/template-one.jpg" class="template-image" mode="aspectFit"></image>
+            <text class="template-text">模板一</text>
+          </view>
+          <view class="template-item {{templateId === 'template-two' ? 'active' : ''}}" bindtap="switchTemplate" data-id="template-two">
+            <image src="/images/template-two.jpg" class="template-image" mode="aspectFit"></image>
+            <text class="template-text">模板二</text>
+          </view>
+          <view class="template-item {{templateId === 'template-three' ? 'active' : ''}}" bindtap="switchTemplate" data-id="template-three">
+            <image src="/images/template-three.jpg" class="template-image" mode="aspectFit"></image>
+            <text class="template-text">模板三</text>
+          </view>
+          <view class="template-item {{templateId === 'template-four' ? 'active' : ''}}" bindtap="switchTemplate" data-id="template-four">
+            <image src="/images/template-four.jpg" class="template-image" mode="aspectFit"></image>
+            <text class="template-text">模板四</text>
+          </view>
+          <view class="template-item {{templateId === 'template-five' ? 'active' : ''}}" bindtap="switchTemplate" data-id="template-five">
+            <image src="/images/template-five.jpg" class="template-image" mode="aspectFit"></image>
+            <text class="template-text">模板五</text>
+          </view>
+          <view class="template-item {{templateId === 'template-six' ? 'active' : ''}}" bindtap="switchTemplate" data-id="template-six">
+            <image src="/images/template-six.jpg" class="template-image" mode="aspectFit"></image>
+            <text class="template-text">模板六</text>
+          </view>
+        </view>
+      </scroll-view>
+    </view>
+    
+    <!-- 下载PDF按钮 -->
     <button class="download-pdf-btn" bindtap="downloadPdf">下载PDF</button>
-    <button class="test-btn" type="warn" bindtap="testTemplateRendering">加载测试数据</button>
   </view>
 </view>

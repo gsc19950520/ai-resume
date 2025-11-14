@@ -50,10 +50,10 @@ page {
   all: unset;
 }
 
-/* 使用模板按钮样式 */
+/* 操作区域样式 - 包含模板切换和下载功能 */
 .action-container {
   position: fixed;
-  bottom: 0;
+  bottom: 30rpx;
   left: 0;
   width: 100%;
   padding: 20rpx;
@@ -61,6 +61,77 @@ page {
   box-shadow: 0 -2rpx 10rpx rgba(0, 0, 0, 0.1);
   z-index: 9999;
   box-sizing: border-box;
+  padding-bottom: 30rpx;
+}
+
+/* 模板切换区域样式 */
+.template-switch-container {
+  margin-bottom: 20rpx;
+}
+
+.template-scroll {
+  white-space: nowrap;
+  width: 100%;
+}
+
+.template-thumbnails {
+  display: flex;
+  padding-bottom: 10rpx;
+}
+
+/* 单个模板项样式 */
+.template-item {
+  display: inline-block;
+  width: 180rpx;
+  margin-right: 20rpx;
+  text-align: center;
+  position: relative;
+  transition: transform 0.2s;
+}
+
+.template-item:active {
+  transform: scale(0.95);
+}
+
+.template-item.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 20rpx;
+  right: 20rpx;
+  height: 4rpx;
+  background-color: #1677ff;
+  border-radius: 2rpx;
+}
+
+/* 模板图片样式 */
+.template-image {
+  width: 180rpx;
+  height: 120rpx;
+  border-radius: 8rpx;
+  border: 2rpx solid #e0e0e0;
+  box-sizing: border-box;
+}
+
+.template-item.active .template-image {
+  border-color: #1677ff;
+  box-shadow: 0 0 0 2rpx rgba(22, 119, 255, 0.2);
+}
+
+/* 模板文字样式 */
+.template-text {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.template-item.active .template-text {
+  color: #1677ff;
+  font-weight: 500;
 }
 
 .use-template-btn {

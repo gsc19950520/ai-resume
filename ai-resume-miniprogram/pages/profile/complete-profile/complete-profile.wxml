@@ -1,0 +1,23 @@
+<!-- pages/profile/complete-profile/complete-profile.wxml -->
+<view class="container">
+  <view class="content">
+    <view class="icon-container">
+      <view class="icon-circle">
+        <text class="icon-text">📝</text>
+      </view>
+    </view>
+    
+    <view class="title">完善个人信息</view>
+    
+    <view class="description">
+      您的个人基本信息尚未完善或不完整，
+      请先填写个人信息后再继续使用简历编辑功能。
+    </view>
+    
+    <view class="button-container">
+      <button class="primary-button" bindtap="goToEditProfile">
+        去完善个人信息
+      </button>
+    </view>
+  </view>
+</view>

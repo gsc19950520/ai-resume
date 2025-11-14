@@ -7,7 +7,14 @@
     "dev": "echo \"开发模式启动\"",
     "build": "echo \"构建项目\""
   },
-  "keywords": ["ai", "resume", "miniprogram"],
+  "keywords": [
+    "ai",
+    "resume",
+    "miniprogram"
+  ],
   "author": "",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "eslint": "^9.39.1"
+  }
 }

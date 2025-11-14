@@ -7,6 +7,7 @@
     "pages/resume/list/list",
     "pages/template/list/list",
     "pages/template/preview/preview",
+    "pages/template/preview/imageView/preview-image",
     "pages/resume/edit/edit",
     "pages/resume/view/view",
     "pages/interview/interview",
@@ -14,7 +15,9 @@
     "pages/interview/history",
     "pages/career/report",
     "pages/report/report",
-    "pages/growth/report"
+    "pages/growth/report",
+    "pages/user/detail",
+    "pages/profile/complete-profile/complete-profile"
   ],
   "window": {
     "backgroundTextStyle": "light",

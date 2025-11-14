@@ -1,0 +1,75 @@
+/* pages/profile/complete-profile/complete-profile.wxss */
+.container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: #f8f8f8;
+  padding: 40rpx;
+  box-sizing: border-box;
+}
+
+.content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40rpx 0;
+}
+
+.icon-container {
+  margin-bottom: 40rpx;
+}
+
+.icon-circle {
+  width: 160rpx;
+  height: 160rpx;
+  border-radius: 50%;
+  background-color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
+}
+
+.icon-text {
+  font-size: 80rpx;
+}
+
+.title {
+  font-size: 44rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 20rpx;
+}
+
+.description {
+  font-size: 32rpx;
+  color: #666;
+  text-align: center;
+  line-height: 52rpx;
+  margin-bottom: 60rpx;
+  padding: 0 20rpx;
+}
+
+.button-container {
+  width: 100%;
+  padding: 0 40rpx;
+  box-sizing: border-box;
+}
+
+.primary-button {
+  width: 100%;
+  height: 96rpx;
+  line-height: 96rpx;
+  background-color: #1aad19;
+  color: #fff;
+  font-size: 36rpx;
+  border-radius: 48rpx;
+  border: none;
+  box-shadow: 0 4rpx 12rpx rgba(26, 173, 25, 0.3);
+}
+
+.primary-button:active {
+  background-color: #18a016;
+}

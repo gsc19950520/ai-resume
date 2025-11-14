@@ -63,27 +63,7 @@ CREATE TABLE IF NOT EXISTS ai_order (
 ) COMMENT='订单表';
 
 -- 模板表
-CREATE TABLE IF NOT EXISTS template (
-    id VARCHAR(50) PRIMARY KEY COMMENT '模板ID',
-    name VARCHAR(100) NOT NULL COMMENT '模板名称',
-    description TEXT COMMENT '模板描述',
-    thumbnail_url VARCHAR(255) NOT NULL COMMENT '缩略图URL',
-    template_url VARCHAR(255) NOT NULL COMMENT '模板URL',
-    word_template_url VARCHAR(255) DEFAULT NULL COMMENT 'Word模板URL',
-    html_template_content TEXT COMMENT 'HTML模板内容',
-    template_type VARCHAR(20) NOT NULL DEFAULT 'fixed' COMMENT '模板类型：fixed(固定模板)、dynamic(动态模板)',
-    job_type VARCHAR(50) NOT NULL COMMENT '职位类型',
-    price INT NOT NULL COMMENT '价格(分)',
-    is_free TINYINT NOT NULL DEFAULT 0 COMMENT '是否免费 0:否 1:是',
-    vip_only TINYINT NOT NULL DEFAULT 0 COMMENT '是否仅VIP可用 0:否 1:是',
-    use_count INT NOT NULL DEFAULT 0 COMMENT '使用次数',
-    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    INDEX idx_job_type (job_type),
-    INDEX idx_is_free (is_free),
-    INDEX idx_vip_only (vip_only),
-    INDEX idx_template_type (template_type)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='模板表';
+
 
 -- 简历表
 CREATE TABLE IF NOT EXISTS resume (
@@ -104,10 +84,13 @@ CREATE TABLE IF NOT EXISTS resume (
     optimized_content TEXT COMMENT '优化后内容',
     ai_score INT DEFAULT NULL COMMENT 'AI评分',
     ai_suggestion TEXT COMMENT 'AI建议',
-    education TEXT COMMENT '教育经历(JSON格式)',
-    work_experience TEXT COMMENT '工作经验(JSON格式)',
-    skills TEXT COMMENT '技能列表(JSON格式)',
-    projects TEXT COMMENT '项目经历(JSON格式)',
+    avatar VARCHAR(255) DEFAULT NULL COMMENT '头像URL',
+    job_title VARCHAR(100) DEFAULT NULL COMMENT '职位名称',
+    self_evaluation TEXT COMMENT '自我评价',
+    interests TEXT COMMENT '兴趣爱好',
+    website VARCHAR(255) DEFAULT NULL COMMENT '个人网站',
+    github VARCHAR(255) DEFAULT NULL COMMENT 'GitHub',
+    linkedin VARCHAR(255) DEFAULT NULL COMMENT 'LinkedIn',
     download_url_pdf VARCHAR(255) DEFAULT NULL COMMENT 'PDF下载链接',
     download_url_word VARCHAR(255) DEFAULT NULL COMMENT 'Word下载链接',
     template_id BIGINT DEFAULT NULL COMMENT '模板ID',
@@ -610,12 +593,7 @@ VALUES
 ('template', 'default', '{"sessionSeconds":900,"minQuestions":3,"maxQuestions":8,"depthLevels":["basic","intermediate","advanced"]}', '默认面试模板配置', 1),
 
 -- 初始化简历模板数据
-INSERT INTO template (id, name, description, thumbnail_url, template_url, word_template_url, template_type, job_type, price, is_free, vip_only) VALUES
-('template-one', '专业简约模板', '简约专业的简历模板，适合各类职位申请', '/templates/thumbnails/template_one.jpg', '/templates/template_one.html', 'template_one.docx', 'fixed', 'general', 0, 1, 0),
-('template-two', '创意设计模板', '富有创意的设计风格模板，适合设计类职位', '/templates/thumbnails/template_two.jpg', '/templates/template_two.html', 'template_two.docx', 'fixed', 'design', 0, 1, 0),
-('template-three', '技术开发模板', '专为技术人员设计的简历模板，突出技能和项目经验', '/templates/thumbnails/template_three.jpg', '/templates/template_three.html', 'template_three.docx', 'fixed', 'technology', 0, 1, 0),
-('template-four', '管理职位模板', '适合管理岗位的专业模板，强调领导力和管理经验', '/templates/thumbnails/template_four.jpg', '/templates/template_four.html', 'template_four.docx', 'fixed', 'management', 0, 1, 0),
-('template-five', '学术研究模板', '适合学术和研究岗位的模板，突出教育背景和研究成果', '/templates/thumbnails/template_five.jpg', '/templates/template_five.html', 'template_five.docx', 'fixed', 'academic', 0, 1, 0);
+
 
 -- 完整的面试动态配置
 ('config', 'interview_dynamic_config', '{"personas":[{"id":"colloquial","name":"口语化","emoji":"💬","description":"轻松自然，像朋友聊天一样。适合练习表达与思维。","example":"你平时在项目里主要怎么用这个框架的？讲讲你的思路。","enabled":true},{"id":"formal","name":"正式面试","emoji":"🎓","description":"逻辑清晰、专业正式，模拟真实企业面试场景。","example":"请详细说明你在该项目中负责的模块及技术实现。","enabled":true},{"id":"manager","name":"主管语气","emoji":"🧠","description":"偏重项目成果与业务价值，关注你的思考与协作方式。","example":"这个优化最终提升了什么指标？对团队交付有什么帮助？","enabled":true},{"id":"analytical","name":"冷静分析型","emoji":"🧊","description":"逻辑严谨、问题拆解式提问，适合技术深度练习。","example":"你认为这个算法的瓶颈在哪？能从复杂度角度分析一下吗？","enabled":true},{"id":"encouraging","name":"鼓励型","emoji":"🌱","description":"语气温和积极，注重引导思考与成长体验。","example":"你的思路挺好，可以再具体举个例子来支撑一下吗？","enabled":true},{"id":"pressure","name":"压力面","emoji":"🔥","description":"高强度提问，快速节奏模拟顶级面试场景。","example":"假设你的系统刚被打挂，你会在3分钟内做什么？","enabled":true},{"id":"friendly","name":"友善面试官","emoji":"😊","description":"以友好、鼓励的方式进行面试，创造轻松氛围。","example":"你能简单介绍一下你在这个项目中的角色吗？","enabled":false},{"id":"neutral","name":"中性面试官","emoji":"📋","description":"保持客观、专业的面试风格，注重事实和技术。","example":"请详细描述这个技术的实现细节。","enabled":false},{"id":"challenging","name":"挑战性面试官","emoji":"⚡","description":"提出深入的技术问题，挑战候选人的极限。","example":"这个方案的扩展性如何？如何解决高并发场景？","enabled":false},{"id":"technical","name":"技术专家","emoji":"🔧","description":"专注于技术细节和实现原理，注重深度。","example":"这个算法的时间复杂度是多少？空间复杂度呢？","enabled":false},{"id":"innovative","name":"创新思维","emoji":"💡","description":"关注创新能力和解决方案，鼓励发散思维。","example":"如果让你重新设计这个系统，你会如何改进？","enabled":false},{"id":"practical","name":"注重实践","emoji":"🛠️","description":"强调实际应用经验和项目成果。","example":"请分享一个你解决过的最复杂的技术问题。","enabled":false}],"depthLevels":[{"id":"用法","name":"基础","text":"用法","description":"基本概念和简单应用场景"},{"id":"实现","name":"进阶","text":"实现","description":"内部工作原理和实现细节"},{"id":"原理","name":"深入","text":"原理","description":"底层原理和设计思想"},{"id":"优化","name":"高级","text":"优化","description":"性能优化和最佳实践"}],"defaultSessionSeconds":900,"defaultPersona":"friendly"}', '完整的面试动态配置', 1);

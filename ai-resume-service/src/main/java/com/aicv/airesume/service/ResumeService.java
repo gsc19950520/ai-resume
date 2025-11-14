@@ -42,6 +42,11 @@ public interface ResumeService {
     Resume getResumeById(Long id);
     
     /**
+     * 获取简历完整数据（包含所有关联信息）
+     */
+    Map<String, Object> getResumeFullData(Long resumeId);
+    
+    /**
      * 删除简历
      */
     boolean deleteResume(Long userId, Long resumeId);

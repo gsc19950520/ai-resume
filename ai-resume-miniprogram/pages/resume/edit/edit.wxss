@@ -268,6 +268,61 @@
   border: none;
 }
 
+/* 只读个人信息部分样式 */
+.readonly-section {
+  background-color: #f5f7fa;
+  padding: 30rpx;
+  border-radius: 15rpx;
+  margin-bottom: 30rpx;
+  border-left: 8rpx solid #667eea;
+}
+
+.readonly-section .section-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 20rpx;
+}
+
+.readonly-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20rpx 0;
+  border-bottom: 1rpx solid #e0e0e0;
+}
+
+.readonly-item:last-child {
+  border-bottom: none;
+}
+
+.readonly-item .label {
+  font-size: 28rpx;
+  color: #666;
+  margin-bottom: 0;
+  min-width: 120rpx;
+}
+
+.readonly-text {
+  font-size: 30rpx;
+  color: #333;
+  text-align: right;
+  flex: 1;
+  margin-left: 20rpx;
+}
+
+/* 可编辑部分样式 */
+.editable-section {
+  margin-bottom: 20rpx;
+}
+
+.editable-section .section-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 20rpx;
+}
+
 /* 提示信息 */
 .tips {
   margin-top: 20rpx;

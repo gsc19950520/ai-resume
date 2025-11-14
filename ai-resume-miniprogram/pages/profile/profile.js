@@ -160,6 +160,29 @@ Page({
     }
     wx.navigateTo({ url: '/pages/resume/list/list' })
   },
+  
+  // 个人信息编辑
+  editProfile: function() {
+    console.log('editProfile函数被调用，当前userInfo:', this.data.userInfo)
+    
+    // 检查是否为游客状态
+    if (!this.data.userInfo || this.data.userInfo.id === 'guest') {
+      console.log('未登录或游客状态，显示登录提示')
+      this.showLoginTip()
+      return
+    }
+    
+    console.log('已登录，尝试跳转到个人信息编辑页面')
+    wx.navigateTo({
+      url: '/pages/user/detail',
+      success: function(res) {
+        console.log('跳转到个人信息编辑页面成功', res)
+      },
+      fail: function(err) {
+        console.error('跳转到个人信息编辑页面失败:', err)
+      }
+    })
+  },
 
   // 面试历史
   interviewHistory: function() {
@@ -233,14 +256,22 @@ Page({
 
   // 显示登录提示
   showLoginTip: function(callback) {
-    if (!this.data.userInfo) {
+    console.log('showLoginTip函数被调用')
+    // 检查是否为游客状态或未登录
+    if (!this.data.userInfo || this.data.userInfo.id === 'guest') {
       wx.showToast({
         title: '请先登录',
         icon: 'none',
         complete: () => {
           setTimeout(() => {
             wx.navigateTo({
-              url: '/pages/login/login'
+              url: '/pages/login/login',
+              success: function(res) {
+                console.log('跳转到登录页面成功', res)
+              },
+              fail: function(err) {
+                console.error('跳转到登录页面失败:', err)
+              }
             })
           }, 1500)
         }

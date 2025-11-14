@@ -1,0 +1,38 @@
+/* 模板图片样式 */
+.template-image {
+  width: 800rpx;
+  height: 1090rpx;
+}
+
+.image-preview-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20rpx;
+}
+
+/* 操作区域样式 - 位于页面底部往上100rpx */
+.action-container {
+  position: fixed;
+  bottom: 100rpx;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  padding: 20rpx;
+  background-color: transparent;
+}
+
+/* 使用模板按钮样式 */
+.use-template-btn {
+  width: 600rpx;
+  height: 90rpx;
+  line-height: 90rpx;
+  font-size: 32rpx;
+  background-color: #1989fa;
+  color: white;
+  border-radius: 45rpx;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}

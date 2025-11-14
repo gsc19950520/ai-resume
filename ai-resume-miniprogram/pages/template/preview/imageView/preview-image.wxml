@@ -1,0 +1,21 @@
+<!-- 图片预览页面 -->
+<view class="preview-container">
+  <!-- 加载提示 -->
+  <view wx:if="{{loading}}" class="loading-container">
+    <view class="loading">加载中...</view>
+  </view>
+  
+  <!-- 图片预览模式 -->
+  <view wx:elif="{{showMode === 'image' && imagePath}}" class="image-preview-container">
+    <image 
+      src="{{imagePath}}" 
+      mode="aspectFit" 
+      class="template-image" 
+    />
+  </view>
+
+  <!-- 使用模板按钮 -->
+  <view class="action-container">
+    <button class="use-template-btn" bindtap="useTemplate">使用此模板</button>
+  </view>
+</view>

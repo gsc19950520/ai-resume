@@ -4,6 +4,7 @@ import com.aicv.airesume.entity.User;
 import com.aicv.airesume.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
@@ -183,9 +184,20 @@ public class UserController {
      * @return 更新后的用户信息
      */
     @PutMapping("/{id}")
-    public User updateUser(@PathVariable Long id, @RequestBody User userInfo) {
-        // 临时直接返回用户对象，避免方法调用错误
-        return userInfo;
+    public ResponseEntity<User> updateUser(@PathVariable Long id, @RequestBody User userInfo) {
+        try {
+            // 验证ID是否匹配
+            if (!id.equals(userInfo.getId())) {
+                return ResponseEntity.badRequest().body(null);
+            }
+            
+            // 调用服务层更新用户信息
+            User updatedUser = userService.updateUser(userInfo);
+            return ResponseEntity.ok(updatedUser);
+        } catch (Exception e) {
+            // 处理异常，返回500错误
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
     }
 
     /**

@@ -1,7 +1,6 @@
 package com.aicv.airesume.service.impl;
 
 import com.aicv.airesume.repository.ResumeRepository;
-import com.aicv.airesume.repository.TemplateRepository;
 import com.aicv.airesume.repository.UserRepository;
 import com.aicv.airesume.service.StatisticsService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,8 +22,7 @@ public class StatisticsServiceImpl implements StatisticsService {
     @Autowired
     private ResumeRepository resumeRepository;
 
-    @Autowired
-    private TemplateRepository templateRepository;
+
     
     @Autowired
     private RetryUtils retryUtils;
@@ -66,8 +64,8 @@ public class StatisticsServiceImpl implements StatisticsService {
         Long optimizedResumes = 0L;
         stats.put("optimizedResumes", optimizedResumes);
         
-        // 获取模板总数
-        Long totalTemplates = templateRepository.count();
+        // 模板总数 - 已移除模板功能，使用固定值
+        Long totalTemplates = 0L;
         stats.put("totalTemplates", totalTemplates);
         
         return stats;
