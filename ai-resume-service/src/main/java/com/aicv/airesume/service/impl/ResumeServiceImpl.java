@@ -19,17 +19,25 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.io.ByteArrayOutputStream;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.*;
 import javax.persistence.EntityNotFoundException;
+import org.thymeleaf.TemplateEngine;
+import org.thymeleaf.context.Context;
+import org.xhtmlrenderer.pdf.ITextRenderer;
 
 /**
  * 简历服务实现类
  */
 @Service
 public class ResumeServiceImpl implements ResumeService {
+
+    private static final Logger log = LoggerFactory.getLogger(ResumeServiceImpl.class);
 
     @Autowired
     private ResumeRepository resumeRepository;
@@ -153,6 +161,11 @@ public class ResumeServiceImpl implements ResumeService {
                 new RuntimeException("简历不存在")
             );
             
+            // 验证模板ID格式
+            if (!templateId.equals("template-one") && !templateId.equals("template-two")) {
+                throw new RuntimeException("不支持的模板ID格式，请使用template-one或template-two");
+            }
+            
             // 设置模板ID（前端自行处理模板渲染，后端仅保存标识）
             resume.setTemplateId(templateId);
             
@@ -193,7 +206,11 @@ public class ResumeServiceImpl implements ResumeService {
         // 更新可修改的简历字段
         // 1. 模板相关字段
         if (resumeData.containsKey("templateId")) {
-            resume.setTemplateId((String) resumeData.get("templateId"));
+            String templateId = (String) resumeData.get("templateId");
+            // 确保templateId为正确格式（template-one/template-two）
+            if (templateId.equals("template-one") || templateId.equals("template-two")) {
+                resume.setTemplateId(templateId);
+            }
         }
         // templateConfig字段已从Resume实体移除
         
@@ -519,19 +536,64 @@ public class ResumeServiceImpl implements ResumeService {
         }
     }
     
-    // 添加缺失的exportResumeToPdf方法（单参数版本）
+    // PDF生成需要的注入依赖
+    @Autowired
+    private TemplateEngine templateEngine;
+    
+    // 实现exportResumeToPdf方法，使用Thymeleaf和Flying Saucer生成PDF
     @Override
     public byte[] exportResumeToPdf(Long resumeId) {
+        // 默认使用第一个模板
+        return exportResumeToPdf(resumeId, "template-one");
+    }
+    
+    /**
+     * 根据指定模板导出简历为PDF
+     * @param resumeId 简历ID
+     * @param templateId 模板ID
+     * @return PDF字节数组
+     */
+    public byte[] exportResumeToPdf(Long resumeId, String templateId) {
+        // 创建最终变量副本，用于lambda表达式中引用
+        final Long finalResumeId = resumeId;
+
+        // 处理默认模板ID
+        final String finalTemplateId = (templateId == null || templateId.isEmpty()) ? "template-one" : templateId;
         try {
             return retryUtils.executeWithDefaultRetry(() -> {
-                Resume resume = resumeRepository.findById(resumeId)
+                // 1. 获取简历数据
+                Resume resume = resumeRepository.findById(finalResumeId)
                         .orElseThrow(() -> new RuntimeException("简历不存在"));
                 
-                // PDF和Word导出功能已移除，因为不再需要后端渲染
-                // 返回空的byte数组作为默认值
-                return new byte[0];
+                // 2. 获取完整的简历数据，包括关联的所有信息
+                Map<String, Object> resumeData = getResumeFullData(finalResumeId);
+                
+                // 3. 创建Thymeleaf上下文
+                Context context = new Context();
+                context.setVariable("resume", resumeData);
+                context.setVariable("templateId", finalTemplateId);
+                
+                // 4. 渲染HTML
+                String htmlContent = templateEngine.process("resume_template", context);
+                
+                // 5. 设置中文字体支持（可选，需要确保服务器上有中文字体）
+                // 这里使用了默认字体，实际部署时可能需要配置中文字体路径
+                
+                // 6. 使用Flying Saucer将HTML转换为PDF
+                ITextRenderer renderer = new ITextRenderer();
+                // 设置基础URL，用于解析相对路径
+                renderer.setDocumentFromString(htmlContent);
+                renderer.layout();
+                
+                // 7. 输出PDF到字节数组
+                ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+                renderer.createPDF(outputStream);
+                outputStream.close();
+                
+                return outputStream.toByteArray();
             });
         } catch (Exception e) {
+            log.error("导出PDF文档失败，简历ID: {}, 模板ID: {}", finalResumeId, finalTemplateId, e);
             throw new RuntimeException("导出PDF文档失败", e);
         }
     }
@@ -572,6 +634,101 @@ public class ResumeServiceImpl implements ResumeService {
         return false;
     }
 
+    @Override
+    public Map<String, Object> getLatestResumeData(Long userId) {
+        return retryUtils.executeWithDefaultRetrySupplier(() -> {
+            // 获取用户最新的简历（按创建时间降序排序，取第一个）
+            List<Resume> resumeList = resumeRepository.findByUserIdOrderByCreateTimeDesc(userId);
+            if (resumeList != null && !resumeList.isEmpty()) {
+                Resume latestResume = resumeList.get(0);
+                // 调用现有的getResumeFullData方法获取完整数据
+                return getResumeFullData(latestResume.getId());
+            }
+            // 用户没有简历，返回null
+            return null;
+        });
+    }
+    
+    @Override
+    public Resume createResume(Long userId, Map<String, Object> resumeData) {
+        // 检查用户是否存在
+        Optional<User> userOpt = userService.getUserById(userId);
+        if (!userOpt.isPresent()) {
+            throw new RuntimeException("用户不存在");
+        }
+        
+        // 创建新简历对象
+        Resume resume = new Resume();
+        resume.setUserId(userId);
+        resume.setStatus(0); // 设置默认状态
+        resume.setCreateTime(new Date());
+        resume.setUpdateTime(new Date());
+        
+        // 设置基本字段
+        // 1. 模板相关字段
+        if (resumeData.containsKey("templateId")) {
+            String templateId = (String) resumeData.get("templateId");
+            // 确保templateId为正确格式（template-one/template-two）
+            if (templateId.equals("template-one") || templateId.equals("template-two")) {
+                resume.setTemplateId(templateId);
+            }
+        }
+        
+        // 2. 职位相关字段
+        if (resumeData.containsKey("jobTitle")) {
+            resume.setJobTitle((String) resumeData.get("jobTitle"));
+        }
+        
+        // 3. 期望薪资和到岗时间
+        if (resumeData.containsKey("expectedSalary")) {
+            resume.setExpectedSalary((String) resumeData.get("expectedSalary"));
+        }
+        if (resumeData.containsKey("startTime")) {
+            resume.setStartTime((String) resumeData.get("startTime"));
+        }
+        
+        // 4. 职位类型ID关联
+        if (resumeData.containsKey("jobTypeId")) {
+            Object jobTypeIdObj = resumeData.get("jobTypeId");
+            if (jobTypeIdObj instanceof Long) {
+                resume.setJobTypeId((Long) jobTypeIdObj);
+            } else if (jobTypeIdObj instanceof String) {
+                try {
+                    resume.setJobTypeId(Long.parseLong((String) jobTypeIdObj));
+                } catch (NumberFormatException e) {
+                    // 忽略无效的jobTypeId
+                }
+            }
+        }
+        
+        // 处理嵌套对象格式（兼容前端传递的对象格式）
+        if (resumeData.containsKey("personalInfo")) {
+            Map<String, Object> personalInfoMap = (Map<String, Object>) resumeData.get("personalInfo");
+            if (personalInfoMap != null) {
+                if (personalInfoMap.containsKey("jobTitle")) {
+                    resume.setJobTitle((String) personalInfoMap.get("jobTitle"));
+                }
+                if (personalInfoMap.containsKey("selfEvaluation")) {
+                    resume.setSelfEvaluation((String) personalInfoMap.get("selfEvaluation"));
+                }
+                if (personalInfoMap.containsKey("interests")) {
+                    resume.setInterests((String) personalInfoMap.get("interests"));
+                }
+            }
+        }
+        
+        // 保存简历以获取ID
+        resume = resumeRepository.save(resume);
+        
+        // 更新关联数据
+        updateEducationList(resume.getId(), resumeData);
+        updateWorkExperienceList(resume.getId(), resumeData);
+        updateProjectList(resume.getId(), resumeData);
+        updateSkillList(resume.getId(), resumeData);
+        
+        return resume;
+    }
+    
     @Override
     public Map<String, Object> getResumeFullData(Long resumeId) {
         // 创建返回结果Map
@@ -635,5 +792,89 @@ public class ResumeServiceImpl implements ResumeService {
         result.put("skillList", skillList);
         
         return result;
+    }
+    
+    @Override
+    public Resume createResumeWithFullData(Long userId, Map<String, Object> resumeData) {
+        // 创建新简历对象
+        Resume resume = new Resume();
+        resume.setUserId(userId);
+        resume.setCreateTime(new Date());
+        resume.setUpdateTime(new Date());
+        
+        // 设置模板ID（如果有）
+        if (resumeData.containsKey("templateId")) {
+            String templateId = String.valueOf(resumeData.get("templateId"));
+            // 只允许设置已存在的模板ID
+            if ("1".equals(templateId) || "2".equals(templateId) || "3".equals(templateId)) {
+                resume.setTemplateId(templateId);
+            }
+        }
+        
+        // 设置职位名称
+        if (resumeData.containsKey("jobTitle")) {
+            resume.setJobTitle((String) resumeData.get("jobTitle"));
+        }
+        
+        // 设置期望薪资
+        if (resumeData.containsKey("expectedSalary")) {
+            resume.setExpectedSalary((String) resumeData.get("expectedSalary"));
+        }
+        
+        // 设置到岗时间
+        if (resumeData.containsKey("startTime")) {
+            resume.setStartTime((String) resumeData.get("startTime"));
+        }
+        
+        // 设置职位类型ID
+        if (resumeData.containsKey("jobTypeId")) {
+            Object jobTypeIdObj = resumeData.get("jobTypeId");
+            if (jobTypeIdObj != null) {
+                try {
+                    Long jobTypeId = Long.valueOf(jobTypeIdObj.toString());
+                    resume.setJobTypeId(jobTypeId);
+                } catch (NumberFormatException e) {
+                    log.warn("Invalid jobTypeId format: {}", jobTypeIdObj);
+                }
+            }
+        }
+        
+        // 保存简历到数据库
+        resume = resumeRepository.save(resume);
+        
+        // 保存简历相关的结构化数据
+        // 处理个人信息（但注意：个人信息和联系方式现在从User表中获取）
+        if (resumeData.containsKey("personalInfo")) {
+            Map<String, Object> personalInfoMap = (Map<String, Object>) resumeData.get("personalInfo");
+            
+            // 处理个人信息中的其他字段
+            if (personalInfoMap.containsKey("jobTitle")) {
+                resume.setJobTitle((String) personalInfoMap.get("jobTitle"));
+            }
+            
+            if (personalInfoMap.containsKey("selfEvaluation")) {
+                resume.setSelfEvaluation((String) personalInfoMap.get("selfEvaluation"));
+            }
+            
+            if (personalInfoMap.containsKey("interests")) {
+                resume.setInterests((String) personalInfoMap.get("interests"));
+            }
+        }
+        
+        // 更新教育经历列表
+        updateEducationList(resume.getId(), resumeData);
+        
+        // 更新工作经历列表
+        updateWorkExperienceList(resume.getId(), resumeData);
+        
+        // 更新项目经历列表
+        updateProjectList(resume.getId(), resumeData);
+        
+        // 更新技能列表
+        updateSkillList(resume.getId(), resumeData);
+        
+        // 再次保存简历，确保所有字段都被更新
+        resume.setUpdateTime(new Date());
+        return resumeRepository.save(resume);
     }
 }

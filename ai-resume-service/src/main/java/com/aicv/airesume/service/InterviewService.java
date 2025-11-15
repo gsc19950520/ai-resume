@@ -1,7 +1,5 @@
 package com.aicv.airesume.service;
 
-import com.aicv.airesume.entity.InterviewSession;
-import com.aicv.airesume.model.dto.InterviewQuestionDTO;
 import com.aicv.airesume.model.dto.InterviewReportDTO;
 import com.aicv.airesume.model.dto.InterviewResponseDTO;
 import com.aicv.airesume.model.vo.InterviewHistoryVO;

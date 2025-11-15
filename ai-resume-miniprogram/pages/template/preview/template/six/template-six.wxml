@@ -7,18 +7,18 @@
         <image class="avatar" src="{{resumeData.personalInfo.avatar || resumeData.avatar || '/images/avatar.jpg'}}" mode="cover"></image>
 
         <view class="name-box">
-          <text class="name-text">{{resumeData.personalInfo.name || resumeData.name || '请输入姓名'}}</text>
+          <text class="name-text">{{userInfo.name || resumeData.name || '请输入姓名'}}</text>
           <text class="tag">{{resumeData.personalInfo.jobTitle || resumeData.personalInfo.position || resumeData.title || '请输入职位'}}</text>
         </view>
 
         <!-- 顶部联系方式 -->
         <view class="contact-top">
           <view class="contact-row">
-            <text class="contact-item">电话：{{resumeData.personalInfo.phone || resumeData.contact.phone || '请输入电话'}}</text>
+            <text class="contact-item">电话：{{userInfo.phone || resumeData.personalInfo.phone || resumeData.contact.phone || '请输入电话'}}</text>
           </view>
-          <view class="contact-row"><text class="contact-item">邮箱：{{resumeData.personalInfo.email || resumeData.contact.email || '请输入邮箱'}}</text></view>
-          <view class="contact-row"><text class="contact-item">地址：{{resumeData.personalInfo.address || resumeData.contact.address || '请输入地址'}}</text></view>
-          <view class="contact-row"><text class="contact-item">出生日期：{{resumeData.personalInfo.birthDate || resumeData.birth || '请输入出生日期'}}</text></view>
+          <view class="contact-row"><text class="contact-item">邮箱：{{userInfo.email || resumeData.personalInfo.email || resumeData.contact.email || '请输入邮箱'}}</text></view>
+          <view class="contact-row"><text class="contact-item">地址：{{userInfo.address || resumeData.personalInfo.address || resumeData.contact.address || '请输入地址'}}</text></view>
+          <view class="contact-row"><text class="contact-item">出生日期：{{userInfo.birthDate || resumeData.personalInfo.birthDate || resumeData.birth || '请输入出生日期'}}</text></view>
             <view class="contact-row"><text class="contact-item">期望薪资：{{resumeData.personalInfo.expectedSalary || resumeData.salary || '请输入期望薪资'}}</text></view>
           <view class="contact-row"><text class="contact-item">到岗：{{resumeData.personalInfo.startTime || resumeData.entryTime || '请输入到岗时间'}}</text></view>
         </view>

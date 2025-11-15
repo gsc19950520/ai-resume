@@ -9,7 +9,7 @@
       <!-- 左列：姓名、职位 -->
       <view class="header-left">
         <view class="name">
-          <text class="name-text">{{resumeData.personalInfo.name || resumeData.name || '姓名'}}</text>
+          <text class="name-text">{{userInfo.name || resumeData.name || '姓名'}}</text>
         </view>
         <text class="tag">{{resumeData.personalInfo.jobTitle || resumeData.personalInfo.position || resumeData.title || '职位'}}</text>
         <view class="divider"></view>
@@ -21,20 +21,20 @@
       <!-- 右列：联系方式 -->
       <view class="header-right">
         <view class="contact-item">
-          <text class="icon">手机号：</text>
-          <text class="contact-value">{{resumeData.personalInfo.phone || resumeData.contact.phone || '未填写'}}</text>
-        </view>
-        <view class="contact-item">
-          <text class="icon">邮箱：</text>
-          <text class="contact-value">{{resumeData.personalInfo.email || resumeData.contact.email || '未填写'}}</text>
-        </view>
+            <text class="icon">手机号：</text>
+            <text class="contact-value">{{userInfo.phone || resumeData.personalInfo.phone || resumeData.contact.phone || '未填写'}}</text>
+          </view>
+          <view class="contact-item">
+            <text class="icon">邮箱：</text>
+            <text class="contact-value">{{userInfo.email || resumeData.personalInfo.email || resumeData.contact.email || '未填写'}}</text>
+          </view>
         <view class="contact-item">
           <text class="icon">地址：</text>
-          <text class="contact-value">{{resumeData.personalInfo.address || resumeData.contact.address || '未填写'}}</text>
+          <text class="contact-value">{{userInfo.address || resumeData.personalInfo.address || resumeData.contact.address || '未填写'}}</text>
         </view>
         <view class="contact-item">
           <text class="icon">出生日期：</text>
-          <text class="contact-value">{{resumeData.personalInfo.birthDate || resumeData.birth || '未填写'}}</text>
+          <text class="contact-value">{{userInfo.birthDate || resumeData.personalInfo.birthDate || resumeData.birth || '未填写'}}</text>
         </view>
         <view class="contact-item">
           <text class="icon">期望薪资：</text>

@@ -4,7 +4,7 @@
   <view class="left-panel">
     <view class="avatar-container">
       <image class="avatar" src="{{resumeData.personalInfo.avatar || resumeData.avatar || '/images/avatar.jpg'}}" mode="cover" />
-      <view class="name">{{resumeData.personalInfo.name || resumeData.name || '姓名'}}</view>
+      <view class="name">{{userInfo.name || resumeData.name || '姓名'}}</view>
       <view class="title">{{resumeData.personalInfo.jobTitle || resumeData.title || '职位'}}</view>
     </view>
 
@@ -12,16 +12,16 @@
 <view class="contact-section">
   <view class="section-title">个人信息</view>
   <view class="contact-item">
-    <text class="contact-label">电话：</text><text class="contact-value">{{resumeData.personalInfo.phone || resumeData.phone || '请填写电话'}}</text>
+    <text class="contact-label">电话：</text><text class="contact-value">{{userInfo.phone || resumeData.personalInfo.phone || resumeData.phone || '请填写电话'}}</text>
   </view>
   <view class="contact-item">
-    <text class="contact-label">邮箱：</text><text class="contact-value" decode="true">{{resumeData.personalInfo.email || resumeData.email || '请填写邮箱'}}</text>
+    <text class="contact-label">邮箱：</text><text class="contact-value" decode="true">{{userInfo.email || resumeData.personalInfo.email || resumeData.email || '请填写邮箱'}}</text>
   </view>
   <view class="contact-item">
-    <text class="contact-label">地址：</text><text class="contact-value">{{resumeData.personalInfo.address || resumeData.address || '请填写地址'}}</text>
+    <text class="contact-label">地址：</text><text class="contact-value">{{userInfo.address || resumeData.personalInfo.address || resumeData.address || '请填写地址'}}</text>
   </view>
   <view class="contact-item">
-    <text class="contact-label">出生日期：</text><text class="contact-value">{{resumeData.personalInfo.birthDate || resumeData.birth || '请填写出生日期'}}</text>
+    <text class="contact-label">出生日期：</text><text class="contact-value">{{userInfo.birthDate || resumeData.personalInfo.birthDate || resumeData.birth || '请填写出生日期'}}</text>
   </view>
   <view class="contact-item">
     <text class="contact-label">期望薪资：</text><text class="contact-value">{{resumeData.personalInfo.expectedSalary || resumeData.salary || '请填写期望薪资'}}</text>

@@ -10,39 +10,39 @@
     <block wx:if="{{templateId === 'template-one'}}">
       <import src="./template/one/template-one.wxml"/>
       <view class="template-one-container">
-        <template is="template-one" data="{{resumeData}}"/>
+        <template is="template-one" data="{{resumeData, userInfo}}"/>
       </view>
     </block>
     
     <block wx:elif="{{templateId === 'template-two'}}">
       <import src="./template/two/template-two.wxml"/>
       <view class="template-two-container">
-        <template is="template-two" data="{{resumeData}}"/>
+        <template is="template-two" data="{{resumeData, userInfo}}"/>
       </view>
     </block>
     
     <block wx:elif="{{templateId === 'template-three'}}">
       <import src="./template/three/template-three.wxml"/>
       <view class="template-three-container">
-        <template is="template-three" data="{{resumeData}}"/>
+        <template is="template-three" data="{{resumeData, userInfo}}"/>
       </view>
     </block>
     <block wx:elif="{{templateId === 'template-four'}}">
       <import src="./template/four/template-four.wxml"/>
       <view class="template-four-container">
-        <template is="template-four" data="{{resumeData}}"/>
+        <template is="template-four" data="{{resumeData, userInfo}}"/>
       </view>
     </block>
     <block wx:elif="{{templateId === 'template-five'}}">
       <import src="./template/five/template-five.wxml"/>
       <view class="template-five-container">
-        <template is="template-five" data="{{resumeData}}"/>
+        <template is="template-five" data="{{resumeData, userInfo}}"/>
       </view>
     </block>
     <block wx:elif="{{templateId === 'template-six'}}">
       <import src="./template/six/template-six.wxml"/>
       <view class="template-six-container">
-        <template is="template-six" data="{{resumeData}}"/>
+        <template is="template-six" data="{{resumeData, userInfo}}"/>
       </view>
     </block>
   </view>

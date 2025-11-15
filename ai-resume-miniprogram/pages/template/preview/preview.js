@@ -8,6 +8,7 @@ Page({
     imagePath: '/images/template-one.png',  // 默认图片路径
     templateUpdateTime: new Date().getTime(),  // 用于触发视图更新的时间戳
     resumeData: null,  // 简历数据
+    userInfo: null,  // 用户信息
     loading: true,  // 加载状态
     apiBaseUrl: 'https://your-api-base-url/api', // API基础URL
     enableMock: true // 是否启用模拟PDF下载功能
@@ -66,8 +67,44 @@ Page({
       }
     }
     
-    // 加载简历数据
+    // 立即设置一个默认的userInfo，确保页面渲染时不会出现undefined
+    this.setData({
+      userInfo: { name: '用户姓名' }
+    });
+    console.log('onLoad: 初始默认userInfo已设置');
+    
+    // 异步加载用户信息，确保userInfo在页面渲染时可用
+    this.loadUserInfoFromStorage();
+    
+    // 然后加载简历数据
     this.loadResumeData();
+    
+    // 添加一个延时检查，确保userInfo最终被正确设置
+    setTimeout(() => {
+      this.verifyUserInfo();
+    }, 100);
+  },
+  
+  /**
+   * 验证userInfo是否正确设置
+   */
+  verifyUserInfo: function() {
+    console.log('verifyUserInfo: 开始验证userInfo数据');
+    
+    if (!this.data.userInfo || typeof this.data.userInfo !== 'object') {
+      console.warn('verifyUserInfo: userInfo不存在或不是对象，创建默认值');
+      this.setData({
+        userInfo: { name: '用户姓名' }
+      });
+    } else if (!this.data.userInfo.name) {
+      console.warn('verifyUserInfo: userInfo存在但name字段为空，添加默认name');
+      const updatedUserInfo = { ...this.data.userInfo, name: '用户姓名' };
+      this.setData({
+        userInfo: updatedUserInfo
+      });
+    }
+    
+    console.log('verifyUserInfo: 验证完成，最终userInfo:', this.data.userInfo);
   },
   
   /**
@@ -75,6 +112,13 @@ Page({
    */
   loadResumeData: function() {
     try {
+      console.log('开始加载简历数据');
+      // 确保userInfo已加载（冗余保障）
+      if (!this.data.userInfo) {
+        console.log('loadResumeData中检测到userInfo为空，重新加载用户信息');
+        this.loadUserInfoFromStorage();
+      }
+      
       // 检查是否有resumeId参数
       const options = wx.getStorageSync('previewOptions') || {};
       if (options.resumeId) {
@@ -98,7 +142,7 @@ Page({
       } else {
         // 如果没有用户数据，尝试从resumeData获取
         let storedData = wx.getStorageSync('resumeData');
-        console.log('从resumeData获取数据:', JSON.stringify(storedData, null, 2));
+        console.log('从resumeData获取数据:', storedData);
         
         if (storedData && storedData.data) {
           rawData = storedData.data;
@@ -152,15 +196,39 @@ Page({
       }
       
       // 使用规范化函数处理数据，确保数据结构与模板一致
-      console.log('最终使用的数据:', rawData);
+      console.log('最终使用的简历数据:', rawData);
+      console.log('当前userInfo数据:', this.data.userInfo);
+      
+      // 强制确保userInfo不为空
+      if (!this.data.userInfo) {
+        console.log('loadResumeData最后检查：userInfo仍为空，创建默认用户信息');
+        this.setData({
+          userInfo: { name: '用户姓名' }
+        });
+      }
+      
+      // 分两步设置数据，确保userInfo不会被覆盖
+      // 第一步：设置resumeData和loading状态
       this.setData({
         resumeData: rawData,
         loading: false
       });
+      
+      // 第二步：单独确认userInfo已正确设置（即使在第一步中可能被覆盖，这里也会重新设置）
+      this.setData({
+        userInfo: this.data.userInfo || { name: '用户姓名' }
+      });
+      
+      // 再次确认userInfo已正确设置
+      console.log('loadResumeData完成后，userInfo数据:', this.data.userInfo);
+      console.log('loadResumeData完成后，resumeData数据:', this.data.resumeData);
+      
     } catch (error) {
       console.error('加载简历数据失败:', error);
+      // 即使发生错误，也要确保userInfo存在
       this.setData({
-        loading: false
+        loading: false,
+        userInfo: this.data.userInfo || { name: '用户姓名' }
       });
     }
   },
@@ -558,6 +626,68 @@ Page({
   },
   
   /**
+   * 从本地存储加载用户信息
+   */
+  loadUserInfoFromStorage: function() {
+    try {
+      console.log('开始加载用户信息');
+      // 从本地存储获取用户信息
+      const userInfo = wx.getStorageSync('userInfo');
+      if (userInfo) {
+        const parsedUserInfo = typeof userInfo === 'string' ? JSON.parse(userInfo) : userInfo;
+        console.log('从本地存储加载用户信息成功:', parsedUserInfo);
+        
+        // 确保userInfo对象结构完整，如果没有name字段，可以尝试从其他属性获取
+        if (!parsedUserInfo.name && parsedUserInfo.nickName) {
+          parsedUserInfo.name = parsedUserInfo.nickName;
+          console.log('使用nickName作为name字段:', parsedUserInfo.name);
+        }
+        
+        this.setData({
+          userInfo: parsedUserInfo
+        });
+        console.log('设置userInfo后的数据:', this.data.userInfo);
+      } else {
+        console.log('本地存储中无用户信息');
+        // 如果没有用户信息，尝试从app.globalData获取
+        const app = getApp();
+        if (app.globalData && app.globalData.userInfo) {
+          console.log('从app.globalData获取用户信息:', app.globalData.userInfo);
+          
+          // 确保userInfo对象结构完整
+          const globalUserInfo = app.globalData.userInfo;
+          if (!globalUserInfo.name && globalUserInfo.nickName) {
+            globalUserInfo.name = globalUserInfo.nickName;
+            console.log('使用globalData中的nickName作为name字段:', globalUserInfo.name);
+          }
+          
+          this.setData({
+            userInfo: globalUserInfo
+          });
+          console.log('设置globalData的userInfo后的数据:', this.data.userInfo);
+        } else {
+          console.log('app.globalData中也无用户信息');
+          // 如果都没有用户信息，创建一个默认的用户信息对象，确保name字段存在
+          const defaultUserInfo = { name: '用户姓名' };
+          console.log('创建默认用户信息:', defaultUserInfo);
+          this.setData({
+            userInfo: defaultUserInfo
+          });
+          console.log('设置默认userInfo后的数据:', this.data.userInfo);
+        }
+      }
+    } catch (e) {
+      console.error('解析本地存储的用户信息失败:', e);
+      // 发生错误时，创建默认用户信息
+      const defaultUserInfo = { name: '用户姓名' };
+      this.setData({
+        userInfo: defaultUserInfo
+      });
+      console.log('发生错误后设置默认userInfo:', this.data.userInfo);
+    }
+  },
+
+  /**
    * 尝试使用备选方法保存PDF文件
    * @param {ArrayBuffer} pdfData - PDF文件的二进制数据
    * @param {string} fileName - 文件名
@@ -693,7 +823,10 @@ Page({
    * 确保从其他页面返回时，数据是最新的
    */
   onShow: function() {
-    // 每次显示页面时重新加载数据，确保数据同步
+    // 每次显示页面时先重新加载用户信息
+    console.log('页面显示，先加载用户信息');
+    this.loadUserInfoFromStorage();
+    // 然后重新加载简历数据
     console.log('页面显示，重新加载简历数据');
     this.loadResumeData();
   },

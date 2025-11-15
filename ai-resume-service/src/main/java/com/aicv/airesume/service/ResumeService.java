@@ -57,6 +57,14 @@ public interface ResumeService {
     byte[] exportResumeToPdf(Long resumeId);
     
     /**
+     * 根据指定模板导出简历为PDF
+     * @param resumeId 简历ID
+     * @param templateId 模板ID
+     * @return PDF字节数组
+     */
+    byte[] exportResumeToPdf(Long resumeId, String templateId);
+    
+    /**
      * 导出简历为Word
      */
     byte[] exportResumeToWord(Long resumeId);
@@ -94,4 +102,27 @@ public interface ResumeService {
      * @return 更新后的简历对象
      */
     Resume updateResumeContent(Long userId, Long resumeId, Map<String, Object> resumeData);
+    
+    /**
+     * 创建新简历
+     * @param userId 用户ID
+     * @param resumeData 简历数据Map，包含所有需要设置的字段
+     * @return 创建后的简历对象
+     */
+    Resume createResume(Long userId, Map<String, Object> resumeData);
+    
+    /**
+     * 获取用户最新的简历数据
+     * @param userId 用户ID
+     * @return 最新简历的完整数据，如果用户没有简历则返回null
+     */
+    Map<String, Object> getLatestResumeData(Long userId);
+    
+    /**
+     * 创建新简历并保存完整的结构化数据
+     * @param userId 用户ID
+     * @param resumeData 包含完整结构化信息的简历数据Map
+     * @return 创建后的简历对象
+     */
+    Resume createResumeWithFullData(Long userId, Map<String, Object> resumeData);
 }

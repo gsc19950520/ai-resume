@@ -56,17 +56,17 @@
     <view class="right-panel-swapped">
       <view class="avatar-container">
         <image class="avatar" src="{{resumeData.personalInfo.avatar || resumeData.avatar || '/images/avatar.jpg'}}" mode="cover" />
-        <view class="name">{{resumeData.personalInfo.name || resumeData.name || '姓名'}}</view>
+        <view class="name">{{userInfo.name || resumeData.name || '姓名'}}</view>
         <view class="title">{{resumeData.personalInfo.jobTitle || resumeData.personalInfo.position || resumeData.title || '职位'}}</view>
       </view>
 
       <!-- 联系方式 -->
       <view class="contact-section">
         <view class="section-title">个人信息</view>
-        <view wx:if="{{resumeData.personalInfo.phone || resumeData.contact.phone}}" class="contact-item"><text class="contact-label">电话：</text><text class="contact-value">{{resumeData.personalInfo.phone || resumeData.contact.phone}}</text></view>
-        <view wx:if="{{resumeData.personalInfo.email || resumeData.contact.email}}" class="contact-item"><text class="contact-label">邮箱：</text><text class="contact-value">{{resumeData.personalInfo.email || resumeData.contact.email}}</text></view>
-        <view wx:if="{{resumeData.personalInfo.address || resumeData.contact.address}}" class="contact-item"><text class="contact-label">地址：</text><text class="contact-value">{{resumeData.personalInfo.address || resumeData.contact.address}}</text></view>
-        <view wx:if="{{resumeData.personalInfo.birthDate || resumeData.birth}}" class="contact-item"><text class="contact-label">出生日期：</text><text class="contact-value">{{resumeData.personalInfo.birthDate || resumeData.birth}}</text></view>
+        <view wx:if="{{userInfo.phone || resumeData.personalInfo.phone || resumeData.contact.phone}}" class="contact-item"><text class="contact-label">电话：</text><text class="contact-value">{{userInfo.phone || resumeData.personalInfo.phone || resumeData.contact.phone}}</text></view>
+        <view wx:if="{{userInfo.email || resumeData.personalInfo.email || resumeData.contact.email}}" class="contact-item"><text class="contact-label">邮箱：</text><text class="contact-value">{{userInfo.email || resumeData.personalInfo.email || resumeData.contact.email}}</text></view>
+        <view wx:if="{{userInfo.address || resumeData.personalInfo.address || resumeData.contact.address}}" class="contact-item"><text class="contact-label">地址：</text><text class="contact-value">{{userInfo.address || resumeData.personalInfo.address || resumeData.contact.address}}</text></view>
+        <view wx:if="{{userInfo.birthDate || resumeData.personalInfo.birthDate || resumeData.birth}}" class="contact-item"><text class="contact-label">出生日期：</text><text class="contact-value">{{userInfo.birthDate || resumeData.personalInfo.birthDate || resumeData.birth}}</text></view>
         <view wx:if="{{resumeData.personalInfo.expectedSalary || resumeData.salary}}" class="contact-item"><text class="contact-label">期望薪资：</text><text class="contact-value">{{resumeData.personalInfo.expectedSalary || resumeData.salary}}</text></view>
         <view wx:if="{{resumeData.personalInfo.startTime || resumeData.entryTime}}" class="contact-item"><text class="contact-label">入职时间：</text><text class="contact-value">{{resumeData.personalInfo.startTime || resumeData.entryTime}}</text></view>
       </view>

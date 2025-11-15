@@ -6,22 +6,22 @@
       <image class="avatar" src="{{resumeData.personalInfo.avatar || resumeData.avatar || '/images/avatar.jpg'}}" mode="aspectFill"></image>
       <view class="info">
         <view class="name">
-          <view class="name-text">{{resumeData.personalInfo.name || resumeData.name || '姓名'}}</view>
+          <view class="name-text">{{userInfo.name || resumeData.name || '姓名'}}</view>
           <view class="tag">{{resumeData.personalInfo.jobTitle || resumeData.personalInfo.position || resumeData.title || '职位'}}</view>
         </view>
         <view class="contact">
           <!-- 第一行 -->
           <view class="contact-row">
-            <view class="contact-item"><view class="icon">电话：</view><view>{{resumeData.personalInfo.phone || resumeData.contact.phone || resumeData.contactInfo.phone || '未填写'}}</view></view>
+            <view class="contact-item"><view class="icon">电话：</view><view>{{userInfo.phone || resumeData.personalInfo.phone || resumeData.contact.phone || resumeData.contactInfo.phone || '未填写'}}</view></view>
             <view class="divider">|</view>
-            <view class="contact-item"><view class="icon">邮箱：</view><view>{{resumeData.personalInfo.email || resumeData.contact.email || resumeData.contactInfo.email || '未填写'}}</view></view>
+            <view class="contact-item"><view class="icon">邮箱：</view><view>{{userInfo.email || resumeData.personalInfo.email || resumeData.contact.email || resumeData.contactInfo.email || '未填写'}}</view></view>
             <view class="divider">|</view>
-            <view class="contact-item"><view class="icon">地址：</view><view>{{resumeData.personalInfo.address || resumeData.contact.address || resumeData.contactInfo.address || '未填写'}}</view></view>
+            <view class="contact-item"><view class="icon">地址：</view><view>{{userInfo.address || resumeData.personalInfo.address || resumeData.contact.address || resumeData.contactInfo.address || '未填写'}}</view></view>
           </view>
 
           <!-- 第二行 -->
           <view class="contact-row">
-            <view class="contact-item"><view class="icon">出生日期：</view><view>{{resumeData.personalInfo.birthDate || resumeData.birth || '未填写'}}</view></view>
+            <view class="contact-item"><view class="icon">出生日期：</view><view>{{userInfo.birthDate || resumeData.personalInfo.birthDate || resumeData.birth || '未填写'}}</view></view>
             <view class="divider">|</view>
             <view class="contact-item"><view class="icon">期望薪资：</view><view>{{resumeData.personalInfo.expectedSalary || resumeData.salary || '未填写'}}</view></view>
             <view class="divider">|</view>

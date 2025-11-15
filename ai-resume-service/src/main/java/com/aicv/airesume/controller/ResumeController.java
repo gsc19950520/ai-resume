@@ -6,6 +6,8 @@ import com.aicv.airesume.service.ResumeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.ServletOutputStream;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -123,13 +125,61 @@ public class ResumeController {
     /**
      * 导出为PDF
      * @param resumeId 简历ID
-     * @param templateId 模板ID（可选）
-     * @return PDF下载链接
+     * @param response HTTP响应对象
      */
     @Log(description = "导出简历为PDF", recordParams = true, recordResult = false, recordExecutionTime = true)
     @GetMapping("/export/pdf")
-    public byte[] exportToPdf(@RequestParam Long resumeId) {
-        return resumeService.exportResumeToPdf(resumeId);
+    public void exportToPdf(@RequestParam Long resumeId, HttpServletResponse response) {
+        try {
+            // 默认使用第一个模板
+            byte[] pdfBytes = resumeService.exportResumeToPdf(resumeId);
+            
+            // 设置响应头
+            response.setContentType("application/pdf");
+            response.setContentLength(pdfBytes.length);
+            response.setHeader("Content-Disposition", "attachment; filename=resume_" + resumeId + ".pdf");
+            response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+            response.setHeader("Pragma", "no-cache");
+            response.setHeader("Expires", "0");
+            
+            // 写入响应体
+            ServletOutputStream outputStream = response.getOutputStream();
+            outputStream.write(pdfBytes);
+            outputStream.flush();
+            outputStream.close();
+        } catch (Exception e) {
+            throw new RuntimeException("导出PDF失败", e);
+        }
+    }
+    
+    /**
+     * 根据模板导出为PDF
+     * @param resumeId 简历ID
+     * @param templateId 模板ID
+     * @param response HTTP响应对象
+     */
+    @Log(description = "根据模板导出简历为PDF", recordParams = true, recordResult = false, recordExecutionTime = true)
+    @GetMapping("/template/{templateId}/generate-pdf")
+    public void generatePdfByTemplate(@RequestParam Long resumeId, @PathVariable String templateId, HttpServletResponse response) {
+        try {
+            byte[] pdfBytes = resumeService.exportResumeToPdf(resumeId, templateId);
+            
+            // 设置响应头
+            response.setContentType("application/pdf");
+            response.setContentLength(pdfBytes.length);
+            response.setHeader("Content-Disposition", "attachment; filename=resume_" + resumeId + "_" + templateId + ".pdf");
+            response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+            response.setHeader("Pragma", "no-cache");
+            response.setHeader("Expires", "0");
+            
+            // 写入响应体
+            ServletOutputStream outputStream = response.getOutputStream();
+            outputStream.write(pdfBytes);
+            outputStream.flush();
+            outputStream.close();
+        } catch (Exception e) {
+            throw new RuntimeException("根据模板导出PDF失败", e);
+        }
     }
 
     /**
@@ -269,5 +319,60 @@ public class ResumeController {
         }
     }
     
-
+    /**
+     * 创建新简历
+     */
+    @PostMapping("/create")
+    public ResponseEntity<Resume> createResume(@RequestParam Long userId, @RequestBody Map<String, Object> resumeData) {
+        Resume createdResume = resumeService.createResume(userId, resumeData);
+        return ResponseEntity.ok(createdResume);
+    }
+    
+    /**
+     * 获取用户最新的简历数据
+     */
+    @GetMapping("/getLatest")
+    public ResponseEntity<Map<String, Object>> getLatestResumeData(@RequestParam Long userId) {
+        Map<String, Object> latestResumeData = resumeService.getLatestResumeData(userId);
+        if (latestResumeData != null) {
+            return ResponseEntity.ok(latestResumeData);
+        } else {
+            return ResponseEntity.noContent().build();
+        }
+    }
+    
+    /**
+     * 保存或更新简历内容（结构化格式）
+     * 如果简历不存在，则创建新简历
+     * @param userId 用户ID
+     * @param resumeId 简历ID（可选，如果不存在则创建新简历）
+     * @param resumeData 简历数据（包含完整的结构化信息）
+     * @return 保存或更新结果
+     */
+    @Log(description = "保存或更新简历内容（结构化）", recordParams = true, recordResult = true)
+    @PostMapping("/new/structured-content")
+    public ResponseEntity<?> saveOrUpdateResumeStructuredContent(@RequestParam Long userId, @RequestParam(required = false) Long resumeId, @RequestBody Map<String, Object> resumeData) {
+        try {
+            // 如果简历ID存在，则更新现有简历
+            // 如果简历ID不存在，则创建新简历
+            Resume resume;
+            if (resumeId != null) {
+                resume = resumeService.updateResumeContent(userId, resumeId, resumeData);
+            } else {
+                // 创建新简历，传入完整的结构化数据
+                resume = resumeService.createResumeWithFullData(userId, resumeData);
+            }
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", true);
+            result.put("data", resume);
+            result.put("message", resumeId != null ? "简历内容更新成功" : "简历创建成功");
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", false);
+            result.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result);
+        }
+    }
 }

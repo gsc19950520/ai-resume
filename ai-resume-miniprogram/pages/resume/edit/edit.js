@@ -865,27 +865,14 @@ Page({
     };
   },
   
-  // 保存简历数据到后端
+  // 保存简历数据到后端（使用云托管方式）
   saveResumeToBackend: function(resumeId, userId, resumeData) {
-    return new Promise((resolve, reject) => {
-      wx.request({
-        url: `https://your-api-base-url/api/resume/${resumeId}/structured-content?userId=${userId}`,
-        method: 'POST',
-        data: resumeData,
-        success: (res) => {
-          if (res.data && res.data.success) {
-            console.log('保存到后端成功:', res.data);
-            resolve(res.data);
-          } else {
-            console.error('保存到后端失败:', res.data);
-            reject(new Error(res.data.message || '保存失败'));
-          }
-        },
-        fail: (err) => {
-          console.error('请求后端失败:', err);
-          reject(new Error('网络错误，请检查网络连接'));
-        }
-      });
+    console.log('调用云托管接口保存简历数据:', { resumeId, userId });
+    // 使用已导入的云托管请求工具，而不是原生wx.request
+    // 根据项目中的其他接口使用方式，调整路径格式
+    return request.post(`/resume/${resumeId}/structured-content`, {
+      ...resumeData,
+      userId: userId // 将userId放在请求体中
     });
   },
 
@@ -949,22 +936,42 @@ Page({
         // 保存到本地存储
         wx.setStorageSync('resumeData', resumeData);
         
-        // 检查是否有resumeId，如果有则保存到后端
+        // 获取resumeId和userId，加强日志记录
         const resumeId = resumeInfo.id || wx.getStorageSync('currentResumeId');
-        const userId = wx.getStorageSync('userId');
+        const userInfoStr = wx.getStorageSync('userInfo');
+        const userInfo = JSON.parse(userInfoStr);
+        console.log('用户信息:', userInfo);
+        console.log('用户信息2:', userInfo.userId);
+        console.log('用户信息23:', userInfo.id);
+        console.log('用户信息231:', userInfo.nickName);
+        // 同时检查id和userId字段，确保能正确获取用户ID
+        const userId = userInfo ? (userInfo.id || userInfo.userId) : null;
+        console.log('获取的用户ID:', userId);
+        console.log('准备保存到后端:', { resumeId, userId, hasUserInfo: !!userInfo, hasTemplateId: !!resumeInfo.templateId });
         
-        if (resumeId && userId) {
+        // 即使没有resumeId也尝试调用后端，让后端处理新建或更新逻辑
+        if (userId) { // 至少需要userId才能保存到后端
           // 转换为后端需要的格式
           const backendData = this.convertToBackendFormat(resumeInfo);
           
           // 保存到后端
-          this.saveResumeToBackend(resumeId, userId, backendData)
-            .then(() => {
+          this.saveResumeToBackend(resumeId || 'new', userId, backendData)
+            .then((response) => {
+              console.log('后端保存成功，响应数据:', response);
               wx.hideLoading();
               wx.showToast({
                 title: '保存成功并同步到云端',
                 icon: 'success'
               });
+              
+              // 如果是新建简历，保存返回的resumeId
+              if (response && response.resumeId && !resumeId) {
+                console.log('保存新简历ID:', response.resumeId);
+                this.setData({
+                  'resumeInfo.id': response.resumeId
+                });
+                wx.setStorageSync('currentResumeId', response.resumeId);
+              }
               
               // 跳转到简历预览页面，传递模板ID
               setTimeout(() => {
@@ -974,13 +981,13 @@ Page({
               }, 1500);
             })
             .catch((error) => {
+              console.error('后端保存失败:', error);
               wx.hideLoading();
               // 本地保存成功但云端同步失败，仍然提示保存成功
               wx.showToast({
                 title: '本地保存成功',
                 icon: 'success'
               });
-              console.warn('云端同步失败，将使用本地数据:', error);
               
               // 跳转到简历预览页面，传递模板ID
               setTimeout(() => {
@@ -990,6 +997,7 @@ Page({
               }, 1500);
             });
         } else {
+          console.log('没有用户ID，无法保存到后端');
           wx.hideLoading();
           wx.showToast({
             title: '保存成功',

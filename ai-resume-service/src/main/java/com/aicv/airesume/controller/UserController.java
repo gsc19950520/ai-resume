@@ -370,7 +370,7 @@ public class UserController {
                 existingUser.setEmail(email);
                 userToValidate.setEmail(email);
             }
-            if (requestData.containsKey("birthday")) {
+            if (requestData.containsKey("birthDate")) {
                 String birthDate = requestData.get("birthDate").toString();
                 existingUser.setBirthDate(birthDate);
                 userToValidate.setBirthDate(birthDate);
