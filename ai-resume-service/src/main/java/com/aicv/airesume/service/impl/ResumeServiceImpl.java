@@ -6,6 +6,12 @@ import com.aicv.airesume.entity.ResumeProject;
 import com.aicv.airesume.entity.ResumeSkill;
 import com.aicv.airesume.entity.ResumeWorkExperience;
 import com.aicv.airesume.entity.User;
+import com.aicv.airesume.model.dto.ResumeDataDTO;
+import com.aicv.airesume.model.dto.PersonalInfoDTO;
+import com.aicv.airesume.model.dto.EducationDTO;
+import com.aicv.airesume.model.dto.WorkExperienceDTO;
+import com.aicv.airesume.model.dto.ProjectDTO;
+import com.aicv.airesume.model.dto.SkillWithLevelDTO;
 import com.aicv.airesume.repository.*;
 import com.aicv.airesume.service.ResumeService;
 
@@ -84,8 +90,8 @@ public class ResumeServiceImpl implements ResumeService {
         try {
             // 验证文件类型
             if (!FileUtils.isValidFileType(file.getOriginalFilename())) {
-                throw new RuntimeException("不支持的文件类型，请上传PDF或Word文件");
-            }
+                  throw new RuntimeException("不支持的文件类型，请上传PDF或Word文件");
+              }
 
             // 检查用户是否存在
             Optional<User> userOpt = userService.getUserById(userId);
@@ -124,7 +130,7 @@ public class ResumeServiceImpl implements ResumeService {
 
     // 修复返回类型以匹配接口定义
     @Override
-    public List<Resume> getUserResumeList(Long userId) {
+    public List<Resume> getResumeListByUserId(Long userId) {
         return retryUtils.executeWithDefaultRetrySupplier(() -> {
             return resumeRepository.findByUserIdOrderByCreateTimeDesc(userId);
         });
@@ -180,351 +186,6 @@ public class ResumeServiceImpl implements ResumeService {
         });
     }
     
-    @Override
-    public Resume setResumeTemplateConfig(Long userId, Long resumeId, String templateConfig) {
-        return retryUtils.executeWithDefaultRetrySupplier(() -> {
-            // 检查简历权限
-            if (!checkResumePermission(userId, resumeId)) {
-                throw new RuntimeException("无权限操作此简历");
-            }
-            
-            Resume resume = resumeRepository.findById(resumeId).orElseThrow(() -> 
-                new RuntimeException("简历不存在")
-            );
-            
-            // templateConfig字段已从Resume实体移除，不再设置此属性
-            // 仅返回找到的简历对象
-            return resume;
-        });
-    }
-    
-    @Override
-    public Resume updateResumeContent(Long userId, Long resumeId, Map<String, Object> resumeData) {
-        // 检查权限
-        if (!checkResumePermission(userId, resumeId)) {
-            throw new RuntimeException("无权限操作此简历");
-        }
-        
-        // 获取简历
-        Resume resume = resumeRepository.findById(resumeId).orElseThrow(() -> 
-            new RuntimeException("简历不存在")
-        );
-        
-        // 更新可修改的简历字段
-        // 1. 模板相关字段
-        if (resumeData.containsKey("templateId")) {
-            String templateId = (String) resumeData.get("templateId");
-            // 确保templateId为正确格式（template-one/template-two）
-            if (templateId.equals("template-one") || templateId.equals("template-two")) {
-                resume.setTemplateId(templateId);
-            }
-        }
-        // templateConfig字段已从Resume实体移除
-        
-        // 2. 职位相关字段
-        if (resumeData.containsKey("jobTitle")) {
-            resume.setJobTitle((String) resumeData.get("jobTitle"));
-        }
-        
-        // 3. 期望薪资和到岗时间
-        if (resumeData.containsKey("expectedSalary")) {
-            resume.setExpectedSalary((String) resumeData.get("expectedSalary"));
-        }
-        if (resumeData.containsKey("startTime")) {
-            resume.setStartTime((String) resumeData.get("startTime"));
-        }
-        
-        // 4. 职位类型ID关联
-        if (resumeData.containsKey("jobTypeId")) {
-            Object jobTypeIdObj = resumeData.get("jobTypeId");
-            if (jobTypeIdObj instanceof Long) {
-                resume.setJobTypeId((Long) jobTypeIdObj);
-            } else if (jobTypeIdObj instanceof String) {
-                try {
-                    resume.setJobTypeId(Long.parseLong((String) jobTypeIdObj));
-                } catch (NumberFormatException e) {
-                    // 忽略无效的jobTypeId
-                }
-            }
-        }
-        
-        // 处理嵌套对象格式（兼容前端传递的对象格式）
-        if (resumeData.containsKey("personalInfo")) {
-            Map<String, Object> personalInfoMap = (Map<String, Object>) resumeData.get("personalInfo");
-            if (personalInfoMap != null) {
-                // 注意：个人信息（如name）已移至User表，不再通过此接口更新
-                // 仅保留简历特定字段的更新
-                if (personalInfoMap.containsKey("jobTitle")) {
-                    resume.setJobTitle((String) personalInfoMap.get("jobTitle"));
-                }
-                if (personalInfoMap.containsKey("selfEvaluation")) {
-                    resume.setSelfEvaluation((String) personalInfoMap.get("selfEvaluation"));
-                }
-                if (personalInfoMap.containsKey("interests")) {
-                    resume.setInterests((String) personalInfoMap.get("interests"));
-                }
-                // objective和profile已从Resume实体移除
-            }
-        }
-        
-        if (resumeData.containsKey("contact") || resumeData.containsKey("contactInfo")) {
-            Map<String, Object> contactMap = null;
-            if (resumeData.containsKey("contact")) {
-                contactMap = (Map<String, Object>) resumeData.get("contact");
-            } else if (resumeData.containsKey("contactInfo")) {
-                contactMap = (Map<String, Object>) resumeData.get("contactInfo");
-            }
-            
-            if (contactMap != null) {
-                // 注意：个人联系方式（如phone、email）已移至User表，不再通过此接口更新
-                // 仅保留专业社交账号等字段的更新
-                // 社交账号字段已从Resume实体移除
-            }
-        }
-        
-        // 更新教育经历
-        updateEducationList(resumeId, resumeData);
-        
-        // 更新工作经历
-        updateWorkExperienceList(resumeId, resumeData);
-        
-        // 更新项目经历
-        updateProjectList(resumeId, resumeData);
-        
-        // 更新技能
-        updateSkillList(resumeId, resumeData);
-        
-        // 保存更新后的简历
-        return resumeRepository.save(resume);
-    }
-    
-    // 个人信息和联系方式已合并到Resume实体中
-    
-    /**
-     * 更新教育经历列表
-     */
-    private void updateEducationList(Long resumeId, Map<String, Object> resumeData) {
-        if (resumeData.containsKey("education") || resumeData.containsKey("educationList")) {
-            List<Map<String, Object>> educationList = null;
-            
-            if (resumeData.containsKey("educationList")) {
-                educationList = (List<Map<String, Object>>) resumeData.get("educationList");
-            } else if (resumeData.containsKey("education")) {
-                Object educationObj = resumeData.get("education");
-                if (educationObj instanceof String) {
-                    try {
-                        educationList = objectMapper.readValue((String) educationObj, List.class);
-                    } catch (Exception e) {
-                        // 解析失败，忽略
-                    }
-                } else if (educationObj instanceof List) {
-                    educationList = (List<Map<String, Object>>) educationObj;
-                }
-            }
-            
-            if (educationList != null) {
-                // 删除旧的教育经历
-                resumeEducationRepository.deleteByResumeId(resumeId);
-                
-                // 保存新的教育经历
-                for (int i = 0; i < educationList.size(); i++) {
-                    Map<String, Object> eduMap = educationList.get(i);
-                    ResumeEducation education = new ResumeEducation();
-                    education.setResumeId(resumeId);
-                    education.setOrderIndex(i);
-                    
-                    if (eduMap.containsKey("school")) education.setSchool((String) eduMap.get("school"));
-                    if (eduMap.containsKey("degree")) education.setDegree((String) eduMap.get("degree"));
-                    if (eduMap.containsKey("major")) education.setMajor((String) eduMap.get("major"));
-                    if (eduMap.containsKey("startDate")) education.setStartDate((String) eduMap.get("startDate"));
-                    if (eduMap.containsKey("endDate")) education.setEndDate((String) eduMap.get("endDate"));
-                    if (eduMap.containsKey("description")) education.setDescription((String) eduMap.get("description"));
-
-                    
-                    resumeEducationRepository.save(education);
-                }
-            }
-        }
-    }
-    
-    /**
-     * 更新工作经历列表
-     */
-    private void updateWorkExperienceList(Long resumeId, Map<String, Object> resumeData) {
-        if (resumeData.containsKey("workExperience") || resumeData.containsKey("workExperienceList")) {
-            List<Map<String, Object>> workExperienceList = null;
-            
-            if (resumeData.containsKey("workExperienceList")) {
-                workExperienceList = (List<Map<String, Object>>) resumeData.get("workExperienceList");
-            } else if (resumeData.containsKey("workExperience")) {
-                Object workExpObj = resumeData.get("workExperience");
-                if (workExpObj instanceof String) {
-                    try {
-                        workExperienceList = objectMapper.readValue((String) workExpObj, List.class);
-                    } catch (Exception e) {
-                        // 解析失败，忽略
-                    }
-                } else if (workExpObj instanceof List) {
-                    workExperienceList = (List<Map<String, Object>>) workExpObj;
-                }
-            }
-            
-            if (workExperienceList != null) {
-                // 删除旧的工作经历
-                resumeWorkExperienceRepository.deleteByResumeId(resumeId);
-                
-                // 保存新的工作经历
-                for (int i = 0; i < workExperienceList.size(); i++) {
-                    Map<String, Object> workMap = workExperienceList.get(i);
-                    ResumeWorkExperience workExperience = new ResumeWorkExperience();
-                    workExperience.setResumeId(resumeId);
-                    workExperience.setOrderIndex(i);
-                    
-                    if (workMap.containsKey("companyName")) workExperience.setCompanyName((String) workMap.get("companyName"));
-                    if (workMap.containsKey("positionName")) workExperience.setPositionName((String) workMap.get("positionName"));
-                    if (workMap.containsKey("startDate")) workExperience.setStartDate((String) workMap.get("startDate"));
-                    if (workMap.containsKey("endDate")) workExperience.setEndDate((String) workMap.get("endDate"));
-                    if (workMap.containsKey("description")) workExperience.setDescription((String) workMap.get("description"));
-
-                    
-                    resumeWorkExperienceRepository.save(workExperience);
-                }
-            }
-        }
-    }
-    
-    /**
-     * 更新项目经历列表
-     */
-    private void updateProjectList(Long resumeId, Map<String, Object> resumeData) {
-        if (resumeData.containsKey("projects") || resumeData.containsKey("projectExperienceList")) {
-            List<Map<String, Object>> projectList = null;
-            
-            if (resumeData.containsKey("projectExperienceList")) {
-                projectList = (List<Map<String, Object>>) resumeData.get("projectExperienceList");
-            } else if (resumeData.containsKey("projects")) {
-                Object projectObj = resumeData.get("projects");
-                if (projectObj instanceof String) {
-                    try {
-                        projectList = objectMapper.readValue((String) projectObj, List.class);
-                    } catch (Exception e) {
-                        // 解析失败，忽略
-                    }
-                } else if (projectObj instanceof List) {
-                    projectList = (List<Map<String, Object>>) projectObj;
-                }
-            }
-            
-            if (projectList != null) {
-                // 删除旧的项目经历
-                resumeProjectRepository.deleteByResumeId(resumeId);
-                
-                // 保存新的项目经历
-                for (int i = 0; i < projectList.size(); i++) {
-                    Map<String, Object> projectMap = projectList.get(i);
-                    ResumeProject project = new ResumeProject();
-                    project.setResumeId(resumeId);
-                    project.setOrderIndex(i);
-                    
-                    if (projectMap.containsKey("projectName")) project.setProjectName((String) projectMap.get("projectName"));
-                    if (projectMap.containsKey("startDate")) project.setStartDate((String) projectMap.get("startDate"));
-                    if (projectMap.containsKey("endDate")) project.setEndDate((String) projectMap.get("endDate"));
-                    if (projectMap.containsKey("description")) project.setDescription((String) projectMap.get("description"));
-
-                    
-                    resumeProjectRepository.save(project);
-                }
-            }
-        }
-    }
-    
-    /**
-     * 更新技能列表
-     */
-    private void updateSkillList(Long resumeId, Map<String, Object> resumeData) {
-        // 处理skillsWithLevel
-        if (resumeData.containsKey("skillsWithLevel")) {
-            Object skillsWithLevelObj = resumeData.get("skillsWithLevel");
-            List<Map<String, Object>> skillsWithLevelList = null;
-            
-            if (skillsWithLevelObj instanceof String) {
-                try {
-                    skillsWithLevelList = objectMapper.readValue((String) skillsWithLevelObj, List.class);
-                } catch (Exception e) {
-                    // 解析失败，忽略
-                }
-            } else if (skillsWithLevelObj instanceof List) {
-                skillsWithLevelList = (List<Map<String, Object>>) skillsWithLevelObj;
-            }
-            
-            if (skillsWithLevelList != null) {
-                // 删除旧的技能
-                resumeSkillRepository.deleteByResumeId(resumeId);
-                
-                // 保存新的技能
-                for (int i = 0; i < skillsWithLevelList.size(); i++) {
-                    Map<String, Object> skillMap = skillsWithLevelList.get(i);
-                    ResumeSkill skill = new ResumeSkill();
-                    skill.setResumeId(resumeId);
-                    skill.setOrderIndex(i);
-                    
-                    if (skillMap.containsKey("name")) skill.setName((String) skillMap.get("name"));
-                    if (skillMap.containsKey("level")) {
-                        Object levelObj = skillMap.get("level");
-                        if (levelObj instanceof Integer) {
-                            skill.setLevel((Integer) levelObj);
-                        } else if (levelObj instanceof String) {
-                            try {
-                                skill.setLevel(Integer.parseInt((String) levelObj));
-                            } catch (NumberFormatException e) {
-                                // 解析失败，设置默认值
-                                skill.setLevel(3);
-                            }
-                        }
-                    }
-                    
-                    resumeSkillRepository.save(skill);
-                }
-            }
-        } else if (resumeData.containsKey("skills")) {
-            // 处理简单的skills数组
-            Object skillsObj = resumeData.get("skills");
-            List<String> simpleSkillsList = null;
-            
-            if (skillsObj instanceof String) {
-                try {
-                    simpleSkillsList = objectMapper.readValue((String) skillsObj, List.class);
-                } catch (Exception e) {
-                    // 解析失败，尝试其他格式
-                }
-            } else if (skillsObj instanceof List) {
-                List<?> list = (List<?>) skillsObj;
-                if (!list.isEmpty() && list.get(0) instanceof String) {
-                    simpleSkillsList = (List<String>) list;
-                }
-            }
-            
-            if (simpleSkillsList != null) {
-                // 删除旧的技能
-                resumeSkillRepository.deleteByResumeId(resumeId);
-                
-                // 保存新的技能
-                for (int i = 0; i < simpleSkillsList.size(); i++) {
-                    ResumeSkill skill = new ResumeSkill();
-                    skill.setResumeId(resumeId);
-                    skill.setName(simpleSkillsList.get(i));
-                    skill.setLevel(3); // 默认中等水平
-                    skill.setOrderIndex(i);
-                    
-                    resumeSkillRepository.save(skill);
-                }
-            }
-        }
-    }
-
-
-    
-
     
     // 添加缺失的exportResumeToWord方法（单参数版本）
     @Override
@@ -858,87 +519,64 @@ public class ResumeServiceImpl implements ResumeService {
     }
     
     @Override
-    public Resume createResumeWithFullData(Long userId, Map<String, Object> resumeData) {
-        // 创建新简历对象
-        Resume resume = new Resume();
-        resume.setUserId(userId);
-        resume.setCreateTime(new Date());
-        resume.setUpdateTime(new Date());
-        
-        // 设置模板ID（如果有）
-        if (resumeData.containsKey("templateId")) {
-            String templateId = String.valueOf(resumeData.get("templateId"));
-            // 只允许设置已存在的模板ID
-            if ("1".equals(templateId) || "2".equals(templateId) || "3".equals(templateId)) {
-                resume.setTemplateId(templateId);
-            }
-        }
-        
-        // 设置职位名称
-        if (resumeData.containsKey("jobTitle")) {
-            resume.setJobTitle((String) resumeData.get("jobTitle"));
-        }
-        
-        // 设置期望薪资
-        if (resumeData.containsKey("expectedSalary")) {
-            resume.setExpectedSalary((String) resumeData.get("expectedSalary"));
-        }
-        
-        // 设置到岗时间
-        if (resumeData.containsKey("startTime")) {
-            resume.setStartTime((String) resumeData.get("startTime"));
-        }
-        
-        // 设置职位类型ID
-        if (resumeData.containsKey("jobTypeId")) {
-            Object jobTypeIdObj = resumeData.get("jobTypeId");
-            if (jobTypeIdObj != null) {
-                try {
-                    Long jobTypeId = Long.valueOf(jobTypeIdObj.toString());
-                    resume.setJobTypeId(jobTypeId);
-                } catch (NumberFormatException e) {
-                    log.warn("Invalid jobTypeId format: {}", jobTypeIdObj);
+    public Resume createResumeWithFullData(Long userId, ResumeDataDTO resumeDataDTO) {
+        try {
+            // 创建新简历对象
+            Resume resume = new Resume();
+            resume.setUserId(userId);
+            resume.setCreateTime(new Date());
+            resume.setUpdateTime(new Date());
+            
+            // 处理个人信息
+            if (resumeDataDTO.getPersonalInfo() != null) {
+                // 设置职位名称
+                if (resumeDataDTO.getPersonalInfo().getJobTitle() != null) {
+                    resume.setJobTitle(resumeDataDTO.getPersonalInfo().getJobTitle());
+                }
+                
+                // 设置期望薪资
+                if (resumeDataDTO.getPersonalInfo().getExpectedSalary() != null) {
+                    resume.setExpectedSalary(resumeDataDTO.getPersonalInfo().getExpectedSalary());
+                }
+                
+                // 设置到岗时间
+                if (resumeDataDTO.getPersonalInfo().getStartTime() != null) {
+                    resume.setStartTime(resumeDataDTO.getPersonalInfo().getStartTime());
+                }
+                
+                // 设置自我评价
+                if (resumeDataDTO.getPersonalInfo().getSelfEvaluation() != null) {
+                    resume.setSelfEvaluation(resumeDataDTO.getPersonalInfo().getSelfEvaluation());
+                }
+                
+                // 设置兴趣爱好
+                if (resumeDataDTO.getPersonalInfo().getInterests() != null) {
+                    resume.setInterests(String.join(",", resumeDataDTO.getPersonalInfo().getInterests()));
                 }
             }
+            
+            // 保存简历到数据库
+            resume = resumeRepository.save(resume);
+            
+            // 更新教育经历列表
+            updateEducationListWithDTO(resume.getId(), resumeDataDTO.getEducation());
+            
+            // 更新工作经历列表
+            updateWorkExperienceListWithDTO(resume.getId(), resumeDataDTO.getWorkExperience());
+            
+            // 更新项目经历列表
+            updateProjectListWithDTO(resume.getId(), resumeDataDTO.getProjects());
+            
+            // 更新技能列表
+            updateSkillListWithDTO(resume.getId(), resumeDataDTO.getSkillsWithLevel());
+            
+            // 再次保存简历，确保所有字段都被更新
+            resume.setUpdateTime(new Date());
+            return resumeRepository.save(resume);
+        } catch (Exception e) {
+            log.error("创建简历失败，用户ID：{}", userId, e);
         }
-        
-        // 保存简历到数据库
-        resume = resumeRepository.save(resume);
-        
-        // 保存简历相关的结构化数据
-        // 处理个人信息（但注意：个人信息和联系方式现在从User表中获取）
-        if (resumeData.containsKey("personalInfo")) {
-            Map<String, Object> personalInfoMap = (Map<String, Object>) resumeData.get("personalInfo");
-            
-            // 处理个人信息中的其他字段
-            if (personalInfoMap.containsKey("jobTitle")) {
-                resume.setJobTitle((String) personalInfoMap.get("jobTitle"));
-            }
-            
-            if (personalInfoMap.containsKey("selfEvaluation")) {
-                resume.setSelfEvaluation((String) personalInfoMap.get("selfEvaluation"));
-            }
-            
-            if (personalInfoMap.containsKey("interests")) {
-                resume.setInterests((String) personalInfoMap.get("interests"));
-            }
-        }
-        
-        // 更新教育经历列表
-        updateEducationList(resume.getId(), resumeData);
-        
-        // 更新工作经历列表
-        updateWorkExperienceList(resume.getId(), resumeData);
-        
-        // 更新项目经历列表
-        updateProjectList(resume.getId(), resumeData);
-        
-        // 更新技能列表
-        updateSkillList(resume.getId(), resumeData);
-        
-        // 再次保存简历，确保所有字段都被更新
-        resume.setUpdateTime(new Date());
-        return resumeRepository.save(resume);
+        return null;
     }
     
     @Override
@@ -956,77 +594,50 @@ public class ResumeServiceImpl implements ResumeService {
     }
     
     @Override
-    public Resume updateResumeWithFullData(Long resumeId, Map<String, Object> resumeData) {
+    public Resume updateResumeWithFullData(Long resumeId, ResumeDataDTO resumeDataDTO) {
         return retryUtils.executeWithDefaultRetrySupplier(() -> {
             // 获取简历
             Resume resume = resumeRepository.findById(resumeId)
                     .orElseThrow(() -> new RuntimeException("简历不存在"));
             
-            // 设置模板ID（如果有）
-            if (resumeData.containsKey("templateId")) {
-                String templateId = String.valueOf(resumeData.get("templateId"));
-                // 只允许设置已存在的模板ID
-                if ("1".equals(templateId) || "2".equals(templateId) || "3".equals(templateId)) {
-                    resume.setTemplateId(templateId);
-                }
-            }
-            
-            // 设置职位名称
-            if (resumeData.containsKey("jobTitle")) {
-                resume.setJobTitle((String) resumeData.get("jobTitle"));
-            }
-            
-            // 设置期望薪资
-            if (resumeData.containsKey("expectedSalary")) {
-                resume.setExpectedSalary((String) resumeData.get("expectedSalary"));
-            }
-            
-            // 设置到岗时间
-            if (resumeData.containsKey("startTime")) {
-                resume.setStartTime((String) resumeData.get("startTime"));
-            }
-            
-            // 设置职位类型ID
-            if (resumeData.containsKey("jobTypeId")) {
-                Object jobTypeIdObj = resumeData.get("jobTypeId");
-                if (jobTypeIdObj != null) {
-                    try {
-                        Long jobTypeId = Long.valueOf(jobTypeIdObj.toString());
-                        resume.setJobTypeId(jobTypeId);
-                    } catch (NumberFormatException e) {
-                        log.warn("Invalid jobTypeId format: {}", jobTypeIdObj);
-                    }
-                }
-            }
-            
             // 处理个人信息中的字段
-            if (resumeData.containsKey("personalInfo")) {
-                Map<String, Object> personalInfoMap = (Map<String, Object>) resumeData.get("personalInfo");
+            if (resumeDataDTO.getPersonalInfo() != null) {
+                PersonalInfoDTO personalInfo = resumeDataDTO.getPersonalInfo();
                 
-                if (personalInfoMap.containsKey("jobTitle")) {
-                    resume.setJobTitle((String) personalInfoMap.get("jobTitle"));
+                // 设置期望薪资
+                if (personalInfo.getExpectedSalary() != null) {
+                    resume.setExpectedSalary(personalInfo.getExpectedSalary());
                 }
                 
-                if (personalInfoMap.containsKey("selfEvaluation")) {
-                    resume.setSelfEvaluation((String) personalInfoMap.get("selfEvaluation"));
+                // 设置到岗时间
+                if (personalInfo.getStartTime() != null) {
+                    resume.setStartTime(personalInfo.getStartTime());
+                }
+
+                if (personalInfo.getJobTitle() != null) {
+                    resume.setJobTitle(personalInfo.getJobTitle());
                 }
                 
-                if (personalInfoMap.containsKey("interests")) {
-                    resume.setInterests((String) personalInfoMap.get("interests"));
+                if (personalInfo.getSelfEvaluation() != null) {
+                    resume.setSelfEvaluation(personalInfo.getSelfEvaluation());
+                }
+                
+                if (personalInfo.getInterests() != null) {
+                    resume.setInterests(String.join(",", personalInfo.getInterests()));
                 }
             }
             
             // 更新教育经历列表
-            updateEducationList(resumeId, resumeData);
+            updateEducationListWithDTO(resumeId, resumeDataDTO.getEducation());
             
             // 更新工作经历列表
-            updateWorkExperienceList(resumeId, resumeData);
+            updateWorkExperienceListWithDTO(resumeId, resumeDataDTO.getWorkExperience());
             
             // 更新项目经历列表
-            updateProjectList(resumeId, resumeData);
+            updateProjectListWithDTO(resumeId, resumeDataDTO.getProjects());
             
             // 更新技能列表
-            updateSkillList(resumeId, resumeData);
+            updateSkillListWithDTO(resumeId, resumeDataDTO.getSkillsWithLevel());
             
             // 更新时间戳
             resume.setUpdateTime(new Date());
@@ -1034,5 +645,118 @@ public class ResumeServiceImpl implements ResumeService {
             // 保存更新后的简历
             return resumeRepository.save(resume);
         });
+    }
+    
+    /**
+     * 使用DTO更新教育经历列表
+     * @param resumeId 简历ID
+     * @param educationDTOs 教育经历DTO列表
+     */
+    private void updateEducationListWithDTO(Long resumeId, List<EducationDTO> educationDTOs) {
+        if (educationDTOs == null) {
+            return;
+        }
+        
+        // 删除现有教育经历
+        resumeEducationRepository.deleteByResumeId(resumeId);
+        
+        // 添加新的教育经历
+        for (int i = 0; i < educationDTOs.size(); i++) {
+            EducationDTO dto = educationDTOs.get(i);
+            ResumeEducation education = new ResumeEducation();
+            education.setResumeId(resumeId);
+            education.setSchool(dto.getSchool());
+            education.setMajor(dto.getMajor());
+            education.setDegree(dto.getDegree());
+            education.setStartDate(dto.getStartDate());
+            education.setEndDate(dto.getEndDate());
+            education.setDescription(dto.getDescription());
+            education.setOrderIndex(i);
+            
+            resumeEducationRepository.save(education);
+        }
+    }
+    
+    /**
+     * 使用DTO更新工作经历列表
+     * @param resumeId 简历ID
+     * @param workExperienceDTOs 工作经历DTO列表
+     */
+    private void updateWorkExperienceListWithDTO(Long resumeId, List<WorkExperienceDTO> workExperienceDTOs) {
+        if (workExperienceDTOs == null) {
+            return;
+        }
+        
+        // 删除现有工作经历
+        resumeWorkExperienceRepository.deleteByResumeId(resumeId);
+        
+        // 添加新的工作经历
+        for (int i = 0; i < workExperienceDTOs.size(); i++) {
+            WorkExperienceDTO dto = workExperienceDTOs.get(i);
+            ResumeWorkExperience workExperience = new ResumeWorkExperience();
+            workExperience.setResumeId(resumeId);
+            workExperience.setCompanyName(dto.getCompanyName());
+            workExperience.setPositionName(dto.getPositionName());
+            workExperience.setStartDate(dto.getStartDate());
+            workExperience.setEndDate(dto.getEndDate());
+            workExperience.setDescription(dto.getDescription());
+            workExperience.setOrderIndex(i);
+            
+            resumeWorkExperienceRepository.save(workExperience);
+        }
+    }
+    
+    /**
+     * 使用DTO更新项目经历列表
+     * @param resumeId 简历ID
+     * @param projectDTOs 项目经历DTO列表
+     */
+    private void updateProjectListWithDTO(Long resumeId, List<ProjectDTO> projectDTOs) {
+        if (projectDTOs == null) {
+            return;
+        }
+        
+        // 删除现有项目经历
+        resumeProjectRepository.deleteByResumeId(resumeId);
+        
+        // 添加新的项目经历
+        for (int i = 0; i < projectDTOs.size(); i++) {
+            ProjectDTO dto = projectDTOs.get(i);
+            ResumeProject project = new ResumeProject();
+            project.setResumeId(resumeId);
+            project.setProjectName(dto.getProjectName());
+            project.setDescription(dto.getDescription());
+            project.setStartDate(dto.getStartDate());
+            project.setEndDate(dto.getEndDate());
+            project.setOrderIndex(i);
+            
+            resumeProjectRepository.save(project);
+        }
+    }
+    
+    /**
+     * 使用DTO更新技能列表
+     * @param resumeId 简历ID
+     * @param skillDTOs 技能DTO列表
+     */
+    private void updateSkillListWithDTO(Long resumeId, List<SkillWithLevelDTO> skillDTOs) {
+        if (skillDTOs == null) {
+            return;
+        }
+        
+        // 删除现有技能
+        resumeSkillRepository.deleteByResumeId(resumeId);
+        
+        // 添加新的技能
+        for (int i = 0; i < skillDTOs.size(); i++) {
+            SkillWithLevelDTO dto = skillDTOs.get(i);
+            ResumeSkill skill = new ResumeSkill();
+            skill.setResumeId(resumeId);
+            skill.setName(dto.getName());
+            skill.setLevel(dto.getLevel());
+            skill.setOrderIndex(i);
+            
+            resumeSkillRepository.save(skill);
+        }
     }
 }

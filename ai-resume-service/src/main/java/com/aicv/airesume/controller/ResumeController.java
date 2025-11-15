@@ -2,18 +2,28 @@ package com.aicv.airesume.controller;
 
 import com.aicv.airesume.annotation.Log;
 import com.aicv.airesume.entity.Resume;
+import com.aicv.airesume.model.dto.CreateResumeDTO;
+import com.aicv.airesume.model.dto.EducationDTO;
+import com.aicv.airesume.model.dto.PersonalInfoDTO;
+import com.aicv.airesume.model.dto.ProjectDTO;
+import com.aicv.airesume.model.dto.ResumeDataDTO;
+import com.aicv.airesume.model.dto.SkillWithLevelDTO;
+import com.aicv.airesume.model.dto.UpdateResumeDTO;
+import com.aicv.airesume.model.dto.WorkExperienceDTO;
 import com.aicv.airesume.service.ResumeService;
 import org.springframework.beans.factory.annotation.Autowired;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.ServletOutputStream;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import javax.validation.Valid;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 /**
  * 简历控制器
@@ -71,7 +81,7 @@ public class ResumeController {
     @Log(description = "获取用户简历列表", recordParams = true, recordResult = false)
     @GetMapping("/user")
     public Map<String, Object> getUserResumeList(@RequestParam Long userId) {
-        List<Resume> resumeList = resumeService.getUserResumeList(userId);
+        List<Resume> resumeList = resumeService.getResumeListByUserId(userId);
         Map<String, Object> result = new HashMap<>();
         result.put("success", true);
         result.put("data", resumeList);
@@ -203,19 +213,6 @@ public class ResumeController {
     }
     
     /**
-     * 设置简历模板配置
-     * @param userId 用户ID
-     * @param resumeId 简历ID
-     * @param templateConfig 模板配置信息（JSON格式）
-     * @return 更新后的简历信息
-     */
-    @Log(description = "设置简历模板配置", recordParams = true, recordResult = true)
-    @PostMapping("/{resumeId}/template-config")
-    public Resume setResumeTemplateConfig(@RequestParam Long userId, @PathVariable Long resumeId, @RequestBody String templateConfig) {
-        return resumeService.setResumeTemplateConfig(userId, resumeId, templateConfig);
-    }
-    
-    /**
      * 创建新简历（结构化格式）
      * @param userId 用户ID
      * @param resumeData 简历数据（包含完整的结构化信息）
@@ -223,20 +220,14 @@ public class ResumeController {
      */
     @Log(description = "创建新简历（结构化）", recordParams = true, recordResult = true)
     @PostMapping("/")
-    public ResponseEntity<?> createResume(@RequestParam Long userId, 
-                                         @RequestBody Map<String, Object> resumeData) {
+    public ResponseEntity<?> createResume(@Valid @RequestBody CreateResumeDTO createResumeDTO) {
         try {
-            // 参数验证
-            if (resumeData == null) {
-                Map<String, Object> errorResponse = new HashMap<>();
-                errorResponse.put("success", false);
-                errorResponse.put("code", 400);
-                errorResponse.put("message", "简历数据不能为空");
-                return ResponseEntity.badRequest().body(errorResponse);
-            }
+            // 从DTO中提取用户ID和简历数据
+            Long userId = createResumeDTO.getUserId();
+            ResumeDataDTO resumeDataDTO = createResumeDTO.getResumeData();
             
-            // 创建新简历，传入完整的结构化数据
-            Resume resume = resumeService.createResumeWithFullData(userId, resumeData);
+            // 直接传递DTO对象给服务层，不再转换为Map
+            Resume resume = resumeService.createResumeWithFullData(userId, resumeDataDTO);
             
             Map<String, Object> result = new HashMap<>();
             result.put("success", true);
@@ -267,9 +258,8 @@ public class ResumeController {
      */
     @Log(description = "更新简历内容（结构化）", recordParams = true, recordResult = true)
     @PutMapping("/{resumeId}")
-    public ResponseEntity<?> updateResume(@RequestParam Long userId, 
-                                         @PathVariable Long resumeId, 
-                                         @RequestBody Map<String, Object> resumeData) {
+    public ResponseEntity<?> updateResume(@PathVariable Long resumeId, 
+                                         @Valid @RequestBody UpdateResumeDTO updateResumeDTO) {
         try {
             // 参数验证
             if (resumeId == null) {
@@ -280,16 +270,8 @@ public class ResumeController {
                 return ResponseEntity.badRequest().body(errorResponse);
             }
             
-            if (resumeData == null) {
-                Map<String, Object> errorResponse = new HashMap<>();
-                errorResponse.put("success", false);
-                errorResponse.put("code", 400);
-                errorResponse.put("message", "简历数据不能为空");
-                return ResponseEntity.badRequest().body(errorResponse);
-            }
-            
             // 验证用户权限
-            if (!resumeService.checkResumePermission(userId, resumeId)) {
+            if (!resumeService.checkResumePermission(updateResumeDTO.getUserId(), resumeId)) {
                 Map<String, Object> errorResponse = new HashMap<>();
                 errorResponse.put("success", false);
                 errorResponse.put("code", 403);
@@ -298,7 +280,7 @@ public class ResumeController {
             }
             
             // 更新现有简历
-            Resume updatedResume = resumeService.updateResumeWithFullData(resumeId, resumeData);
+            Resume updatedResume = resumeService.updateResumeWithFullData(resumeId, updateResumeDTO.getData());
             
             Map<String, Object> result = new HashMap<>();
             result.put("success", true);

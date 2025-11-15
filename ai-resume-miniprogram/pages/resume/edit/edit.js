@@ -10,7 +10,7 @@ Page({
       { id: 'work', name: '工作经历' },
       { id: 'projects', name: '项目经验' },
       { id: 'skills', name: '专业技能' },
-      { id: 'hobbies', name: '兴趣爱好' },
+      { id: 'interests', name: '兴趣爱好' },
       { id: 'self', name: '自我评价' }
     ],
     // 技能等级
@@ -26,7 +26,7 @@ Page({
         startTime: '',
         jobTypeId: '' // 新增字段，关联职位类型
       },
-      hobbiesText: '',
+      interestsText: '',
       // 技能评分列表
       skillsWithLevel: [
         { name: '', level: 0 }
@@ -73,12 +73,10 @@ Page({
       
       // 如果有模板ID，尝试从本地存储加载对应模板的数据
       if (templateId) {
-        console.log('从options获取模板ID:', templateId);
         
         // 先尝试加载已保存的完整简历数据
         const savedResumeData = wx.getStorageSync('resumeData');
         if (savedResumeData && savedResumeData.templateId === templateId && savedResumeData.data) {
-          console.log('找到并加载模板对应的已保存数据');
           
           // 从保存的数据中提取需要的信息
           const savedData = savedResumeData.data;
@@ -94,8 +92,8 @@ Page({
           };
           
           // 处理兴趣爱好数据
-          if (savedData.hobbies && Array.isArray(savedData.hobbies)) {
-            resumeInfoCopy.hobbiesText = savedData.hobbies.join('\n');
+          if (savedData.interests && Array.isArray(savedData.interests)) {
+            resumeInfoCopy.interestsText = savedData.interests.join('\n');
           }
           
           // 处理技能评分数据
@@ -116,7 +114,6 @@ Page({
             'resumeInfo.templateId': templateId
           });
           
-          console.log('成功加载模板对应的数据:', {educationLength: validatedResumeInfo.education.length, workExperienceLength: validatedResumeInfo.workExperience.length});
         } else {
           // 如果没有找到对应模板的数据，尝试加载临时保存的数据
           const tempResumeInfo = wx.getStorageSync('tempResumeInfo');
@@ -262,17 +259,14 @@ Page({
   
   // 页面显示时重新加载用户信息，确保显示最新数据
   onShow: function() {
-    console.log('edit页面显示，重新加载用户信息');
     this.loadUserInfo();
   },
   
   // 加载职位类型数据
   loadJobTypes: function() {
-    console.log('开始加载职位类型...')
     // 使用云托管方式请求职位类型
     request.get('/job-types', {})
       .then(res => {
-        console.log('职位类型加载成功', res)
         this.setData({
           jobTypes: res || []
         });
@@ -492,9 +486,9 @@ Page({
   },
   
   // 处理兴趣爱好输入
-  onHobbiesInput: function(e) {
+  onInterestsInput: function(e) {
     this.setData({
-      'resumeInfo.hobbiesText': e.detail.value
+      'resumeInfo.interestsText': e.detail.value
     });
     
     // 即时保存数据到本地存储
@@ -799,7 +793,7 @@ Page({
           workExperience: resumeInfo.workExperience,
           projectExperienceList: resumeInfo.projectExperienceList,
           skillsWithLevel: resumeInfo.skillsWithLevel,
-          hobbies: resumeInfo.hobbiesText ? resumeInfo.hobbiesText.split('\n').filter(h => h.trim()) : [],
+          interests: resumeInfo.interestsText ? resumeInfo.interestsText.split('\n').filter(h => h.trim()) : [],
           selfEvaluation: resumeInfo.selfEvaluation
         }
       };
@@ -815,7 +809,8 @@ Page({
   
   // 将前端简历数据转换为后端需要的结构化格式
   convertToBackendFormat: function(resumeInfo) {
-    const hobbies = resumeInfo.hobbiesText ? resumeInfo.hobbiesText.split('\n').filter(h => h.trim()) : [];
+    // 将兴趣爱好文本转换为数组
+    const interests = resumeInfo.interestsText ? resumeInfo.interestsText.split('\n').filter(h => h.trim()) : [];
     
     return {
       // 移除个人信息相关字段，这些信息现在存储在User表中
@@ -824,7 +819,9 @@ Page({
         jobTitle: resumeInfo.personalInfo.jobTitle,
         expectedSalary: resumeInfo.personalInfo.expectedSalary,
         startTime: resumeInfo.personalInfo.startTime,
-        jobTypeId: resumeInfo.personalInfo.jobTypeId
+        jobTypeId: resumeInfo.personalInfo.jobTypeId,
+        interests: interests,
+        selfEvaluation: resumeInfo.selfEvaluation
       },
       // 移除contact字段，这些信息现在存储在User表中
       
@@ -856,32 +853,92 @@ Page({
         technologies: project.technologies || '',
         orderIndex: index
       })),
-      skills: resumeInfo.skillsWithLevel.map((skill, index) => ({
+      // 使用skillsWithLevel替换skills字段
+      skillsWithLevel: resumeInfo.skillsWithLevel.map((skill, index) => ({
         name: skill.name,
         level: skill.level || 1,
         category: skill.category || '专业技能',
         orderIndex: index
-      }))
+      })),
+
     };
   },
   
   // 保存简历数据到后端（使用云托管方式）
   saveResumeToBackend: function(resumeId, userId, resumeData) {
     console.log('调用云托管接口保存简历数据:', { resumeId, userId });
-    // 根据是否为新简历选择不同的API路径和方法
-    if (resumeId === 'new' || !resumeId) {
-      // 创建新简历：POST /api/resume/
-      return request.post(`/resume/`, 
-        resumeData, // 请求体
-        { userId: userId } // 查询参数
-      );
-    } else {
-      // 更新现有简历：PUT /api/resume/{resumeId}
-      return request.put(`/resume/${resumeId}`, 
-        resumeData, // 请求体
-        { userId: userId } // 查询参数
-      );
-    }
+    return new Promise((resolve, reject) => {
+      // 判断是创建新简历还是更新现有简历
+      if (resumeId === 'new' || !resumeId) {
+        // 创建新简历
+        request.post(`/resume/?userId=${userId}`, resumeData)
+          .then(res => {
+            if (res && res.success) {
+              resolve(res);
+            } else {
+              // 处理后端返回的错误信息
+              const errorMessage = res && res.message || '保存失败，请检查简历信息是否完整';
+              wx.showToast({
+                title: errorMessage,
+                icon: 'none',
+                duration: 3000
+              });
+              reject(new Error(errorMessage));
+            }
+          })
+          .catch(err => {
+            // 捕获网络错误或其他错误
+            let errorMessage = '网络错误，请稍后重试';
+            // 尝试从错误响应中获取后端错误信息
+            if (err.response && err.response.data && err.response.data.message) {
+              errorMessage = err.response.data.message;
+            } else if (err.message) {
+              errorMessage = err.message;
+            }
+            
+            wx.showToast({
+              title: errorMessage,
+              icon: 'none',
+              duration: 3000
+            });
+            reject(err);
+          });
+      } else {
+        // 更新现有简历
+        request.put(`/resume/${resumeId}?userId=${userId}`, resumeData)
+          .then(res => {
+            if (res && res.success) {
+              resolve(res);
+            } else {
+              // 处理后端返回的错误信息
+              const errorMessage = res && res.message || '保存失败，请检查简历信息是否完整';
+              wx.showToast({
+                title: errorMessage,
+                icon: 'none',
+                duration: 3000
+              });
+              reject(new Error(errorMessage));
+            }
+          })
+          .catch(err => {
+            // 捕获网络错误或其他错误
+            let errorMessage = '网络错误，请稍后重试';
+            // 尝试从错误响应中获取后端错误信息
+            if (err.response && err.response.data && err.response.data.message) {
+              errorMessage = err.response.data.message;
+            } else if (err.message) {
+              errorMessage = err.message;
+            }
+            
+            wx.showToast({
+              title: errorMessage,
+              icon: 'none',
+              duration: 3000
+            });
+            reject(err);
+          });
+      }
+    });
   },
 
   // 保存简历
@@ -897,6 +954,117 @@ Page({
         });
         return;
       }
+      const personalInfo = resumeInfo.personalInfo
+      // 2. 期望薪资必填校验
+      if (!personalInfo.expectedSalary || personalInfo.expectedSalary.trim() === '') {
+        wx.showToast({
+          title: '请填写期望薪资',
+          icon: 'none'
+        });
+        return;
+      }
+      
+      // 3. 到岗时间必填校验
+      if (!personalInfo.startTime || personalInfo.startTime.trim() === '') {
+        wx.showToast({
+          title: '请填写到岗时间',
+          icon: 'none'
+        });
+        return;
+      }
+      
+      // 4. 职位必填校验
+      if (!personalInfo.jobTitle || personalInfo.jobTitle.trim() === '') {
+        wx.showToast({
+          title: '请填写职位',
+          icon: 'none'
+        });
+        return;
+      }
+      
+      // 5. 教育经历最少一个完整项校验
+      const educationList = resumeInfo.education || [];
+      const hasValidEducation = educationList.some(edu => 
+        edu.school && edu.school.trim() !== '' &&
+        edu.major && edu.major.trim() !== '' &&
+        edu.degree && edu.degree.trim() !== '' &&
+        edu.startDate && edu.startDate.trim() !== '' &&
+        edu.endDate && edu.endDate.trim() !== ''
+      );
+      if (!hasValidEducation) {
+        wx.showToast({
+          title: '请至少填写一个完整的教育经历（学校、专业、学历、起止时间都不能为空）',
+          icon: 'none',
+          duration: 3000
+        });
+        return;
+      }
+      
+      // 6. 工作经历最少一个完整项校验
+      const workExperienceList = resumeInfo.workExperience || [];
+      const hasValidWorkExperience = workExperienceList.some(work => 
+        work.company && work.company.trim() !== '' &&
+        work.position && work.position.trim() !== '' &&
+        work.startDate && work.startDate.trim() !== '' &&
+        work.endDate && work.endDate.trim() !== '' &&
+        work.description && work.description.trim() !== ''
+      );
+      if (!hasValidWorkExperience) {
+        wx.showToast({
+          title: '请至少填写一个完整的工作经历（公司、职位、起止时间，描述都不能为空）',
+          icon: 'none',
+          duration: 3000
+        });
+        return;
+      }
+      
+      // 7. 项目经验最少一个完整项校验
+      const projectExperienceList = resumeInfo.projectExperienceList || [];
+      const hasValidProjectExperience = projectExperienceList.some(project => 
+        project.name && project.name.trim() !== '' &&
+        project.startDate && project.startDate.trim() !== '' &&
+        project.endDate && project.endDate.trim() !== '' && 
+        project.description && project.description.trim() !== ''
+      );
+      if (!hasValidProjectExperience) {
+        wx.showToast({
+          title: '请至少填写一个完整的项目经验（项目名称、起止时间、描述都不能为空）',
+          icon: 'none',
+          duration: 3000
+        });
+        return;
+      }
+      
+      // 8. 专业技能最少填写1个校验
+      const skillsWithLevel = resumeInfo.skillsWithLevel || [];
+      const validSkills = skillsWithLevel.filter(skill => 
+        skill.name && skill.name.trim() !== ''
+      );
+      if (validSkills.length === 0) {
+        wx.showToast({
+          title: '请至少填写1个专业技能',
+          icon: 'none'
+        });
+        return;
+      }
+      
+      // 9. 兴趣爱好必填校验
+      if (!resumeInfo.interestsText || resumeInfo.interestsText.trim() === '') {
+        wx.showToast({
+          title: '请填写兴趣爱好',
+          icon: 'none'
+        });
+        return;
+      }
+      
+      // 10. 自我评价必填校验
+      if (!resumeInfo.selfEvaluation || resumeInfo.selfEvaluation.trim() === '') {
+        wx.showToast({
+          title: '请填写自我评价',
+          icon: 'none'
+        });
+        return;
+      }
 
       wx.showLoading({
         title: '保存并生成简历中...',
@@ -908,22 +1076,22 @@ Page({
       if (saved) {
         // 准备简历数据，包含模板ID
         // 处理兴趣爱好，将文本转换为数组
-        const interests = resumeInfo.hobbiesText ? 
-          resumeInfo.hobbiesText.split(',').map(hobby => hobby.trim()).filter(hobby => hobby !== '') : [];
+        const interests = resumeInfo.interestsText ? 
+          resumeInfo.interestsText.split(',').map(hobby => hobby.trim()).filter(hobby => hobby !== '') : [];
         
         // 处理技能评分数据，过滤掉空技能名称
         const skillsWithLevel = resumeInfo.skillsWithLevel.filter(skill => skill.name.trim() !== '');
         
-        // 为了兼容，也生成简单的技能数组
-        const skills = skillsWithLevel.map(skill => skill.name);
+        // 只使用skillsWithLevel，不生成冗余的skills数组
         
         // 处理项目经验数据，过滤掉空项目名称
         const projectExperienceList = resumeInfo.projectExperienceList.filter(project => project.name.trim() !== '');
         
-        // 确保personalInfo对象存在并包含interests
+        // 确保personalInfo对象存在并包含interests和selfEvaluation
         const personalInfo = {
           ...resumeInfo.personalInfo,
-          interests: interests
+          interests: interests,
+          selfEvaluation: resumeInfo.selfEvaluation
         };
         
         const resumeData = {
@@ -935,9 +1103,7 @@ Page({
             education: resumeInfo.education,
             workExperience: resumeInfo.workExperience,
             projectExperienceList: projectExperienceList,
-            skills: skills,
-            skillsWithLevel: skillsWithLevel,
-            selfEvaluation: resumeInfo.selfEvaluation
+            skillsWithLevel: skillsWithLevel
           }
         };
         
@@ -958,14 +1124,15 @@ Page({
           // 转换为后端需要的格式
           const backendData = this.convertToBackendFormat(resumeInfo);
           
-          // 保存到后端
+          // 保存到后端，优化Promise处理和错误信息展示
           this.saveResumeToBackend(resumeId || 'new', userId, backendData)
             .then((response) => {
               console.log('后端保存成功，响应数据:', response);
               wx.hideLoading();
               wx.showToast({
                 title: '保存成功并同步到云端',
-                icon: 'success'
+                icon: 'success',
+                duration: 2000
               });
               
               // 如果是新建简历，保存返回的resumeId
@@ -989,8 +1156,9 @@ Page({
               wx.hideLoading();
               // 本地保存成功但云端同步失败，仍然提示保存成功
               wx.showToast({
-                title: '本地保存成功',
-                icon: 'success'
+                title: '本地保存成功，但云端同步失败',
+                icon: 'success',
+                duration: 2000
               });
               
               // 跳转到简历预览页面，传递模板ID
@@ -1005,7 +1173,8 @@ Page({
           wx.hideLoading();
           wx.showToast({
             title: '保存成功',
-            icon: 'success'
+            icon: 'success',
+            duration: 2000
           });
           
           // 跳转到简历预览页面，传递模板ID
@@ -1019,7 +1188,8 @@ Page({
         wx.hideLoading();
         wx.showToast({
           title: '保存失败',
-          icon: 'none'
+          icon: 'none',
+          duration: 2000
         });
       }
     } catch (error) {
@@ -1027,7 +1197,8 @@ Page({
       wx.hideLoading();
       wx.showToast({
         title: '保存失败，请重试',
-        icon: 'none'
+        icon: 'none',
+        duration: 2000
       });
     }
   }

@@ -243,10 +243,10 @@
     </view>
 
     <!-- 兴趣爱好部分 -->
-    <view class="edit-section" wx:if="{{currentSection === 'hobbies'}}">
+    <view class="edit-section" wx:if="{{currentSection === 'interests'}}">
       <view class="form-item">
         <text class="label">兴趣爱好</text>
-        <textarea class="textarea" placeholder="请列出您的兴趣爱好，如：阅读、运动、摄影等，用逗号分隔" value="{{resumeInfo.hobbiesText}}" bindinput="onHobbiesInput" />
+        <textarea class="textarea" placeholder="请列出您的兴趣爱好，如：阅读、运动、摄影等，用逗号分隔" value="{{resumeInfo.interestsText}}" bindinput="onInterestsInput" />
       </view>
       
       <view class="tips">

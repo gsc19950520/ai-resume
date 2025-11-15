@@ -6,7 +6,6 @@ const app = getApp()
  * 确保配置一致性，避免重复代码
  */
 const cloudCall = (path, data = {}, method = 'GET', header = {}) => {
-  console.log('使用app.js中的cloudCall方法进行请求:', { path, method })
   return app.cloudCall(path, data, method, header)
 }
 
@@ -20,7 +19,6 @@ const cloudCall = (path, data = {}, method = 'GET', header = {}) => {
  */
 const request = (url, data = {}, method = 'GET', header = {}) => {
   // 强制使用云托管调用（callContainer方式）
-  console.log(`云托管请求: ${method} ${url}`)
   return cloudCall(url, data, method, header)
     .then(res => {
       // 业务状态码处理
@@ -42,9 +40,6 @@ const request = (url, data = {}, method = 'GET', header = {}) => {
           throw new Error(res.message || '请求失败')
         }
       } else {
-        // 如果不是标准响应格式，直接返回响应数据
-        // 这处理后端直接返回List或其他非标准格式的情况
-        console.log('接收到非标准响应格式，直接返回数据:', res)
         return res
       }
     })
