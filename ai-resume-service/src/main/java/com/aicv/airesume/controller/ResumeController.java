@@ -17,6 +17,7 @@ import java.util.Map;
 
 /**
  * 简历控制器
+ * 优化后的控制器，合并了冗余接口，提供统一的API入口
  */
 @RestController
 @RequestMapping("/api/resume")
@@ -52,7 +53,7 @@ public class ResumeController {
     /**
      * AI优化简历
      * @param resumeId 简历ID
-     * @param jobDescription 职位描述（可选）
+     * @param targetJob 目标职位（可选）
      * @return 优化后的简历信息
      */
     @Log(description = "AI优化简历", recordParams = true, recordResult = true)
@@ -63,24 +64,13 @@ public class ResumeController {
 
     /**
      * 获取用户简历列表
-     * @param userId 用户ID
-     * @return 简历列表
+     * 统一接口，使用查询参数传递userId
+     * @param userId 用户ID（查询参数）
+     * @return 简历列表，统一包装在Map中返回
      */
     @Log(description = "获取用户简历列表", recordParams = true, recordResult = false)
-    @GetMapping("/user/{userId}")
-    public List<Resume> getUserResumeList(@PathVariable Long userId) {
-        return resumeService.getUserResumeList(userId);
-    }
-    
-    /**
-     * 获取用户简历列表（支持查询参数形式）
-     * 用于兼容前端调用格式
-     * @param userId 用户ID
-     * @return 简历列表
-     */
-    @Log(description = "获取用户简历列表（查询参数形式）", recordParams = true, recordResult = false)
-    @GetMapping("/user-resumes")
-    public Map<String, Object> getUserResumes(@RequestParam Long userId) {
+    @GetMapping("/user")
+    public Map<String, Object> getUserResumeList(@RequestParam Long userId) {
         List<Resume> resumeList = resumeService.getUserResumeList(userId);
         Map<String, Object> result = new HashMap<>();
         result.put("success", true);
@@ -89,55 +79,63 @@ public class ResumeController {
     }
 
     /**
-     * 根据ID获取简历
-     * @param id 简历ID
+     * 获取简历详情
+     * 统一接口，合并了基础信息和完整数据的获取
+     * @param resumeId 简历ID
+     * @param fullData 是否返回完整数据（默认false）
      * @return 简历信息
      */
     @Log(description = "获取简历详情", recordParams = true, recordResult = true)
-    @GetMapping("/{id}")
-    public Resume getResumeById(@PathVariable Long id) {
-        return resumeService.getResumeById(id);
-    }
-    
-    /**
-     * 获取简历完整数据（包含所有关联信息）
-     * @param resumeId 简历ID
-     * @return 完整的简历数据，包含个人信息、联系方式、教育经历、工作经历、项目经历和技能
-     * 注意：个人信息和联系方式现在从User表中获取，而不是存储在Resume表中
-     */
-    @Log(description = "获取简历完整数据", recordParams = true, recordResult = true)
-    @GetMapping("/{resumeId}/full-data")
-    public Map<String, Object> getResumeFullData(@PathVariable Long resumeId) {
-        return resumeService.getResumeFullData(resumeId);
+    @GetMapping("/{resumeId}")
+    public Object getResume(@PathVariable Long resumeId, @RequestParam(required = false, defaultValue = "false") boolean fullData) {
+        if (fullData) {
+            // 返回完整数据，包含所有关联信息
+            return resumeService.getResumeFullData(resumeId);
+        } else {
+            // 返回基础简历信息
+            return resumeService.getResumeById(resumeId);
+        }
     }
 
     /**
      * 删除简历
-     * @param id 简历ID
+     * @param resumeId 简历ID
      * @param userId 用户ID
      */
     @Log(description = "删除简历", recordParams = true, recordResult = true)
-    @DeleteMapping("/{id}")
-    public boolean deleteResume(@RequestParam Long userId, @PathVariable Long id) {
-        return resumeService.deleteResume(userId, id);
+    @DeleteMapping("/{resumeId}")
+    public boolean deleteResume(@RequestParam Long userId, @PathVariable Long resumeId) {
+        return resumeService.deleteResume(userId, resumeId);
     }
 
     /**
      * 导出为PDF
+     * 统一接口，合并了默认模板和指定模板的导出功能
      * @param resumeId 简历ID
+     * @param templateId 模板ID（可选）
      * @param response HTTP响应对象
      */
     @Log(description = "导出简历为PDF", recordParams = true, recordResult = false, recordExecutionTime = true)
     @GetMapping("/export/pdf")
-    public void exportToPdf(@RequestParam Long resumeId, HttpServletResponse response) {
+    public void exportToPdf(@RequestParam Long resumeId, 
+                           @RequestParam(required = false) String templateId, 
+                           HttpServletResponse response) {
         try {
-            // 默认使用第一个模板
-            byte[] pdfBytes = resumeService.exportResumeToPdf(resumeId);
+            byte[] pdfBytes;
+            String fileName;
+            
+            // 根据是否提供模板ID选择不同的导出方法
+            if (templateId != null && !templateId.isEmpty()) {
+                pdfBytes = resumeService.exportResumeToPdf(resumeId, templateId);
+                fileName = "resume_" + resumeId + "_" + templateId + ".pdf";
+            } else {
+                throw new RuntimeException("templateId不可为空");
+            }
             
             // 设置响应头
             response.setContentType("application/pdf");
             response.setContentLength(pdfBytes.length);
-            response.setHeader("Content-Disposition", "attachment; filename=resume_" + resumeId + ".pdf");
+            response.setHeader("Content-Disposition", "attachment; filename=" + fileName);
             response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
             response.setHeader("Pragma", "no-cache");
             response.setHeader("Expires", "0");
@@ -151,41 +149,10 @@ public class ResumeController {
             throw new RuntimeException("导出PDF失败", e);
         }
     }
-    
-    /**
-     * 根据模板导出为PDF
-     * @param resumeId 简历ID
-     * @param templateId 模板ID
-     * @param response HTTP响应对象
-     */
-    @Log(description = "根据模板导出简历为PDF", recordParams = true, recordResult = false, recordExecutionTime = true)
-    @GetMapping("/template/{templateId}/generate-pdf")
-    public void generatePdfByTemplate(@RequestParam Long resumeId, @PathVariable String templateId, HttpServletResponse response) {
-        try {
-            byte[] pdfBytes = resumeService.exportResumeToPdf(resumeId, templateId);
-            
-            // 设置响应头
-            response.setContentType("application/pdf");
-            response.setContentLength(pdfBytes.length);
-            response.setHeader("Content-Disposition", "attachment; filename=resume_" + resumeId + "_" + templateId + ".pdf");
-            response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-            response.setHeader("Pragma", "no-cache");
-            response.setHeader("Expires", "0");
-            
-            // 写入响应体
-            ServletOutputStream outputStream = response.getOutputStream();
-            outputStream.write(pdfBytes);
-            outputStream.flush();
-            outputStream.close();
-        } catch (Exception e) {
-            throw new RuntimeException("根据模板导出PDF失败", e);
-        }
-    }
 
     /**
      * 导出为Word
      * @param resumeId 简历ID
-     * @param templateId 模板ID（可选）
      * @return Word下载链接
      */
     @Log(description = "导出简历为Word", recordParams = true, recordResult = false, recordExecutionTime = true)
@@ -249,87 +216,114 @@ public class ResumeController {
     }
     
     /**
-     * 更新简历内容（结构化格式）
+     * 创建新简历（结构化格式）
      * @param userId 用户ID
-     * @param resumeId 简历ID
      * @param resumeData 简历数据（包含完整的结构化信息）
-     * @return 更新结果
-     * 注意：个人信息和联系方式现在从User表中获取，不再通过此接口更新
-     * 此接口仅更新Resume表中可修改的字段：期望薪资、到岗时间、职位名称、jobTypeId等
+     * @return 创建结果
      */
-    @Log(description = "更新简历内容（结构化）", recordParams = true, recordResult = true)
-    @PostMapping("/{resumeId}/structured-content")
-    public ResponseEntity<?> updateResumeStructuredContent(@RequestParam Long userId, @PathVariable Long resumeId, @RequestBody Map<String, Object> resumeData) {
-        try {
-            Resume updatedResume = resumeService.updateResumeContent(userId, resumeId, resumeData);
-            Map<String, Object> result = new HashMap<>();
-            result.put("success", true);
-            result.put("data", updatedResume);
-            result.put("message", "简历内容更新成功");
-            return ResponseEntity.ok(result);
-        } catch (Exception e) {
-            Map<String, Object> result = new HashMap<>();
-            result.put("success", false);
-            result.put("message", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result);
-        }
-    }
-    
-    /**
-     * 更新简历内容（兼容格式）
-     * @param userId 用户ID
-     * @param resumeId 简历ID
-     * @param resumeData 简历数据，包含所有需要更新的字段
-     * @return 更新后的简历信息
-     * 注意：个人信息和联系方式现在从User表中获取，不再通过此接口更新
-     * 此接口仅更新Resume表中可修改的字段：期望薪资、到岗时间、职位名称、jobTypeId等
-     */
-    @Log(description = "更新简历内容", recordParams = true, recordResult = true)
-    @PostMapping("/{resumeId}/content")
-    public ResponseEntity<?> updateResumeContent(@RequestParam Long userId, @PathVariable Long resumeId, @RequestBody Map<String, Object> resumeData) {
+    @Log(description = "创建新简历（结构化）", recordParams = true, recordResult = true)
+    @PostMapping("/")
+    public ResponseEntity<?> createResume(@RequestParam Long userId, 
+                                         @RequestBody Map<String, Object> resumeData) {
         try {
             // 参数验证
             if (resumeData == null) {
                 Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("success", false);
                 errorResponse.put("code", 400);
                 errorResponse.put("message", "简历数据不能为空");
                 return ResponseEntity.badRequest().body(errorResponse);
             }
             
-            // 更新简历内容
-            Resume updatedResume = resumeService.updateResumeContent(userId, resumeId, resumeData);
+            // 创建新简历，传入完整的结构化数据
+            Resume resume = resumeService.createResumeWithFullData(userId, resumeData);
             
-            // 构造返回结果
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", true);
-            response.put("data", updatedResume);
-            response.put("message", "简历内容更新成功");
-            
-            return ResponseEntity.ok(response);
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", true);
+            result.put("data", resume);
+            result.put("message", "简历创建成功");
+            return ResponseEntity.ok(result);
         } catch (RuntimeException e) {
             Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
             errorResponse.put("code", 400);
             errorResponse.put("message", e.getMessage());
             return ResponseEntity.badRequest().body(errorResponse);
         } catch (Exception e) {
             Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
             errorResponse.put("code", 500);
-            errorResponse.put("message", "更新简历内容失败: " + e.getMessage());
+            errorResponse.put("message", "操作失败: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
     
     /**
-     * 创建新简历
+     * 更新简历内容（结构化格式）
+     * @param userId 用户ID
+     * @param resumeId 简历ID
+     * @param resumeData 简历数据（包含完整的结构化信息）
+     * @return 更新结果
      */
-    @PostMapping("/create")
-    public ResponseEntity<Resume> createResume(@RequestParam Long userId, @RequestBody Map<String, Object> resumeData) {
-        Resume createdResume = resumeService.createResume(userId, resumeData);
-        return ResponseEntity.ok(createdResume);
+    @Log(description = "更新简历内容（结构化）", recordParams = true, recordResult = true)
+    @PutMapping("/{resumeId}")
+    public ResponseEntity<?> updateResume(@RequestParam Long userId, 
+                                         @PathVariable Long resumeId, 
+                                         @RequestBody Map<String, Object> resumeData) {
+        try {
+            // 参数验证
+            if (resumeId == null) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("success", false);
+                errorResponse.put("code", 400);
+                errorResponse.put("message", "简历ID不能为空");
+                return ResponseEntity.badRequest().body(errorResponse);
+            }
+            
+            if (resumeData == null) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("success", false);
+                errorResponse.put("code", 400);
+                errorResponse.put("message", "简历数据不能为空");
+                return ResponseEntity.badRequest().body(errorResponse);
+            }
+            
+            // 验证用户权限
+            if (!resumeService.checkResumePermission(userId, resumeId)) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("success", false);
+                errorResponse.put("code", 403);
+                errorResponse.put("message", "无权限操作该简历");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse);
+            }
+            
+            // 更新现有简历
+            Resume updatedResume = resumeService.updateResumeWithFullData(resumeId, resumeData);
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", true);
+            result.put("data", updatedResume);
+            result.put("message", "简历更新成功");
+            return ResponseEntity.ok(result);
+        } catch (RuntimeException e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("code", 400);
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(errorResponse);
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("code", 500);
+            errorResponse.put("message", "操作失败: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
     }
     
     /**
      * 获取用户最新的简历数据
+     * @param userId 用户ID
+     * @return 最新简历的完整数据
      */
     @GetMapping("/getLatest")
     public ResponseEntity<Map<String, Object>> getLatestResumeData(@RequestParam Long userId) {
@@ -338,41 +332,6 @@ public class ResumeController {
             return ResponseEntity.ok(latestResumeData);
         } else {
             return ResponseEntity.noContent().build();
-        }
-    }
-    
-    /**
-     * 保存或更新简历内容（结构化格式）
-     * 如果简历不存在，则创建新简历
-     * @param userId 用户ID
-     * @param resumeId 简历ID（可选，如果不存在则创建新简历）
-     * @param resumeData 简历数据（包含完整的结构化信息）
-     * @return 保存或更新结果
-     */
-    @Log(description = "保存或更新简历内容（结构化）", recordParams = true, recordResult = true)
-    @PostMapping("/new/structured-content")
-    public ResponseEntity<?> saveOrUpdateResumeStructuredContent(@RequestParam Long userId, @RequestParam(required = false) Long resumeId, @RequestBody Map<String, Object> resumeData) {
-        try {
-            // 如果简历ID存在，则更新现有简历
-            // 如果简历ID不存在，则创建新简历
-            Resume resume;
-            if (resumeId != null) {
-                resume = resumeService.updateResumeContent(userId, resumeId, resumeData);
-            } else {
-                // 创建新简历，传入完整的结构化数据
-                resume = resumeService.createResumeWithFullData(userId, resumeData);
-            }
-            
-            Map<String, Object> result = new HashMap<>();
-            result.put("success", true);
-            result.put("data", resume);
-            result.put("message", resumeId != null ? "简历内容更新成功" : "简历创建成功");
-            return ResponseEntity.ok(result);
-        } catch (Exception e) {
-            Map<String, Object> result = new HashMap<>();
-            result.put("success", false);
-            result.put("message", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result);
         }
     }
 }

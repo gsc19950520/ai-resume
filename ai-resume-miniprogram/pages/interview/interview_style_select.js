@@ -92,7 +92,7 @@ Page({
         reject(new Error('获取简历超时'));
       }, 15000);
       
-      get('/api/resume/user-resumes', {
+      get('/api/resume/user', {
         userId: this.data.userId
       })
       .then(resData => {

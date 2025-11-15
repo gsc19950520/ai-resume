@@ -868,12 +868,20 @@ Page({
   // 保存简历数据到后端（使用云托管方式）
   saveResumeToBackend: function(resumeId, userId, resumeData) {
     console.log('调用云托管接口保存简历数据:', { resumeId, userId });
-    // 使用已导入的云托管请求工具，而不是原生wx.request
-    // 根据项目中的其他接口使用方式，调整路径格式
-    return request.post(`/resume/${resumeId}/structured-content`, {
-      ...resumeData,
-      userId: userId // 将userId放在请求体中
-    });
+    // 根据是否为新简历选择不同的API路径和方法
+    if (resumeId === 'new' || !resumeId) {
+      // 创建新简历：POST /api/resume/
+      return request.post(`/resume/`, 
+        resumeData, // 请求体
+        { userId: userId } // 查询参数
+      );
+    } else {
+      // 更新现有简历：PUT /api/resume/{resumeId}
+      return request.put(`/resume/${resumeId}`, 
+        resumeData, // 请求体
+        { userId: userId } // 查询参数
+      );
+    }
   },
 
   // 保存简历
@@ -940,13 +948,9 @@ Page({
         const resumeId = resumeInfo.id || wx.getStorageSync('currentResumeId');
         const userInfoStr = wx.getStorageSync('userInfo');
         const userInfo = JSON.parse(userInfoStr);
-        console.log('用户信息:', userInfo);
-        console.log('用户信息2:', userInfo.userId);
-        console.log('用户信息23:', userInfo.id);
-        console.log('用户信息231:', userInfo.nickName);
         // 同时检查id和userId字段，确保能正确获取用户ID
         const userId = userInfo ? (userInfo.id || userInfo.userId) : null;
-        console.log('获取的用户ID:', userId);
+        
         console.log('准备保存到后端:', { resumeId, userId, hasUserInfo: !!userInfo, hasTemplateId: !!resumeInfo.templateId });
         
         // 即使没有resumeId也尝试调用后端，让后端处理新建或更新逻辑
