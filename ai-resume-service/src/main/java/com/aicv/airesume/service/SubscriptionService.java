@@ -1,6 +1,7 @@
 package com.aicv.airesume.service;
 
 import com.aicv.airesume.entity.Order;
+import com.aicv.airesume.model.dto.PayNotifyDTO;
 
 import java.util.List;
 import java.util.Map;
@@ -26,9 +27,19 @@ public interface SubscriptionService {
     void handlePayCallback(Map<String, String> notifyData);
 
     /**
+     * 支付回调处理（使用DTO）
+     */
+    String payNotify(PayNotifyDTO payNotifyDTO);
+
+    /**
      * 查询订单列表
      */
     List<Order> getOrderList(Long userId);
+
+    /**
+     * 分页查询订单列表
+     */
+    List<Order> getOrders(Long userId, int page, int pageSize);
 
     /**
      * 根据订单号查询订单

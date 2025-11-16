@@ -201,6 +201,136 @@ Page({
     })
   },
 
+  // 选择头像
+  chooseAvatar: function() {
+    const that = this
+    
+    wx.showActionSheet({
+      itemList: ['从相册选择', '拍照'],
+      success: function(res) {
+        const sourceType = res.tapIndex === 0 ? ['album'] : ['camera']
+        
+        wx.chooseMedia({
+          count: 1,
+          mediaType: ['image'],
+          sourceType: sourceType,
+          sizeType: ['compressed'], // 使用压缩图片
+          success: function(res) {
+            const tempFilePath = res.tempFiles[0].tempFilePath
+            
+            // 显示加载状态
+            that.setData({
+              isLoading: true,
+              loadingMessage: '头像上传中...'
+            })
+            
+            // 将图片转换为base64
+            wx.getFileSystemManager().readFile({
+              filePath: tempFilePath,
+              encoding: 'base64',
+              success: function(base64Res) {
+                // 获取图片格式
+                const fileExt = tempFilePath.match(/\.([^.]+)$/)?.[1] || 'jpeg'
+                const base64Data = `data:image/${fileExt};base64,${base64Res.data}`
+                
+                // 先更新本地显示
+                that.setData({
+                  'userInfo.avatarUrl': base64Data
+                })
+                
+                // 上传到后端
+                that.uploadAvatarToServer(base64Data)
+              },
+              fail: function(error) {
+                console.error('图片转base64失败:', error)
+                that.setData({
+                  isLoading: false
+                })
+                wx.showToast({
+                  title: '图片处理失败',
+                  icon: 'none'
+                })
+              }
+            })
+          },
+          fail: function(error) {
+            console.log('选择图片失败:', error)
+          }
+        })
+      },
+      fail: function(error) {
+        console.log('取消选择')
+      }
+    })
+  },
+
+  // 上传头像到后端
+  uploadAvatarToServer: function(base64Data) {
+    const that = this
+    
+    // 获取用户信息
+    let userInfo = app.globalData.userInfo
+    if (!userInfo || !userInfo.openId) {
+      try {
+        const storedUserInfo = wx.getStorageSync('userInfo')
+        if (storedUserInfo) {
+          userInfo = typeof storedUserInfo === 'string' ? JSON.parse(storedUserInfo) : storedUserInfo
+        }
+      } catch (e) {
+        console.error('解析本地存储用户信息失败:', e)
+      }
+    }
+    
+    if (!userInfo || !userInfo.openId) {
+      that.setData({ isLoading: false })
+      wx.showToast({
+        title: '请先登录',
+        icon: 'none'
+      })
+      return
+    }
+    
+    // 导入UserService
+    const UserService = require('../../services/user.js').default
+    
+    // 调用UserService上传头像
+    UserService.uploadAvatar(userInfo.openId, base64Data)
+      .then(res => {
+        that.setData({ isLoading: false })
+        
+        wx.showToast({
+          title: '头像上传成功',
+          icon: 'success',
+          duration: 2000
+        })
+        
+        // 更新全局用户信息
+        const updatedUserInfo = {
+          ...userInfo,
+          avatarUrl: base64Data
+        }
+        app.globalData.userInfo = updatedUserInfo
+        wx.setStorageSync('userInfo', JSON.stringify(updatedUserInfo))
+        wx.setStorageSync('userInfoLocal', JSON.stringify(updatedUserInfo))
+        
+      })
+      .catch(error => {
+        console.error('头像上传失败:', error)
+        that.setData({ isLoading: false })
+        
+        // 上传失败，恢复原来的头像
+        const originalAvatar = userInfo.avatarUrl || '/images/avatar.jpg'
+        that.setData({
+          'userInfo.avatarUrl': originalAvatar
+        })
+        
+        wx.showToast({
+          title: error.message || '头像上传失败',
+          icon: 'none'
+        })
+      })
+  },
+
   // 保存用户信息
   saveUserInfo: function() {
     console.log('点击保存按钮')

@@ -16,4 +16,5 @@ public class SalaryRangeVO {
     private String level;
     private String salaryRange;
     private Integer suggestedSalary;
+    private String reason;
 }

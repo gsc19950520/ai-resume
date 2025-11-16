@@ -1,5 +1,10 @@
 package com.aicv.airesume.controller;
 
+import com.aicv.airesume.model.dto.BuyMembershipDTO;
+import com.aicv.airesume.model.dto.BuyOptimizePackageDTO;
+import com.aicv.airesume.model.dto.BuyTemplatePackageDTO;
+import com.aicv.airesume.model.dto.PayNotifyDTO;
+import com.aicv.airesume.model.vo.BaseResponseVO;
 import com.aicv.airesume.service.SubscriptionService;
 import com.aicv.airesume.utils.TokenUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,8 +29,8 @@ public class SubscriptionController {
      * 购买会员
      */
     @PostMapping("/buy/membership")
-    public Object buyMembership(
-            @RequestBody Map<String, Integer> request,
+    public BaseResponseVO buyMembership(
+            @RequestBody BuyMembershipDTO buyMembershipDTO,
             @RequestHeader("Authorization") String token) {
         
         Long userId = tokenUtils.getUserIdFromToken(token.replace("Bearer ", ""));
@@ -33,20 +38,21 @@ public class SubscriptionController {
             throw new RuntimeException("Token无效");
         }
         
-        Integer days = request.get("days");
+        Integer days = buyMembershipDTO.getDays();
         if (days == null) {
             throw new RuntimeException("天数不能为空");
         }
         
-        return subscriptionService.buyMembership(userId, days);
+        Object result = subscriptionService.buyMembership(userId, days);
+        return BaseResponseVO.success(result);
     }
 
     /**
      * 购买优化次数包
      */
-    @PostMapping("/buy/optimize")
-    public Object buyOptimizePackage(
-            @RequestBody Map<String, Integer> request,
+    @PostMapping("/buy/optimize-package")
+    public BaseResponseVO buyOptimizePackage(
+            @RequestBody BuyOptimizePackageDTO buyOptimizePackageDTO,
             @RequestHeader("Authorization") String token) {
         
         Long userId = tokenUtils.getUserIdFromToken(token.replace("Bearer ", ""));
@@ -54,20 +60,21 @@ public class SubscriptionController {
             throw new RuntimeException("Token无效");
         }
         
-        Integer count = request.get("count");
+        Integer count = buyOptimizePackageDTO.getCount();
         if (count == null) {
-            throw new RuntimeException("次数不能为空");
+            throw new RuntimeException("数量不能为空");
         }
         
-        return subscriptionService.buyOptimizePackage(userId, count);
+        Object result = subscriptionService.buyOptimizePackage(userId, count);
+        return BaseResponseVO.success(result);
     }
 
     /**
      * 购买模板包
      */
-    @PostMapping("/buy/template")
-    public Object buyTemplatePackage(
-            @RequestBody Map<String, Long> request,
+    @PostMapping("/buy/template-package")
+    public BaseResponseVO buyTemplatePackage(
+            @RequestBody BuyTemplatePackageDTO buyTemplatePackageDTO,
             @RequestHeader("Authorization") String token) {
         
         Long userId = tokenUtils.getUserIdFromToken(token.replace("Bearer ", ""));
@@ -75,38 +82,38 @@ public class SubscriptionController {
             throw new RuntimeException("Token无效");
         }
         
-        Long templateId = request.get("templateId");
+        Long templateId = buyTemplatePackageDTO.getTemplateId();
         if (templateId == null) {
             throw new RuntimeException("模板ID不能为空");
         }
         
-        return subscriptionService.buyTemplatePackage(userId, templateId);
+        Object result = subscriptionService.buyTemplatePackage(userId, templateId);
+        return BaseResponseVO.success(result);
     }
 
     /**
      * 获取订单列表
      */
     @GetMapping("/orders")
-    public Object getOrders(@RequestHeader("Authorization") String token) {
+    public BaseResponseVO getOrders(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestHeader("Authorization") String token) {
         
         Long userId = tokenUtils.getUserIdFromToken(token.replace("Bearer ", ""));
         if (userId == null) {
             throw new RuntimeException("Token无效");
         }
         
-        return subscriptionService.getOrderList(userId);
+        Object result = subscriptionService.getOrders(userId, page, size);
+        return BaseResponseVO.success(result);
     }
 
     /**
      * 支付回调
      */
     @PostMapping("/pay/notify")
-    public String payNotify(@RequestBody Map<String, String> notifyData) {
-        try {
-            subscriptionService.handlePayCallback(notifyData);
-            return "<xml><return_code><![CDATA[SUCCESS]]></return_code><return_msg><![CDATA[OK]]></return_msg></xml>";
-        } catch (Exception e) {
-            return "<xml><return_code><![CDATA[FAIL]]></return_code><return_msg><![CDATA[" + e.getMessage() + "]]></return_msg></xml>";
-        }
+    public String payNotify(@RequestBody PayNotifyDTO payNotifyDTO) {
+        return subscriptionService.payNotify(payNotifyDTO);
     }
 }

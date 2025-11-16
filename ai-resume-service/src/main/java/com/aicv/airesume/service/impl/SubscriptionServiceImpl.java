@@ -1,6 +1,7 @@
 package com.aicv.airesume.service.impl;
 
 import com.aicv.airesume.entity.Order;
+import com.aicv.airesume.model.dto.PayNotifyDTO;
 import com.aicv.airesume.repository.OrderRepository;
 import com.aicv.airesume.service.SubscriptionService;
 import com.aicv.airesume.service.UserService;
@@ -44,6 +45,41 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     @Transactional
     @Override
     public void handlePayCallback(Map<String, String> notifyData) {
+    }
+
+    @Override
+    public String payNotify(PayNotifyDTO payNotifyDTO) {
+        try {
+            // 将DTO转换为Map供现有方法使用
+            Map<String, String> notifyData = convertPayNotifyDTOToMap(payNotifyDTO);
+            handlePayCallback(notifyData);
+            return "<xml><return_code><![CDATA[SUCCESS]]></return_code><return_msg><![CDATA[OK]]></return_msg></xml>";
+        } catch (Exception e) {
+            return "<xml><return_code><![CDATA[FAIL]]></return_code><return_msg><![CDATA[" + e.getMessage() + "]]></return_msg></xml>";
+        }
+    }
+
+    /**
+     * 将PayNotifyDTO转换为Map
+     */
+    private Map<String, String> convertPayNotifyDTOToMap(PayNotifyDTO dto) {
+        Map<String, String> map = new HashMap<>();
+        if (dto.getReturnCode() != null) map.put("return_code", dto.getReturnCode());
+        if (dto.getAppid() != null) map.put("appid", dto.getAppid());
+        if (dto.getMchId() != null) map.put("mch_id", dto.getMchId());
+        if (dto.getNonceStr() != null) map.put("nonce_str", dto.getNonceStr());
+        if (dto.getSign() != null) map.put("sign", dto.getSign());
+        if (dto.getResultCode() != null) map.put("result_code", dto.getResultCode());
+        if (dto.getOpenid() != null) map.put("openid", dto.getOpenid());
+        if (dto.getIsSubscribe() != null) map.put("is_subscribe", dto.getIsSubscribe());
+        if (dto.getTradeType() != null) map.put("trade_type", dto.getTradeType());
+        if (dto.getBankType() != null) map.put("bank_type", dto.getBankType());
+        if (dto.getTotalFee() != null) map.put("total_fee", dto.getTotalFee().toString());
+        if (dto.getFeeType() != null) map.put("fee_type", dto.getFeeType());
+        if (dto.getTransactionId() != null) map.put("transaction_id", dto.getTransactionId());
+        if (dto.getOutTradeNo() != null) map.put("out_trade_no", dto.getOutTradeNo());
+        if (dto.getTimeEnd() != null) map.put("time_end", dto.getTimeEnd());
+        return map;
     }
 
     @Override

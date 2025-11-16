@@ -77,4 +77,50 @@ public class StatisticsServiceImpl implements StatisticsService {
         // 现在只是记录到控制台
         System.out.println("User action recorded: userId=" + userId + ", action=" + action + ", data=" + data);
     }
+
+    @Override
+    public Map<String, Object> getUserActionStatistics() {
+        Map<String, Object> stats = new HashMap<>();
+        
+        // 获取用户行为统计 - 临时使用固定值
+        Long totalActions = 0L;
+        stats.put("totalActions", totalActions);
+        
+        // 获取今日用户行为统计 - 临时使用固定值
+        Long todayActions = 0L;
+        stats.put("todayActions", todayActions);
+        
+        // 获取本周用户行为统计 - 临时使用固定值
+        Long weekActions = 0L;
+        stats.put("weekActions", weekActions);
+        
+        // 获取本月用户行为统计 - 临时使用固定值
+        Long monthActions = 0L;
+        stats.put("monthActions", monthActions);
+        
+        return stats;
+    }
+
+    @Override
+    public Map<String, Object> getSystemActionStatistics() {
+        Map<String, Object> stats = new HashMap<>();
+        
+        // 获取系统行为统计 - 临时使用固定值
+        Long totalActions = 0L;
+        stats.put("totalActions", totalActions);
+        
+        // 获取今日系统行为统计 - 临时使用固定值
+        Long todayActions = 0L;
+        stats.put("todayActions", todayActions);
+        
+        // 获取本周系统行为统计 - 临时使用固定值
+        Long weekActions = 0L;
+        stats.put("weekActions", weekActions);
+        
+        // 获取本月系统行为统计 - 临时使用固定值
+        Long monthActions = 0L;
+        stats.put("monthActions", monthActions);
+        
+        return stats;
+    }
 }

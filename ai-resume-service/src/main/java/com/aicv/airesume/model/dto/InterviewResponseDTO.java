@@ -15,4 +15,11 @@ public class InterviewResponseDTO {
     private Long startTime;
     private Long endTime;
     private Map<String, Object> additionalInfo;
+    private String question;
+    private String questionType;
+    private Double score;
+    private String feedback;
+    private String nextQuestion;
+    private String nextQuestionType;
+    private Boolean isCompleted;
 }

@@ -1,6 +1,9 @@
 package com.aicv.airesume.controller;
 
 import com.aicv.airesume.entity.User;
+import com.aicv.airesume.model.dto.WechatLoginDTO;
+import com.aicv.airesume.model.vo.WechatLoginVO;
+import com.aicv.airesume.model.vo.BaseResponseVO;
 import com.aicv.airesume.service.StatisticsService;
 import com.aicv.airesume.service.UserService;
 
@@ -47,8 +50,13 @@ public class UserController {
      * @return 用户信息
      */
     @GetMapping("/{id}")
-    public User getUserById(@PathVariable Long id) {
-        return userService.getUserById(id).orElse(null);
+    public BaseResponseVO getUserById(@PathVariable Long id) {
+        try {
+            User user = userService.getUserById(id).orElse(null);
+            return BaseResponseVO.success(user);
+        } catch (Exception e) {
+            return BaseResponseVO.error("获取用户信息失败: " + e.getMessage());
+        }
     }
 
     /**
@@ -101,18 +109,18 @@ public class UserController {
 
     /**
      * 微信登录
-     * @param request 请求参数，包含code和用户信息
+     * @param wechatLoginDTO 微信登录DTO
      * @return 登录结果
      */
     @PostMapping("/wechat-login")
-    public ResponseEntity<Map<String, Object>> wechatLogin(@RequestBody Map<String, Object> request) {
-        String code = (String) request.get("code");
+    public ResponseEntity<BaseResponseVO> wechatLogin(@RequestBody WechatLoginDTO wechatLoginDTO) {
+        String code = wechatLoginDTO.getCode();
         if (code == null || code.isEmpty()) {
             throw new IllegalArgumentException("登录code不能为空");
         }
         
         // 从请求中获取用户信息（可选）
-        Map<String, Object> userInfoMap = null;
+        Map<String, Object> userInfoMap = wechatLoginDTO.getUserInfo();
         String nickname = null;
         String avatarUrl = null;
         Integer gender = null;
@@ -120,8 +128,7 @@ public class UserController {
         String province = null;
         String city = null;
         
-        if (request.containsKey("userInfo")) {
-            userInfoMap = (Map<String, Object>) request.get("userInfo");
+        if (userInfoMap != null) {
             nickname = userInfoMap != null ? (String) userInfoMap.get("nickName") : null;
             avatarUrl = userInfoMap != null ? (String) userInfoMap.get("avatarUrl") : null;
             gender = userInfoMap != null && userInfoMap.get("gender") != null ? 
@@ -156,35 +163,29 @@ public class UserController {
         // 生成token
         String token = userService.generateToken(user.getId());
         
-        // 创建响应对象
-        Map<String, Object> response = new HashMap<>();
-        response.put("code", 0);
-        response.put("message", "登录成功");
+        // 构建响应VO
+        WechatLoginVO wechatLoginVO = new WechatLoginVO();
+        wechatLoginVO.setToken(token);
+        wechatLoginVO.setUserId(user.getId());
+        wechatLoginVO.setOpenId(user.getOpenId());
         
-        // 构建数据部分
-        Map<String, Object> data = new HashMap<>();
-        data.put("token", token);
-        data.put("userId", user.getId()); // 系统内部主键ID
-        data.put("openId", user.getOpenId());
+        // 构建用户信息
+        WechatLoginVO.UserInfoVO userInfoVO = new WechatLoginVO.UserInfoVO();
+        userInfoVO.setId(user.getId());
+        userInfoVO.setUserId(user.getId());
+        userInfoVO.setOpenId(user.getOpenId());
+        userInfoVO.setNickName(user.getNickname());
+        userInfoVO.setAvatarUrl(user.getAvatarUrl());
+        userInfoVO.setGender(user.getGender());
+        userInfoVO.setCity(user.getCity());
+        userInfoVO.setProvince(user.getProvince());
+        userInfoVO.setCountry(user.getCountry());
+        userInfoVO.setVip(user.getVip());
+        userInfoVO.setRemainingOptimizeCount(user.getRemainingOptimizeCount());
         
-        // 构建用户信息对象
-        Map<String, Object> userInfoResponse = new HashMap<>();
-        userInfoResponse.put("id", user.getId()); // 系统内部主键ID
-        userInfoResponse.put("userId", user.getId()); // 兼容前端使用userId字段
-        userInfoResponse.put("openId", user.getOpenId());
-        userInfoResponse.put("nickName", user.getNickname());
-        userInfoResponse.put("avatarUrl", user.getAvatarUrl());
-        userInfoResponse.put("gender", user.getGender());
-        userInfoResponse.put("city", user.getCity());
-        userInfoResponse.put("province", user.getProvince());
-        userInfoResponse.put("country", user.getCountry());
-        userInfoResponse.put("vip", user.getVip());
-        userInfoResponse.put("remainingOptimizeCount", user.getRemainingOptimizeCount());
+        wechatLoginVO.setUserInfo(userInfoVO);
         
-        data.put("userInfo", userInfoResponse);
-        response.put("data", data);
-        
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(BaseResponseVO.success(wechatLoginVO));
     }
 
     /**
@@ -194,19 +195,19 @@ public class UserController {
      * @return 更新后的用户信息
      */
     @PutMapping("/{id}")
-    public ResponseEntity<User> updateUser(@PathVariable Long id, @RequestBody User userInfo) {
+    public BaseResponseVO updateUser(@PathVariable Long id, @RequestBody User userInfo) {
         try {
             // 验证ID是否匹配
             if (!id.equals(userInfo.getId())) {
-                return ResponseEntity.badRequest().body(null);
+                return BaseResponseVO.error("用户ID不匹配");
             }
             
             // 调用服务层更新用户信息
             User updatedUser = userService.updateUser(userInfo);
-            return ResponseEntity.ok(updatedUser);
+            return BaseResponseVO.success(updatedUser);
         } catch (Exception e) {
-            // 处理异常，返回500错误
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+            // 处理异常，返回错误信息
+            return BaseResponseVO.error("更新用户信息失败: " + e.getMessage());
         }
     }
 
@@ -216,8 +217,13 @@ public class UserController {
      * @return 是否有优化次数
      */
     @GetMapping("/{userId}/check-optimize")
-    public Boolean checkOptimizeCount(@PathVariable Long userId) {
-        return userService.checkOptimizeCount(userId);
+    public BaseResponseVO checkOptimizeCount(@PathVariable Long userId) {
+        try {
+            boolean result = userService.checkOptimizeCount(userId);
+            return BaseResponseVO.success(result);
+        } catch (Exception e) {
+            return BaseResponseVO.error("检查优化次数失败: " + e.getMessage());
+        }
     }
 
     /**
@@ -226,8 +232,13 @@ public class UserController {
      * @return VIP状态
      */
     @GetMapping("/{userId}/check-vip")
-    public Boolean checkVipStatus(@PathVariable Long userId) {
-        return false;
+    public BaseResponseVO checkVipStatus(@PathVariable Long userId) {
+        try {
+            boolean result = false;
+            return BaseResponseVO.success(result);
+        } catch (Exception e) {
+            return BaseResponseVO.error("检查VIP状态失败: " + e.getMessage());
+        }
     }
 
     /**
@@ -426,6 +437,87 @@ public class UserController {
     }
     
     /**
+     * 上传用户头像（通过openId）
+     * @param requestData 请求数据，包含openId和avatarBase64
+     * @return 上传结果
+     */
+    @PostMapping("/avatar")
+    public ResponseEntity<Map<String, Object>> uploadAvatar(@RequestBody Map<String, Object> requestData) {
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            // 获取参数
+            String openId = (String) requestData.get("openId");
+            String avatarBase64 = (String) requestData.get("avatarBase64");
+            
+            // 参数验证
+            if (openId == null || openId.isEmpty()) {
+                response.put("success", false);
+                response.put("message", "缺少openId参数");
+                return ResponseEntity.ok(response);
+            }
+            
+            if (avatarBase64 == null || avatarBase64.isEmpty()) {
+                response.put("success", false);
+                response.put("message", "头像数据不能为空");
+                return ResponseEntity.ok(response);
+            }
+            
+            // 验证base64数据格式（简单验证）
+            if (!avatarBase64.startsWith("data:image/") || !avatarBase64.contains(";base64,")) {
+                response.put("success", false);
+                response.put("message", "头像数据格式错误");
+                return ResponseEntity.ok(response);
+            }
+            
+            // 检查base64数据长度（限制最大2MB）
+            if (avatarBase64.length() > 3 * 1024 * 1024) { // 约3MB的base64数据
+                response.put("success", false);
+                response.put("message", "头像文件过大，请压缩后上传");
+                return ResponseEntity.ok(response);
+            }
+            
+            log.info("开始上传头像，openId: {}", openId);
+            
+            // 根据openId查找用户
+            Optional<User> userOpt = userService.getUserByOpenId(openId);
+            if (!userOpt.isPresent()) {
+                response.put("success", false);
+                response.put("message", "用户不存在");
+                return ResponseEntity.ok(response);
+            }
+            
+            User user = userOpt.get();
+            
+            // 更新头像（base64直接存储）
+            user.setAvatarUrl(avatarBase64);
+            
+            // 保存更新后的用户信息
+            User updatedUser = userService.updateUser(user);
+            
+            // 构建返回数据
+            Map<String, Object> userData = new HashMap<>();
+            userData.put("id", updatedUser.getId());
+            userData.put("avatarUrl", updatedUser.getAvatarUrl());
+            userData.put("nickName", updatedUser.getNickname());
+            userData.put("openId", updatedUser.getOpenId());
+            
+            response.put("success", true);
+            response.put("message", "头像上传成功");
+            response.put("data", userData);
+            
+            log.info("头像上传成功，用户ID: {}", updatedUser.getId());
+            
+        } catch (Exception e) {
+            log.error("头像上传失败", e);
+            response.put("success", false);
+            response.put("message", "头像上传失败: " + e.getMessage());
+        }
+        
+        return ResponseEntity.ok(response);
+    }
+
+    /**
      * 验证用户信息
      * @param user 用户信息
      * @return 验证错误信息，如果验证通过则返回null
@@ -466,7 +558,7 @@ public class UserController {
             return "地址长度不能超过200个字符";
         }
         
-
+        
         
         return null; // 验证通过
     }

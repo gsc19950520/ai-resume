@@ -78,39 +78,29 @@ class UserService {
   }
 
   /**
-   * 上传头像
-   * @param {string} filePath - 文件路径
+   * 上传头像（base64格式）
+   * @param {string} openId - 用户openId
+   * @param {string} avatarBase64 - base64格式的头像数据
    * @returns {Promise} 返回上传结果
    */
-  static async uploadAvatar(filePath) {
-    return new Promise((resolve, reject) => {
-      const app = getApp()
-      wx.uploadFile({
-        url: `${app.globalData.baseUrl}/api/user/avatar`,
-        filePath,
-        name: 'file',
-        header: {
-          'token': app.globalData.token || ''
-        },
-        success: (res) => {
-          try {
-            const data = JSON.parse(res.data)
-            if (data.code === 0) {
-              resolve(data.data)
-            } else {
-              wx.showToast({ title: data.message || '上传失败', icon: 'none' })
-              reject(new Error(data.message || '上传失败'))
-            }
-          } catch (e) {
-            reject(new Error('上传失败'))
-          }
-        },
-        fail: (error) => {
-          wx.showToast({ title: '上传失败，请稍后重试', icon: 'none' })
-          reject(error)
-        }
-      })
-    })
+  static async uploadAvatar(openId, avatarBase64) {
+    try {
+      const response = await request.post('/api/user/avatar', {
+        openId,
+        avatarBase64
+      });
+      
+      // 处理后端返回的标准格式
+      if (response && response.success === true) {
+        return response.data;
+      } else {
+        // 处理错误情况
+        throw new Error(response?.message || '头像上传失败');
+      }
+    } catch (error) {
+      console.error('头像上传出错:', error);
+      throw error;
+    }
   }
 }
 

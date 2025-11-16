@@ -10,78 +10,47 @@
     <block wx:if="{{templateId === 'template-one'}}">
       <import src="./template/one/template-one.wxml"/>
       <view class="template-one-container">
-        <template is="template-one" data="{{resumeData, userInfo}}"/>
+        <template is="template-one" data="{{resumeData}}"/>
       </view>
     </block>
     
     <block wx:elif="{{templateId === 'template-two'}}">
       <import src="./template/two/template-two.wxml"/>
       <view class="template-two-container">
-        <template is="template-two" data="{{resumeData, userInfo}}"/>
+        <template is="template-two" data="{{resumeData}}"/>
       </view>
     </block>
     
     <block wx:elif="{{templateId === 'template-three'}}">
       <import src="./template/three/template-three.wxml"/>
       <view class="template-three-container">
-        <template is="template-three" data="{{resumeData, userInfo}}"/>
+        <template is="template-three" data="{{resumeData}}"/>
       </view>
     </block>
     <block wx:elif="{{templateId === 'template-four'}}">
       <import src="./template/four/template-four.wxml"/>
       <view class="template-four-container">
-        <template is="template-four" data="{{resumeData, userInfo}}"/>
+        <template is="template-four" data="{{resumeData}}"/>
       </view>
     </block>
     <block wx:elif="{{templateId === 'template-five'}}">
       <import src="./template/five/template-five.wxml"/>
       <view class="template-five-container">
-        <template is="template-five" data="{{resumeData, userInfo}}"/>
+        <template is="template-five" data="{{resumeData}}"/>
       </view>
     </block>
     <block wx:elif="{{templateId === 'template-six'}}">
       <import src="./template/six/template-six.wxml"/>
       <view class="template-six-container">
-        <template is="template-six" data="{{resumeData, userInfo}}"/>
+        <template is="template-six" data="{{resumeData}}"/>
       </view>
     </block>
   </view>
 
-  <!-- 操作区域：模板切换和下载功能 -->
+  <!-- 使用模板按钮 -->
   <view class="action-container">
-    <!-- 模板切换区域 -->
-    <view class="template-switch-container">
-      <scroll-view scroll-x="true" class="template-scroll">
-        <view class="template-thumbnails">
-          <view class="template-item {{templateId === 'template-one' ? 'active' : ''}}" bindtap="switchTemplate" data-id="template-one">
-            <image src="/images/template-one.jpg" class="template-image" mode="aspectFit"></image>
-            <text class="template-text">模板一</text>
-          </view>
-          <view class="template-item {{templateId === 'template-two' ? 'active' : ''}}" bindtap="switchTemplate" data-id="template-two">
-            <image src="/images/template-two.jpg" class="template-image" mode="aspectFit"></image>
-            <text class="template-text">模板二</text>
-          </view>
-          <view class="template-item {{templateId === 'template-three' ? 'active' : ''}}" bindtap="switchTemplate" data-id="template-three">
-            <image src="/images/template-three.jpg" class="template-image" mode="aspectFit"></image>
-            <text class="template-text">模板三</text>
-          </view>
-          <view class="template-item {{templateId === 'template-four' ? 'active' : ''}}" bindtap="switchTemplate" data-id="template-four">
-            <image src="/images/template-four.jpg" class="template-image" mode="aspectFit"></image>
-            <text class="template-text">模板四</text>
-          </view>
-          <view class="template-item {{templateId === 'template-five' ? 'active' : ''}}" bindtap="switchTemplate" data-id="template-five">
-            <image src="/images/template-five.jpg" class="template-image" mode="aspectFit"></image>
-            <text class="template-text">模板五</text>
-          </view>
-          <view class="template-item {{templateId === 'template-six' ? 'active' : ''}}" bindtap="switchTemplate" data-id="template-six">
-            <image src="/images/template-six.jpg" class="template-image" mode="aspectFit"></image>
-            <text class="template-text">模板六</text>
-          </view>
-        </view>
-      </scroll-view>
-    </view>
-    
-    <!-- 下载PDF按钮 -->
+    <button class="use-template-btn" bindtap="useTemplate">使用此模板</button>
     <button class="download-pdf-btn" bindtap="downloadPdf">下载PDF</button>
+    <button class="test-btn" type="warn" bindtap="testTemplateRendering">加载测试数据</button>
   </view>
 </view>

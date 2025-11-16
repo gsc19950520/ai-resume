@@ -27,4 +27,16 @@ public interface StatisticsService {
      * @param data 相关数据
      */
     void recordUserAction(Long userId, String action, String data);
+
+    /**
+     * 获取用户行为统计
+     * @return 用户行为统计信息
+     */
+    Map<String, Object> getUserActionStatistics();
+
+    /**
+     * 获取系统行为统计
+     * @return 系统行为统计信息
+     */
+    Map<String, Object> getSystemActionStatistics();
 }

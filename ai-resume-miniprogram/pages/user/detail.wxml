@@ -11,7 +11,7 @@
   
   <!-- 头像上传区域 -->
   <view class="avatar-section">
-    <view class="avatar-upload">
+    <view class="avatar-upload" bindtap="chooseAvatar">
       <image src="{{userInfo.avatarUrl || '/images/avatar.jpg'}}" mode="aspectFill"></image>
       <view class="avatar-mask">
         <text>点击更换</text>

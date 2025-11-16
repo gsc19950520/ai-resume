@@ -11,6 +11,11 @@ import javax.validation.constraints.NotNull;
 public class UpdateResumeDTO {
     
     /**
+     * 简历ID
+     */
+    private Long resumeId;
+    
+    /**
      * 用户ID
      */
     @NotNull(message = "用户ID不能为空")

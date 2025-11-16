@@ -10,12 +10,17 @@ import com.aicv.airesume.model.dto.ResumeDataDTO;
 import com.aicv.airesume.model.dto.SkillWithLevelDTO;
 import com.aicv.airesume.model.dto.UpdateResumeDTO;
 import com.aicv.airesume.model.dto.WorkExperienceDTO;
+import com.aicv.airesume.model.vo.BaseResponseVO;
+import com.aicv.airesume.model.vo.ResumeScoreVO;
+import com.aicv.airesume.model.vo.ResumeSuggestionVO;
 import com.aicv.airesume.service.ResumeService;
+import com.aicv.airesume.utils.TokenUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import java.util.ArrayList;
+import com.aicv.airesume.model.vo.BaseResponseVO;
+import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import javax.servlet.http.HttpServletResponse;
@@ -35,6 +40,9 @@ public class ResumeController {
 
     @Autowired
     private ResumeService resumeService;
+
+    @Autowired
+    private TokenUtils tokenUtils;
 
     /**
      * 上传简历
@@ -76,16 +84,17 @@ public class ResumeController {
      * 获取用户简历列表
      * 统一接口，使用查询参数传递userId
      * @param userId 用户ID（查询参数）
-     * @return 简历列表，统一包装在Map中返回
+     * @return 简历列表，统一包装在BaseResponseVO中返回
      */
     @Log(description = "获取用户简历列表", recordParams = true, recordResult = false)
     @GetMapping("/user")
-    public Map<String, Object> getUserResumeList(@RequestParam Long userId) {
-        List<Resume> resumeList = resumeService.getResumeListByUserId(userId);
-        Map<String, Object> result = new HashMap<>();
-        result.put("success", true);
-        result.put("data", resumeList);
-        return result;
+    public BaseResponseVO getUserResumeList(@RequestParam Long userId) {
+        try {
+            List<Resume> resumeList = resumeService.getResumeListByUserId(userId);
+            return BaseResponseVO.success(resumeList);
+        } catch (Exception e) {
+            return BaseResponseVO.error("获取用户简历列表失败：" + e.getMessage());
+        }
     }
 
     /**
@@ -174,146 +183,135 @@ public class ResumeController {
     /**
      * 获取简历AI评分
      * @param resumeId 简历ID
+     * @param token 授权令牌
      * @return 评分结果
      */
     @Log(description = "获取简历AI评分", recordParams = true, recordResult = true)
     @GetMapping("/{resumeId}/ai-score")
-    public Map<String, Object> getResumeAiScore(@PathVariable Long resumeId) {
-        Integer score = resumeService.getResumeAiScore(resumeId);
-        Map<String, Object> result = new HashMap<>();
-        result.put("score", score);
-        return result;
+    public BaseResponseVO getResumeAiScore(@PathVariable Long resumeId,
+                                                          @RequestHeader("Authorization") String token) {
+        Long userId = tokenUtils.getUserIdFromToken(token.replace("Bearer ", ""));
+        if (userId == null) {
+            throw new RuntimeException("Token无效");
+        }
+        
+        Map<String, Object> scoreData = resumeService.getResumeAiScore(resumeId);
+        ResumeScoreVO scoreVO = new ResumeScoreVO();
+        if (scoreData != null && scoreData.containsKey("score")) {
+            scoreVO.setScore(((Number) scoreData.get("score")).intValue());
+        }
+        return BaseResponseVO.success(scoreVO);
     }
 
     /**
      * 获取简历AI优化建议
      * @param resumeId 简历ID
+     * @param token 授权令牌
      * @return 优化建议
      */
     @Log(description = "获取简历AI优化建议", recordParams = true, recordResult = true)
-    @GetMapping("/{resumeId}/ai-suggestion")
-    public Map<String, Object> getResumeAiSuggestions(@PathVariable Long resumeId) {
-        String suggestions = resumeService.getResumeAiSuggestions(resumeId);
-        Map<String, Object> result = new HashMap<>();
-        result.put("suggestions", suggestions);
-        return result;
+    @GetMapping("/{resumeId}/ai-suggestions")
+    public BaseResponseVO getResumeAiSuggestions(@PathVariable Long resumeId,
+                                                     @RequestHeader("Authorization") String token) {
+        Long userId = tokenUtils.getUserIdFromToken(token.replace("Bearer ", ""));
+        if (userId == null) {
+            throw new RuntimeException("Token无效");
+        }
+        
+        Map<String, Object> suggestionsData = resumeService.getResumeAiSuggestions(resumeId);
+        ResumeSuggestionVO suggestionsVO = new ResumeSuggestionVO();
+        if (suggestionsData != null && suggestionsData.containsKey("suggestions")) {
+            suggestionsVO.setSuggestions((List<String>) suggestionsData.get("suggestions"));
+        }
+        return BaseResponseVO.success(suggestionsVO);
     }
     
     /**
      * 设置简历模板
-     * @param userId 用户ID
      * @param resumeId 简历ID
-     * @param templateId 模板ID
-     * @return 更新后的简历信息
+     * @param request 请求体（包含templateId）
+     * @param token 授权令牌
+     * @return 统一响应包装的更新后简历信息
      */
     @Log(description = "设置简历模板", recordParams = true, recordResult = true)
     @PostMapping("/{resumeId}/template")
-    public Resume setResumeTemplate(@RequestParam Long userId, @PathVariable Long resumeId, @RequestParam String templateId) {
-        return resumeService.setResumeTemplate(userId, resumeId, templateId);
-    }
-    
-    /**
-     * 创建新简历（结构化格式）
-     * @param userId 用户ID
-     * @param resumeData 简历数据（包含完整的结构化信息）
-     * @return 创建结果
-     */
-    @Log(description = "创建新简历（结构化）", recordParams = true, recordResult = true)
-    @PostMapping("/")
-    public ResponseEntity<?> createResume(@Valid @RequestBody CreateResumeDTO createResumeDTO) {
-        try {
-            // 从DTO中提取用户ID和简历数据
-            Long userId = createResumeDTO.getUserId();
-            ResumeDataDTO resumeDataDTO = createResumeDTO.getResumeData();
-            
-            // 直接传递DTO对象给服务层，不再转换为Map
-            Resume resume = resumeService.createResumeWithFullData(userId, resumeDataDTO);
-            
-            Map<String, Object> result = new HashMap<>();
-            result.put("success", true);
-            result.put("data", resume);
-            result.put("message", "简历创建成功");
-            return ResponseEntity.ok(result);
-        } catch (RuntimeException e) {
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("success", false);
-            errorResponse.put("code", 400);
-            errorResponse.put("message", e.getMessage());
-            return ResponseEntity.badRequest().body(errorResponse);
-        } catch (Exception e) {
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("success", false);
-            errorResponse.put("code", 500);
-            errorResponse.put("message", "操作失败: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+    public BaseResponseVO setResumeTemplate(@PathVariable Long resumeId,
+                                   @RequestBody Map<String, Long> request,
+                                   @RequestHeader("Authorization") String token) {
+        Long userId = tokenUtils.getUserIdFromToken(token.replace("Bearer ", ""));
+        if (userId == null) {
+            throw new RuntimeException("Token无效");
         }
+        
+        Long templateId = request.get("templateId");
+        if (templateId == null) {
+            throw new RuntimeException("模板ID不能为空");
+        }
+        
+        Resume result = resumeService.setResumeTemplate(resumeId, templateId);
+        return BaseResponseVO.success(result);
     }
     
     /**
-     * 更新简历内容（结构化格式）
-     * @param userId 用户ID
-     * @param resumeId 简历ID
-     * @param resumeData 简历数据（包含完整的结构化信息）
-     * @return 更新结果
+     * 创建简历
      */
-    @Log(description = "更新简历内容（结构化）", recordParams = true, recordResult = true)
+    @PostMapping
+    public BaseResponseVO createResume(@RequestBody CreateResumeDTO createResumeDTO,
+                                           @RequestHeader("Authorization") String token) {
+        Long userId = tokenUtils.getUserIdFromToken(token.replace("Bearer ", ""));
+        if (userId == null) {
+            throw new RuntimeException("Token无效");
+        }
+        
+        createResumeDTO.setUserId(userId);
+        Resume resume = resumeService.createResume(userId, createResumeDTO);
+        
+        Map<String, Object> result = new HashMap<>();
+        result.put("resumeId", resume.getId());
+        result.put("message", "简历创建成功");
+        return BaseResponseVO.success(result);
+    }
+    
+    /**
+     * 更新简历
+     */
     @PutMapping("/{resumeId}")
-    public ResponseEntity<?> updateResume(@PathVariable Long resumeId, 
-                                         @Valid @RequestBody UpdateResumeDTO updateResumeDTO) {
-        try {
-            // 参数验证
-            if (resumeId == null) {
-                Map<String, Object> errorResponse = new HashMap<>();
-                errorResponse.put("success", false);
-                errorResponse.put("code", 400);
-                errorResponse.put("message", "简历ID不能为空");
-                return ResponseEntity.badRequest().body(errorResponse);
-            }
-            
-            // 验证用户权限
-            if (!resumeService.checkResumePermission(updateResumeDTO.getUserId(), resumeId)) {
-                Map<String, Object> errorResponse = new HashMap<>();
-                errorResponse.put("success", false);
-                errorResponse.put("code", 403);
-                errorResponse.put("message", "无权限操作该简历");
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse);
-            }
-            
-            // 更新现有简历
-            Resume updatedResume = resumeService.updateResumeWithFullData(resumeId, updateResumeDTO.getData());
-            
-            Map<String, Object> result = new HashMap<>();
-            result.put("success", true);
-            result.put("data", updatedResume);
-            result.put("message", "简历更新成功");
-            return ResponseEntity.ok(result);
-        } catch (RuntimeException e) {
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("success", false);
-            errorResponse.put("code", 400);
-            errorResponse.put("message", e.getMessage());
-            return ResponseEntity.badRequest().body(errorResponse);
-        } catch (Exception e) {
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("success", false);
-            errorResponse.put("code", 500);
-            errorResponse.put("message", "操作失败: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+    public BaseResponseVO updateResume(@PathVariable Long resumeId,
+                                           @RequestBody UpdateResumeDTO updateResumeDTO,
+                                           @RequestHeader("Authorization") String token) {
+        Long userId = tokenUtils.getUserIdFromToken(token.replace("Bearer ", ""));
+        if (userId == null) {
+            throw new RuntimeException("Token无效");
         }
+        
+        updateResumeDTO.setUserId(userId);
+        Resume resume = resumeService.updateResume(resumeId, updateResumeDTO);
+        
+        Map<String, Object> result = new HashMap<>();
+        result.put("resumeId", resume.getId());
+        result.put("message", "简历更新成功");
+        return BaseResponseVO.success(result);
     }
     
     /**
      * 获取用户最新的简历数据
      * @param userId 用户ID
+     * @param token 授权令牌
      * @return 最新简历的完整数据
      */
     @GetMapping("/getLatest")
-    public ResponseEntity<Map<String, Object>> getLatestResumeData(@RequestParam Long userId) {
-        Map<String, Object> latestResumeData = resumeService.getLatestResumeData(userId);
-        if (latestResumeData != null) {
-            return ResponseEntity.ok(latestResumeData);
-        } else {
-            return ResponseEntity.noContent().build();
+    public BaseResponseVO getLatestResumeData(@RequestParam Long userId,
+                                                                  @RequestHeader("Authorization") String token) {
+        Long tokenUserId = tokenUtils.getUserIdFromToken(token.replace("Bearer ", ""));
+        if (tokenUserId == null) {
+            throw new RuntimeException("Token无效");
         }
+        
+        if (!tokenUserId.equals(userId)) {
+            throw new RuntimeException("只能查看自己的简历");
+        }
+        
+        Map<String, Object> result = resumeService.getLatestResumeData(userId);
+        return BaseResponseVO.success(result);
     }
 }

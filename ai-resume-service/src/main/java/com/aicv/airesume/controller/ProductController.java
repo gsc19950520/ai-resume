@@ -1,6 +1,7 @@
 package com.aicv.airesume.controller;
 
 import com.aicv.airesume.entity.Product;
+import com.aicv.airesume.model.vo.BaseResponseVO;
 import com.aicv.airesume.service.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -22,8 +23,13 @@ public class ProductController {
      * @return 产品列表
      */
     @GetMapping("/all")
-    public List<Product> getAllProducts() {
-        return productService.getAllProducts();
+    public BaseResponseVO getAllProducts() {
+        try {
+            List<Product> products = productService.getAllProducts();
+            return BaseResponseVO.success(products);
+        } catch (Exception e) {
+            return BaseResponseVO.error("获取所有产品失败：" + e.getMessage());
+        }
     }
 
     /**
@@ -31,8 +37,13 @@ public class ProductController {
      * @return 上架产品列表
      */
     @GetMapping("/active")
-    public List<Product> getActiveProducts() {
-        return productService.getActiveProducts();
+    public BaseResponseVO getActiveProducts() {
+        try {
+            List<Product> products = productService.getActiveProducts();
+            return BaseResponseVO.success(products);
+        } catch (Exception e) {
+            return BaseResponseVO.error("获取上架产品失败：" + e.getMessage());
+        }
     }
 
     /**
@@ -41,8 +52,13 @@ public class ProductController {
      * @return 产品列表
      */
     @GetMapping("/type/{type}")
-    public List<Product> getProductsByType(@PathVariable Integer type) {
-        return productService.getProductsByType(type);
+    public BaseResponseVO getProductsByType(@PathVariable Integer type) {
+        try {
+            List<Product> products = productService.getProductsByType(type);
+            return BaseResponseVO.success(products);
+        } catch (Exception e) {
+            return BaseResponseVO.error("根据类型获取产品失败：" + e.getMessage());
+        }
     }
 
     /**
@@ -51,8 +67,13 @@ public class ProductController {
      * @return 产品信息
      */
     @GetMapping("/{id}")
-    public Product getProductById(@PathVariable Long id) {
-        return productService.getProductById(id).orElse(null);
+    public BaseResponseVO getProductById(@PathVariable Long id) {
+        try {
+            Product product = productService.getProductById(id).orElse(null);
+            return BaseResponseVO.success(product);
+        } catch (Exception e) {
+            return BaseResponseVO.error("根据ID获取产品失败：" + e.getMessage());
+        }
     }
 
     /**
@@ -61,8 +82,13 @@ public class ProductController {
      * @return 创建的产品
      */
     @PostMapping("/create")
-    public Product createProduct(@RequestBody Product product) {
-        return productService.createProduct(product);
+    public BaseResponseVO createProduct(@RequestBody Product product) {
+        try {
+            Product createdProduct = productService.createProduct(product);
+            return BaseResponseVO.success(createdProduct);
+        } catch (Exception e) {
+            return BaseResponseVO.error("创建产品失败：" + e.getMessage());
+        }
     }
 
     /**
@@ -72,9 +98,14 @@ public class ProductController {
      * @return 更新后的产品
      */
     @PutMapping("/{id}")
-    public Product updateProduct(@PathVariable Long id, @RequestBody Product product) {
-        // 移除setId调用，避免找不到符号错误
-        return productService.updateProduct(product);
+    public BaseResponseVO updateProduct(@PathVariable Long id, @RequestBody Product product) {
+        try {
+            // 移除setId调用，避免找不到符号错误
+            Product updatedProduct = productService.updateProduct(product);
+            return BaseResponseVO.success(updatedProduct);
+        } catch (Exception e) {
+            return BaseResponseVO.error("更新产品失败：" + e.getMessage());
+        }
     }
 
     /**
@@ -83,8 +114,13 @@ public class ProductController {
      * @param isActive 是否上架
      */
     @PutMapping("/{id}/status")
-    public void setProductStatus(@PathVariable Long id, @RequestParam Boolean isActive) {
-        productService.setProductStatus(id, isActive);
+    public BaseResponseVO setProductStatus(@PathVariable Long id, @RequestParam Boolean isActive) {
+        try {
+            productService.setProductStatus(id, isActive);
+            return BaseResponseVO.success(null);
+        } catch (Exception e) {
+            return BaseResponseVO.error("设置产品状态失败：" + e.getMessage());
+        }
     }
 
     /**
@@ -94,7 +130,12 @@ public class ProductController {
      * @return 产品列表
      */
     @GetMapping("/type/{type}/status/{isActive}")
-    public List<Product> getProductsByTypeAndStatus(@PathVariable Integer type, @PathVariable Boolean isActive) {
-        return productService.getProductsByTypeAndStatus(type, isActive);
+    public BaseResponseVO getProductsByTypeAndStatus(@PathVariable Integer type, @PathVariable Boolean isActive) {
+        try {
+            List<Product> products = productService.getProductsByTypeAndStatus(type, isActive);
+            return BaseResponseVO.success(products);
+        } catch (Exception e) {
+            return BaseResponseVO.error("根据类型和状态获取产品失败：" + e.getMessage());
+        }
     }
 }

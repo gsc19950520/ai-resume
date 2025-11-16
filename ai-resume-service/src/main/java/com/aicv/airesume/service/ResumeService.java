@@ -74,12 +74,12 @@ public interface ResumeService {
     /**
      * 获取简历AI评分
      */
-    Integer getResumeAiScore(Long resumeId);
+    Map<String, Object> getResumeAiScore(Long resumeId);
     
     /**
      * 获取简历AI建议
      */
-    String getResumeAiSuggestions(Long resumeId);
+    Map<String, Object> getResumeAiSuggestions(Long resumeId);
     
     /**
      * 检查简历权限

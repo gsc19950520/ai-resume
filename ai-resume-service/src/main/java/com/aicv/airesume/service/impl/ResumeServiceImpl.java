@@ -423,15 +423,22 @@ public class ResumeServiceImpl implements ResumeService {
 
 
     @Override
-    public Integer getResumeAiScore(Long resumeId) {
+    public Map<String, Object> getResumeAiScore(Long resumeId) {
         // 临时返回默认值，避免类型不匹配问题
-        return 0;
+        Map<String, Object> result = new HashMap<>();
+        result.put("score", 0);
+        result.put("maxScore", 100);
+        result.put("description", "暂无评分");
+        return result;
     }
 
     @Override
-    public String getResumeAiSuggestions(Long resumeId) {
-        // 临时返回空字符串，避免类型不匹配问题
-        return "";
+    public Map<String, Object> getResumeAiSuggestions(Long resumeId) {
+        // 临时返回默认值，避免类型不匹配问题
+        Map<String, Object> result = new HashMap<>();
+        result.put("suggestions", new ArrayList<>());
+        result.put("improvements", new ArrayList<>());
+        return result;
     }
 
     // checkResumePermission方法已移除
