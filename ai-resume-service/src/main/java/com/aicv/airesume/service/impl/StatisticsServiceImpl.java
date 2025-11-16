@@ -32,8 +32,8 @@ public class StatisticsServiceImpl implements StatisticsService {
         return retryUtils.executeWithDefaultRetrySupplier(() -> {
             Map<String, Object> stats = new HashMap<>();
             
-            // 获取用户的简历数量 - 临时使用固定值
-            Long resumeCount = 0L;
+            // 获取用户的实际简历数量
+            Long resumeCount = resumeRepository.countByUserId(userId);
             stats.put("resumeCount", resumeCount);
             
             // 获取用户已优化简历数量 - 临时使用固定值

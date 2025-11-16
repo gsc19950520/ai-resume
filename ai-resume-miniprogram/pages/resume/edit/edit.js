@@ -87,13 +87,35 @@ Page({
             education: savedData.education || this.data.resumeInfo.education,
             workExperience: savedData.workExperience || this.data.resumeInfo.workExperience,
             skills: savedData.skills ? savedData.skills.join('、') : '',
-            selfEvaluation: savedData.selfEvaluation || '',
             templateId: templateId
           };
           
-          // 处理兴趣爱好数据
+          // 确保personalInfo对象存在
+          if (!resumeInfoCopy.personalInfo) {
+            resumeInfoCopy.personalInfo = {};
+          }
+          
+          // 处理兴趣爱好数据，考虑不同的数据存储位置
           if (savedData.interests && Array.isArray(savedData.interests)) {
             resumeInfoCopy.interestsText = savedData.interests.join('\n');
+          } else if (savedData.personalInfo && savedData.personalInfo.interests) {
+            // 处理旧格式数据，interests存储在personalInfo中
+            resumeInfoCopy.interestsText = savedData.personalInfo.interests.join('\n');
+          } else if (savedData.interestsText) {
+            // 处理直接存储的interestsText
+            resumeInfoCopy.interestsText = savedData.interestsText;
+          } else {
+            resumeInfoCopy.interestsText = '';
+          }
+          
+          // 处理自我评价数据，确保能从不同位置获取
+          if (savedData.selfEvaluation) {
+            resumeInfoCopy.selfEvaluation = savedData.selfEvaluation;
+          } else if (savedData.personalInfo && savedData.personalInfo.selfEvaluation) {
+            // 处理旧格式数据，selfEvaluation存储在personalInfo中
+            resumeInfoCopy.selfEvaluation = savedData.personalInfo.selfEvaluation;
+          } else {
+            resumeInfoCopy.selfEvaluation = '';
           }
           
           // 处理技能评分数据
@@ -309,6 +331,15 @@ Page({
     
     if (!validated.projectExperienceList || !Array.isArray(validated.projectExperienceList)) {
       validated.projectExperienceList = defaultInfo.projectExperienceList;
+    }
+    
+    // 确保个人信息字段存在
+    if (!validated.interestsText) {
+      validated.interestsText = resumeInfo.interestsText || '';
+    }
+    
+    if (!validated.selfEvaluation) {
+      validated.selfEvaluation = resumeInfo.selfEvaluation || '';
     }
     
     // 确保personalInfo对象存在，只保留可编辑字段
@@ -780,6 +811,13 @@ Page({
       if (!resumeInfo.skillsWithLevel) {
         resumeInfo.skillsWithLevel = [];
       }
+      // 确保兴趣爱好和自我评价字段存在
+      if (resumeInfo.interestsText === undefined) {
+        resumeInfo.interestsText = '';
+      }
+      if (resumeInfo.selfEvaluation === undefined) {
+        resumeInfo.selfEvaluation = '';
+      }
       
       // 保存到本地存储
       wx.setStorageSync('tempResumeInfo', resumeInfo);
@@ -809,7 +847,7 @@ Page({
   
   // 将前端简历数据转换为后端需要的结构化格式
   convertToBackendFormat: function(resumeInfo) {
-    // 将兴趣爱好文本转换为数组
+    // 将兴趣爱好文本转换为数组，使用换行符分割，与onLoad和saveResume保持一致
     const interests = resumeInfo.interestsText ? resumeInfo.interestsText.split('\n').filter(h => h.trim()) : [];
     
     return {
@@ -1075,9 +1113,9 @@ Page({
       
       if (saved) {
         // 准备简历数据，包含模板ID
-        // 处理兴趣爱好，将文本转换为数组
+        // 处理兴趣爱好，将文本转换为数组，使用换行符分割，与onLoad保持一致
         const interests = resumeInfo.interestsText ? 
-          resumeInfo.interestsText.split(',').map(hobby => hobby.trim()).filter(hobby => hobby !== '') : [];
+          resumeInfo.interestsText.split('\n').filter(hobby => hobby.trim()) : [];
         
         // 处理技能评分数据，过滤掉空技能名称
         const skillsWithLevel = resumeInfo.skillsWithLevel.filter(skill => skill.name.trim() !== '');

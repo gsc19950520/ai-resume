@@ -31,24 +31,31 @@ Page({
 
     this.setData({ loading: true })
     
-    // 模拟API调用，直接使用模拟数据
-    setTimeout(() => {
-      this.setData({ 
-        loading: false,
-        refreshing: false,
-        resumeList: this.getMockData()
-      })
-      console.log('使用模拟数据显示简历列表')
-    }, 1000)
-    
     // 调用获取简历列表API
-    get('/api/resume/list')
+    get('/api/resume/user', { userId: app.globalData.userInfo.id })
       .then(res => {
         console.log('简历列表API返回:', res)
-        // API调用结果不会覆盖已设置的模拟数据
+        if (res && res.success && res.data) {
+          this.setData({ 
+            loading: false,
+            refreshing: false,
+            resumeList: res.data || []
+          })
+        } else {
+          this.setData({ 
+            loading: false,
+            refreshing: false,
+            resumeList: []
+          })
+        }
       })
       .catch(error => {
         console.error('获取简历列表失败:', error)
+        this.setData({ 
+          loading: false,
+          refreshing: false,
+          resumeList: []
+        })
       })
   },
 
