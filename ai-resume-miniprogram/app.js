@@ -1,4 +1,6 @@
 //app.js
+const pageRefs = require('./utils/page-references.js');
+
 App({
   globalData: {
     userInfo: null,
@@ -38,6 +40,32 @@ App({
         },
         data,
         success: res => resolve(res.data),
+        fail: err => reject(err)
+      });
+    });
+  },
+
+  // 云托管二进制数据调用方法（用于PDF下载等）
+  cloudCallBinary: function(path, data = {}, method = 'GET', header = {}) {
+    return new Promise((resolve, reject) => {
+      wx.cloud.callContainer({
+        config: {
+          env: this.globalData.cloudEnvId
+        },
+        path: path.startsWith('/api') ? path : `/api${path}`,
+        method: method,
+        header: {
+          'content-type': 'application/json',
+          'Authorization': this.globalData.token ? `Bearer ${this.globalData.token}` : '',
+          'X-WX-SERVICE': this.globalData.cloudServiceName,
+          ...header
+        },
+        data,
+        responseType: 'arraybuffer', // 设置响应类型为arraybuffer以处理二进制数据
+        success: res => {
+          console.log('云托管二进制调用成功，响应类型:', typeof res.data, '数据长度:', res.data ? res.data.byteLength : 0);
+          resolve(res.data);
+        },
         fail: err => reject(err)
       });
     });

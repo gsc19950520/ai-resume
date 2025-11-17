@@ -11,8 +11,10 @@ Page({
    * 生命周期函数--监听页面加载
    */
   onLoad: function (options) {
+    console.log('完善个人信息页面接收参数:', options)
     // 保存returnTo参数，默认为简历编辑页面
     const returnTo = options.returnTo || '/pages/resume/edit/edit';
+    console.log('设置returnTo为:', returnTo)
     this.setData({
       returnTo: returnTo
     });
@@ -26,8 +28,11 @@ Page({
   goToEditProfile: function() {
     console.log('跳转到个人信息编辑页面');
     const { returnTo } = this.data;
+    console.log('准备传递的returnTo参数:', returnTo)
+    const encodedReturnTo = encodeURIComponent(returnTo)
+    console.log('编码后的returnTo参数:', encodedReturnTo)
     wx.navigateTo({
-      url: `/pages/user/detail?returnTo=${encodeURIComponent(returnTo)}`,
+      url: `/pages/user/detail?returnTo=${encodedReturnTo}`,
       success: function(res) {
         console.log('跳转到个人信息编辑页面成功');
       },

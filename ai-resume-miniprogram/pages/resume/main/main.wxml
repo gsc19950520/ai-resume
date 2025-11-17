@@ -95,13 +95,12 @@
   </view>
 
   <!-- 无简历时显示模板列表 -->
-  <view class="template-list-container" wx:else>
+  <view class="template-list-container" wx:elif="{{isLoggedIn}}">
     <view class="empty-state">
       <view class="empty-icon">📄</view>
       <text class="empty-text">您还没有创建简历</text>
       <text class="empty-subtext">选择一个模板开始创建您的专业简历</text>
     </view>
-    
     
     <!-- 模板列表 - 左右两列网格布局 -->
     <!-- 使用pageReady状态控制渲染，确保页面完全就绪后再渲染内容 -->
@@ -138,11 +137,24 @@
       <view class="template-card-placeholder"></view>
       <view class="template-card-placeholder"></view>
     </view>
+  </view>
+  
+  <!-- 未登录时显示登录提示 -->
+  <view class="login-prompt-container" wx:else>
+    <view class="login-state">
+      <view class="login-icon">🔒</view>
+      <text class="login-text">请先登录</text>
+      <text class="login-subtext">登录后即可创建和管理您的简历</text>
+      <button class="login-btn" type="primary" bindtap="showLoginTip">
+        立即登录
+      </button>
+    </view>
+  </view>
+    
 
     <!-- <view class="action-buttons">
       <button class="create-btn" type="primary" bindtap="createResume">
         立即创建简历
       </button>
     </view> -->
-  </view>
 </view>

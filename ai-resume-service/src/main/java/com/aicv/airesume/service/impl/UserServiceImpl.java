@@ -4,6 +4,7 @@ import com.aicv.airesume.entity.User;
 import com.aicv.airesume.repository.UserRepository;
 import com.aicv.airesume.service.UserService;
 import com.aicv.airesume.utils.RetryUtils;
+import com.aicv.airesume.utils.TokenUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -21,6 +22,9 @@ public class UserServiceImpl implements UserService {
     
     @Autowired
     private RetryUtils retryUtils;
+
+    @Autowired
+    private TokenUtils tokenUtils;
 
     @Override
     public Optional<User> getUserById(Long userId) {
@@ -116,11 +120,8 @@ public class UserServiceImpl implements UserService {
      * @return 生成的token字符串
      */
     public String generateToken(Long userId) {
-        // 简单的token生成逻辑，可以根据需要替换为更安全的实现
-        // 例如使用JWT、UUID等
-        String timestamp = String.valueOf(System.currentTimeMillis());
-        String randomStr = String.valueOf(Math.random()).substring(2, 8);
-        return "token_" + userId + "_" + timestamp + "_" + randomStr;
+        // 使用TokenUtils生成JWT格式的token
+        return tokenUtils.generateToken(userId);
     }
 
     // 临时方法实现

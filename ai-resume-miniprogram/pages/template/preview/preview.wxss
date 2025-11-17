@@ -82,13 +82,14 @@ page {
 
 .template-thumbnails {
   display: flex;
-  padding-bottom: 10rpx;
+  width: 125%;
+  padding-bottom: 5rpx;
 }
 
 /* 单个模板项样式 */
 .template-item {
   display: inline-block;
-  width: 200rpx;
+  width: 280rpx;
   margin-right: 10rpx;
   text-align: center;
   position: relative;
@@ -102,19 +103,19 @@ page {
 .template-item.active::after {
   content: '';
   position: absolute;
-  bottom: 0;
-  left: 20rpx;
-  right: 20rpx;
-  height: 4rpx;
+  bottom: -5rpx;
+  left: 30rpx;
+  right: 30rpx;
+  height: 6rpx;
   background-color: #1677ff;
-  border-radius: 2rpx;
+  border-radius: 3rpx;
 }
 
 /* 模板图片样式 */
 .template-image {
   width: 100%;
-  height: 140rpx;
-  border-radius: 8rpx;
+  height: 200rpx;
+  border-radius: 12rpx;
   border: 2rpx solid #e0e0e0;
   box-sizing: border-box;
 }

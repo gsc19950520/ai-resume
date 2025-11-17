@@ -22,8 +22,8 @@ Page({
 
   onLoad: function (options) {
     console.log('个人信息编辑页面加载', options)
-    // 优先从options获取returnTo参数
-    let returnToPage = options.returnTo || ''
+    // 优先从options获取returnTo参数，并进行URL解码
+    let returnToPage = options.returnTo ? decodeURIComponent(options.returnTo) : ''
     
     // 如果options中没有returnTo参数，尝试从本地存储获取
     if (!returnToPage) {
@@ -35,6 +35,7 @@ Page({
     }
     
     this.returnToPage = returnToPage
+    console.log('设置returnToPage为:', this.returnToPage)
     
     // 检查登录状态
     if (!this.isLoggedIn()) {
@@ -418,10 +419,34 @@ Page({
           setTimeout(() => {
             if (this.returnToPage) {
               console.log('跳转到指定返回页面:', this.returnToPage)
+              // 确保路径格式正确，移除可能的多余斜杠
+              const cleanPath = this.returnToPage.replace(/^\//, '').replace(/\/$/, '')
+              const targetUrl = '/' + cleanPath
+              console.log('清理后的跳转路径:', targetUrl)
+              
               wx.navigateTo({
-                url: this.returnToPage
+                url: targetUrl,
+                success: (res) => {
+                  console.log('跳转成功:', res)
+                },
+                fail: (err) => {
+                  console.error('跳转失败:', err)
+                  // 如果navigateTo失败，尝试使用redirectTo
+                  wx.redirectTo({
+                    url: targetUrl,
+                    success: (res) => {
+                      console.log('redirectTo跳转成功:', res)
+                    },
+                    fail: (err2) => {
+                      console.error('redirectTo也失败:', err2)
+                      // 最后降级到返回上一页
+                      wx.navigateBack()
+                    }
+                  })
+                }
               })
             } else {
+              console.log('没有指定返回页面，返回上一页')
               // 没有指定返回页面时，返回上一页
               wx.navigateBack()
             }

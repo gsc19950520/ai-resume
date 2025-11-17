@@ -16,10 +16,16 @@ Page({
   
   /**
    * 获取配置的API基础URL
+   * 注意：使用云托管服务时，此方法返回空字符串，实际调用通过cloudCall完成
    */
   getApiBaseUrl: function() {
-    // 优先从全局配置中获取，如果没有则使用data中的默认值
+    // 使用云托管服务时，不需要具体的API基础URL
     const app = getApp();
+    if (app.globalData && app.globalData.useCloud) {
+      console.log('使用云托管服务，getApiBaseUrl返回空字符串');
+      return '';
+    }
+    // 优先从全局配置中获取，如果没有则使用data中的默认值
     return app.globalData && app.globalData.apiBaseUrl || this.data.apiBaseUrl;
   },
 
@@ -427,73 +433,53 @@ Page({
       mask: true
     });
     
-    // 如果启用了模拟模式，则直接使用模拟数据
-    if (enableMock) {
-      console.log('使用模拟PDF下载功能');
-      this.mockPdfDownload();
-      return;
-    }
-    
     // 检查是否有resumeId
     const options = wx.getStorageSync('previewOptions') || {};
     const resumeId = options.resumeId;
-    const apiBaseUrl = this.getApiBaseUrl();
+    const app = getApp();
     
-    // 构建请求参数和URL
-    let url = '';
+    // 构建请求参数 - 使用云托管服务
     let data = {};
     
     if (resumeId) {
       // 如果有resumeId，调用简历导出接口
-      url = `${apiBaseUrl}/resume/export/pdf`;
-      data = { resumeId: resumeId };
+      data = { 
+        resumeId: resumeId,
+        templateId: templateId // 后端接口需要templateId参数
+      };
     } else {
-      // 否则，使用模板ID调用模板生成PDF接口
-      url = `${apiBaseUrl}/template/${templateId}/generate-pdf`;
-      // 可以将当前简历数据一并发送给后端
-      data = { resumeData: resumeData };
+      // 如果没有resumeId，仍然调用export/pdf接口，但需要提供templateId
+      data = { 
+        templateId: templateId // 必须有templateId参数
+      };
+      console.warn('没有resumeId，将使用模板ID生成PDF，可能无法获取完整的简历数据');
     }
     
-    console.log('调用PDF下载接口:', url, data);
+    console.log('调用云托管PDF下载接口:', '/export/pdf', data);
     
-    // 调用后端API
-    wx.request({
-      url: url,
-      method: 'GET',
-      responseType: 'arraybuffer', // 设置响应类型为arraybuffer以处理二进制数据
-      data: data,
-      success: (res) => {
-        console.log('PDF下载请求成功:', res.statusCode);
+    // 使用云托管的cloudCallBinary方法处理二进制数据
+    app.cloudCallBinary('/export/pdf', data, 'GET')
+      .then(pdfData => {
+        console.log('PDF下载请求成功，数据类型:', typeof pdfData, '数据长度:', pdfData ? pdfData.byteLength : 0);
         
-        if (res.statusCode === 200 && res.data) {
-          // 检查返回的数据是否为空数组（后端可能返回空byte[]）
-          if (res.data.byteLength === 0) {
-            wx.hideLoading();
-            console.warn('后端返回空的PDF数据，切换到模拟模式');
-            this.setData({ enableMock: true });
-            this.mockPdfDownload();
-          } else {
-            // 处理返回的二进制数据
-            this.handlePdfData(res.data);
-          }
+        // 检查返回的数据是否为空
+        if (pdfData && pdfData.byteLength > 0) {
+          // 处理返回的二进制数据
+          this.handlePdfData(pdfData);
         } else {
           wx.hideLoading();
-          wx.showToast({
-            title: 'PDF生成失败',
-            icon: 'none',
-            duration: 2000
-          });
-          console.error('PDF生成失败，状态码:', res.statusCode, '响应:', res.data);
+          console.warn('后端返回空的PDF数据，切换到模拟模式');
+          this.setData({ enableMock: true });
+          this.mockPdfDownload();
         }
-      },
-      fail: (err) => {
+      })
+      .catch(err => {
         wx.hideLoading();
         console.error('PDF下载请求失败，切换到模拟模式:', err);
         // 如果请求失败，尝试使用模拟模式
         this.setData({ enableMock: true });
         this.mockPdfDownload();
-      }
-    });
+      });
   },
   
   /**
