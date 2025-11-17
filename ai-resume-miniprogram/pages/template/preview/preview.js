@@ -10,7 +10,7 @@ Page({
     resumeData: null,  // 简历数据
     userInfo: null,  // 用户信息
     loading: true,  // 加载状态
-    apiBaseUrl: 'https://your-api-base-url/api', // API基础URL
+    apiBaseUrl: '', // 使用云托管服务，不需要硬编码URL
     enableMock: true // 是否启用模拟PDF下载功能
   },
   
@@ -71,6 +71,16 @@ Page({
       } catch (e) {
         console.error('解码模板名称失败:', e);
       }
+    }
+    
+    // 处理resumeId参数 - 优先从URL参数获取，其次从本地存储获取
+    if (options && options.resumeId) {
+      // 保存resumeId到本地存储，供后续使用
+      wx.setStorageSync('previewOptions', { 
+        ...wx.getStorageSync('previewOptions'),
+        resumeId: options.resumeId 
+      });
+      console.log('从URL参数获取resumeId:', options.resumeId);
     }
     
     // 立即设置一个默认的userInfo，确保页面渲染时不会出现undefined
@@ -240,15 +250,36 @@ Page({
   },
   
   /**
-   * 从后端获取完整的简历数据
+   * 从后端获取用户最新的简历数据（使用云托管方式）
    */
   loadResumeDataFromBackend: function(resumeId) {
-    wx.request({
-      url: `https://your-api-base-url/api/resume/${resumeId}/full-data`,
-      method: 'GET',
-      success: (res) => {
-        if (res.data && !res.data.error) {
-          console.log('从后端获取简历数据成功:', res.data);
+    const app = getApp();
+    
+    // 获取用户信息
+    const userInfo = this.data.userInfo;
+    if (!userInfo || !userInfo.id) {
+      console.error('用户信息不存在，无法获取最新简历数据');
+      this.handleResumeLoadError();
+      return;
+    }
+    
+    // 获取token
+    const token = wx.getStorageSync('token') || '';
+    if (!token) {
+      console.error('Token不存在，无法获取最新简历数据');
+      this.handleResumeLoadError();
+      return;
+    }
+    
+    // 使用云托管方式调用后端接口获取用户最新简历数据
+    app.cloudCall('/api/resume/getLatest', {
+      userId: userInfo.id
+    }, 'GET', {
+      'Authorization': `Bearer ${token}`
+    })
+      .then(res => {
+        if (res && res.success && res.data) {
+          console.log('从后端获取用户最新简历数据成功:', res.data);
           // 转换后端数据格式为前端需要的格式
           const formattedData = this.formatBackendResumeData(res.data);
           this.setData({
@@ -256,15 +287,14 @@ Page({
             loading: false
           });
         } else {
-          console.error('获取简历数据失败:', res.data);
+          console.error('获取用户最新简历数据失败:', res);
           this.handleResumeLoadError();
         }
-      },
-      fail: (err) => {
+      })
+      .catch(err => {
         console.error('请求后端失败:', err);
         this.handleResumeLoadError();
-      }
-    });
+      });
   },
   
   /**
@@ -319,29 +349,66 @@ Page({
   },
   
   /**
-   * 格式化后端返回的简历数据
+   * 格式化后端返回的简历数据（根据后端getLatest接口的数据结构）
    */
   formatBackendResumeData: function(backendData) {
+    // 保存resumeId供后续PDF下载使用
+    if (backendData.id) {
+      this.setData({
+        resumeId: backendData.id
+      });
+      // 同时更新本地存储中的resumeId
+      const options = wx.getStorageSync('previewOptions') || {};
+      options.resumeId = backendData.id;
+      wx.setStorageSync('previewOptions', options);
+      console.log('保存resumeId到本地存储:', backendData.id);
+    }
+    
+    // 添加调试日志，查看后端返回的数据结构
+    console.log('后端返回数据结构:', JSON.stringify(backendData, null, 2));
+    console.log('userInfo数据:', backendData.userInfo);
+    console.log('expectedSalary字段:', backendData.expectedSalary);
+    console.log('startTime字段:', backendData.startTime);
+    console.log('jobTitle字段:', backendData.jobTitle);
+    
     return {
-      personalInfo: backendData.personalInfo || {
-        name: backendData.name || '',
-        jobTitle: backendData.jobTitle || '',
-        phone: backendData.phone || '',
-        email: backendData.email || '',
-        address: backendData.address || '',
-        birthDate: backendData.birthDate || '',
-        expectedSalary: backendData.expectedSalary || '',
-        startTime: backendData.startTime || '',
-        avatar: backendData.avatar || '',
-        selfEvaluation: backendData.selfEvaluation || ''
+      // 基本信息（来自User表）
+      personalInfo: {
+        name: backendData.userInfo?.name || backendData.name || '',
+        jobTitle: backendData.jobTitle || backendData.userInfo?.jobTitle || '',
+        phone: backendData.userInfo?.phone || backendData.phone || '',
+        email: backendData.userInfo?.email || backendData.email || '',
+        address: backendData.userInfo?.address || backendData.address || '',
+        birthDate: backendData.userInfo?.birthDate || backendData.birthDate || '',
+        expectedSalary: backendData.expectedSalary || backendData.userInfo?.expectedSalary || '',
+        startTime: backendData.startTime || backendData.userInfo?.startTime || '',
+        avatar: backendData.userInfo?.avatarUrl || backendData.avatar || '',
+        selfEvaluation: backendData.selfEvaluation || backendData.userInfo?.selfEvaluation || '',
+        nickname: backendData.userInfo?.nickname || '',
+        gender: backendData.userInfo?.gender || '',
+        country: backendData.userInfo?.country || '',
+        province: backendData.userInfo?.province || '',
+        city: backendData.userInfo?.city || ''
       },
-      contact: backendData.contact || {},
-      education: backendData.education || [],
-      workExperience: backendData.workExperience || [],
-      projectExperienceList: backendData.projects || [],
-      skillsWithLevel: backendData.skills || [],
-      hobbies: backendData.hobbies || [],
-      selfEvaluation: backendData.selfEvaluation || ''
+      // 简历相关信息
+      resumeInfo: {
+        id: backendData.id,
+        userId: backendData.userId,
+        originalFilename: backendData.originalFilename,
+        jobTypeId: backendData.jobTypeId,
+        templateId: backendData.templateId,
+        status: backendData.status,
+        createTime: backendData.createTime,
+        updateTime: backendData.updateTime
+      },
+      // 关联数据
+      education: backendData.educationList || [],
+      workExperience: backendData.workExperienceList || [],
+      projectExperienceList: backendData.projectList || [],
+      skillsWithLevel: backendData.skillList || [],
+      hobbies: backendData.interests ? backendData.interests.split(',') : [],
+      selfEvaluation: backendData.selfEvaluation || '',
+      contact: {} // 预留联系信息字段
     };
   },
   
@@ -433,9 +500,17 @@ Page({
       mask: true
     });
     
-    // 检查是否有resumeId
-    const options = wx.getStorageSync('previewOptions') || {};
-    const resumeId = options.resumeId;
+    // 优先使用从后端获取的最新resumeId，如果没有则使用本地存储的
+    let resumeId = this.data.resumeId; // 从后端获取的resumeId
+    if (!resumeId) {
+      // 如果没有从后端获取到resumeId，尝试从本地存储获取
+      const options = wx.getStorageSync('previewOptions') || {};
+      resumeId = options.resumeId;
+      console.log('使用本地存储的resumeId:', resumeId);
+    } else {
+      console.log('使用从后端获取的最新resumeId:', resumeId);
+    }
+    
     const app = getApp();
     
     // 构建请求参数 - 使用云托管服务
@@ -458,7 +533,7 @@ Page({
     console.log('调用云托管PDF下载接口:', '/export/pdf', data);
     
     // 使用云托管的cloudCallBinary方法处理二进制数据
-    app.cloudCallBinary('/export/pdf', data, 'GET')
+    app.cloudCallBinary('/resume/export/pdf', data, 'GET')
       .then(pdfData => {
         console.log('PDF下载请求成功，数据类型:', typeof pdfData, '数据长度:', pdfData ? pdfData.byteLength : 0);
         

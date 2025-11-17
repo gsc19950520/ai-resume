@@ -19,11 +19,13 @@ import com.aicv.airesume.service.ResumeService;
 import com.aicv.airesume.service.UserService;
 import com.aicv.airesume.utils.AiServiceUtils;
 import com.aicv.airesume.utils.FileUtils;
+import com.aicv.airesume.utils.FreeMarkerUtil;
 import com.aicv.airesume.utils.OssUtils;
 import com.aicv.airesume.utils.RetryUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,6 +42,13 @@ import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 import org.xhtmlrenderer.pdf.ITextRenderer;
 import com.lowagie.text.pdf.BaseFont;
+import com.lowagie.text.Document;
+import com.lowagie.text.DocumentException;
+import com.lowagie.text.PageSize;
+import com.lowagie.text.Paragraph;
+import com.lowagie.text.pdf.PdfWriter;
+import com.lowagie.text.html.simpleparser.HTMLWorker;
+import java.io.StringReader;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -233,180 +242,109 @@ public class ResumeServiceImpl implements ResumeService {
         return new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
     }
     
-    /**
-     * 将WXML转换为HTML
-     * @param wxmlContent WXML内容
-     * @param resumeData 简历数据
-     * @return 转换后的HTML内容
-     */
-    private String convertWxmlToHtml(String wxmlContent, Map<String, Object> resumeData) {
-        // 1. 提取模板内容（移除<template>标签）
-        String content = wxmlContent;
-        if (content.contains("<template") && content.contains("</template>")) {
-            content = content.substring(content.indexOf(">"), content.lastIndexOf("<template"));
-        }
-        
-        // 2. 替换微信小程序特有的标签和语法 - 使用简单的字符串替换
-        // 替换view标签为div
-        content = content.replace("<view", "<div");
-        content = content.replace("</view>", "</div>");
-        // 替换image标签
-        content = content.replace("<image", "<img");
-        
-        // 3. 简单替换模板变量绑定语法 - 直接替换双大括号
-        content = content.replace("{{", "[[${");
-        content = content.replace("}}", "]]");
-        
-        // 确保所有的}}都被正确替换
-        content = content.replace("}}", "]]");
-        
-        return content;
-    }
-    
-    /**
-     * 将WXSS转换为CSS
-     * @param wxssContent WXSS内容
-     * @return 转换后的CSS内容
-     */
-    private String convertWxssToCss(String wxssContent) {
-        // 微信小程序的WXSS与CSS基本兼容，主要是单位转换
-        String cssContent = wxssContent;
-        
-        // 将rpx单位转换为合适的CSS单位（这里使用px作为替代）
-        // 注意：实际转换可能需要根据设备宽度进行计算
-        cssContent = cssContent.replaceAll("rpx", "px");
-        
-        return cssContent;
-    }
     
     @Override
     public byte[] exportResumeToPdf(Long resumeId, String templateId) {
         log.info("开始导出简历PDF，resumeId: {}, templateId: {}", resumeId, templateId);
-        
-        // 创建最终变量副本，用于lambda表达式中引用
-        final Long finalResumeId = resumeId;
 
-        // 处理默认模板ID
-        final String finalTemplateId = (templateId == null || templateId.isEmpty()) ? "template-one" : templateId;
-        
+        final Long finalResumeId = resumeId;
+        final String finalTemplateId =
+                (templateId == null || templateId.isEmpty()) ? "template-one" : templateId;
+
         try {
             return retryUtils.executeWithDefaultRetry(() -> {
                 try {
-                    // 1. 验证参数
                     if (finalResumeId == null) {
                         throw new IllegalArgumentException("resumeId cannot be null");
                     }
-                    
+
                     log.info("使用模板: {}", finalTemplateId);
-                    
-                    // 2. 获取简历数据
+
+                    // 1. 获取简历数据
                     Resume resume = resumeRepository.findById(finalResumeId)
-                            .orElseThrow(() -> new EntityNotFoundException("Resume not found with id: " + finalResumeId));
-                    
-                    // 3. 获取完整的简历数据，包括关联的所有信息
+                            .orElseThrow(() -> new EntityNotFoundException(
+                                    "Resume not found with id: " + finalResumeId));
+
+                    // 2. 获取关联数据（你原有的）
                     Map<String, Object> resumeData = getResumeFullData(finalResumeId);
                     log.info("获取到简历完整数据，用户ID: {}", resume.getUserId());
-                    
-                    // 4. 读取前端模板文件
+
+                    // 3. 读取模板文件 WXML + WXSS
                     String wxmlContent = readTemplateFile(finalTemplateId, "wxml");
                     String wxssContent = readTemplateFile(finalTemplateId, "wxss");
-                    log.info("成功读取模板文件，wxml大小: {}字节, wxss大小: {}字节", 
+
+                    log.info("模板文件读取成功, wxml字节: {}, wxss字节: {}",
                             wxmlContent.length(), wxssContent.length());
-                    
-                    // 5. 转换模板文件格式
-                    String htmlBody = convertWxmlToHtml(wxmlContent, resumeData);
-                    String cssStyle = convertWxssToCss(wxssContent);
-                    
-                    // 6. 构建完整的HTML文档
-                    String htmlContent = "<!DOCTYPE html>\n" +
-                                        "<html lang=\"zh-CN\">\n" +
-                                        "<head>\n" +
-                                        "    <meta charset=\"UTF-8\">\n" +
-                                        "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n" +
-                                        "    <title>简历</title>\n" +
-                                        "    <style>\n" +
-                                        "        @page { size: A4; margin: 20px; }\n" +
-                                        "        /* 基础样式重置 */\n" +
-                                        "        * { margin: 0; padding: 0; box-sizing: border-box; }\n" +
-                                        "        body { font-family: SimHei, \"Microsoft YaHei\", SimSun, Arial, sans-serif; font-size: 12px; }\n" +
-                                        "        " + cssStyle + "\n" +
-                                        "    </style>\n" +
-                                        "</head>\n" +
-                                        "<body>\n" +
-                                        htmlBody + "\n" +
-                                        "</body>\n" +
-                                        "</html>";
-                    
-                    // 7. 调用转换方法将HTML转换为PDF
+
+                    // --------------------------------------------------------
+                    // 4. WXML 渲染动态数据 -> 转换成 HTML BODY
+                    // --------------------------------------------------------
+                    String htmlBody = FreeMarkerUtil.parse(wxmlContent, resumeData);
+
+                    // --------------------------------------------------------
+                    // 5. WXSS 直接作为 CSS 使用
+                    // --------------------------------------------------------
+                    String cssStyle = wxssContent;
+
+                    // --------------------------------------------------------
+                    // 6. 拼装完整 HTML 内容
+                    // --------------------------------------------------------
+                    String htmlContent =
+                            "<!DOCTYPE html>\n" +
+                            "<html lang=\"zh-CN\">\n" +
+                            "<head>\n" +
+                            "   <meta charset=\"UTF-8\">\n" +
+                            "   <title>简历PDF</title>\n" +
+                            "   <style>\n" +
+                            "       @page { size: A4; margin: 20px; }\n" +
+                            "       body { font-family: \"Microsoft YaHei\"; font-size: 14px; }\n" +
+                            "       * { box-sizing: border-box; }\n" +
+                            cssStyle +
+                            "   </style>\n" +
+                            "</head>\n" +
+                            "<body>\n" +
+                            htmlBody +
+                            "\n</body>\n</html>";
+
+                    // --------------------------------------------------------
+                    // 7. 将 HTML 渲染为 PDF
+                    // --------------------------------------------------------
                     byte[] pdfBytes = convertHtmlToPdf(htmlContent);
-                    log.info("简历PDF导出成功，文件大小: {}KB", pdfBytes.length / 1024.0);
-                    
+
+                    log.info("PDF 导出成功, 大小: {} KB", pdfBytes.length / 1024.0);
+
                     return pdfBytes;
-                } catch (EntityNotFoundException e) {
-                    log.error("简历不存在，resumeId: {}", finalResumeId, e);
-                    throw e;
-                } catch (IOException e) {
-                    log.error("读取模板文件失败，templateId: {}", finalTemplateId, e);
-                    throw new RuntimeException("Failed to read template files", e);
+
                 } catch (Exception e) {
-                    log.error("导出简历PDF失败，resumeId: {}", finalResumeId, e);
-                    throw new RuntimeException("Failed to export resume to PDF", e);
+                    log.error("导出简历PDF失败, resumeId: {}, templateId: {}",
+                            finalResumeId, finalTemplateId, e);
+                    throw new RuntimeException("Failed to export resume PDF", e);
                 }
             });
         } catch (Exception e) {
-            log.error("导出PDF文档失败，简历ID: {}, 模板ID: {}", finalResumeId, finalTemplateId, e);
             throw new RuntimeException("导出PDF文档失败", e);
         }
     }
+
     
-    /**
-     * 实现HTML到PDF的转换
-     */
-    private byte[] convertHtmlToPdf(String htmlContent) throws Exception {
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        ITextRenderer renderer = new ITextRenderer();
-        
-        // 设置HTML内容
-        renderer.setDocumentFromString(htmlContent);
-        
-        // 确保中文能正常显示 - 尝试加载多种中文字体
-        try {
-            // Windows环境下的常用中文字体
-            if (System.getProperty("os.name").toLowerCase().contains("win")) {
-                File fontDir = new File("C:\\Windows\\Fonts");
-                if (fontDir.exists() && fontDir.isDirectory()) {
-                    String[] fontsToTry = {
-                        "simhei.ttf", // 黑体
-                        "simsun.ttc", // 宋体
-                        "msyh.ttf",   // 微软雅黑
-                        "simkai.ttf"  // 楷体
-                    };
-                    
-                    for (String fontName : fontsToTry) {
-                        File fontFile = new File(fontDir, fontName);
-                        if (fontFile.exists()) {
-                            try {
-                                renderer.getFontResolver().addFont(fontFile.getAbsolutePath(), BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
-                                log.info("成功加载字体: {}", fontFile.getAbsolutePath());
-                            } catch (Exception e) {
-                                log.warn("加载字体失败: {}", fontName, e);
-                            }
-                        }
-                    }
-                }
-            }
-        } catch (Exception e) {
-            log.error("加载字体时出错", e);
-        }
-        
-        // 布局和渲染
-        renderer.layout();
-        renderer.createPDF(outputStream);
-        outputStream.close();
-        
-        log.info("HTML到PDF转换成功，生成的PDF大小: {} 字节", outputStream.size());
-        return outputStream.toByteArray();
+    public byte[] convertHtmlToPdf(String htmlContent) { 
+        try (ByteArrayOutputStream os = new ByteArrayOutputStream()) { 
+            // 创建PDF文档
+            Document document = new Document(PageSize.A4, 50, 50, 50, 50);
+            PdfWriter.getInstance(document, os);
+            document.open();
+            
+            // 使用HTMLWorker解析HTML内容
+            HTMLWorker htmlWorker = new HTMLWorker(document);
+            htmlWorker.parse(new StringReader(htmlContent));
+            
+            document.close();
+            return os.toByteArray(); 
+        } catch (DocumentException | IOException e) { 
+            throw new RuntimeException("HTML 转 PDF 失败", e); 
+        } 
     }
+
     
 
     
@@ -492,6 +430,8 @@ public class ResumeServiceImpl implements ResumeService {
         result.put("originalFilename", resume.getOriginalFilename());
         result.put("expectedSalary", resume.getExpectedSalary());
         result.put("startTime", resume.getStartTime());
+        result.put("interests", resume.getInterests());
+        result.put("selfEvaluation", resume.getSelfEvaluation());
         result.put("jobTitle", resume.getJobTitle());
         result.put("jobTypeId", resume.getJobTypeId());
         result.put("templateId", resume.getTemplateId());
@@ -526,9 +466,20 @@ public class ResumeServiceImpl implements ResumeService {
     }
     
     @Override
+    @Transactional
     public Resume createResumeWithFullData(Long userId, ResumeDataDTO resumeDataDTO) {
         try {
-            // 创建新简历对象
+            // 首先检查用户是否已存在简历
+            List<Resume> existingResumes = resumeRepository.findByUserIdOrderByCreateTimeDesc(userId);
+            
+            if (existingResumes != null && !existingResumes.isEmpty()) {
+                // 用户已存在简历，更新现有简历
+                Resume existingResume = existingResumes.get(0);
+                log.info("用户已存在简历，将更新现有简历。用户ID: {}, 简历ID: {}", userId, existingResume.getId());
+                return updateResumeWithFullData(existingResume.getId(), resumeDataDTO);
+            }
+            
+            // 用户不存在简历，创建新简历
             Resume resume = new Resume();
             resume.setUserId(userId);
             resume.setCreateTime(new Date());
@@ -601,6 +552,7 @@ public class ResumeServiceImpl implements ResumeService {
     }
     
     @Override
+    @Transactional
     public Resume updateResumeWithFullData(Long resumeId, ResumeDataDTO resumeDataDTO) {
         return retryUtils.executeWithDefaultRetrySupplier(() -> {
             // 获取简历

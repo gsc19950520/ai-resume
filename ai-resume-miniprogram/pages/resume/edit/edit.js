@@ -63,7 +63,10 @@ Page({
 
       skills: '',
       selfEvaluation: ''
-    }
+    },
+    
+    // 标记是否已从后端成功加载简历数据
+    hasLoadedFromBackend: false
   },
 
   onLoad: function(options) {
@@ -71,103 +74,11 @@ Page({
       // 优先从options获取模板ID
       let templateId = options.templateId || this.data.resumeInfo.templateId;
       
-      // 如果有模板ID，尝试从本地存储加载对应模板的数据
-      if (templateId) {
-        
-        // 先尝试加载已保存的完整简历数据
-        const savedResumeData = wx.getStorageSync('resumeData');
-        if (savedResumeData && savedResumeData.templateId === templateId && savedResumeData.data) {
-          
-          // 从保存的数据中提取需要的信息
-          const savedData = savedResumeData.data;
-          const resumeInfoCopy = {
-            ...this.data.resumeInfo,
-            title: savedData.title || '',
-            personalInfo: savedData.personalInfo || this.data.resumeInfo.personalInfo,
-            education: savedData.education || this.data.resumeInfo.education,
-            workExperience: savedData.workExperience || this.data.resumeInfo.workExperience,
-            skills: savedData.skills ? savedData.skills.join('、') : '',
-            templateId: templateId
-          };
-          
-          // 确保personalInfo对象存在
-          if (!resumeInfoCopy.personalInfo) {
-            resumeInfoCopy.personalInfo = {};
-          }
-          
-          // 处理兴趣爱好数据，考虑不同的数据存储位置
-          if (savedData.interests && Array.isArray(savedData.interests)) {
-            resumeInfoCopy.interestsText = savedData.interests.join('\n');
-          } else if (savedData.personalInfo && savedData.personalInfo.interests) {
-            // 处理旧格式数据，interests存储在personalInfo中
-            resumeInfoCopy.interestsText = savedData.personalInfo.interests.join('\n');
-          } else if (savedData.interestsText) {
-            // 处理直接存储的interestsText
-            resumeInfoCopy.interestsText = savedData.interestsText;
-          } else {
-            resumeInfoCopy.interestsText = '';
-          }
-          
-          // 处理自我评价数据，确保能从不同位置获取
-          if (savedData.selfEvaluation) {
-            resumeInfoCopy.selfEvaluation = savedData.selfEvaluation;
-          } else if (savedData.personalInfo && savedData.personalInfo.selfEvaluation) {
-            // 处理旧格式数据，selfEvaluation存储在personalInfo中
-            resumeInfoCopy.selfEvaluation = savedData.personalInfo.selfEvaluation;
-          } else {
-            resumeInfoCopy.selfEvaluation = '';
-          }
-          
-          // 处理技能评分数据
-          if (savedData.skillsWithLevel && Array.isArray(savedData.skillsWithLevel)) {
-            resumeInfoCopy.skillsWithLevel = savedData.skillsWithLevel;
-          }
-          
-          // 处理项目经验数据
-          if (savedData.projectExperienceList && Array.isArray(savedData.projectExperienceList)) {
-            resumeInfoCopy.projectExperienceList = savedData.projectExperienceList;
-          }
-          
-          // 验证并修复数据结构完整性
-          const validatedResumeInfo = this.validateResumeInfo(resumeInfoCopy);
-          
-          this.setData({
-            resumeInfo: validatedResumeInfo,
-            'resumeInfo.templateId': templateId
-          });
-          
-        } else {
-          // 如果没有找到对应模板的数据，尝试加载临时保存的数据
-          const tempResumeInfo = wx.getStorageSync('tempResumeInfo');
-          if (tempResumeInfo) {
-            try {
-              // 进行深拷贝，避免引用问题
-              const resumeInfoCopy = JSON.parse(JSON.stringify(tempResumeInfo));
-              
-              // 验证并修复数据结构完整性
-              const validatedResumeInfo = this.validateResumeInfo(resumeInfoCopy);
-              
-              this.setData({
-                resumeInfo: validatedResumeInfo,
-                'resumeInfo.templateId': templateId
-              });
-              console.log('成功从本地存储恢复临时数据:', JSON.stringify({educationLength: validatedResumeInfo.education.length, workExperienceLength: validatedResumeInfo.workExperience.length}));
-            } catch (parseError) {
-              console.error('解析本地存储数据失败:', parseError);
-              // 保留默认数据结构，只设置模板ID
-              this.setData({
-                'resumeInfo.templateId': templateId
-              });
-            }
-          } else {
-            // 只设置模板ID
-            this.setData({
-              'resumeInfo.templateId': templateId
-            });
-          }
-        }
-      } else {
-        // 如果没有模板ID，尝试加载临时保存的数据
+      // 先调用后端接口获取用户最新简历数据（异步操作）
+      this.loadLatestResumeData(templateId);
+      
+      // 如果没有模板ID，尝试加载临时保存的数据（初始加载）
+      if (!templateId) {
         const tempResumeInfo = wx.getStorageSync('tempResumeInfo');
         if (tempResumeInfo) {
           try {
@@ -356,6 +267,299 @@ Page({
     }
     
     return validated;
+  },
+
+  // 加载用户最新简历数据
+  loadLatestResumeData: function(templateId) {
+    const userInfoStr = wx.getStorageSync('userInfo');
+    const userInfo = JSON.parse(userInfoStr);
+    // 同时检查id和userId字段，确保能正确获取用户ID
+    const userId = userInfo ? (userInfo.id || userInfo.userId) : null;
+    if (!userId) {
+      console.log('用户ID不存在，跳过加载最新简历数据');
+      // 用户ID不存在时，使用本地存储作为后备方案
+      this.loadLocalResumeData(templateId);
+      return;
+    }
+
+    // 调用后端接口获取用户最新简历数据，传递userId参数
+    request.get('/resume/getLatest', { userId: userId })
+      .then(res => {
+        if (res && res.success && res.data) {
+          console.log('成功获取用户最新简历数据:', res.data);
+          
+          // 解析后端返回的数据并填充到页面
+          const success = this.fillResumeDataFromBackend(res.data, templateId);
+          
+          // 如果后端没有返回有效数据，使用本地存储作为后备方案
+          if (!success) {
+            this.loadLocalResumeData(templateId);
+          }
+        } else {
+          console.log('用户暂无简历数据或获取失败:', res);
+          // 后端没有数据时，使用本地存储作为后备方案
+          this.loadLocalResumeData(templateId);
+        }
+      })
+      .catch(err => {
+        console.error('获取用户最新简历数据失败:', err);
+        // 接口调用失败时，使用本地存储作为后备方案
+        this.loadLocalResumeData(templateId);
+      });
+  },
+  
+  // 加载本地存储的简历数据（后备方案）
+  loadLocalResumeData: function(templateId) {
+    try {
+      // 如果已经从后端成功加载数据，就不需要再加载本地数据
+      if (this.data.hasLoadedFromBackend) {
+        return;
+      }
+      
+      if (templateId) {
+        // 如果有模板ID，尝试从本地存储加载对应模板的数据
+        
+        // 先尝试加载已保存的完整简历数据
+        const savedResumeData = wx.getStorageSync('resumeData');
+        if (savedResumeData && savedResumeData.templateId === templateId && savedResumeData.data) {
+          
+          // 从保存的数据中提取需要的信息
+          const savedData = savedResumeData.data;
+          const resumeInfoCopy = {
+            ...this.data.resumeInfo,
+            title: savedData.title || '',
+            personalInfo: savedData.personalInfo || this.data.resumeInfo.personalInfo,
+            education: savedData.education || this.data.resumeInfo.education,
+            workExperience: savedData.workExperience || this.data.resumeInfo.workExperience,
+            skills: savedData.skills ? savedData.skills.join('、') : '',
+            templateId: templateId
+          };
+          
+          // 确保personalInfo对象存在
+          if (!resumeInfoCopy.personalInfo) {
+            resumeInfoCopy.personalInfo = {};
+          }
+          
+          // 处理兴趣爱好数据，考虑不同的数据存储位置
+          if (savedData.interests && Array.isArray(savedData.interests)) {
+            resumeInfoCopy.interestsText = savedData.interests.join('\n');
+          } else if (savedData.personalInfo && savedData.personalInfo.interests) {
+            // 处理旧格式数据，interests存储在personalInfo中
+            resumeInfoCopy.interestsText = savedData.personalInfo.interests.join('\n');
+          } else if (savedData.interestsText) {
+            // 处理直接存储的interestsText
+            resumeInfoCopy.interestsText = savedData.interestsText;
+          } else {
+            resumeInfoCopy.interestsText = '';
+          }
+          
+          // 处理自我评价数据，确保能从不同位置获取
+          if (savedData.selfEvaluation) {
+            resumeInfoCopy.selfEvaluation = savedData.selfEvaluation;
+          } else if (savedData.personalInfo && savedData.personalInfo.selfEvaluation) {
+            // 处理旧格式数据，selfEvaluation存储在personalInfo中
+            resumeInfoCopy.selfEvaluation = savedData.personalInfo.selfEvaluation;
+          } else {
+            resumeInfoCopy.selfEvaluation = '';
+          }
+          
+          // 处理技能评分数据
+          if (savedData.skillsWithLevel && Array.isArray(savedData.skillsWithLevel)) {
+            resumeInfoCopy.skillsWithLevel = savedData.skillsWithLevel;
+          }
+          
+          // 处理项目经验数据
+          if (savedData.projectExperienceList && Array.isArray(savedData.projectExperienceList)) {
+            resumeInfoCopy.projectExperienceList = savedData.projectExperienceList;
+          }
+          
+          // 验证并修复数据结构完整性
+          const validatedResumeInfo = this.validateResumeInfo(resumeInfoCopy);
+          
+          this.setData({
+            resumeInfo: validatedResumeInfo,
+            'resumeInfo.templateId': templateId
+          });
+          
+          console.log('成功从本地存储加载简历数据');
+          
+        } else {
+          // 如果没有找到对应模板的数据，尝试加载临时保存的数据
+          const tempResumeInfo = wx.getStorageSync('tempResumeInfo');
+          if (tempResumeInfo) {
+            try {
+              // 进行深拷贝，避免引用问题
+              const resumeInfoCopy = JSON.parse(JSON.stringify(tempResumeInfo));
+              
+              // 验证并修复数据结构完整性
+              const validatedResumeInfo = this.validateResumeInfo(resumeInfoCopy);
+              
+              this.setData({
+                resumeInfo: validatedResumeInfo,
+                'resumeInfo.templateId': templateId
+              });
+              console.log('成功从本地存储恢复临时数据:', JSON.stringify({educationLength: validatedResumeInfo.education.length, workExperienceLength: validatedResumeInfo.workExperience.length}));
+            } catch (parseError) {
+              console.error('解析本地存储数据失败:', parseError);
+              // 保留默认数据结构，只设置模板ID
+              this.setData({
+                'resumeInfo.templateId': templateId
+              });
+            }
+          } else {
+            // 只设置模板ID
+            this.setData({
+              'resumeInfo.templateId': templateId
+            });
+          }
+        }
+      }
+    } catch (error) {
+      console.error('加载本地简历数据失败:', error);
+    }
+  },
+
+  // 将后端返回的简历数据填充到页面
+  fillResumeDataFromBackend: function(backendData, templateId) {
+    try {
+      const resumeInfo = this.data.resumeInfo;
+      
+      // 填充基本信息（适配后端数据结构）
+      if (backendData.userInfo) {
+        // 个人信息从userInfo对象中获取
+        resumeInfo.personalInfo = {
+          name: backendData.userInfo.name || '',
+          email: backendData.userInfo.email || '',
+          phone: backendData.userInfo.phone || '',
+          address: backendData.userInfo.address || '',
+          birthDate: backendData.userInfo.birthDate || '',
+          nickname: backendData.userInfo.nickname || '',
+          avatarUrl: backendData.userInfo.avatarUrl || '',
+          gender: backendData.userInfo.gender || '',
+          country: backendData.userInfo.country || '',
+          province: backendData.userInfo.province || '',
+          city: backendData.userInfo.city || ''
+        };
+      }
+      
+      // 填充求职相关信息（直接从根对象获取）
+      if (backendData.jobTitle || backendData.expectedSalary || backendData.startTime || backendData.jobTypeId) {
+        resumeInfo.personalInfo = {
+          ...resumeInfo.personalInfo,
+          jobTitle: backendData.jobTitle || '',
+          expectedSalary: backendData.expectedSalary || '',
+          startTime: backendData.startTime || '',
+          jobTypeId: backendData.jobTypeId || ''
+        };
+      }
+      
+      // 填充教育经历
+      if (backendData.educationList && Array.isArray(backendData.educationList)) {
+        resumeInfo.education = backendData.educationList.map((edu, index) => ({
+          id: index + 1,
+          school: edu.school || '',
+          major: edu.major || '',
+          degree: edu.degree || '',
+          startDate: edu.startDate || '',
+          endDate: edu.endDate || '',
+          description: edu.description || ''
+        }));
+      } else if (backendData.educations && Array.isArray(backendData.educations)) {
+        resumeInfo.education = backendData.educations.map((edu, index) => ({
+          id: index + 1,
+          school: edu.school || '',
+          major: edu.major || '',
+          degree: edu.degree || '',
+          startDate: edu.startDate || '',
+          endDate: edu.endDate || '',
+          description: edu.description || ''
+        }));
+      }
+      
+      // 填充工作经历
+      if (backendData.workExperienceList && Array.isArray(backendData.workExperienceList)) {
+        resumeInfo.workExperience = backendData.workExperienceList.map((work, index) => ({
+          id: index + 1,
+          company: work.companyName || '',
+          position: work.positionName || '',
+          startDate: work.startDate || '',
+          endDate: work.endDate || '',
+          description: work.description || ''
+        }));
+      } else if (backendData.works && Array.isArray(backendData.works)) {
+        resumeInfo.workExperience = backendData.works.map((work, index) => ({
+          id: index + 1,
+          company: work.companyName || '',
+          position: work.positionName || '',
+          startDate: work.startDate || '',
+          endDate: work.endDate || '',
+          description: work.description || ''
+        }));
+      }
+      
+      // 填充项目经验
+      if (backendData.projectList && Array.isArray(backendData.projectList)) {
+        resumeInfo.projectExperienceList = backendData.projectList.map((project, index) => ({
+          id: index + 1,
+          name: project.projectName || '',
+          description: project.description || '',
+          startDate: project.startDate || '',
+          endDate: project.endDate || ''
+        }));
+      } else if (backendData.projects && Array.isArray(backendData.projects)) {
+        resumeInfo.projectExperienceList = backendData.projects.map((project, index) => ({
+          id: index + 1,
+          name: project.projectName || '',
+          description: project.description || '',
+          startDate: project.startDate || '',
+          endDate: project.endDate || ''
+        }));
+      }
+      
+      // 填充技能
+      if (backendData.skillList && Array.isArray(backendData.skillList)) {
+        resumeInfo.skillsWithLevel = backendData.skillList.map((skill, index) => ({
+          name: skill.name || '',
+          level: skill.level || 1
+        }));
+      } else if (backendData.skills && Array.isArray(backendData.skills)) {
+        resumeInfo.skillsWithLevel = backendData.skills.map((skill, index) => ({
+          name: skill.name || '',
+          level: skill.level || 1
+        }));
+      }
+      
+      // 填充兴趣爱好
+      if (backendData.interests) {
+        if (Array.isArray(backendData.interests)) {
+          resumeInfo.interestsText = backendData.interests.join('\n');
+        } else {
+          resumeInfo.interestsText = backendData.interests || '';
+        }
+      }
+      
+      // 填充自我评价
+      if (backendData.selfEvaluation) {
+        resumeInfo.selfEvaluation = backendData.selfEvaluation;
+      }
+      
+      // 设置模板ID，优先使用传入的templateId
+      resumeInfo.templateId = templateId || backendData.templateId || resumeInfo.templateId;
+      
+      // 更新页面数据
+      this.setData({
+        resumeInfo: resumeInfo,
+        hasLoadedFromBackend: true  // 标记已从后端成功加载数据
+      });
+      
+      console.log('简历数据已成功填充到页面');
+      
+      // 如果后端有数据，就不再使用本地存储的数据
+      return true;
+    } catch (error) {
+      console.error('填充简历数据失败:', error);
+      return false;
+    }
   },
 
   // 切换编辑部分
@@ -1183,10 +1387,11 @@ Page({
                 wx.setStorageSync('currentResumeId', response.resumeId);
               }
               
-              // 跳转到简历预览页面，传递模板ID
+              // 跳转到简历预览页面，传递模板ID和简历ID
               setTimeout(() => {
+                const resumeId = response.resumeId || this.data.resumeInfo.id;
                 wx.navigateTo({
-                  url: `/pages/template/preview/preview?templateId=${resumeInfo.templateId}`
+                  url: `/pages/template/preview/preview?templateId=${resumeInfo.templateId}&resumeId=${resumeId}`
                 });
               }, 1500);
             })
@@ -1200,10 +1405,11 @@ Page({
                 duration: 2000
               });
               
-              // 跳转到简历预览页面，传递模板ID
+              // 跳转到简历预览页面，传递模板ID和简历ID
               setTimeout(() => {
+                const resumeId = this.data.resumeInfo.id || wx.getStorageSync('currentResumeId');
                 wx.navigateTo({
-                  url: `/pages/template/preview/preview?templateId=${resumeInfo.templateId}`
+                  url: `/pages/template/preview/preview?templateId=${resumeInfo.templateId}&resumeId=${resumeId}`
                 });
               }, 1500);
             });
@@ -1216,12 +1422,13 @@ Page({
             duration: 2000
           });
           
-          // 跳转到简历预览页面，传递模板ID
-          setTimeout(() => {
-            wx.navigateTo({
-              url: `/pages/template/preview/preview?templateId=${resumeInfo.templateId}`
-            });
-          }, 1500);
+          // 跳转到简历预览页面，传递模板ID和简历ID
+              setTimeout(() => {
+                const resumeId = this.data.resumeInfo.id || wx.getStorageSync('currentResumeId');
+                wx.navigateTo({
+                  url: `/pages/template/preview/preview?templateId=${resumeInfo.templateId}&resumeId=${resumeId}`
+                });
+              }, 1500);
         }
       } else {
         wx.hideLoading();

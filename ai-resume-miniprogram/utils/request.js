@@ -7,6 +7,22 @@ const app = getApp()
  */
 const cloudCall = (path, data = {}, method = 'GET', header = {}) => {
   return app.cloudCall(path, data, method, header)
+    .then(res => {
+      // 检查是否有新的token（后端刷新token）
+      if (res && res.header) {
+        const newToken = res.header['X-New-Token'];
+        const tokenRefreshed = res.header['X-Token-Refreshed'];
+        
+        if (newToken && tokenRefreshed === 'true') {
+          console.log('检测到新的token，更新本地存储');
+          // 更新全局token
+          app.globalData.token = newToken;
+          // 更新本地存储
+          wx.setStorageSync('token', newToken);
+        }
+      }
+      return res;
+    });
 }
 
 /**
