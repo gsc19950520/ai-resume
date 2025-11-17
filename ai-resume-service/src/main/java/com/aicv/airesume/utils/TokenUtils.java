@@ -2,6 +2,7 @@ package com.aicv.airesume.utils;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -15,7 +16,7 @@ import java.util.Map;
 @Component
 public class TokenUtils {
 
-    @Value("${jwt.secret:ai_resume_optimizer_secret_key}")
+    @Value("${jwt.secret:ai_resume_optimizer_secret_key_256bit_length_for_hs512_algorithm}")
     private String secret;
 
     @Value("${jwt.expire:7200000}")
@@ -35,7 +36,7 @@ public class TokenUtils {
                 .setClaims(claims)
                 .setIssuedAt(nowDate)
                 .setExpiration(expireDate)
-                .signWith(SignatureAlgorithm.HS512, secret)
+                .signWith(Keys.hmacShaKeyFor(secret.getBytes()), SignatureAlgorithm.HS512)
                 .compact();
     }
 
@@ -44,8 +45,9 @@ public class TokenUtils {
      */
     public Map<String, Object> parseToken(String token) {
         try {
-            return Jwts.parser()
-                    .setSigningKey(secret)
+            return Jwts.parserBuilder()
+                    .setSigningKey(Keys.hmacShaKeyFor(secret.getBytes()))
+                    .build()
                     .parseClaimsJws(token)
                     .getBody();
         } catch (Exception e) {
