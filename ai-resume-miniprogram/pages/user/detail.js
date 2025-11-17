@@ -162,11 +162,12 @@ Page({
 
   // 性别选择
   onGenderChange: function(e) {
-    const genderIndex = e.detail.value
+    // 将genderIndex显式转换为数值类型，确保类型匹配
+    const genderIndex = Number(e.detail.value)
     console.log('性别选择值:', genderIndex, typeof genderIndex)
     this.setData({
       genderIndex,
-      'userInfo.gender': genderIndex === '0' ? 1 : 0 // 0表示男(存储为1)，1表示女(存储为0)
+      'userInfo.gender': genderIndex === 0 ? 1 : 0 // 0表示男(存储为1)，1表示女(存储为0)
     })
     console.log('更新后的性别值:', this.data.userInfo.gender)
   },

@@ -11,16 +11,6 @@
   <!-- 核心功能模块区域 -->
   <view class="core-modules-section">
     <view class="core-modules-grid">
-      <view class="core-module-card resume-card" bindtap="resumeTemplates">
-        <view class="module-icon resume-iconn">
-          <image src="/images/template.png" mode="aspectFit"></image>
-        </view>
-        <view class="module-content">
-          <view class="module-title">创建简历</view>
-          <view class="module-desc">精美简历模板选择</view>
-        </view>
-      </view>
-
       <!-- AI模拟面试模块 - 高亮主卡片 -->
       <view class="core-module-card main-card" bindtap="aiInterview">
         <view class="module-icon interview-icon">

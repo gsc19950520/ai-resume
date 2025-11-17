@@ -29,7 +29,7 @@
     <view class="form-item">
       <view class="label">性别<text class="required">*</text></view>
       <picker class="picker" bindchange="onGenderChange" value="{{genderIndex}}" range="{{['男', '女']}}">
-        <view class="picker-text">{{genderIndex === 0 ? '男' : '女'}}</view>
+        <view class="picker-text">{{genderIndex == 0 ? '男' : '女'}}</view>
       </picker>
     </view>
     

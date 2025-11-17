@@ -32,7 +32,7 @@ App({
         method: method,
         header: {
           'content-type': 'application/json',
-          'token': this.globalData.token || '',
+          'Authorization': this.globalData.token ? `Bearer ${this.globalData.token}` : '',
           'X-WX-SERVICE': this.globalData.cloudServiceName,
           ...header
         },

@@ -1,0 +1,497 @@
+/* 简历主页面样式 */
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: #f5f5f5;
+}
+
+/* 加载状态样式 */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+}
+
+.loading-spinner {
+  width: 50rpx;
+  height: 50rpx;
+  border: 4rpx solid #f3f3f3;
+  border-top: 4rpx solid #4F46E5;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20rpx;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-text {
+  font-size: 28rpx;
+  color: #64748B;
+}
+
+/* 简历容器样式 */
+.resume-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+/* 头部样式 */
+.header {
+  padding: 30rpx 40rpx;
+  background-color: #FFFFFF;
+  border-bottom: 1rpx solid #E2E8F0;
+  text-align: center;
+}
+
+.title {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #1E293B;
+  margin-bottom: 8rpx;
+}
+
+.subtitle {
+  font-size: 24rpx;
+  color: #64748B;
+}
+
+.ai-badge {
+  display: inline-block;
+  background: linear-gradient(135deg, #4F46E5, #7C3AED);
+  padding: 4rpx 16rpx;
+  border-radius: 16rpx;
+  margin-top: 10rpx;
+}
+
+.ai-text {
+  color: white;
+  font-size: 20rpx;
+  font-weight: bold;
+}
+
+/* 简历内容区域 */
+.resume-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20rpx;
+}
+
+.resume-content-wrapper {
+  background-color: #FFFFFF;
+  border-radius: 16rpx;
+  padding: 40rpx;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+}
+
+/* 模板化简历样式 */
+.template-resume {
+  font-size: 28rpx;
+  line-height: 1.6;
+}
+
+.personal-info {
+  text-align: center;
+  margin-bottom: 40rpx;
+  padding-bottom: 30rpx;
+  border-bottom: 2rpx solid #E2E8F0;
+}
+
+.name {
+  display: block;
+  font-size: 44rpx;
+  font-weight: bold;
+  color: #1E293B;
+  margin-bottom: 10rpx;
+}
+
+.job-title {
+  display: block;
+  font-size: 28rpx;
+  color: #4F46E5;
+  margin-bottom: 20rpx;
+}
+
+.contact-info {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 20rpx;
+}
+
+.contact-info text {
+  color: #64748B;
+  font-size: 24rpx;
+}
+
+.section {
+  margin-bottom: 30rpx;
+}
+
+.section-title {
+  display: block;
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #1E293B;
+  margin-bottom: 20rpx;
+  padding-bottom: 10rpx;
+  border-bottom: 2rpx solid #E2E8F0;
+}
+
+.section-content {
+  color: #475569;
+  line-height: 1.8;
+}
+
+.experience-item,
+.education-item {
+  margin-bottom: 25rpx;
+}
+
+.experience-header,
+.education-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8rpx;
+}
+
+.company,
+.school {
+  font-weight: bold;
+  color: #1E293B;
+}
+
+.period {
+  color: #64748B;
+  font-size: 24rpx;
+}
+
+.position {
+  color: #4F46E5;
+  margin-bottom: 8rpx;
+  display: block;
+}
+
+.description {
+  color: #475569;
+  font-size: 26rpx;
+  line-height: 1.7;
+}
+
+.degree-major {
+  color: #475569;
+  font-size: 26rpx;
+}
+
+.skills-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15rpx;
+}
+
+.skill-tag {
+  background-color: #EEF2FF;
+  color: #4F46E5;
+  padding: 8rpx 20rpx;
+  border-radius: 20rpx;
+  font-size: 24rpx;
+}
+
+/* 底部按钮样式 */
+.footer {
+  display: flex;
+  padding: 20rpx;
+  background-color: #FFFFFF;
+  border-top: 1rpx solid #E2E8F0;
+  gap: 15rpx;
+}
+
+.edit-btn,
+.share-btn,
+.pdf-btn {
+  flex: 1;
+  height: 80rpx;
+  line-height: 80rpx;
+  font-size: 28rpx;
+  margin: 0;
+}
+
+.edit-btn {
+  color: #4F46E5;
+  border: 1rpx solid #4F46E5;
+  background-color: #FFFFFF;
+}
+
+.share-btn {
+  color: #64748B;
+  border: 1rpx solid #E2E8F0;
+  background-color: #FFFFFF;
+}
+
+.pdf-btn {
+  color: #FFFFFF;
+  background: linear-gradient(135deg, #3498db, #2980b9);
+  border: none;
+}
+
+/* 模板列表容器样式 */
+.template-list-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  padding: 40rpx;
+}
+
+.empty-state {
+  text-align: center;
+  margin-bottom: 40rpx;
+}
+
+.empty-icon {
+  font-size: 80rpx;
+  margin-bottom: 20rpx;
+}
+
+.empty-text {
+  display: block;
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #1E293B;
+  margin-bottom: 10rpx;
+}
+
+.empty-subtext {
+  display: block;
+  font-size: 26rpx;
+  color: #64748B;
+}
+
+/* 模板列表样式 */
+.template-list {
+  display: flex;
+  flex-direction: column;
+  gap: 30rpx;
+  margin-bottom: 40rpx;
+}
+
+.template-item {
+  background-color: #FFFFFF;
+  border-radius: 16rpx;
+  padding: 20rpx;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s;
+}
+
+.template-item:active {
+  transform: scale(0.98);
+}
+
+.template-preview {
+  width: 100%;
+  height: 300rpx;
+  background-color: #f8f9fa;
+  border-radius: 12rpx;
+  margin-bottom: 20rpx;
+  overflow: hidden;
+}
+
+.template-preview image {
+  width: 100%;
+  height: 100%;
+}
+
+.template-name {
+  display: block;
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #1E293B;
+  margin-bottom: 5rpx;
+}
+
+.template-desc {
+  display: block;
+  font-size: 24rpx;
+  color: #64748B;
+}
+
+/* 操作按钮样式 */
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.create-btn {
+  height: 90rpx;
+  line-height: 90rpx;
+  font-size: 32rpx;
+  background-color: #4F46E5;
+  color: #FFFFFF;
+  margin: 0;
+}
+
+.template-btn {
+  height: 90rpx;
+  line-height: 90rpx;
+  font-size: 32rpx;
+  color: #4F46E5;
+  border: 1rpx solid #4F46E5;
+  background-color: #FFFFFF;
+  margin: 0;
+}
+
+/* 模板列表网格布局样式 */
+.section-header {
+  margin-bottom: 30rpx;
+  padding-bottom: 15rpx;
+  border-bottom: 2rpx solid #E2E8F0;
+}
+
+.section-title {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #1E293B;
+}
+
+.template-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10rpx;
+  margin-bottom: 40rpx;
+}
+
+.template-card {
+  background-color: #FFFFFF;
+  border-radius: 16rpx;
+  overflow: hidden;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.template-card:active {
+  transform: scale(0.98);
+  box-shadow: 0 1rpx 5rpx rgba(0, 0, 0, 0.05);
+}
+
+.template-wrapper {
+  padding: 20rpx;
+}
+
+.thumbnail-container {
+  position: relative;
+  width: 100%;
+  height: 410rpx;
+  border-radius: 12rpx;
+  overflow: hidden;
+  margin-bottom: 20rpx;
+  background-color: #f8f9fa;
+}
+
+.template-thumbnail {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.thumbnail-placeholder {
+  width: 100%;
+  height: 100%;
+  background-color: #f1f5f9;
+}
+
+.vip-badge {
+  position: absolute;
+  top: 10rpx;
+  right: 10rpx;
+  background-color: #FF6B6B;
+  color: #FFFFFF;
+  font-size: 20rpx;
+  padding: 4rpx 12rpx;
+  border-radius: 12rpx;
+  font-weight: bold;
+}
+
+.free-badge {
+  position: absolute;
+  top: 10rpx;
+  right: 10rpx;
+  background-color: #4CAF50;
+  color: #FFFFFF;
+  font-size: 20rpx;
+  padding: 4rpx 12rpx;
+  border-radius: 12rpx;
+  font-weight: bold;
+}
+
+.template-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.template-name {
+  font-size: 30rpx;
+  font-weight: bold;
+  color: #1E293B;
+  margin-bottom: 0;
+}
+
+.template-description {
+  font-size: 24rpx;
+  color: #64748B;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.select-btn {
+  margin-top: 10rpx;
+  font-size: 24rpx;
+  height: 60rpx;
+  line-height: 60rpx;
+  background-color: #4F46E5;
+  color: #FFFFFF;
+}
+
+.template-grid-placeholder {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20rpx;
+  margin-bottom: 40rpx;
+}
+
+.template-card-placeholder {
+  width: 100%;
+  height: 400rpx;
+  background-color: #f1f5f9;
+  border-radius: 16rpx;
+}
+
+/* 模板特定样式 */
+.template-one {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.template-two {
+  font-family: 'Helvetica Neue', Arial, sans-serif;
+}
+
+.template-three {
+  font-family: Georgia, serif;
+}
+
+.template-four {
+  font-family: 'Courier New', monospace;
+}
+
+.template-five {
+  font-family: 'Times New Roman', serif;
+}

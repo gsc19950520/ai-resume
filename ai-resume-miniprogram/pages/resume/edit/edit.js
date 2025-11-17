@@ -859,7 +859,7 @@ Page({
         startTime: resumeInfo.personalInfo.startTime,
         jobTypeId: resumeInfo.personalInfo.jobTypeId,
         interests: interests,
-        selfEvaluation: resumeInfo.selfEvaluation
+        selfEvaluation: resumeInfo.personalInfo.selfEvaluation || resumeInfo.selfEvaluation
       },
       // 移除contact字段，这些信息现在存储在User表中
       
@@ -909,7 +909,7 @@ Page({
       // 判断是创建新简历还是更新现有简历
       if (resumeId === 'new' || !resumeId) {
         // 创建新简历
-        request.post(`/resume/?userId=${userId}`, resumeData)
+        request.post('/resume/', resumeData)
           .then(res => {
             if (res && res.success) {
               resolve(res);
@@ -943,7 +943,7 @@ Page({
           });
       } else {
         // 更新现有简历
-        request.put(`/resume/${resumeId}?userId=${userId}`, resumeData)
+        request.put(`/resume/${resumeId}`, resumeData)
           .then(res => {
             if (res && res.success) {
               resolve(res);
@@ -1096,7 +1096,8 @@ Page({
       }
       
       // 10. 自我评价必填校验
-      if (!resumeInfo.selfEvaluation || resumeInfo.selfEvaluation.trim() === '') {
+      const selfEvaluation = resumeInfo.personalInfo.selfEvaluation || resumeInfo.selfEvaluation;
+      if (!selfEvaluation || selfEvaluation.trim() === '') {
         wx.showToast({
           title: '请填写自我评价',
           icon: 'none'
@@ -1129,7 +1130,7 @@ Page({
         const personalInfo = {
           ...resumeInfo.personalInfo,
           interests: interests,
-          selfEvaluation: resumeInfo.selfEvaluation
+          selfEvaluation: resumeInfo.personalInfo.selfEvaluation || resumeInfo.selfEvaluation
         };
         
         const resumeData = {

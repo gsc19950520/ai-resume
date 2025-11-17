@@ -1,6 +1,7 @@
 {
   "pages": [
     "pages/index/index",
+    "pages/resume/main/main",
     "pages/login/login",
     "pages/profile/profile",
     "pages/create/create",
@@ -40,6 +41,12 @@
         "text": "首页",
         "iconPath": "images/home.png",
         "selectedIconPath": "images/home_active.png"
+      },
+      {
+        "pagePath": "pages/resume/main/main",
+        "text": "简历",
+        "iconPath": "images/resume.png",
+        "selectedIconPath": "images/resume_active.png"
       },
       {
         "pagePath": "pages/profile/profile",

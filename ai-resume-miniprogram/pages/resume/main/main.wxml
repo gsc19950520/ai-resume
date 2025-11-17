@@ -1,0 +1,148 @@
+<!-- 简历主页面 -->
+<view class="container">
+  <!-- 加载状态 -->
+  <view class="loading-state" wx:if="{{loading}}">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">正在加载简历信息...</text>
+  </view>
+
+  <!-- 有简历时显示简历内容 -->
+  <view class="resume-container" wx:elif="{{hasResume}}">
+    <!-- 头部 -->
+    <view class="header">
+      <text class="title">我的简历</text>
+      <text class="subtitle">{{ resumeData && resumeData.title ? resumeData.title : '未命名简历' }}</text>
+    </view>
+
+    <!-- 简历内容区域 -->
+    <scroll-view class="resume-content" scroll-y>
+      <!-- 简历内容容器 -->
+      <view class="resume-content-wrapper {{templateClass}}">
+        <!-- 如果有后端渲染的HTML，优先显示 -->
+        <rich-text wx:if="{{resumeData && resumeData.renderedHtml}}" nodes="{{resumeData.renderedHtml}}"></rich-text>
+        
+        <!-- 否则显示模板化的简历内容 -->
+        <view wx:else class="template-resume">
+          <!-- 个人信息 -->
+          <view class="personal-info" wx:if="{{resumeData.personalInfo}}">
+            <text class="name">{{resumeData.personalInfo.name || '姓名'}}</text>
+            <text class="job-title">{{resumeData.personalInfo.jobTitle || '职位'}}</text>
+            <view class="contact-info">
+              <text wx:if="{{resumeData.personalInfo.phone}}">{{resumeData.personalInfo.phone}}</text>
+              <text wx:if="{{resumeData.personalInfo.email}}">{{resumeData.personalInfo.email}}</text>
+              <text wx:if="{{resumeData.personalInfo.address}}">{{resumeData.personalInfo.address}}</text>
+            </view>
+          </view>
+
+          <!-- 个人概述 -->
+          <view class="section" wx:if="{{resumeData.summary}}">
+            <text class="section-title">个人概述</text>
+            <text class="section-content">{{resumeData.summary}}</text>
+          </view>
+
+          <!-- 工作经历 -->
+          <view class="section" wx:if="{{resumeData.workExperience && resumeData.workExperience.length > 0}}">
+            <text class="section-title">工作经历</text>
+            <view class="experience-list">
+              <view class="experience-item" wx:for="{{resumeData.workExperience}}" wx:key="index">
+                <view class="experience-header">
+                  <text class="company">{{item.company || '公司名称'}}</text>
+                  <text class="period">{{item.period || '时间段'}}</text>
+                </view>
+                <text class="position">{{item.position || '职位'}}</text>
+                <text class="description">{{item.description || '工作描述'}}</text>
+              </view>
+            </view>
+          </view>
+
+          <!-- 教育经历 -->
+          <view class="section" wx:if="{{resumeData.education && resumeData.education.length > 0}}">
+            <text class="section-title">教育经历</text>
+            <view class="education-list">
+              <view class="education-item" wx:for="{{resumeData.education}}" wx:key="index">
+                <view class="education-header">
+                  <text class="school">{{item.school || '学校名称'}}</text>
+                  <text class="period">{{item.period || '时间段'}}</text>
+                </view>
+                <text class="degree-major">{{item.degree || ''}} {{item.major || ''}}</text>
+              </view>
+            </view>
+          </view>
+
+          <!-- 技能 -->
+          <view class="section" wx:if="{{resumeData.skills && resumeData.skills.length > 0}}">
+            <text class="section-title">技能</text>
+            <view class="skills-list">
+              <text class="skill-tag" wx:for="{{resumeData.skills}}" wx:key="index">{{item}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </scroll-view>
+
+    <!-- 底部操作按钮 -->
+    <view class="footer">
+      <button class="edit-btn" bindtap="editResume">
+        编辑简历
+      </button>
+      <button class="share-btn" bindtap="shareResume">
+        分享
+      </button>
+      <button class="pdf-btn" bindtap="exportToPdf">
+        导出为PDF
+      </button>
+    </view>
+  </view>
+
+  <!-- 无简历时显示模板列表 -->
+  <view class="template-list-container" wx:else>
+    <view class="empty-state">
+      <view class="empty-icon">📄</view>
+      <text class="empty-text">您还没有创建简历</text>
+      <text class="empty-subtext">选择一个模板开始创建您的专业简历</text>
+    </view>
+    
+    
+    <!-- 模板列表 - 左右两列网格布局 -->
+    <!-- 使用pageReady状态控制渲染，确保页面完全就绪后再渲染内容 -->
+    <view wx:if="{{pageReady}}" class="template-grid">
+      <view class="template-card" wx:for="{{templateList}}" wx:key="id">
+          <!-- 模板卡片容器 - 点击整个卡片直接进入模板 -->
+          <view class="template-wrapper" bindtap="selectTemplate" data-id="{{item.id}}" data-name="{{item.name}}">
+            <!-- 缩略图区域 - 只显示模板小图 -->
+            <view class="thumbnail-container">
+              <!-- 使用条件渲染控制图片加载，避免提前渲染 -->
+              <image class="template-thumbnail" 
+                     src="{{item.preview || '/images/default-template.png'}}" 
+                     mode="aspectFill" 
+                     wx:if="{{item.preview}}">
+              </image>
+              <!-- 当图片还未加载时显示一个占位元素 -->
+              <view class="thumbnail-placeholder" wx:else>
+                <!-- 占位元素，与图片大小一致 -->
+              </view>
+              <view wx:if="{{item.vipOnly}}" class="vip-badge">VIP专享</view>
+              <view wx:if="{{item.isFree}}" class="free-badge">免费</view>
+            </view>
+          </view>
+        </view>
+    </view>
+    
+    <!-- 页面未就绪时显示空白占位，避免闪烁 -->
+    <view wx:else class="template-grid-placeholder">
+      <!-- 空白占位元素，与实际内容保持相同的结构和布局占位 -->
+      <view class="template-card-placeholder"></view>
+      <view class="template-card-placeholder"></view>
+      <view class="template-card-placeholder"></view>
+      <view class="template-card-placeholder"></view>
+      <view class="template-card-placeholder"></view>
+      <view class="template-card-placeholder"></view>
+    </view>
+
+    <!-- <view class="action-buttons">
+      <button class="create-btn" type="primary" bindtap="createResume">
+        立即创建简历
+      </button>
+    </view> -->
+  </view>
+</view>
