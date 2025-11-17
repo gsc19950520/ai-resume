@@ -1,24 +1,26 @@
 package com.aicv.airesume.model.vo;
 
+import java.util.List;
+
 /**
  * 简历AI建议VO
  */
 public class ResumeSuggestionVO {
     
-    private String suggestions;
+    private List<String> suggestions;
     
     public ResumeSuggestionVO() {
     }
     
-    public ResumeSuggestionVO(String suggestions) {
+    public ResumeSuggestionVO(List<String> suggestions) {
         this.suggestions = suggestions;
     }
     
-    public String getSuggestions() {
+    public List<String> getSuggestions() {
         return suggestions;
     }
     
-    public void setSuggestions(String suggestions) {
+    public void setSuggestions(List<String> suggestions) {
         this.suggestions = suggestions;
     }
 }

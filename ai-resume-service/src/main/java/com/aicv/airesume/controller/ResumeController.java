@@ -236,19 +236,19 @@ public class ResumeController {
     @Log(description = "设置简历模板", recordParams = true, recordResult = true)
     @PostMapping("/{resumeId}/template")
     public BaseResponseVO setResumeTemplate(@PathVariable Long resumeId,
-                                   @RequestBody Map<String, Long> request,
+                                   @RequestBody Map<String, String> request,
                                    @RequestHeader("Authorization") String token) {
         Long userId = tokenUtils.getUserIdFromToken(token.replace("Bearer ", ""));
         if (userId == null) {
             throw new RuntimeException("Token无效");
         }
         
-        Long templateId = request.get("templateId");
+        String templateId = request.get("templateId");
         if (templateId == null) {
             throw new RuntimeException("模板ID不能为空");
         }
         
-        Resume result = resumeService.setResumeTemplate(resumeId, templateId);
+        Resume result = resumeService.setResumeTemplate(userId, resumeId, templateId);
         return BaseResponseVO.success(result);
     }
     
@@ -256,15 +256,14 @@ public class ResumeController {
      * 创建简历
      */
     @PostMapping
-    public BaseResponseVO createResume(@RequestBody CreateResumeDTO createResumeDTO,
+    public BaseResponseVO createResume(@RequestBody ResumeDataDTO resumeDataDTO,
                                            @RequestHeader("Authorization") String token) {
         Long userId = tokenUtils.getUserIdFromToken(token.replace("Bearer ", ""));
         if (userId == null) {
             throw new RuntimeException("Token无效");
         }
         
-        createResumeDTO.setUserId(userId);
-        Resume resume = resumeService.createResume(userId, createResumeDTO);
+        Resume resume = resumeService.createResumeWithFullData(userId, resumeDataDTO);
         
         Map<String, Object> result = new HashMap<>();
         result.put("resumeId", resume.getId());
@@ -277,15 +276,14 @@ public class ResumeController {
      */
     @PutMapping("/{resumeId}")
     public BaseResponseVO updateResume(@PathVariable Long resumeId,
-                                           @RequestBody UpdateResumeDTO updateResumeDTO,
+                                           @RequestBody ResumeDataDTO resumeDataDTO,
                                            @RequestHeader("Authorization") String token) {
         Long userId = tokenUtils.getUserIdFromToken(token.replace("Bearer ", ""));
         if (userId == null) {
             throw new RuntimeException("Token无效");
         }
         
-        updateResumeDTO.setUserId(userId);
-        Resume resume = resumeService.updateResume(resumeId, updateResumeDTO);
+        Resume resume = resumeService.updateResumeWithFullData(resumeId, resumeDataDTO);
         
         Map<String, Object> result = new HashMap<>();
         result.put("resumeId", resume.getId());

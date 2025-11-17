@@ -88,6 +88,13 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     }
 
     @Override
+    public List<Order> getOrders(Long userId, int page, int pageSize) {
+        // 临时实现，返回空列表以修复编译错误
+        // 在实际项目中，应该使用JPA的分页查询功能
+        return new ArrayList<>();
+    }
+
+    @Override
     public Order getOrderByNo(String orderNo) {
         return null;
     }
