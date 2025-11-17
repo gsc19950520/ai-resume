@@ -35,19 +35,25 @@ Page({
     get('/api/resume/user', { userId: app.globalData.userInfo.id })
       .then(res => {
         console.log('简历列表API返回:', res)
+        // 处理响应数据，确保正确获取简历列表
+        let resumeList = []
+        
+        // 适配BaseResponseVO格式：success为true时，data可能是数组或包含列表的对象
         if (res && res.success && res.data) {
-          this.setData({ 
-            loading: false,
-            refreshing: false,
-            resumeList: res.data || []
-          })
-        } else {
-          this.setData({ 
-            loading: false,
-            refreshing: false,
-            resumeList: []
-          })
+          if (Array.isArray(res.data)) {
+            resumeList = res.data
+          } else if (res.data.list) {
+            resumeList = res.data.list
+          } else {
+            resumeList = res.data
+          }
         }
+        
+        this.setData({ 
+          loading: false,
+          refreshing: false,
+          resumeList: resumeList || []
+        })
       })
       .catch(error => {
         console.error('获取简历列表失败:', error)

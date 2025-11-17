@@ -482,6 +482,10 @@ page {
   padding: 16rpx;
   background-color: #F8FAFC;
   border-radius: 8rpx;
+  writing-mode: horizontal-tb; /* 明确设置为横向显示 */
+  word-break: break-word; /* 确保文本正常换行 */
+  width: 100%; /* 确保占满可用宽度 */
+  box-sizing: border-box; /* 包含padding在宽度内 */
 }
 
 /* 历史记录面板 */
@@ -771,6 +775,10 @@ page {
   background-color: #F8FAFC;
   border-radius: 8rpx;
   margin-bottom: 20rpx;
+  writing-mode: horizontal-tb; /* 明确设置为横向显示 */
+  word-break: break-word; /* 确保文本正常换行 */
+  width: 100%; /* 确保占满可用宽度 */
+  box-sizing: border-box; /* 包含padding在宽度内 */
 }
 
 /* 薪资匹配卡片 */

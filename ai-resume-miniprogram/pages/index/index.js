@@ -72,10 +72,19 @@ Page({
     // 实际调用API获取推荐列表
     get('/api/recommend/list')
       .then(res => {
-        if (res && res.list) {
-          this.setData({
-            recommendList: res.list
-          })
+        console.log('推荐列表API返回:', res)
+        // 适配BaseResponseVO格式：成功状态判断和数据提取
+        if (res && (res.success === true || res.code === 200) && res.data) {
+          // 检查数据结构，列表可能在data.list中
+          if (res.data.list) {
+            this.setData({
+              recommendList: res.data.list
+            })
+          } else if (Array.isArray(res.data)) {
+            this.setData({
+              recommendList: res.data
+            })
+          }
         } else {
           console.log('获取推荐列表失败或返回格式异常，使用模拟数据')
           // 继续使用页面中定义的模拟数据，不进行修改

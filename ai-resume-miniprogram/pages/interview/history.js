@@ -25,7 +25,8 @@ Page({
         wx.hideLoading()
         this.setData({ loading: false })
         
-        if (res && res.code === 0 && res.data) {
+        // 优先使用success字段判断，同时兼容旧版code字段
+        if (res && (res.success === true || res.code === 0 || res.code === 200) && res.data) {
           // 适配后端返回的数据结构
           const listData = Array.isArray(res.data) ? res.data : (res.data.list || [])
           this.setData({

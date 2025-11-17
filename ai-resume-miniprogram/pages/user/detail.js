@@ -163,10 +163,12 @@ Page({
   // 性别选择
   onGenderChange: function(e) {
     const genderIndex = e.detail.value
+    console.log('性别选择值:', genderIndex, typeof genderIndex)
     this.setData({
       genderIndex,
-      'userInfo.gender': genderIndex === '0' ? 1 : 0 // 0表示男，1表示女
+      'userInfo.gender': genderIndex === '0' ? 1 : 0 // 0表示男(存储为1)，1表示女(存储为0)
     })
+    console.log('更新后的性别值:', this.data.userInfo.gender)
   },
 
   // 手机号输入
@@ -264,7 +266,7 @@ Page({
     })
   },
 
-  // 上传头像到后端
+  // 上传头像到云存储并更新后端
   uploadAvatarToServer: function(base64Data) {
     const that = this
     
@@ -293,7 +295,7 @@ Page({
     // 导入UserService
     const UserService = require('../../services/user.js').default
     
-    // 调用UserService上传头像
+    // 调用UserService上传头像到云存储并更新后端
     UserService.uploadAvatar(userInfo.openId, base64Data)
       .then(res => {
         that.setData({ isLoading: false })
@@ -304,15 +306,19 @@ Page({
           duration: 2000
         })
         
-        // 更新全局用户信息
+        // 更新全局用户信息，使用云存储返回的图片地址
         const updatedUserInfo = {
           ...userInfo,
-          avatarUrl: base64Data
+          avatarUrl: res.avatarUrl || base64Data // 优先使用后端返回的地址
         }
         app.globalData.userInfo = updatedUserInfo
         wx.setStorageSync('userInfo', JSON.stringify(updatedUserInfo))
         wx.setStorageSync('userInfoLocal', JSON.stringify(updatedUserInfo))
         
+        // 更新页面显示的头像
+        that.setData({
+          'userInfo.avatarUrl': updatedUserInfo.avatarUrl
+        })
       })
       .catch(error => {
         console.error('头像上传失败:', error)

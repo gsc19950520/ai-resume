@@ -10,11 +10,17 @@
 
   <!-- 核心功能模块区域 -->
   <view class="core-modules-section">
-    <view class="section-header">
-      <text class="section-title">核心AI功能</text>
-    </view>
-    
     <view class="core-modules-grid">
+      <view class="core-module-card resume-card" bindtap="resumeTemplates">
+        <view class="module-icon resume-iconn">
+          <image src="/images/template.png" mode="aspectFit"></image>
+        </view>
+        <view class="module-content">
+          <view class="module-title">创建简历</view>
+          <view class="module-desc">精美简历模板选择</view>
+        </view>
+      </view>
+
       <!-- AI模拟面试模块 - 高亮主卡片 -->
       <view class="core-module-card main-card" bindtap="aiInterview">
         <view class="module-icon interview-icon">
@@ -82,7 +88,7 @@
   </view>
 
   <!-- 基础功能区域 -->
-  <view class="basic-features-section">
+  <!-- <view class="basic-features-section">
     <view class="section-header">
       <text class="section-title">简历管理</text>
     </view>
@@ -109,10 +115,10 @@
         <view class="feature-text">简历模板</view>
       </view>
     </view>
-  </view>
+  </view> -->
 
   <!-- 热门推荐区域 -->
-  <view class="recommend-section">
+  <!-- <view class="recommend-section">
     <view class="section-title">热门推荐</view>
     <view class="recommend-list">
       <view class="recommend-item" wx:for="{{recommendList}}" wx:key="id" bindtap="goToDetail" data-id="{{item.id}}">
@@ -120,10 +126,10 @@
         <view class="recommend-text">{{item.title}}</view>
       </view>
     </view>
-  </view>
+  </view> -->
 
   <!-- 底部提示 -->
-  <view class="footer-tip">
+  <!-- <view class="footer-tip">
     <text>如有问题，请联系客服</text>
-  </view>
+  </view> -->
 </view>

@@ -437,9 +437,9 @@ public class UserController {
     }
     
     /**
-     * 上传用户头像（通过openId）
-     * @param requestData 请求数据，包含openId和avatarBase64
-     * @return 上传结果
+     * 更新用户头像地址（通过openId）
+     * @param requestData 请求数据，包含openId和avatarUrl
+     * @return 更新结果
      */
     @PostMapping("/avatar")
     public ResponseEntity<Map<String, Object>> uploadAvatar(@RequestBody Map<String, Object> requestData) {
@@ -448,7 +448,7 @@ public class UserController {
         try {
             // 获取参数
             String openId = (String) requestData.get("openId");
-            String avatarBase64 = (String) requestData.get("avatarBase64");
+            String avatarUrl = (String) requestData.get("avatarUrl");
             
             // 参数验证
             if (openId == null || openId.isEmpty()) {
@@ -457,27 +457,20 @@ public class UserController {
                 return ResponseEntity.ok(response);
             }
             
-            if (avatarBase64 == null || avatarBase64.isEmpty()) {
+            if (avatarUrl == null || avatarUrl.isEmpty()) {
                 response.put("success", false);
-                response.put("message", "头像数据不能为空");
+                response.put("message", "头像地址不能为空");
                 return ResponseEntity.ok(response);
             }
             
-            // 验证base64数据格式（简单验证）
-            if (!avatarBase64.startsWith("data:image/") || !avatarBase64.contains(";base64,")) {
+            // 验证图片URL格式（简单验证）
+            if (!avatarUrl.startsWith("http://") && !avatarUrl.startsWith("https://") && !avatarUrl.startsWith("cloud://")) {
                 response.put("success", false);
-                response.put("message", "头像数据格式错误");
+                response.put("message", "头像地址格式错误");
                 return ResponseEntity.ok(response);
             }
             
-            // 检查base64数据长度（限制最大2MB）
-            if (avatarBase64.length() > 3 * 1024 * 1024) { // 约3MB的base64数据
-                response.put("success", false);
-                response.put("message", "头像文件过大，请压缩后上传");
-                return ResponseEntity.ok(response);
-            }
-            
-            log.info("开始上传头像，openId: {}", openId);
+            log.info("开始更新头像地址，openId: {}", openId);
             
             // 根据openId查找用户
             Optional<User> userOpt = userService.getUserByOpenId(openId);
@@ -489,8 +482,8 @@ public class UserController {
             
             User user = userOpt.get();
             
-            // 更新头像（base64直接存储）
-            user.setAvatarUrl(avatarBase64);
+            // 更新头像（存储云存储的图片地址）
+            user.setAvatarUrl(avatarUrl);
             
             // 保存更新后的用户信息
             User updatedUser = userService.updateUser(user);
@@ -503,15 +496,15 @@ public class UserController {
             userData.put("openId", updatedUser.getOpenId());
             
             response.put("success", true);
-            response.put("message", "头像上传成功");
+            response.put("message", "头像更新成功");
             response.put("data", userData);
             
-            log.info("头像上传成功，用户ID: {}", updatedUser.getId());
+            log.info("头像更新成功，用户ID: {}", updatedUser.getId());
             
         } catch (Exception e) {
-            log.error("头像上传失败", e);
+            log.error("头像更新失败", e);
             response.put("success", false);
-            response.put("message", "头像上传失败: " + e.getMessage());
+            response.put("message", "头像更新失败: " + e.getMessage());
         }
         
         return ResponseEntity.ok(response);

@@ -22,26 +22,32 @@ const request = (url, data = {}, method = 'GET', header = {}) => {
   return cloudCall(url, data, method, header)
     .then(res => {
       // 业务状态码处理
-      // 检查是否是标准的响应格式（包含code字段）
-      if (res && typeof res === 'object' && 'code' in res) {
-        if (res.code === 0) {
-          return res.data
-        } else if (res.code === 401) {
-          // 登录过期，需要重新登录
-          app.logout()
-          wx.navigateTo({ url: '/pages/login/login' })
-          throw new Error('登录已过期，请重新登录')
-        } else {
-          // 其他错误，提示错误信息
-          wx.showToast({
-            title: res.message || '请求失败',
-            icon: 'none'
-          })
-          throw new Error(res.message || '请求失败')
+      // 检查是否是标准的响应格式（包含code字段或success字段）
+      if (res && typeof res === 'object') {
+        // 优先使用success字段判断（适配BaseResponseVO格式）
+        if (res.success === true) {
+          return res
         }
-      } else {
-        return res
+        // 同时支持旧版code为0的格式
+        if ('code' in res) {
+          if (res.code === 0 || res.code === 200) { // 同时支持0和200作为成功状态码
+            return res
+          } else if (res.code === 401) {
+            // 登录过期，需要重新登录
+            app.logout()
+            wx.navigateTo({ url: '/pages/login/login' })
+            throw new Error('登录已过期，请重新登录')
+          } else {
+            // 其他错误，提示错误信息
+            wx.showToast({
+              title: res.message || '请求失败',
+              icon: 'none'
+            })
+            throw new Error(res.message || '请求失败')
+          }
+        }
       }
+      return res
     })
     .catch(error => {
       console.error('云托管请求失败，错误详情:', error)
