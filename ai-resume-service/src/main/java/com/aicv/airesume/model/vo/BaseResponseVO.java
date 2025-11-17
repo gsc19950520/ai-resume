@@ -8,21 +8,25 @@ public class BaseResponseVO {
     private Integer code;
     private String message;
     private Object data;
+    private boolean success;
     
     public BaseResponseVO() {
         this.code = 200;
         this.message = "success";
+        this.success = true;
     }
     
     public BaseResponseVO(Integer code, String message) {
         this.code = code;
         this.message = message;
+        this.success = code == 200;
     }
     
     public BaseResponseVO(Integer code, String message, Object data) {
         this.code = code;
         this.message = message;
         this.data = data;
+        this.success = code == 200;
     }
     
     public static BaseResponseVO success() {
@@ -47,6 +51,7 @@ public class BaseResponseVO {
     
     public void setCode(Integer code) {
         this.code = code;
+        this.success = code == 200;
     }
     
     public String getMessage() {
@@ -63,5 +68,13 @@ public class BaseResponseVO {
     
     public void setData(Object data) {
         this.data = data;
+    }
+    
+    public boolean isSuccess() {
+        return success;
+    }
+    
+    public void setSuccess(boolean success) {
+        this.success = success;
     }
 }
