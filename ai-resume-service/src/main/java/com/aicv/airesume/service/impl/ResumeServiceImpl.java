@@ -219,7 +219,7 @@ public class ResumeServiceImpl implements ResumeService {
     
     // 实现exportResumeToPdf方法，使用Thymeleaf和Flying Saucer生成PDF
     // 添加模板文件基础路径配置
-    @Value("${resume.template.base-path:d:/owner_project/ai-resume/ai-resume-miniprogram/pages/template/preview/template}")
+    @Value("${resume.template.base-path:d:/owner_project/ai-resume/ai-resume-miniprogram/pages/template/preview}")
     private String templateBasePath;
     
     /**
