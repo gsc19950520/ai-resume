@@ -7,7 +7,7 @@
         <image class="avatar" src="{{resumeData.personalInfo.avatar || resumeData.avatar || '/images/avatar.jpg'}}" mode="cover"></image>
 
         <view class="name-box">
-          <text class="name-text">{{userInfo.name || resumeData.name || '请输入姓名'}}</text>
+          <text class="name-text">{{resumeData.personalInfo.name || userInfo.name || resumeData.name || '请输入姓名'}}</text>
           <text class="tag">{{resumeData.personalInfo.jobTitle || resumeData.personalInfo.position || resumeData.title || '请输入职位'}}</text>
         </view>
 

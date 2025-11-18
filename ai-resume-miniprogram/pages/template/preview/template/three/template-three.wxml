@@ -6,7 +6,7 @@
       <image class="avatar" src="{{resumeData.personalInfo.avatar || resumeData.avatar || '/images/avatar.jpg'}}" mode="aspectFill"></image>
       <view class="info">
         <view class="name">
-          <view class="name-text">{{userInfo.name || resumeData.name || '姓名'}}</view>
+          <view class="name-text">{{resumeData.personalInfo.name || userInfo.name || resumeData.name || '姓名'}}</view>
           <view class="tag">{{resumeData.personalInfo.jobTitle || resumeData.personalInfo.position || resumeData.title || '职位'}}</view>
         </view>
         <view class="contact">

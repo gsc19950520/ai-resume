@@ -56,7 +56,7 @@
     <view class="right-panel-swapped">
       <view class="avatar-container">
         <image class="avatar" src="{{resumeData.personalInfo.avatar || resumeData.avatar || '/images/avatar.jpg'}}" mode="cover" />
-        <view class="name">{{userInfo.name || resumeData.name || '姓名'}}</view>
+        <view class="name">{{resumeData.personalInfo.name || userInfo.name || resumeData.name || '姓名'}}</view>
         <view class="title">{{resumeData.personalInfo.jobTitle || resumeData.personalInfo.position || resumeData.title || '职位'}}</view>
       </view>
 

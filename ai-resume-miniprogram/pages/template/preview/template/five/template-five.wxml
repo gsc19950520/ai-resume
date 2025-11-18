@@ -6,7 +6,7 @@
       <view class="avatar-name-section">
         <image class="avatar" src="{{resumeData.personalInfo.avatar || resumeData.avatar || '/images/avatar.jpg'}}" mode="cover" />
         <view class="name-info">
-          <view class="top-name">{{userInfo.name || resumeData.name || '请输入姓名'}}</view>
+          <view class="top-name">{{resumeData.personalInfo.name || userInfo.name || resumeData.name || '请输入姓名'}}</view>
           <view class="top-extra-info">
             <view class="info-row">
               <text>期望薪资：{{resumeData.personalInfo.expectedSalary || resumeData.salary || '请输入期望薪资'}}</text> | 
