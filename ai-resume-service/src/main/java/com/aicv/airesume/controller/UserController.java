@@ -7,6 +7,7 @@ import com.aicv.airesume.model.vo.BaseResponseVO;
 import com.aicv.airesume.service.StatisticsService;
 import com.aicv.airesume.service.UserService;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -66,22 +67,31 @@ public class UserController {
      */
     private String getOpenIdFromWechat(String code) {
         try {
+            // 检查微信配置是否为默认值
+            if ("your_app_id".equals(appId) || "your_app_secret".equals(appSecret)) {
+                throw new RuntimeException("微信配置为默认值，请配置正确的小程序appId和appSecret");
+            }
+            
             // 微信code2Session接口
             String url = String.format(
                 "https://api.weixin.qq.com/sns/jscode2session?appid=%s&secret=%s&js_code=%s&grant_type=authorization_code",
                 appId, appSecret, code
             );
             
-            // 调用微信API
-            ResponseEntity<Map> response = restTemplate.getForEntity(url, Map.class);
+            // 使用String类型接收原始响应，避免ContentType不匹配问题
+            ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
             
             // 处理响应
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                Map<String, Object> result = response.getBody();
+                String responseBody = response.getBody();
+                
+                // 手动解析JSON响应
+                ObjectMapper objectMapper = new ObjectMapper();
+                Map<String, Object> result = objectMapper.readValue(responseBody, Map.class);
                 
                 // 检查是否有错误
                 if (result.containsKey("errcode")) {
-                    Integer errcode = (Integer) result.get("errcode");
+                    Integer errcode = ((Number) result.get("errcode")).intValue();
                     if (errcode != 0) {
                         String errmsg = (String) result.get("errmsg");
                         throw new RuntimeException("微信服务器错误: " + errmsg);
@@ -99,10 +109,18 @@ public class UserController {
                 throw new RuntimeException("微信服务器响应失败");
             }
         } catch (Exception e) {
-            // 在开发环境中，如果获取真实openId失败，使用一个基于code的临时openId
-            // 这样可以确保即使没有真实的微信配置，也能进行功能测试
-            String tempOpenId = "temp_openid_" + code.hashCode();
-            System.err.println("获取微信openId失败，使用临时openId: " + tempOpenId + "，错误: " + e.getMessage());
+            // 记录详细错误信息
+            System.err.println("获取微信openId失败，错误: " + e.getMessage());
+            e.printStackTrace();
+            
+            // 如果是配置问题，直接抛出异常
+            if (e.getMessage().contains("微信配置为默认值")) {
+                throw new RuntimeException("微信配置错误: " + e.getMessage());
+            }
+            
+            // 其他错误使用固定的临时openId（基于appId的hash，确保同一应用一致）
+            String tempOpenId = "temp_openid_dev_" + Math.abs(appId.hashCode());
+            System.err.println("使用开发环境临时openId: " + tempOpenId);
             return tempOpenId;
         }
     }
