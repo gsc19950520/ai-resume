@@ -533,7 +533,7 @@ public class UserController {
         }
         
         // 验证性别值
-        if (user.getGender() != null && user.getGender() != 0 && user.getGender() != 1 && user.getGender() != 2) {
+        if (user.getGender() != null && !user.getGender().equals(0) && !user.getGender().equals(1) && !user.getGender().equals(2)) {
             return "性别值无效";
         }
         

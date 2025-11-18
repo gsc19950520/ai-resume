@@ -27,4 +27,37 @@ public class EducationDTO {
     private String description;
     private String gpa;
     private Integer orderIndex;
+    
+    // 手动添加getter方法以解决编译问题
+    public String getSchool() {
+        return school;
+    }
+    
+    public String getDegree() {
+        return degree;
+    }
+    
+    public String getMajor() {
+        return major;
+    }
+    
+    public String getStartDate() {
+        return startDate;
+    }
+    
+    public String getEndDate() {
+        return endDate;
+    }
+    
+    public String getDescription() {
+        return description;
+    }
+    
+    public String getGpa() {
+        return gpa;
+    }
+    
+    public Integer getOrderIndex() {
+        return orderIndex;
+    }
 }

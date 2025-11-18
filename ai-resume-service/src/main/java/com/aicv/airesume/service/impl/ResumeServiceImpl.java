@@ -41,14 +41,16 @@ import javax.persistence.EntityNotFoundException;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 import org.xhtmlrenderer.pdf.ITextRenderer;
-import com.lowagie.text.pdf.BaseFont;
-import com.lowagie.text.Document;
-import com.lowagie.text.DocumentException;
-import com.lowagie.text.PageSize;
-import com.lowagie.text.Paragraph;
-import com.lowagie.text.pdf.PdfWriter;
-import com.lowagie.text.html.simpleparser.HTMLWorker;
+import com.itextpdf.io.image.ImageDataFactory;
+import com.itextpdf.kernel.pdf.PdfDocument;
+import com.itextpdf.kernel.pdf.PdfWriter;
+import com.itextpdf.kernel.geom.PageSize;
+import com.itextpdf.layout.Document;
+import com.itextpdf.layout.element.Image;
+
 import java.io.StringReader;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -133,6 +135,67 @@ public class ResumeServiceImpl implements ResumeService {
     public Resume optimizeResume(Long userId, Long resumeId, String targetJob) {
         // 临时创建一个Resume对象，避免Resume对象方法调用
         return new Resume();
+    }
+    
+    // 实现从图片生成PDF的方法
+    @Override
+    public byte[] generatePdfFromImage(MultipartFile imageFile, String fileName) {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try {
+            // 创建PDF文档
+            PdfWriter writer = new PdfWriter(baos);
+            PdfDocument pdfDoc = new PdfDocument(writer);
+            
+            // 创建布局文档
+            Document document = new Document(pdfDoc, PageSize.A4);
+            
+            // 设置边距
+            float margin = 36;
+            document.setMargins(margin, margin, margin, margin);
+            
+            // 读取图片文件并添加到PDF文档
+            byte[] imageBytes = imageFile.getBytes();
+            com.itextpdf.layout.element.Image image = new com.itextpdf.layout.element.Image(
+                ImageDataFactory.create(imageBytes)
+            );
+            
+            // 获取页面可用尺寸
+            float pageWidth = document.getPdfDocument().getDefaultPageSize().getWidth() - 2 * margin;
+            float pageHeight = document.getPdfDocument().getDefaultPageSize().getHeight() - 2 * margin;
+            
+            // 获取图片原始尺寸
+            float imageWidth = image.getImageWidth();
+            float imageHeight = image.getImageHeight();
+            
+            // 计算缩放比例
+            float widthRatio = pageWidth / imageWidth;
+            float heightRatio = pageHeight / imageHeight;
+            float scale = Math.min(widthRatio, heightRatio);
+            
+            // 应用缩放
+            image.scaleToFit(imageWidth * scale, imageHeight * scale);
+            
+            // 移除特定对齐设置，使用文档默认布局
+            
+            // 添加图片到文档
+            document.add(image);
+            
+            // 关闭文档
+            document.close();
+            
+            log.info("PDF generated successfully from image: {}", fileName);
+            
+            return baos.toByteArray();
+        } catch (Exception e) {
+            log.error("Failed to generate PDF from image: {}", fileName, e);
+            throw new RuntimeException("PDF生成失败", e);
+        } finally {
+            try {
+                baos.close();
+            } catch (IOException e) {
+                log.error("Error closing ByteArrayOutputStream", e);
+            }
+        }
     }
 
 
@@ -219,7 +282,7 @@ public class ResumeServiceImpl implements ResumeService {
     
     // 实现exportResumeToPdf方法，使用Thymeleaf和Flying Saucer生成PDF
     // 添加模板文件基础路径配置
-    @Value("${resume.template.base-path:d:/owner_project/ai-resume/ai-resume-miniprogram/pages/template/preview}")
+    @Value("${resume.template.base-path:D:\\owner_project\\mini-program\\resume\\ai-resume-miniprogram\\pages\\template\\preview}")
     private String templateBasePath;
     
     /**
@@ -329,18 +392,35 @@ public class ResumeServiceImpl implements ResumeService {
     
     public byte[] convertHtmlToPdf(String htmlContent) { 
         try (ByteArrayOutputStream os = new ByteArrayOutputStream()) { 
-            // 创建PDF文档
-            Document document = new Document(PageSize.A4, 50, 50, 50, 50);
-            PdfWriter.getInstance(document, os);
-            document.open();
+            // 使用ITextRenderer替代HTMLWorker，以支持更好的HTML和CSS渲染
+            ITextRenderer renderer = new ITextRenderer();
             
-            // 使用HTMLWorker解析HTML内容
-            HTMLWorker htmlWorker = new HTMLWorker(document);
-            htmlWorker.parse(new StringReader(htmlContent));
+            // 确保HTML是有效的XHTML格式
+            if (!htmlContent.toLowerCase().contains("<!doctype html")) {
+                htmlContent = "<!DOCTYPE html>" + htmlContent;
+            }
             
-            document.close();
-            return os.toByteArray(); 
-        } catch (DocumentException | IOException e) { 
+            // 设置文档内容
+            renderer.setDocumentFromString(htmlContent);
+            
+            // 处理中文字体，确保中文正常显示
+            try {
+                // 尝试注册系统中文字体 - 注意：ITextRenderer内部使用iText 5.x，即使我们的项目使用iText 7.x
+                // 这里使用兼容的方式注册字体
+                renderer.getFontResolver().addFont("C:/Windows/Fonts/simhei.ttf", "Identity-H", true);
+                renderer.getFontResolver().addFont("C:/Windows/Fonts/simsun.ttc", "Identity-H", true);
+            } catch (Exception e) {
+                log.warn("无法注册中文字体，将使用默认字体: {}", e.getMessage());
+            }
+            
+            // 布局和渲染
+            renderer.layout();
+            renderer.createPDF(os);
+            
+            log.info("PDF渲染成功，文件大小: {} KB", os.size() / 1024.0);
+            return os.toByteArray();
+        } catch (Exception e) { 
+            log.error("HTML转PDF失败: {}", e.getMessage(), e);
             throw new RuntimeException("HTML 转 PDF 失败", e); 
         } 
     }
@@ -520,13 +600,19 @@ public class ResumeServiceImpl implements ResumeService {
             updateEducationListWithDTO(resume.getId(), resumeDataDTO.getEducation());
             
             // 更新工作经历列表
-            updateWorkExperienceListWithDTO(resume.getId(), resumeDataDTO.getWorkExperience());
+            if (resumeDataDTO.getWorkExperience() != null) {
+                updateWorkExperienceListWithDTO(resume.getId(), resumeDataDTO.getWorkExperience());
+            }
             
             // 更新项目经历列表
-            updateProjectListWithDTO(resume.getId(), resumeDataDTO.getProjects());
+            if (resumeDataDTO.getProjects() != null) {
+                updateProjectListWithDTO(resume.getId(), resumeDataDTO.getProjects());
+            }
             
             // 更新技能列表
-            updateSkillListWithDTO(resume.getId(), resumeDataDTO.getSkillsWithLevel());
+            if (resumeDataDTO.getSkillsWithLevel() != null) {
+                updateSkillListWithDTO(resume.getId(), resumeDataDTO.getSkillsWithLevel());
+            }
             
             // 再次保存简历，确保所有字段都被更新
             resume.setUpdateTime(new Date());

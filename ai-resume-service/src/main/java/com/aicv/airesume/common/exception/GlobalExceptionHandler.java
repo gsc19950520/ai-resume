@@ -1,7 +1,7 @@
 package com.aicv.airesume.common.exception;
 
 import com.aicv.airesume.common.constant.ResponseCode;
-import com.aicv.airesume.common.response.ApiResponse;
+import com.aicv.airesume.model.vo.BaseResponseVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -38,9 +38,9 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(BusinessException.class)
     @ResponseBody
-    public ApiResponse<?> handleBusinessException(BusinessException e, HttpServletRequest request) {
+    public BaseResponseVO handleBusinessException(BusinessException e, HttpServletRequest request) {
         log.warn("业务异常: {}", e.getMessage(), e);
-        return ApiResponse.error(e.getCode(), e.getMessage());
+        return BaseResponseVO.error(e.getCode(), e.getMessage());
     }
 
     /**
@@ -48,11 +48,11 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseBody
-    public ApiResponse<?> handleValidationException(MethodArgumentNotValidException e) {
+    public BaseResponseVO handleValidationException(MethodArgumentNotValidException e) {
         BindingResult bindingResult = e.getBindingResult();
         String errorMessage = getErrorMessageFromBindingResult(bindingResult);
         log.warn("参数验证异常: {}", errorMessage);
-        return ApiResponse.error(ResponseCode.PARAMS_VALID_ERROR.getCode(), errorMessage);
+        return BaseResponseVO.error(ResponseCode.PARAMS_VALID_ERROR.getCode(), errorMessage);
     }
 
     /**
@@ -60,11 +60,11 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(BindException.class)
     @ResponseBody
-    public ApiResponse<?> handleBindException(BindException e) {
+    public BaseResponseVO handleBindException(BindException e) {
         BindingResult bindingResult = e.getBindingResult();
         String errorMessage = getErrorMessageFromBindingResult(bindingResult);
         log.warn("参数绑定异常: {}", errorMessage);
-        return ApiResponse.error(ResponseCode.PARAMS_VALID_ERROR.getCode(), errorMessage);
+        return BaseResponseVO.error(ResponseCode.PARAMS_VALID_ERROR.getCode(), errorMessage);
     }
 
     /**
@@ -72,10 +72,10 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(MissingServletRequestParameterException.class)
     @ResponseBody
-    public ApiResponse<?> handleMissingParamException(MissingServletRequestParameterException e) {
+    public BaseResponseVO handleMissingParamException(MissingServletRequestParameterException e) {
         String message = String.format("缺少必要参数: %s", e.getParameterName());
         log.warn(message);
-        return ApiResponse.error(ResponseCode.PARAMS_VALID_ERROR.getCode(), message);
+        return BaseResponseVO.error(ResponseCode.PARAMS_VALID_ERROR.getCode(), message);
     }
 
     /**
@@ -83,10 +83,10 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(HttpMessageNotReadableException.class)
     @ResponseBody
-    public ApiResponse<?> handleMessageNotReadableException(HttpMessageNotReadableException e) {
+    public BaseResponseVO handleMessageNotReadableException(HttpMessageNotReadableException e) {
         String message = "请求体格式错误或无法解析";
         log.warn("请求体解析异常: {}", e.getMessage());
-        return ApiResponse.error(ResponseCode.PARAMS_VALID_ERROR.getCode(), message);
+        return BaseResponseVO.error(ResponseCode.PARAMS_VALID_ERROR.getCode(), message);
     }
 
     /**
@@ -94,9 +94,9 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(DataIntegrityViolationException.class)
     @ResponseBody
-    public ApiResponse<?> handleDataIntegrityViolationException(DataIntegrityViolationException e) {
+    public BaseResponseVO handleDataIntegrityViolationException(DataIntegrityViolationException e) {
         log.error("数据库完整性异常", e);
-        return ApiResponse.error(ResponseCode.DATABASE_ERROR.getCode(), "数据库操作失败，请检查数据完整性");
+        return BaseResponseVO.error(ResponseCode.DATABASE_ERROR.getCode(), "数据库操作失败，请检查数据完整性");
     }
 
     /**
@@ -104,9 +104,9 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(SQLSyntaxErrorException.class)
     @ResponseBody
-    public ApiResponse<?> handleSQLSyntaxErrorException(SQLSyntaxErrorException e) {
+    public BaseResponseVO handleSQLSyntaxErrorException(SQLSyntaxErrorException e) {
         log.error("SQL语法错误异常", e);
-        return ApiResponse.error(ResponseCode.DATABASE_ERROR.getCode(), "数据库查询错误");
+        return BaseResponseVO.error(ResponseCode.DATABASE_ERROR.getCode(), "数据库查询错误");
     }
 
     /**
@@ -114,11 +114,11 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     @ResponseBody
-    public ApiResponse<?> handleMethodNotSupportedException(HttpRequestMethodNotSupportedException e) {
+    public BaseResponseVO handleMethodNotSupportedException(HttpRequestMethodNotSupportedException e) {
         String message = String.format("不支持的请求方法: %s，支持的方法: %s", 
                 e.getMethod(), String.join(", ", e.getSupportedMethods()));
         log.warn(message);
-        return ApiResponse.error(ResponseCode.METHOD_NOT_SUPPORTED.getCode(), message);
+        return BaseResponseVO.error(ResponseCode.METHOD_NOT_SUPPORTED.getCode(), message);
     }
 
     /**
@@ -126,10 +126,10 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(NoHandlerFoundException.class)
     @ResponseBody
-    public ApiResponse<?> handleNoHandlerFoundException(NoHandlerFoundException e) {
+    public BaseResponseVO handleNoHandlerFoundException(NoHandlerFoundException e) {
         String message = String.format("请求的资源不存在: %s", e.getRequestURL());
         log.warn(message);
-        return ApiResponse.error(ResponseCode.NOT_FOUND.getCode(), message);
+        return BaseResponseVO.error(ResponseCode.NOT_FOUND.getCode(), message);
     }
 
     /**
@@ -137,9 +137,9 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(Exception.class)
     @ResponseBody
-    public ApiResponse<?> handleUnexpectedException(Exception e, HttpServletRequest request) {
+    public BaseResponseVO handleUnexpectedException(Exception e, HttpServletRequest request) {
         log.error("未预期的异常，请求路径: {}", request.getRequestURI(), e);
-        return ApiResponse.error(ResponseCode.SYSTEM_ERROR.getCode(), "系统内部错误，请稍后重试");
+        return BaseResponseVO.error(ResponseCode.SYSTEM_ERROR.getCode(), "系统内部错误，请稍后重试");
     }
 
     /**

@@ -27,4 +27,29 @@ public class PersonalInfoDTO {
     
     @NotBlank(message = "自我评价不能为空")
     private String selfEvaluation;
+    
+    // 手动添加getter方法以解决编译问题
+    public String getJobTitle() {
+        return jobTitle;
+    }
+    
+    public String getExpectedSalary() {
+        return expectedSalary;
+    }
+    
+    public String getStartTime() {
+        return startTime;
+    }
+    
+    public String getJobTypeId() {
+        return jobTypeId;
+    }
+    
+    public List<String> getInterests() {
+        return interests;
+    }
+    
+    public String getSelfEvaluation() {
+        return selfEvaluation;
+    }
 }

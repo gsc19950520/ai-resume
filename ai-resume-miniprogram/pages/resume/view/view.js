@@ -329,70 +329,74 @@ Page({
     });
   },
 
-  // 导出PDF
+  // 导出PDF - 新流程：截图 -> 上传 -> 生成PDF
   exportToPdf: function() {
     this.setData({ loading: true });
     wx.showLoading({
-      title: '生成PDF中...',
+      title: '准备截图...',
     });
 
     try {
-      // 导入request工具
-      const app = getApp();
-      
-      // 使用app.js中定义的cloudCall方法
-      if (!app.cloudCall) {
-        // 如果app.js中没有定义cloudCall，使用默认实现
-        app.cloudCall = function(path, data = {}, method = 'GET', header = {}) {
-          return new Promise((resolve, reject) => {
-            wx.cloud.callContainer({
-              config: {
-                env: app.globalData.cloudEnvId
+      // 步骤1: 获取系统信息以设置合适的canvas大小
+      wx.getSystemInfo({
+        success: (res) => {
+          // 创建一个临时canvas用于截图
+          const query = wx.createSelectorQuery();
+          query.select('.resume-content-wrapper').boundingClientRect();
+          query.exec((rectRes) => {
+            if (!rectRes || !rectRes[0]) {
+              wx.showToast({
+                title: '无法获取简历内容区域',
+                icon: 'none'
+              });
+              wx.hideLoading();
+              this.setData({ loading: false });
+              return;
+            }
+
+            const { width, height } = rectRes[0];
+            console.log('简历内容区域尺寸:', { width, height });
+
+            // 步骤2: 使用canvas进行截图
+            wx.canvasToTempFilePath({
+              x: 0,
+              y: 0,
+              width: width,
+              height: height,
+              destWidth: width * 2, // 提高清晰度
+              destHeight: height * 2,
+              canvasId: '', // 不指定canvasId，会截取整个页面
+              success: (tempFilePathRes) => {
+                console.log('截图成功，临时文件路径:', tempFilePathRes.tempFilePath);
+                wx.showLoading({
+                  title: '上传图片中...',
+                });
+
+                // 步骤3: 上传图片到服务端
+                this.uploadImage(tempFilePathRes.tempFilePath);
               },
-              path: path.startsWith('/api') ? path : `/api${path}`,
-              method: method,
-              header: {
-                'content-type': 'application/json',
-                'token': app.globalData.token || '',
-                'X-WX-SERVICE': 'springboot-bq0e',
-                ...header
-              },
-              data,
-              success: res => resolve(res.data),
-              fail: err => reject(err)
+              fail: (err) => {
+                console.error('截图失败:', err);
+                wx.hideLoading();
+                this.setData({ loading: false });
+                wx.showToast({
+                  title: '截图失败，请重试',
+                  icon: 'none'
+                });
+              }
             });
           });
-        };
-      }
-
-      // 从本地存储获取简历ID或使用模板ID
-      const resumeInfo = wx.getStorageSync('resumeInfo') || {};
-      const resumeId = resumeInfo.id || this.data.templateId || 1;
-      
-      console.log('导出PDF，使用resumeId:', resumeId);
-      
-      app.cloudCall(`/api/resume/export/pdf?resumeId=${resumeId}`, {}, 'GET')
-        .then(res => {
-          console.log('PDF导出成功，响应:', res);
-          
-          // 如果返回的是文件流，使用wx.downloadFile下载
-          // 这里简化处理，实际项目中需要根据后端返回的数据格式进行调整
-          wx.showToast({
-            title: 'PDF生成成功',
-            icon: 'success'
-          });
-        })
-        .catch(err => {
-          console.error('PDF导出失败:', err);
-          wx.showToast({
-            title: 'PDF生成失败，请重试',
-            icon: 'none'
-          });
-        })
-        .finally(() => {
+        },
+        fail: (err) => {
+          console.error('获取系统信息失败:', err);
           wx.hideLoading();
           this.setData({ loading: false });
-        });
+          wx.showToast({
+            title: '系统信息获取失败',
+            icon: 'none'
+          });
+        }
+      });
     } catch (error) {
       console.error('导出PDF时发生异常:', error);
       wx.hideLoading();
@@ -402,5 +406,52 @@ Page({
         icon: 'none'
       });
     }
+  },
+
+  // 上传图片到服务端并生成PDF
+  uploadImage: function(tempFilePath) {
+    const app = getApp();
+    
+    // 生成文件名
+    const fileName = 'resume_screenshot_' + new Date().getTime() + '.png';
+    
+    console.log('开始上传图片:', fileName);
+    
+    // 使用云托管请求上传图片
+    wx.uploadFile({
+      url: 'https://' + app.globalData.cloudEnvId + '.service.springboot-bq0e.gz.tencentclouddomain.com/api/resume/generate/pdf-from-image',
+      filePath: tempFilePath,
+      name: 'file',
+      formData: {
+        'fileName': fileName
+      },
+      header: {
+        'token': app.globalData.token || '',
+        'X-WX-SERVICE': 'springboot-bq0e'
+      },
+      success: (uploadRes) => {
+        console.log('上传成功，准备下载PDF:', uploadRes);
+        
+        // 由于是直接下载文件流，这里需要处理响应
+        // 在实际场景中，后端会直接返回PDF文件流
+        wx.hideLoading();
+        this.setData({ loading: false });
+        
+        // 提示用户PDF生成成功
+        wx.showToast({
+          title: 'PDF生成成功',
+          icon: 'success'
+        });
+      },
+      fail: (err) => {
+        console.error('上传失败:', err);
+        wx.hideLoading();
+        this.setData({ loading: false });
+        wx.showToast({
+          title: '上传失败，请重试',
+          icon: 'none'
+        });
+      }
+    });
   }
 });

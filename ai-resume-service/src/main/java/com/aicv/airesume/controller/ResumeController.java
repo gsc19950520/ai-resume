@@ -23,11 +23,17 @@ import java.util.HashMap;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.io.OutputStream;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.ServletOutputStream;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import javax.validation.Valid;
+
+import com.aicv.airesume.common.constant.ResponseCode;
+import com.aicv.airesume.common.exception.BusinessException;
 
 
 /**
@@ -168,6 +174,30 @@ public class ResumeController {
             throw new RuntimeException("导出PDF失败", e);
         }
     }
+    
+    /**
+     * 从图片生成PDF并下载
+     * 接收小程序端上传的截图，生成PDF文件并返回给前端
+     */
+    @Log(description = "从图片生成PDF", recordParams = true, recordResult = false, recordExecutionTime = true)
+    @PostMapping("/generate/pdf-from-image")
+    public void generatePdfFromImage(@RequestParam("file") MultipartFile file,
+                                   @RequestParam("fileName") String fileName,
+                                   HttpServletResponse response) throws IOException {
+        // 设置响应头
+        response.setContentType("application/pdf");
+        String pdfFileName = fileName.replaceFirst("\\.[^.]+$", ".pdf"); // 将原始文件名改为PDF扩展名
+        response.setHeader("Content-Disposition", "attachment; filename=" + URLEncoder.encode(pdfFileName, "UTF-8"));
+        
+        // 使用service生成PDF
+        byte[] pdfBytes = resumeService.generatePdfFromImage(file, fileName);
+        
+        // 输出PDF文件
+        try (OutputStream outputStream = response.getOutputStream()) {
+            outputStream.write(pdfBytes);
+            outputStream.flush();
+        }
+    }
 
     /**
      * 导出为Word
@@ -192,7 +222,7 @@ public class ResumeController {
                                                           @RequestHeader("Authorization") String token) {
         Long userId = tokenUtils.getUserIdFromToken(token.replace("Bearer ", ""));
         if (userId == null) {
-            throw new RuntimeException("Token无效");
+            throw new BusinessException(ResponseCode.UNAUTHORIZED, "Token无效，请重新登录");
         }
         
         Map<String, Object> scoreData = resumeService.getResumeAiScore(resumeId);
@@ -215,7 +245,7 @@ public class ResumeController {
                                                      @RequestHeader("Authorization") String token) {
         Long userId = tokenUtils.getUserIdFromToken(token.replace("Bearer ", ""));
         if (userId == null) {
-            throw new RuntimeException("Token无效");
+            throw new BusinessException(ResponseCode.UNAUTHORIZED, "Token无效，请重新登录");
         }
         
         Map<String, Object> suggestionsData = resumeService.getResumeAiSuggestions(resumeId);
@@ -240,7 +270,7 @@ public class ResumeController {
                                    @RequestHeader("Authorization") String token) {
         Long userId = tokenUtils.getUserIdFromToken(token.replace("Bearer ", ""));
         if (userId == null) {
-            throw new RuntimeException("Token无效");
+            throw new BusinessException(ResponseCode.UNAUTHORIZED, "Token无效，请重新登录");
         }
         
         String templateId = request.get("templateId");
@@ -260,7 +290,7 @@ public class ResumeController {
                                            @RequestHeader("Authorization") String token) {
         Long userId = tokenUtils.getUserIdFromToken(token.replace("Bearer ", ""));
         if (userId == null) {
-            throw new RuntimeException("Token无效");
+            throw new BusinessException(ResponseCode.UNAUTHORIZED, "Token无效，请重新登录");
         }
         
         Resume resume = resumeService.createResumeWithFullData(userId, resumeDataDTO);
@@ -280,7 +310,7 @@ public class ResumeController {
                                            @RequestHeader("Authorization") String token) {
         Long userId = tokenUtils.getUserIdFromToken(token.replace("Bearer ", ""));
         if (userId == null) {
-            throw new RuntimeException("Token无效");
+            throw new BusinessException(ResponseCode.UNAUTHORIZED, "Token无效，请重新登录");
         }
         
         Resume resume = resumeService.updateResumeWithFullData(resumeId, resumeDataDTO);
@@ -302,11 +332,11 @@ public class ResumeController {
                                                                   @RequestHeader("Authorization") String token) {
         Long tokenUserId = tokenUtils.getUserIdFromToken(token.replace("Bearer ", ""));
         if (tokenUserId == null) {
-            throw new RuntimeException("Token无效");
+            throw new BusinessException(ResponseCode.UNAUTHORIZED, "Token无效，请重新登录");
         }
         
         if (!tokenUserId.equals(userId)) {
-            throw new RuntimeException("只能查看自己的简历");
+            throw new BusinessException(ResponseCode.FORBIDDEN, "只能查看自己的简历");
         }
         
         Map<String, Object> result = resumeService.getLatestResumeData(userId);

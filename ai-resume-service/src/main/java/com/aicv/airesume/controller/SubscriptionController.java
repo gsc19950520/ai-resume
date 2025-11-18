@@ -10,6 +10,9 @@ import com.aicv.airesume.utils.TokenUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import com.aicv.airesume.common.constant.ResponseCode;
+import com.aicv.airesume.common.exception.BusinessException;
+
 import java.util.Map;
 
 /**
@@ -35,7 +38,7 @@ public class SubscriptionController {
         
         Long userId = tokenUtils.getUserIdFromToken(token.replace("Bearer ", ""));
         if (userId == null) {
-            throw new RuntimeException("Token无效");
+            throw new BusinessException(ResponseCode.UNAUTHORIZED, "Token无效，请重新登录");
         }
         
         Integer days = buyMembershipDTO.getDays();
@@ -57,7 +60,7 @@ public class SubscriptionController {
         
         Long userId = tokenUtils.getUserIdFromToken(token.replace("Bearer ", ""));
         if (userId == null) {
-            throw new RuntimeException("Token无效");
+            throw new BusinessException(ResponseCode.UNAUTHORIZED, "Token无效，请重新登录");
         }
         
         Integer count = buyOptimizePackageDTO.getCount();
@@ -79,7 +82,7 @@ public class SubscriptionController {
         
         Long userId = tokenUtils.getUserIdFromToken(token.replace("Bearer ", ""));
         if (userId == null) {
-            throw new RuntimeException("Token无效");
+            throw new BusinessException(ResponseCode.UNAUTHORIZED, "Token无效，请重新登录");
         }
         
         Long templateId = buyTemplatePackageDTO.getTemplateId();
@@ -102,7 +105,7 @@ public class SubscriptionController {
         
         Long userId = tokenUtils.getUserIdFromToken(token.replace("Bearer ", ""));
         if (userId == null) {
-            throw new RuntimeException("Token无效");
+            throw new BusinessException(ResponseCode.UNAUTHORIZED, "Token无效，请重新登录");
         }
         
         Object result = subscriptionService.getOrders(userId, page, size);

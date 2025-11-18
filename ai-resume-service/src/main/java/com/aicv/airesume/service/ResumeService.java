@@ -90,4 +90,12 @@ public interface ResumeService {
      * 获取用户最新简历数据
      */
     Map<String, Object> getLatestResumeData(Long userId);
+    
+    /**
+     * 从图片生成PDF
+     * @param imageFile 图片文件
+     * @param fileName 文件名
+     * @return PDF文件的字节数组
+     */
+    byte[] generatePdfFromImage(MultipartFile imageFile, String fileName);
 }

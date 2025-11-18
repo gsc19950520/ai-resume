@@ -29,4 +29,25 @@ public class ResumeDataDTO {
     @Valid
     @NotEmpty(message = "请至少填写1个专业技能")
     private List<SkillWithLevelDTO> skillsWithLevel;
+    
+    // 手动添加getter方法以解决编译问题
+    public PersonalInfoDTO getPersonalInfo() {
+        return personalInfo;
+    }
+    
+    public List<EducationDTO> getEducation() {
+        return education;
+    }
+    
+    public List<WorkExperienceDTO> getWorkExperience() {
+        return workExperience;
+    }
+    
+    public List<ProjectDTO> getProjects() {
+        return projects;
+    }
+    
+    public List<SkillWithLevelDTO> getSkillsWithLevel() {
+        return skillsWithLevel;
+    }
 }
