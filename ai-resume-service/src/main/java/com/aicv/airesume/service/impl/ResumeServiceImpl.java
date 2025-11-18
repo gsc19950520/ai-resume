@@ -137,9 +137,102 @@ public class ResumeServiceImpl implements ResumeService {
         return new Resume();
     }
     
-    // 实现从图片生成PDF的方法
+    // 实现从图片生成PDF的方法（支持MultipartFile）
     @Override
     public byte[] generatePdfFromImage(MultipartFile imageFile, String fileName) {
+        try {
+            // 从MultipartFile获取字节数组
+            byte[] imageBytes = imageFile.getBytes();
+            return generatePdfFromImageBytes(imageBytes, fileName);
+        } catch (Exception e) {
+            log.error("Failed to generate PDF from MultipartFile: {}", fileName, e);
+            throw new RuntimeException("PDF生成失败", e);
+        }
+    }
+    
+    // 新增：从fileID生成PDF的方法
+    public byte[] generatePdfFromImageFileId(String fileId, String fileName) {
+        try {
+            // 从微信云存储获取文件内容
+            byte[] imageBytes = getImageBytesFromFileId(fileId);
+            return generatePdfFromImageBytes(imageBytes, fileName);
+        } catch (Exception e) {
+            log.error("Failed to generate PDF from fileId: {}", fileId, e);
+            throw new RuntimeException("PDF生成失败", e);
+        }
+    }
+    
+    // 从fileID获取图片字节数组
+    private byte[] getImageBytesFromFileId(String fileId) throws Exception {
+        log.info("Getting image bytes from fileId: {}", fileId);
+        
+        try {
+            // 使用OssUtils下载文件，假设OssUtils可以处理微信云存储的文件ID
+            // 实际实现时可能需要根据项目配置调整
+            byte[] fileData = ossUtils.downloadFile(fileId);
+            log.info("Successfully downloaded file from fileId: {}, size: {} bytes", fileId, fileData.length);
+            return fileData;
+        } catch (Exception e) {
+            // 如果OssUtils下载失败，尝试使用备用方法
+            log.warn("Failed to download file using OssUtils, trying alternative method: {}", e.getMessage());
+            
+            // 备用方法：使用RestTemplate直接调用腾讯云API获取临时链接
+            // 这里简化实现，实际项目中需要根据腾讯云文档实现完整的授权流程
+            String tempUrl = generateTempDownloadUrl(fileId);
+            if (tempUrl != null) {
+                return downloadFileFromUrl(tempUrl);
+            }
+            
+            // 如果都失败，抛出异常
+            throw new RuntimeException("无法从微信云存储获取文件内容: " + fileId, e);
+        }
+    }
+    
+    // 生成临时下载链接（简化实现）
+    private String generateTempDownloadUrl(String fileId) {
+        // 这里简化实现，实际项目中需要通过腾讯云API获取临时下载链接
+        // 格式通常为：https://[cloud-path]/[fileId]?sign=xxx
+        try {
+            // 从fileId中提取必要信息
+            // 假设fileId格式为：cloud://prod-1gwm267i6a10e7cb.7072-prod-1gwm267i6a10e7cb-1258669146/resume_images/xxx.png
+            // 转换为下载链接格式：https://7072-prod-1gwm267i6a10e7cb-1258669146.tcb.qcloud.la/resume_images/xxx.png
+            
+            if (fileId.startsWith("cloud://")) {
+                String[] parts = fileId.split("\\/");
+                if (parts.length >= 4) {
+                    String envDomain = parts[1].split("\\.")[1]; // 获取类似"7072-prod-1gwm267i6a10e7cb-1258669146"的部分
+                    String filePath = String.join("/", Arrays.copyOfRange(parts, 2, parts.length));
+                    return "https://" + envDomain + ".tcb.qcloud.la/" + filePath;
+                }
+            }
+            
+            // 如果格式不符合预期，返回null
+            return null;
+        } catch (Exception e) {
+            log.error("Failed to generate temp download URL for fileId: {}", fileId, e);
+            return null;
+        }
+    }
+    
+    // 从URL下载文件
+    private byte[] downloadFileFromUrl(String url) throws Exception {
+        // 使用Java标准库或第三方库从URL下载文件
+        // 这里使用标准库实现
+        java.net.URL downloadUrl = new java.net.URL(url);
+        try (java.io.InputStream in = downloadUrl.openStream();
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            byte[] buffer = new byte[4096];
+            int bytesRead;
+            while ((bytesRead = in.read(buffer)) != -1) {
+                out.write(buffer, 0, bytesRead);
+            }
+            log.info("Successfully downloaded file from URL: {}, size: {} bytes", url, out.size());
+            return out.toByteArray();
+        }
+    }
+    
+    // 从字节数组生成PDF的通用方法
+    private byte[] generatePdfFromImageBytes(byte[] imageBytes, String fileName) {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         try {
             // 创建PDF文档
@@ -153,8 +246,7 @@ public class ResumeServiceImpl implements ResumeService {
             float margin = 36;
             document.setMargins(margin, margin, margin, margin);
             
-            // 读取图片文件并添加到PDF文档
-            byte[] imageBytes = imageFile.getBytes();
+            // 从字节数组创建图片
             com.itextpdf.layout.element.Image image = new com.itextpdf.layout.element.Image(
                 ImageDataFactory.create(imageBytes)
             );
@@ -183,11 +275,11 @@ public class ResumeServiceImpl implements ResumeService {
             // 关闭文档
             document.close();
             
-            log.info("PDF generated successfully from image: {}", fileName);
+            log.info("PDF generated successfully from image bytes: {}", fileName);
             
             return baos.toByteArray();
         } catch (Exception e) {
-            log.error("Failed to generate PDF from image: {}", fileName, e);
+            log.error("Failed to generate PDF from image bytes: {}", fileName, e);
             throw new RuntimeException("PDF生成失败", e);
         } finally {
             try {

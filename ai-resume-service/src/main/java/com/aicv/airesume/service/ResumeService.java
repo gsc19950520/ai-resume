@@ -98,4 +98,12 @@ public interface ResumeService {
      * @return PDF文件的字节数组
      */
     byte[] generatePdfFromImage(MultipartFile imageFile, String fileName);
+    
+    /**
+     * 从微信云存储文件ID生成PDF
+     * @param fileId 微信云存储文件ID
+     * @param fileName 文件名
+     * @return PDF文件的字节数组
+     */
+    byte[] generatePdfFromImageFileId(String fileId, String fileName);
 }

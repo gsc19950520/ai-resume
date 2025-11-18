@@ -198,6 +198,26 @@ public class ResumeController {
             outputStream.flush();
         }
     }
+    
+    @Log(description = "通过fileId生成PDF", recordParams = true, recordResult = false, recordExecutionTime = true)
+    @PostMapping("/generate/pdf-from-fileid")
+    public void generatePdfFromFileId(@RequestParam("fileId") String fileId,
+                                   @RequestParam("fileName") String fileName,
+                                   HttpServletResponse response) throws IOException {
+        // 设置响应头
+        response.setContentType("application/pdf");
+        String pdfFileName = fileName.replaceFirst("\\.[^.]+$", ".pdf"); // 将原始文件名改为PDF扩展名
+        response.setHeader("Content-Disposition", "attachment; filename=" + URLEncoder.encode(pdfFileName, "UTF-8"));
+        
+        // 从fileId生成PDF字节数组
+        byte[] pdfBytes = resumeService.generatePdfFromImageFileId(fileId, fileName);
+        
+        // 输出PDF文件
+        try (OutputStream outputStream = response.getOutputStream()) {
+            outputStream.write(pdfBytes);
+            outputStream.flush();
+        }
+    }
 
     /**
      * 导出为Word

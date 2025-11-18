@@ -493,68 +493,209 @@ Page({
    */
   downloadPdf: function() {
     const { templateId, resumeData, enableMock } = this.data;
-    
-    // 显示加载提示
     wx.showLoading({
       title: '正在生成PDF...',
-      mask: true
     });
-    
-    // 优先使用从后端获取的最新resumeId，如果没有则使用本地存储的
-    let resumeId = this.data.resumeId; // 从后端获取的resumeId
-    if (!resumeId) {
-      // 如果没有从后端获取到resumeId，尝试从本地存储获取
-      const options = wx.getStorageSync('previewOptions') || {};
-      resumeId = options.resumeId;
-      console.log('使用本地存储的resumeId:', resumeId);
+
+    // 获取resumeId，优先从后端数据中获取，其次从本地存储中获取
+    let resumeId = '';
+    if (this.data.resumeData && this.data.resumeData.id) {
+      resumeId = this.data.resumeData.id;
     } else {
-      console.log('使用从后端获取的最新resumeId:', resumeId);
+      resumeId = wx.getStorageSync('resumeId') || '';
     }
-    
-    const app = getApp();
-    
-    // 构建请求参数 - 使用云托管服务
-    let data = {};
-    
-    if (resumeId) {
-      // 如果有resumeId，调用简历导出接口
-      data = { 
-        resumeId: resumeId,
-        templateId: templateId // 后端接口需要templateId参数
-      };
-    } else {
-      // 如果没有resumeId，仍然调用export/pdf接口，但需要提供templateId
-      data = { 
-        templateId: templateId // 必须有templateId参数
-      };
-      console.warn('没有resumeId，将使用模板ID生成PDF，可能无法获取完整的简历数据');
-    }
-    
-    console.log('调用云托管PDF下载接口:', '/export/pdf', data);
-    
-    // 使用云托管的cloudCallBinary方法处理二进制数据
-    app.cloudCallBinary('/resume/export/pdf', data, 'GET')
-      .then(pdfData => {
-        console.log('PDF下载请求成功，数据类型:', typeof pdfData, '数据长度:', pdfData ? pdfData.byteLength : 0);
-        
-        // 检查返回的数据是否为空
-        if (pdfData && pdfData.byteLength > 0) {
-          // 处理返回的二进制数据
-          this.handlePdfData(pdfData);
-        } else {
-          wx.hideLoading();
-          console.warn('后端返回空的PDF数据，切换到模拟模式');
-          this.setData({ enableMock: true });
-          this.mockPdfDownload();
-        }
-      })
-      .catch(err => {
+
+    // 实现页面截图功能
+    this.captureResumePage().then(tempFilePath => {
+      console.log('截图成功，临时文件路径:', tempFilePath);
+      
+      // 将截图上传到后端生成PDF
+      const fileName = `resume_${resumeId || 'temp'}_${Date.now()}.png`;
+      
+      // 使用云托管服务的方式上传文件并生成PDF
+      const app = getApp();
+      
+      // 首先检查是否已初始化云开发环境
+      if (!wx.cloud) {
+        console.error('云开发未初始化');
         wx.hideLoading();
-        console.error('PDF下载请求失败，切换到模拟模式:', err);
-        // 如果请求失败，尝试使用模拟模式
-        this.setData({ enableMock: true });
-        this.mockPdfDownload();
+        wx.showToast({
+          title: '云开发未初始化',
+          icon: 'none'
+        });
+        return;
+      }
+      
+      // 使用wx.cloud.uploadFile上传文件到云存储
+      wx.cloud.uploadFile({
+        cloudPath: `resume_images/${fileName}`,
+        filePath: tempFilePath,
+        success: res => {
+          console.log('文件上传成功:', res);
+          const fileID = res.fileID;
+          
+          // 调用云托管服务生成PDF
+          if (app.cloudCallBinary) {
+            app.cloudCallBinary({
+              url: '/api/generate/pdf-from-fileid',
+              method: 'POST',
+              data: {
+                fileId: fileID,
+                fileName: 'resume'
+              },
+              success: pdfRes => {
+                wx.hideLoading();
+                console.log('PDF生成成功，状态码:', pdfRes.statusCode);
+                // 处理PDF二进制数据
+                const pdfBuffer = pdfRes.data;
+                
+                // 保存PDF到本地
+                wx.getFileSystemManager().writeFile({
+                  filePath: wx.env.USER_DATA_PATH + '/resume.pdf',
+                  data: pdfBuffer,
+                  encoding: 'binary',
+                  success: () => {
+                    console.log('PDF保存成功');
+                    // 打开PDF文件预览
+                    wx.openDocument({
+                      filePath: wx.env.USER_DATA_PATH + '/resume.pdf',
+                      showMenu: true,
+                      fileType: 'pdf',
+                      success: function(res) {
+                        console.log('打开PDF成功', res);
+                      },
+                      fail: function(err) {
+                        console.error('打开PDF失败', err);
+                        wx.showToast({
+                          title: '打开PDF失败',
+                          icon: 'none'
+                        });
+                      }
+                    });
+                  },
+                  fail: (err) => {
+                    console.error('保存PDF失败:', err);
+                    wx.showToast({
+                      title: '保存PDF失败',
+                      icon: 'none'
+                    });
+                  }
+                });
+              },
+              fail: err => {
+                wx.hideLoading();
+                console.error('调用后端生成PDF失败:', err);
+                wx.showToast({
+                  title: '生成PDF失败',
+                  icon: 'none'
+                });
+                // 失败时尝试使用模拟模式
+                if (enableMock) {
+                  this.mockPdfDownload();
+                }
+              }
+            });
+          } else {
+            wx.hideLoading();
+            console.error('云托管调用方法不可用');
+            wx.showToast({
+              title: '系统错误',
+              icon: 'none'
+            });
+          }
+        },
+        fail: err => {
+          wx.hideLoading();
+          console.error('上传文件失败:', err);
+          wx.showToast({
+            title: '上传文件失败',
+            icon: 'none'
+          });
+          
+          // 失败时尝试使用模拟模式
+          if (enableMock) {
+            this.mockPdfDownload();
+          }
+        }
       });
+    }).catch(err => {
+      wx.hideLoading();
+      console.error('截图失败:', err);
+      wx.showToast({
+        title: '截图失败',
+        icon: 'none'
+      });
+      
+      // 失败时尝试使用模拟模式
+      if (enableMock) {
+        this.mockPdfDownload();
+      }
+    });
+  },
+  
+  /**
+   * 捕获简历页面截图
+   * @returns {Promise} 返回包含截图临时路径的Promise
+   */
+  captureResumePage: function() {
+    return new Promise((resolve, reject) => {
+      // 获取页面节点信息
+      wx.createSelectorQuery().select('#resume-container')
+        .boundingClientRect()
+        .exec(res => {
+          if (!res || !res[0]) {
+            // 如果找不到#resume-container节点，则尝试截取整个页面
+            wx.createSelectorQuery().selectViewport()
+              .boundingClientRect()
+              .exec(viewportRes => {
+                if (!viewportRes || !viewportRes[0]) {
+                  reject(new Error('无法获取页面尺寸'));
+                  return;
+                }
+                
+                this.performCapture(viewportRes[0], resolve, reject);
+              });
+            return;
+          }
+          
+          this.performCapture(res[0], resolve, reject);
+        });
+    });
+  },
+  
+  /**
+   * 执行截图操作
+   * @param {Object} rect 要截取的区域尺寸信息
+   * @param {Function} resolve Promise解析函数
+   * @param {Function} reject Promise拒绝函数
+   */
+  performCapture: function(rect, resolve, reject) {
+    // 创建canvas上下文
+    const ctx = wx.createCanvasContext('captureCanvas', this);
+    
+    // 设置canvas尺寸
+    const dpr = wx.getSystemInfoSync().pixelRatio;
+    const canvasWidth = rect.width * dpr;
+    const canvasHeight = rect.height * dpr;
+    
+    // 绘制页面到canvas
+    wx.canvasToTempFilePath({
+      canvasId: 'captureCanvas',
+      x: 0,
+      y: 0,
+      width: rect.width,
+      height: rect.height,
+      destWidth: canvasWidth,
+      destHeight: canvasHeight,
+      quality: 1,
+      success: res => {
+        resolve(res.tempFilePath);
+      },
+      fail: err => {
+        console.error('canvasToTempFilePath失败:', err);
+        reject(err);
+      }
+    }, this);
   },
   
   /**
