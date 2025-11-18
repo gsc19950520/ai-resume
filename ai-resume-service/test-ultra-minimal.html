@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>PDF生成测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: white;
+            color: #333;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border: 1px solid #ddd;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        .profile {
+            margin: 20px 0;
+            background: #f8f9fa;
+            padding: 20px;
+        }
+        .avatar {
+            width: 80px;
+            height: 80px;
+            background: #3498db;
+            color: white;
+            font-size: 24px;
+            text-align: center;
+            line-height: 80px;
+            margin: 0 auto 20px auto;
+        }
+        .info h3 {
+            color: #2c3e50;
+            margin: 0 0 5px 0;
+            text-align: center;
+        }
+        .info p {
+            color: #7f8c8d;
+            margin: 5px 0;
+            text-align: center;
+        }
+        .skills {
+            margin: 20px 0;
+        }
+        .skill-item {
+            background: #ecf0f1;
+            padding: 15px;
+            border-left: 4px solid #3498db;
+            margin-bottom: 10px;
+        }
+        .skill-bar {
+            background: #bdc3c7;
+            height: 8px;
+            margin-top: 10px;
+        }
+        .skill-progress {
+            background: #3498db;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>PDF生成测试页面</h1>
+        
+        <div class="profile">
+            <div class="avatar">张</div>
+            <div class="info">
+                <h3>张三</h3>
+                <p>高级Java开发工程师</p>
+                <p>5年工作经验 | 北京</p>
+            </div>
+        </div>
+
+        <h3>技能专长</h3>
+        <div class="skills">
+            <div class="skill-item">
+                <strong>Java开发</strong>
+                <div class="skill-bar">
+                    <div class="skill-progress" style="width: 90%"></div>
+                </div>
+            </div>
+            <div class="skill-item">
+                <strong>Spring Boot</strong>
+                <div class="skill-bar">
+                    <div class="skill-progress" style="width: 85%"></div>
+                </div>
+            </div>
+            <div class="skill-item">
+                <strong>MySQL数据库</strong>
+                <div class="skill-bar">
+                    <div class="skill-progress" style="width: 80%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
