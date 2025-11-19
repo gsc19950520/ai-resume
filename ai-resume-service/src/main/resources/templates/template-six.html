@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>简历模板六</title>
+<style>
+  body {
+    margin: 0;
+    padding: 30px 0;
+    background: #eceff4;
+    font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+  }
+
+  .resume-six-container {
+    width: 90%;
+    max-width: 1200px;
+    background: #fdfdfd;
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+  }
+
+  /* 顶部横幅 */
+  .header-banner {
+    height: 200px;
+    background: linear-gradient(135deg, #1a73e8, #004b9b);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    padding: 0 28px;
+    color: #fff;
+  }
+
+  .header-content {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .avatar {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    border: 3px solid #fff;
+    object-fit: cover;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  }
+
+  .name-box {
+    display: flex;
+    flex-direction: column;
+    margin-left: 20px;
+    flex-shrink: 0;
+  }
+
+  .name-text { font-size: 28px; font-weight: 700; }
+  .tag { font-size: 16px; background: rgba(255,255,255,0.2); border-radius: 10px; padding: 3px 10px; margin-top: 6px; align-self: flex-start; }
+
+  .contact-top {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    margin-left: 40px;
+    font-size: 14px;
+  }
+
+  .contact-row { margin-bottom: 6px; }
+
+  /* 主体内容 */
+  .main-content-six {
+    display: flex;
+    margin-top: 30px;
+    gap: 20px;
+  }
+
+  .left-panel-six {
+    width: 30%;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .right-panel-six {
+    width: 70%;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding-right: 10px;
+  }
+
+  .section { background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
+  .section-title { font-size: 18px; font-weight: 600; color: #0072ff; margin-bottom: 16px; position: relative; }
+  .section-title::after { content: ""; position: absolute; left: 0; bottom: -4px; width: 36px; height: 3px; background: #00c6ff; border-radius: 2px; }
+
+  /* 技能进度条 */
+  .skill-item { margin-top: 8px; }
+  .skill-name { font-size: 15px; margin-bottom: 4px; color: #333; }
+  .skill-bar { width: 100%; height: 10px; background: rgba(0,114,255,0.15); border-radius: 8px; overflow: hidden; }
+  .skill-fill { height: 100%; border-radius: 8px; background: linear-gradient(90deg,#00c6ff,#0072ff); transition: width 1s ease-in-out; }
+
+  /* 兴趣爱好 */
+  .hobbies-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .hobby-item { display: inline-block; background: rgba(0,114,255,0.1); color: #0072ff; padding: 4px 12px; border-radius: 16px; font-size: 13px; border: 1px solid rgba(0,114,255,0.2); }
+
+  /* 时间轴样式 */
+  .timeline-item { display: flex; position: relative; margin-bottom: 10px; }
+  .timeline-dot { width: 8px; height: 8px; background: #0072ff; border-radius: 50%; margin-right: 12px; margin-top: 6px; flex-shrink: 0; }
+  .timeline-content { flex: 1; }
+  .job-header { display: flex; justify-content: space-between; font-size: 15px; font-weight: 600; margin-top: 1px; }
+  .job-desc { font-size: 14px; line-height: 1.6; margin-top: 6px; color: #555; }
+
+  .empty-tip { text-align: center; padding: 20px; color: #999; font-size: 14px; }
+</style>
+</head>
+<body>
+<div class="resume-six-container">
+
+  <!-- 顶部横幅 -->
+  <div class="header-banner">
+    <div class="header-content">
+      <img class="avatar" th:src="@{${userInfo.avatarUrl}}" alt="头像">
+
+      <div class="name-box">
+        <div class="name-text" th:text="${userInfo.name}">姓名</div>
+        <div class="tag" th:text="${jobTitle}">职位</div>
+      </div>
+
+      <div class="contact-top">
+        <div class="contact-row">电话：<span th:text="${userInfo.phone}">电话</span></div>
+        <div class="contact-row">邮箱：<span th:text="${userInfo.email}">邮箱</span></div>
+        <div class="contact-row">地址：<span th:text="${userInfo.address}">地址</span></div>
+        <div class="contact-row">出生日期：<span th:text="${birthDate}">出生</span></div>
+        <div class="contact-row">期望薪资：<span th:text="${expectedSalary}">薪资</span></div>
+        <div class="contact-row">到岗：<span th:text="${startTime}">到岗</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 主体内容 -->
+  <div class="main-content-six">
+
+    <!-- 左侧 -->
+    <div class="left-panel-six">
+      <div class="section">
+        <div class="section-title">专业技能</div>
+        <div th:if="${skillsWithLevel}">
+          <div class="skill-item" th:each="skill : ${skillsWithLevel}">
+            <div class="skill-name" th:text="${skill.name}">技能名</div>
+            <div class="skill-bar"><div class="skill-fill" th:style="'width:' + (${skill.level}*20) + '%'"></div></div>
+          </div>
+        </div>
+        <div th:if="${skillsWithLevel == null}" class="empty-tip">请添加专业技能</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">兴趣爱好</div>
+        <div th:if="${interests}">
+          <div class="hobbies-list">
+            <span class="hobby-item" th:each="item : ${interests}" th:text="${item}">兴趣</span>
+          </div>
+        </div>
+        <div th:if="${interests == null}" class="empty-tip">暂无兴趣爱好</div>
+      </div>
+    </div>
+
+    <!-- 右侧 -->
+    <div class="right-panel-six">
+
+      <!-- 教育经历 -->
+      <div class="section">
+        <div class="section-title">教育经历</div>
+        <div th:if="${educationList}">
+          <div class="timeline-item" th:each="edu : ${educationList}">
+            <div class="timeline-dot"></div>
+            <div class="timeline-content">
+              <div class="job-header">
+                <span th:text="${edu.startDate} + ' - ' + ${edu.endDate}">起止</span>
+                <span th:text="${edu.school}">学校</span>
+                <span th:text="${edu.degree}">学历</span>
+              </div>
+              <div class="job-desc" th:text="${edu.major} + (${edu.description})">专业描述</div>
+            </div>
+          </div>
+        </div>
+        <div th:if="${educationList == null}" class="empty-tip">请添加教育经历</div>
+      </div>
+
+      <!-- 工作经历 -->
+      <div class="section">
+        <div class="section-title">工作经历</div>
+        <div th:if="${workExperienceList}">
+          <div class="timeline-item" th:each="work : ${workExperienceList}">
+            <div class="timeline-dot"></div>
+            <div class="timeline-content">
+              <div class="job-header">
+                <span th:text="${work.startDate} + ' - ' + ${work.endDate}">起止</span>
+                <span th:text="${work.companyName}">公司</span>
+                <span th:text="${work.positionName}">职位</span>
+              </div>
+              <div class="job-desc" th:text="${work.description}">工作描述</div>
+            </div>
+          </div>
+        </div>
+        <div th:if="${workExperienceList == null}" class="empty-tip">请添加工作经历</div>
+      </div>
+
+      <!-- 项目经验 -->
+      <div class="section">
+        <div class="section-title">项目经验</div>
+        <div th:if="${projectList}">
+          <div class="timeline-item" th:each="proj : ${projectList}">
+            <div class="timeline-dot"></div>
+            <div class="timeline-content">
+              <div class="job-header">
+                <span th:text="${proj.startDate} + ' - ' + ${proj.endDate}">起止</span>
+                <span th:text="${proj.projectName}">项目名</span>
+              </div>
+              <div class="job-desc" th:text="${proj.description}">项目描述</div>
+            </div>
+          </div>
+        </div>
+        <div th:if="${projectList == null}" class="empty-tip">请添加项目经验</div>
+      </div>
+
+      <!-- 自我评价 -->
+      <div class="section">
+        <div class="section-title">自我评价</div>
+        <div class="job-desc" th:text="${selfEvaluation} ?: '请添加自我评价'">自我评价</div>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+</body>
+</html>

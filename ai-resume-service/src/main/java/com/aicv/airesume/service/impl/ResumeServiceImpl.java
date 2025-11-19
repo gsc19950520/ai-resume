@@ -17,10 +17,8 @@ import com.aicv.airesume.service.ResumeService;
 
 
 import com.aicv.airesume.service.UserService;
-import com.aicv.airesume.utils.AiServiceUtils;
 import com.aicv.airesume.utils.FileUtils;
-import com.aicv.airesume.utils.FreeMarkerUtil;
-import com.aicv.airesume.utils.OssUtils;
+import com.aicv.airesume.utils.PdfServiceUtils;
 import com.aicv.airesume.utils.RetryUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -38,20 +36,6 @@ import java.nio.file.Files;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.*;
 import javax.persistence.EntityNotFoundException;
-import org.thymeleaf.TemplateEngine;
-import org.thymeleaf.context.Context;
-import org.xhtmlrenderer.pdf.ITextRenderer;
-import com.itextpdf.io.image.ImageDataFactory;
-import com.itextpdf.kernel.pdf.PdfDocument;
-import com.itextpdf.kernel.pdf.PdfWriter;
-import com.itextpdf.kernel.geom.PageSize;
-import com.itextpdf.layout.Document;
-import com.itextpdf.layout.element.Image;
-
-import java.io.StringReader;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -66,7 +50,8 @@ public class ResumeServiceImpl implements ResumeService {
     @Autowired
     private ResumeRepository resumeRepository;
     
-    // 已删除ResumePersonalInfo和ResumeContact相关的Repository依赖
+    @Autowired
+    private PdfServiceUtils pdfServiceUtils;
     
     @Autowired
     private ResumeEducationRepository resumeEducationRepository;
@@ -82,18 +67,9 @@ public class ResumeServiceImpl implements ResumeService {
 
     @Autowired
     private UserService userService;
-
-    @Autowired
-    private OssUtils ossUtils;
-
-    @Autowired
-    private AiServiceUtils aiServiceUtils;
     
     @Autowired
     private RetryUtils retryUtils;
-    
-    @Autowired
-    private ObjectMapper objectMapper;
 
     // 实现接口的uploadResume方法
     @Override
@@ -111,20 +87,13 @@ public class ResumeServiceImpl implements ResumeService {
             }
 
             // 上传到OSS
-            String fileUrl = ossUtils.uploadFile(file, "resumes");
+            String fileUrl = null;
 
             // 提取文本内容
-            String content;
-            if (file.getOriginalFilename().endsWith(".pdf")) {
-                content = FileUtils.extractTextFromPdf(file);
-            } else {
-                content = FileUtils.extractTextFromWord(file);
-            }
+            String content = null;
 
             // 创建简单的Resume对象并返回
             return new Resume();
-        } catch (IOException e) {
-            throw new RuntimeException("IO异常: " + e.getMessage(), e);
         } catch (Exception e) {
             throw new RuntimeException("文件上传失败: " + e.getMessage(), e);
         }
@@ -137,161 +106,6 @@ public class ResumeServiceImpl implements ResumeService {
         return new Resume();
     }
     
-    // 实现从图片生成PDF的方法（支持MultipartFile）
-    @Override
-    public byte[] generatePdfFromImage(MultipartFile imageFile, String fileName) {
-        try {
-            // 从MultipartFile获取字节数组
-            byte[] imageBytes = imageFile.getBytes();
-            return generatePdfFromImageBytes(imageBytes, fileName);
-        } catch (Exception e) {
-            log.error("Failed to generate PDF from MultipartFile: {}", fileName, e);
-            throw new RuntimeException("PDF生成失败", e);
-        }
-    }
-    
-    // 新增：从fileID生成PDF的方法
-    public byte[] generatePdfFromImageFileId(String fileId, String fileName) {
-        try {
-            // 从微信云存储获取文件内容
-            byte[] imageBytes = getImageBytesFromFileId(fileId);
-            return generatePdfFromImageBytes(imageBytes, fileName);
-        } catch (Exception e) {
-            log.error("Failed to generate PDF from fileId: {}", fileId, e);
-            throw new RuntimeException("PDF生成失败", e);
-        }
-    }
-    
-    // 从fileID获取图片字节数组
-    private byte[] getImageBytesFromFileId(String fileId) throws Exception {
-        log.info("Getting image bytes from fileId: {}", fileId);
-        
-        try {
-            // 使用OssUtils下载文件，假设OssUtils可以处理微信云存储的文件ID
-            // 实际实现时可能需要根据项目配置调整
-            byte[] fileData = ossUtils.downloadFile(fileId);
-            log.info("Successfully downloaded file from fileId: {}, size: {} bytes", fileId, fileData.length);
-            return fileData;
-        } catch (Exception e) {
-            // 如果OssUtils下载失败，尝试使用备用方法
-            log.warn("Failed to download file using OssUtils, trying alternative method: {}", e.getMessage());
-            
-            // 备用方法：使用RestTemplate直接调用腾讯云API获取临时链接
-            // 这里简化实现，实际项目中需要根据腾讯云文档实现完整的授权流程
-            String tempUrl = generateTempDownloadUrl(fileId);
-            if (tempUrl != null) {
-                return downloadFileFromUrl(tempUrl);
-            }
-            
-            // 如果都失败，抛出异常
-            throw new RuntimeException("无法从微信云存储获取文件内容: " + fileId, e);
-        }
-    }
-    
-    // 生成临时下载链接（简化实现）
-    private String generateTempDownloadUrl(String fileId) {
-        // 这里简化实现，实际项目中需要通过腾讯云API获取临时下载链接
-        // 格式通常为：https://[cloud-path]/[fileId]?sign=xxx
-        try {
-            // 从fileId中提取必要信息
-            // 假设fileId格式为：cloud://prod-1gwm267i6a10e7cb.7072-prod-1gwm267i6a10e7cb-1258669146/resume_images/xxx.png
-            // 转换为下载链接格式：https://7072-prod-1gwm267i6a10e7cb-1258669146.tcb.qcloud.la/resume_images/xxx.png
-            
-            if (fileId.startsWith("cloud://")) {
-                String[] parts = fileId.split("\\/");
-                if (parts.length >= 4) {
-                    String envDomain = parts[1].split("\\.")[1]; // 获取类似"7072-prod-1gwm267i6a10e7cb-1258669146"的部分
-                    String filePath = String.join("/", Arrays.copyOfRange(parts, 2, parts.length));
-                    return "https://" + envDomain + ".tcb.qcloud.la/" + filePath;
-                }
-            }
-            
-            // 如果格式不符合预期，返回null
-            return null;
-        } catch (Exception e) {
-            log.error("Failed to generate temp download URL for fileId: {}", fileId, e);
-            return null;
-        }
-    }
-    
-    // 从URL下载文件
-    private byte[] downloadFileFromUrl(String url) throws Exception {
-        // 使用Java标准库或第三方库从URL下载文件
-        // 这里使用标准库实现
-        java.net.URL downloadUrl = new java.net.URL(url);
-        try (java.io.InputStream in = downloadUrl.openStream();
-             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            byte[] buffer = new byte[4096];
-            int bytesRead;
-            while ((bytesRead = in.read(buffer)) != -1) {
-                out.write(buffer, 0, bytesRead);
-            }
-            log.info("Successfully downloaded file from URL: {}, size: {} bytes", url, out.size());
-            return out.toByteArray();
-        }
-    }
-    
-    // 从字节数组生成PDF的通用方法
-    private byte[] generatePdfFromImageBytes(byte[] imageBytes, String fileName) {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        try {
-            // 创建PDF文档
-            PdfWriter writer = new PdfWriter(baos);
-            PdfDocument pdfDoc = new PdfDocument(writer);
-            
-            // 创建布局文档
-            Document document = new Document(pdfDoc, PageSize.A4);
-            
-            // 设置边距
-            float margin = 36;
-            document.setMargins(margin, margin, margin, margin);
-            
-            // 从字节数组创建图片
-            com.itextpdf.layout.element.Image image = new com.itextpdf.layout.element.Image(
-                ImageDataFactory.create(imageBytes)
-            );
-            
-            // 获取页面可用尺寸
-            float pageWidth = document.getPdfDocument().getDefaultPageSize().getWidth() - 2 * margin;
-            float pageHeight = document.getPdfDocument().getDefaultPageSize().getHeight() - 2 * margin;
-            
-            // 获取图片原始尺寸
-            float imageWidth = image.getImageWidth();
-            float imageHeight = image.getImageHeight();
-            
-            // 计算缩放比例
-            float widthRatio = pageWidth / imageWidth;
-            float heightRatio = pageHeight / imageHeight;
-            float scale = Math.min(widthRatio, heightRatio);
-            
-            // 应用缩放
-            image.scaleToFit(imageWidth * scale, imageHeight * scale);
-            
-            // 移除特定对齐设置，使用文档默认布局
-            
-            // 添加图片到文档
-            document.add(image);
-            
-            // 关闭文档
-            document.close();
-            
-            log.info("PDF generated successfully from image bytes: {}", fileName);
-            
-            return baos.toByteArray();
-        } catch (Exception e) {
-            log.error("Failed to generate PDF from image bytes: {}", fileName, e);
-            throw new RuntimeException("PDF生成失败", e);
-        } finally {
-            try {
-                baos.close();
-            } catch (IOException e) {
-                log.error("Error closing ByteArrayOutputStream", e);
-            }
-        }
-    }
-
-
-
     // 修复返回类型以匹配接口定义
     @Override
     public List<Resume> getResumeListByUserId(Long userId) {
@@ -350,7 +164,6 @@ public class ResumeServiceImpl implements ResumeService {
         });
     }
     
-    
     // 添加缺失的exportResumeToWord方法（单参数版本）
     @Override
     public byte[] exportResumeToWord(Long resumeId) {
@@ -367,10 +180,6 @@ public class ResumeServiceImpl implements ResumeService {
             throw new RuntimeException("导出Word文档失败", e);
         }
     }
-    
-    // PDF生成需要的注入依赖
-    @Autowired
-    private TemplateEngine templateEngine;
     
     // 实现exportResumeToPdf方法，使用Thymeleaf和Flying Saucer生成PDF
     // 添加模板文件基础路径配置
@@ -423,48 +232,8 @@ public class ResumeServiceImpl implements ResumeService {
                     // 2. 获取关联数据（你原有的）
                     Map<String, Object> resumeData = getResumeFullData(finalResumeId);
                     log.info("获取到简历完整数据，用户ID: {}", resume.getUserId());
-
-                    // 3. 读取模板文件 WXML + WXSS
-                    String wxmlContent = readTemplateFile(finalTemplateId, "wxml");
-                    String wxssContent = readTemplateFile(finalTemplateId, "wxss");
-
-                    log.info("模板文件读取成功, wxml字节: {}, wxss字节: {}",
-                            wxmlContent.length(), wxssContent.length());
-
-                    // --------------------------------------------------------
-                    // 4. WXML 渲染动态数据 -> 转换成 HTML BODY
-                    // --------------------------------------------------------
-                    String htmlBody = FreeMarkerUtil.parse(wxmlContent, resumeData);
-
-                    // --------------------------------------------------------
-                    // 5. WXSS 直接作为 CSS 使用
-                    // --------------------------------------------------------
-                    String cssStyle = wxssContent;
-
-                    // --------------------------------------------------------
-                    // 6. 拼装完整 HTML 内容
-                    // --------------------------------------------------------
-                    String htmlContent =
-                            "<!DOCTYPE html>\n" +
-                            "<html lang=\"zh-CN\">\n" +
-                            "<head>\n" +
-                            "   <meta charset=\"UTF-8\">\n" +
-                            "   <title>简历PDF</title>\n" +
-                            "   <style>\n" +
-                            "       @page { size: A4; margin: 20px; }\n" +
-                            "       body { font-family: \"Microsoft YaHei\"; font-size: 14px; }\n" +
-                            "       * { box-sizing: border-box; }\n" +
-                            cssStyle +
-                            "   </style>\n" +
-                            "</head>\n" +
-                            "<body>\n" +
-                            htmlBody +
-                            "\n</body>\n</html>";
-
-                    // --------------------------------------------------------
-                    // 7. 将 HTML 渲染为 PDF
-                    // --------------------------------------------------------
-                    byte[] pdfBytes = convertHtmlToPdf(htmlContent);
+                    
+                    byte[] pdfBytes = pdfServiceUtils.generatePdf(resumeData, finalTemplateId);
 
                     log.info("PDF 导出成功, 大小: {} KB", pdfBytes.length / 1024.0);
 
@@ -479,51 +248,8 @@ public class ResumeServiceImpl implements ResumeService {
         } catch (Exception e) {
             throw new RuntimeException("导出PDF文档失败", e);
         }
-    }
+    }    
 
-    
-    public byte[] convertHtmlToPdf(String htmlContent) { 
-        try (ByteArrayOutputStream os = new ByteArrayOutputStream()) { 
-            // 使用ITextRenderer替代HTMLWorker，以支持更好的HTML和CSS渲染
-            ITextRenderer renderer = new ITextRenderer();
-            
-            // 确保HTML是有效的XHTML格式
-            if (!htmlContent.toLowerCase().contains("<!doctype html")) {
-                htmlContent = "<!DOCTYPE html>" + htmlContent;
-            }
-            
-            // 设置文档内容
-            renderer.setDocumentFromString(htmlContent);
-            
-            // 处理中文字体，确保中文正常显示
-            try {
-                // 尝试注册系统中文字体 - 注意：ITextRenderer内部使用iText 5.x，即使我们的项目使用iText 7.x
-                // 这里使用兼容的方式注册字体
-                renderer.getFontResolver().addFont("C:/Windows/Fonts/simhei.ttf", "Identity-H", true);
-                renderer.getFontResolver().addFont("C:/Windows/Fonts/simsun.ttc", "Identity-H", true);
-            } catch (Exception e) {
-                log.warn("无法注册中文字体，将使用默认字体: {}", e.getMessage());
-            }
-            
-            // 布局和渲染
-            renderer.layout();
-            renderer.createPDF(os);
-            
-            log.info("PDF渲染成功，文件大小: {} KB", os.size() / 1024.0);
-            return os.toByteArray();
-        } catch (Exception e) { 
-            log.error("HTML转PDF失败: {}", e.getMessage(), e);
-            throw new RuntimeException("HTML 转 PDF 失败", e); 
-        } 
-    }
-
-    
-
-    
-    // 添加缺失的batchOptimizeResume方法
-    // batchOptimizeResume方法已移除
-    
-    // 添加缺失的batchUploadResume方法
     @Override
     public List<Resume> batchUploadResume(Long userId, List<MultipartFile> files) {
         // 临时返回空列表

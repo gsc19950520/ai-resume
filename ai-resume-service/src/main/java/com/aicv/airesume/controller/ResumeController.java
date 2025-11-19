@@ -16,22 +16,13 @@ import com.aicv.airesume.model.vo.ResumeSuggestionVO;
 import com.aicv.airesume.service.ResumeService;
 import com.aicv.airesume.utils.TokenUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import java.util.ArrayList;
-import com.aicv.airesume.model.vo.BaseResponseVO;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import java.io.IOException;
-import java.net.URLEncoder;
-import java.io.OutputStream;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.ServletOutputStream;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import javax.validation.Valid;
-
 import com.aicv.airesume.common.constant.ResponseCode;
 import com.aicv.airesume.common.exception.BusinessException;
 
@@ -164,7 +155,7 @@ public class ResumeController {
             response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
             response.setHeader("Pragma", "no-cache");
             response.setHeader("Expires", "0");
-            
+
             // 写入响应体
             ServletOutputStream outputStream = response.getOutputStream();
             outputStream.write(pdfBytes);
@@ -175,50 +166,6 @@ public class ResumeController {
         }
     }
     
-    /**
-     * 从图片生成PDF并下载
-     * 接收小程序端上传的截图，生成PDF文件并返回给前端
-     */
-    @Log(description = "从图片生成PDF", recordParams = true, recordResult = false, recordExecutionTime = true)
-    @PostMapping("/generate/pdf-from-image")
-    public void generatePdfFromImage(@RequestParam("file") MultipartFile file,
-                                   @RequestParam("fileName") String fileName,
-                                   HttpServletResponse response) throws IOException {
-        // 设置响应头
-        response.setContentType("application/pdf");
-        String pdfFileName = fileName.replaceFirst("\\.[^.]+$", ".pdf"); // 将原始文件名改为PDF扩展名
-        response.setHeader("Content-Disposition", "attachment; filename=" + URLEncoder.encode(pdfFileName, "UTF-8"));
-        
-        // 使用service生成PDF
-        byte[] pdfBytes = resumeService.generatePdfFromImage(file, fileName);
-        
-        // 输出PDF文件
-        try (OutputStream outputStream = response.getOutputStream()) {
-            outputStream.write(pdfBytes);
-            outputStream.flush();
-        }
-    }
-    
-    @Log(description = "通过fileId生成PDF", recordParams = true, recordResult = false, recordExecutionTime = true)
-    @PostMapping("/generate/pdf-from-fileid")
-    public void generatePdfFromFileId(@RequestParam("fileId") String fileId,
-                                   @RequestParam("fileName") String fileName,
-                                   HttpServletResponse response) throws IOException {
-        // 设置响应头
-        response.setContentType("application/pdf");
-        String pdfFileName = fileName.replaceFirst("\\.[^.]+$", ".pdf"); // 将原始文件名改为PDF扩展名
-        response.setHeader("Content-Disposition", "attachment; filename=" + URLEncoder.encode(pdfFileName, "UTF-8"));
-        
-        // 从fileId生成PDF字节数组
-        byte[] pdfBytes = resumeService.generatePdfFromImageFileId(fileId, fileName);
-        
-        // 输出PDF文件
-        try (OutputStream outputStream = response.getOutputStream()) {
-            outputStream.write(pdfBytes);
-            outputStream.flush();
-        }
-    }
-
     /**
      * 导出为Word
      * @param resumeId 简历ID

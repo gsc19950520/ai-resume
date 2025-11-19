@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>简历模板五</title>
+<style>
+  body {
+    margin: 0;
+    padding: 30px 0;
+    background: #eceff4;
+    font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+  }
+
+  .template-five-container {
+    width: 90%;
+    max-width: 1200px;
+    background: #fff;
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+    overflow: hidden;
+  }
+
+  /* 顶部栏 */
+  .top-bar-full {
+    background: rgba(20,130,145,0.55);
+    padding: 20px;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .avatar-name-section {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+  }
+
+  .avatar {
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    border: 3px solid rgba(255,255,255,0.8);
+    object-fit: cover;
+  }
+
+  .name-info {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .top-name { font-size: 32px; font-weight: 700; }
+  .top-extra-info { font-size: 15px; line-height: 1.8; display: flex; flex-direction: column; gap: 4px; }
+  .info-row { display: flex; gap: 10px; }
+
+  /* 主体内容左右布局 */
+  .main-content {
+    display: flex;
+    gap: 10px;
+  }
+
+  /* 左侧面板：联系方式 + 技能 */
+  .left-panel-full {
+    width: 25%;
+    background: rgba(20,130,145,0.55);
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+    color: #fff;
+    border-bottom-left-radius: 20px;
+    border-top-right-radius: 12px;
+  }
+
+  .section-title {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    border-left: 6px solid #fff;
+    padding-left: 10px;
+  }
+
+  .contact-item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    margin-bottom: 16px;
+  }
+
+  .contact-label { font-weight: 600; font-size: 16px; margin-bottom: 4px; }
+  .contact-value { font-size: 15px; color: #fff; }
+
+  .skill-item { margin-bottom: 12px; }
+  .skill-name { font-size: 16px; margin-bottom: 4px; }
+  .skill-bar { width: 100%; height: 10px; background: rgba(255,255,255,0.3); border-radius: 8px; overflow: hidden; }
+  .skill-fill { height: 100%; background: #fff; border-radius: 8px; }
+
+  /* 右侧内容 */
+  .right-panel-full {
+    width: 75%;
+    display: flex;
+    flex-direction: column;
+    padding: 24px;
+    background: #fff;
+    gap: 16px;
+    border-radius: 0 20px 20px 0;
+  }
+
+  .section-separator { height: 1px; background: #148291; margin: 5px 0; }
+
+  .job { margin-bottom: 10px; }
+  .job-header { font-size: 15px; font-weight: 600; display: flex; justify-content: space-between; margin-bottom: 10px; color: #333; }
+  .job-desc { font-size: 15px; line-height: 1.4; color: #444; position: relative; padding-left: 12px; margin-bottom: 18px; }
+  .job-desc::before { content: "·"; position: absolute; left: 0; color: #000; font-weight: bold; font-size: 15px; }
+</style>
+</head>
+<body>
+<div class="template-five-container">
+
+  <!-- 顶部栏 -->
+  <div class="top-bar-full">
+    <div class="avatar-name-section">
+      <img class="avatar" th:src="@{${userInfo.avatarUrl}}" alt="头像">
+      <div class="name-info">
+        <div class="top-name" th:text="${userInfo.name}">姓名</div>
+        <div class="top-extra-info">
+          <div class="info-row">
+            <span>期望薪资：<span th:text="${expectedSalary}">薪资</span></span> |
+            <span>出生：<span th:text="${birthDate}">出生日期</span></span>
+          </div>
+          <div class="info-row">
+            <span>到岗：<span th:text="${startTime}">入职时间</span></span> |
+            <span>求职岗位：<span th:text="${jobTitle}">职位</span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 主体内容 -->
+  <div class="main-content">
+    <!-- 左侧面板 -->
+    <div class="left-panel-full">
+      <div class="contact-section">
+        <div class="section-title">联系方式</div>
+        <div class="contact-item">
+          <span class="contact-label">电话：</span>
+          <span class="contact-value" th:text="${userInfo.phone}">电话</span>
+        </div>
+        <div class="contact-item">
+          <span class="contact-label">邮箱：</span>
+          <span class="contact-value" th:text="${userInfo.email}">邮箱</span>
+        </div>
+        <div class="contact-item">
+          <span class="contact-label">地址：</span>
+          <span class="contact-value" th:text="${userInfo.address}">地址</span>
+        </div>
+      </div>
+
+      <div class="skills-section" th:if="${skillsWithLevel}">
+        <div class="section-title">专业技能</div>
+        <div class="skill-item" th:each="skill : ${skillsWithLevel}">
+          <div class="skill-name" th:text="${skill.name}">技能名称</div>
+          <div class="skill-bar">
+            <div class="skill-fill" th:style="'width:' + (${skill.level}*20) + '%'"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 右侧面板 -->
+    <div class="right-panel-full">
+      <!-- 教育经历 -->
+      <div class="section" th:if="${educationList}">
+        <div class="section-title">教育经历</div>
+        <div class="job" th:each="edu : ${educationList}">
+          <div class="job-header">
+            <div class="job-company" th:text="${edu.school}">学校名称</div>
+            <div class="job-position" th:text="${edu.degree}">学历</div>
+            <div class="job-period" th:text="${edu.startDate} + ' - ' + ${edu.endDate}">起止时间</div>
+          </div>
+          <div class="job-desc" th:text="${edu.major}">专业描述</div>
+        </div>
+        <div class="section-separator"></div>
+      </div>
+
+      <!-- 工作经历 -->
+      <div class="section" th:if="${workExperienceList}">
+        <div class="section-title">工作经历</div>
+        <div class="job" th:each="work : ${workExperienceList}">
+          <div class="job-header">
+            <div class="job-company" th:text="${work.companyName}">公司名称</div>
+            <div class="job-position" th:text="${work.positionName}">职位</div>
+            <div class="job-period" th:text="${work.startDate} + ' - ' + ${work.endDate}">起止时间</div>
+          </div>
+          <div class="job-desc" th:text="${work.description}">工作描述</div>
+        </div>
+        <div class="section-separator"></div>
+      </div>
+
+      <!-- 项目经验 -->
+      <div class="section" th:if="${projectList}">
+        <div class="section-title">项目经验</div>
+        <div class="project" th:each="proj : ${projectList}">
+          <div class="job-header">
+            <div class="job-company" th:text="${proj.projectName}">项目名称</div>
+            <div class="job-period" th:text="${proj.startDate} + ' - ' + ${proj.endDate}">起止时间</div>
+          </div>
+          <div class="job-desc" th:text="${proj.description}">项目描述</div>
+        </div>
+        <div class="section-separator"></div>
+      </div>
+
+      <!-- 兴趣爱好 -->
+      <div class="section" th:if="${interests}">
+        <div class="section-title">兴趣爱好</div>
+        <div class="job-desc" th:text="${interests}">兴趣爱好</div>
+        <div class="section-separator"></div>
+      </div>
+
+      <!-- 自我评价 -->
+      <div class="section" th:if="${selfEvaluation}">
+        <div class="section-title">自我评价</div>
+        <div class="job-desc" th:text="${selfEvaluation}">自我评价</div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
