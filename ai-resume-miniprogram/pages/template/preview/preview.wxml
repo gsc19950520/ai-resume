@@ -79,5 +79,15 @@
   <!-- 使用模板按钮 -->
   <view class="action-container">
     <button class="download-pdf-btn" bindtap="downloadPdf">下载PDF</button>
+
+
+  </view>
+  
+  <!-- 截图测试按钮 -->
+  <view class="action-container">
+    <button class="screenshot-btn" bindtap="takeScreenshot">测试简历截图</button>
   </view>
 </view>
+
+<!-- 截图用canvas -->
+<canvas canvas-id="captureCanvas" style="{{canvasStyle || 'width: 750px; height: 1200px; position: absolute; left: -9999px; top: -9999px;'}}"></canvas>

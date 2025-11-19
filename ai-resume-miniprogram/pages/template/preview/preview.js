@@ -1,5 +1,6 @@
 // preview.js - 动态模板预览版本
 const { request } = require('../../../utils/request');
+
 Page({
   
   data: {
@@ -11,7 +12,8 @@ Page({
     userInfo: null,  // 用户信息
     loading: true,  // 加载状态
     apiBaseUrl: '', // 使用云托管服务，不需要硬编码URL
-    enableMock: true // 是否启用模拟PDF下载功能
+    enableMock: true, // 是否启用模拟PDF下载功能
+    canvasStyle: 'width: 750px; height: 1200px; position: absolute; left: -9999px; top: -9999px;' // Canvas样式
   },
   
   /**
@@ -99,6 +101,9 @@ Page({
     setTimeout(() => {
       this.verifyUserInfo();
     }, 100);
+    
+    // 初始化Canvas元素
+    this.initializeCanvas();
   },
   
   /**
@@ -374,21 +379,21 @@ Page({
     return {
       // 基本信息（来自User表）
       personalInfo: {
-        name: backendData.userInfo?.name || backendData.name || '',
-        jobTitle: backendData.jobTitle || backendData.userInfo?.jobTitle || '',
-        phone: backendData.userInfo?.phone || backendData.phone || '',
-        email: backendData.userInfo?.email || backendData.email || '',
-        address: backendData.userInfo?.address || backendData.address || '',
-        birthDate: backendData.userInfo?.birthDate || backendData.birthDate || '',
-        expectedSalary: backendData.expectedSalary || backendData.userInfo?.expectedSalary || '',
-        startTime: backendData.startTime || backendData.userInfo?.startTime || '',
-        avatar: backendData.userInfo?.avatarUrl || backendData.avatar || '',
-        selfEvaluation: backendData.selfEvaluation || backendData.userInfo?.selfEvaluation || '',
-        nickname: backendData.userInfo?.nickname || '',
-        gender: backendData.userInfo?.gender || '',
-        country: backendData.userInfo?.country || '',
-        province: backendData.userInfo?.province || '',
-        city: backendData.userInfo?.city || ''
+        name: (backendData.userInfo && backendData.userInfo.name) || backendData.name || '',
+        jobTitle: backendData.jobTitle || (backendData.userInfo && backendData.userInfo.jobTitle) || '',
+        phone: (backendData.userInfo && backendData.userInfo.phone) || backendData.phone || '',
+        email: (backendData.userInfo && backendData.userInfo.email) || backendData.email || '',
+        address: (backendData.userInfo && backendData.userInfo.address) || backendData.address || '',
+        birthDate: (backendData.userInfo && backendData.userInfo.birthDate) || backendData.birthDate || '',
+        expectedSalary: backendData.expectedSalary || (backendData.userInfo && backendData.userInfo.expectedSalary) || '',
+        startTime: backendData.startTime || (backendData.userInfo && backendData.userInfo.startTime) || '',
+        avatar: (backendData.userInfo && backendData.userInfo.avatarUrl) || backendData.avatar || '',
+        selfEvaluation: backendData.selfEvaluation || (backendData.userInfo && backendData.userInfo.selfEvaluation) || '',
+        nickname: (backendData.userInfo && backendData.userInfo.nickname) || '',
+        gender: (backendData.userInfo && backendData.userInfo.gender) || '',
+        country: (backendData.userInfo && backendData.userInfo.country) || '',
+        province: (backendData.userInfo && backendData.userInfo.province) || '',
+        city: (backendData.userInfo && backendData.userInfo.city) || ''
       },
       // 简历相关信息
       resumeInfo: {
@@ -410,6 +415,41 @@ Page({
       selfEvaluation: backendData.selfEvaluation || '',
       contact: {} // 预留联系信息字段
     };
+  },
+  
+  /**
+   * 初始化Canvas元素
+   */
+  initializeCanvas: function() {
+    console.log('初始化Canvas元素');
+    
+    // 设置Canvas样式，确保元素存在
+    this.setData({
+      canvasStyle: 'width: 750px; height: 1200px; position: absolute; left: -9999px; top: -9999px;'
+    });
+    
+    // 延时确保Canvas元素渲染完成
+    setTimeout(() => {
+      console.log('Canvas初始化完成');
+      this.checkCanvasExists();
+    }, 500);
+  },
+  
+  /**
+   * 检查Canvas元素是否存在
+   */
+  checkCanvasExists: function() {
+    const query = wx.createSelectorQuery();
+    query.select('#captureCanvas').boundingClientRect((rect) => {
+      console.log('Canvas元素检查结果:', rect);
+      if (!rect) {
+        console.warn('Canvas元素未找到，重新初始化');
+        // 如果Canvas不存在，重新设置样式
+        this.setData({
+          canvasStyle: 'width: 750px; height: 1200px; position: absolute; left: -9999px; top: -9999px;'
+        });
+      }
+    }).exec();
   },
   
   /**
@@ -994,5 +1034,1895 @@ Page({
     
     console.log('normalizeSkillsData - 最终结果:', result);
     return result;
+  },
+
+  /**
+   * 测试简历截图功能
+   * 使用原生canvas方式将当前简历页面转换为图片
+   */
+  takeScreenshot: function() {
+    console.log('开始测试简历截图功能');
+    console.log('当前模板ID:', this.data.templateId);
+    
+    wx.showLoading({
+      title: '正在生成截图...',
+    });
+
+    // 首先确保Canvas初始化完成
+    this.initializeCanvas();
+
+    // 等待DOM更新完成后再执行截图
+    setTimeout(() => {
+      // 定义多个可能的选择器，按优先级排序
+      const possibleSelectors = [
+        `.template-${this.data.templateId}-container`,  // 模板专用容器（如 .template-four-container）
+        `.template-content`,
+        `.preview-container`,
+        `.template-container`,
+        `.resume-container`,
+        `#template-${this.data.templateId}`,
+        `#template-container`,
+        `.template-one-container`,
+        `.template-two-container`,
+        `.template-three-container`,
+        `.template-four-container`,
+        `.template-five-container`,
+        `.template-six-container`
+      ];
+      
+      console.log('尝试的选择器列表:', possibleSelectors);
+      
+      // 使用递归方式尝试每个选择器
+      this.trySelectors(possibleSelectors, 0)
+        .then(result => {
+          console.log('截图成功，图片路径:', result.imagePath);
+          console.log('使用的选择器:', result.selector);
+          this.handleScreenshotSuccess(result.imagePath);
+        })
+        .catch(error => {
+          console.error('所有选择器都失败:', error);
+          this.handleScreenshotError(error);
+        });
+        
+    }, 1000); // 增加到1000ms延迟确保Canvas初始化完成
+  },
+
+  /**
+   * 递归尝试多个选择器
+   */
+  trySelectors: function(selectors, index) {
+    return new Promise((resolve, reject) => {
+      if (index >= selectors.length) {
+        reject(new Error('所有选择器都失败，无法找到模板容器'));
+        return;
+      }
+      
+      const selector = selectors[index];
+      console.log(`尝试选择器 [${index + 1}/${selectors.length}]:`, selector);
+      
+      this.generateResumeScreenshot(selector)
+        .then(imagePath => {
+          resolve({
+            imagePath: imagePath,
+            selector: selector
+          });
+        })
+        .catch(error => {
+          console.log(`选择器 ${selector} 失败:`, error.message);
+          // 尝试下一个选择器
+          this.trySelectors(selectors, index + 1)
+            .then(resolve)
+            .catch(reject);
+        });
+    });
+  },
+
+  /**
+   * 处理截图成功
+   */
+  handleScreenshotSuccess: function(imagePath) {
+    wx.hideLoading();
+    
+    // 显示截图结果
+    wx.previewImage({
+      urls: [imagePath],
+      current: imagePath,
+      success: () => {
+        console.log('截图预览成功');
+        wx.showToast({
+          title: '截图生成成功',
+          icon: 'success',
+          duration: 2000
+        });
+      },
+      fail: (err) => {
+        console.error('截图预览失败:', err);
+        // 如果预览失败，显示保存选项
+        this.showScreenshotSaveOption(imagePath);
+      }
+    });
+  },
+
+  /**
+   * 处理截图错误
+   */
+  handleScreenshotError: function(error) {
+    wx.hideLoading();
+    console.error('截图生成失败:', error);
+    
+    let errorMessage = '截图生成失败';
+    if (error && error.message) {
+      if (error.message.includes('找不到')) {
+        errorMessage = '未找到简历内容，请确保简历已加载完成';
+      } else if (error.message.includes('canvas')) {
+        errorMessage = '截图生成失败，请重试';
+      }
+    }
+    
+    wx.showToast({
+      title: errorMessage,
+      icon: 'none',
+      duration: 3000
+    });
+  },
+
+  /**
+   * 生成简历截图
+   * 使用原生canvas将简历内容绘制为图片
+   * @param {string} selector - 要转换的元素选择器
+   * @returns {Promise<string>} 返回图片路径的Promise
+   */
+  generateResumeScreenshot: function(selector) {
+    return new Promise((resolve, reject) => {
+      console.log('开始生成截图，选择器:', selector);
+      console.log('当前模板ID:', this.data.templateId);
+      console.log('尝试的选择器列表:', this.getCurrentTemplateSelectors());
+      
+      // 创建查询选择器
+      const query = wx.createSelectorQuery();
+      
+      query.select(selector).boundingClientRect();
+      query.selectViewport().scrollOffset();
+      query.exec((res) => {
+        console.log('选择器查询结果:', res);
+        
+        if (!res[0]) {
+          console.error('找不到指定选择器的元素:', selector);
+          console.log('将尝试查找所有可能的模板容器...');
+          
+          // 尝试查找所有可能的模板容器
+          this.findAvailableTemplateContainer().then(containerInfo => {
+            if (containerInfo) {
+              console.log('找到可用容器:', containerInfo);
+              console.log('使用模板:', this.data.templateId, '生成完整页面截图');
+              this.generateScreenshotWithContainer(containerInfo, resolve, reject);
+            } else {
+              reject(new Error('找不到可用的模板容器'));
+            }
+          }).catch(reject);
+          return;
+        }
+
+        console.log('找到指定元素，开始生成截图');
+        this.generateScreenshotWithContainer(res[0], resolve, reject);
+      });
+    });
+  },
+
+  /**
+   * 获取当前模板的选择器列表
+   */
+  getCurrentTemplateSelectors: function() {
+    const currentTemplateId = this.data.templateId;
+    
+    // 根据模板ID返回特定的选择器列表
+    const templateSelectors = {
+      'template-one': [
+        '.template-one-container',
+        '.template-content',
+        '.preview-container',
+        '.template-container',
+        '.resume-container'
+      ],
+      'template-two': [
+        '.resume-page',  // template-two使用.resume-page作为根容器
+        '.template-content',
+        '.preview-container',
+        '.template-container',
+        '.resume-container'
+      ],
+      'template-three': [
+        '.resume-page',  // template-three也使用.resume-page作为根容器
+        '.template-content',
+        '.preview-container',
+        '.template-container',
+        '.resume-container'
+      ],
+      'template-four': [
+        '.template-four-container',
+        '.template-content',
+        '.preview-container',
+        '.template-container',
+        '.resume-container'
+      ],
+      'template-five': [
+        '.template-five-container',
+        '.template-content',
+        '.preview-container',
+        '.template-container',
+        '.resume-container'
+      ],
+      'template-six': [
+        '.template-six-container',
+        '.template-content',
+        '.preview-container',
+        '.template-container',
+        '.resume-container'
+      ]
+    };
+    
+    // 返回当前模板的选择器列表，如果不存在则使用通用列表
+    return templateSelectors[currentTemplateId] || [
+      `.template-${currentTemplateId}-container`,
+      '.resume-page',
+      '.template-content',
+      '.preview-container',
+      '.template-container',
+      '.resume-container'
+    ];
+  },
+
+  /**
+   * 查找可用的模板容器
+   */
+  findAvailableTemplateContainer: function() {
+    return new Promise((resolve) => {
+      // 使用getCurrentTemplateSelectors获取当前模板的选择器列表
+      const possibleSelectors = this.getCurrentTemplateSelectors();
+      
+      console.log('查找可用模板容器，尝试选择器:', possibleSelectors);
+      
+      const query = wx.createSelectorQuery();
+      
+      // 查询所有可能的选择器
+      possibleSelectors.forEach(selector => {
+        query.select(selector).boundingClientRect();
+      });
+      
+      query.exec((results) => {
+        // 找到第一个有效的容器
+        for (let i = 0; i < results.length; i++) {
+          if (results[i] && results[i].width > 0 && results[i].height > 0) {
+            console.log('找到有效容器:', possibleSelectors[i], results[i]);
+            resolve(results[i]);
+            return;
+          }
+        }
+        
+        // 如果没有找到任何容器，使用默认尺寸
+        console.log('未找到有效容器，使用默认尺寸');
+        resolve({
+          width: 375,  // 默认宽度（iPhone标准宽度）
+          height: 1200, // 增加默认高度以容纳完整模板内容
+          top: 0,
+          left: 0
+        });
+      });
+    });
+  },
+
+  /**
+   * 使用找到的容器生成截图
+   */
+  generateScreenshotWithContainer: function(rect, resolve, reject) {
+    // 获取整个页面的完整尺寸，确保截图包含所有内容
+    const canvasWidth = Math.max(rect.width, 750); // 使用标准简历宽度750px
+    const canvasHeight = Math.max(rect.height, 1200); // 使用标准简历高度1200px，确保包含所有内容
+    
+    console.log('原始容器尺寸:', rect);
+    console.log('完整Canvas目标尺寸:', { width: canvasWidth, height: canvasHeight });
+    console.log('截图将包含整个模板页面内容');
+
+    try {
+      // 先确保Canvas元素存在且尺寸正确
+      this.ensureCanvasReady(canvasWidth, canvasHeight);
+      
+      // 创建canvas上下文
+      const ctx = wx.createCanvasContext('captureCanvas', this);
+      
+      if (!ctx) {
+        throw new Error('无法创建Canvas上下文');
+      }
+      
+      // 重要：在绘制前先清空canvas并设置正确尺寸
+      ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+      ctx.setFillStyle('#ffffff');
+      ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+      // 获取页面样式信息 - 传入完整的Canvas尺寸和当前模板信息
+      this.drawTemplateToCanvas(ctx, this.data.templateId, { 
+        width: canvasWidth, 
+        height: canvasHeight,
+        fullPage: true // 标记需要绘制完整页面
+      }).then(() => {
+        console.log('完整模板页面绘制完成，准备转换图片...');
+        console.log('绘制内容包括：个人信息、教育背景、工作经历、技能特长等所有区域');
+        
+        // 重要：在转换前增加额外延迟，确保Canvas内容完全渲染
+        setTimeout(() => {
+          console.log('延迟完成，开始完整页面转换...');
+          this.convertCanvasToImage(canvasWidth, canvasHeight, rect, resolve, reject);
+        }, 500); // 增加到500ms确保渲染完成
+        
+      }).catch(error => {
+        console.error('绘制完整模板页面失败:', error);
+        reject(error);
+      });
+    } catch (error) {
+      console.error('生成截图容器失败:', error);
+      // 如果Canvas创建失败，尝试系统截图
+      this.trySystemScreenshot(rect, resolve, reject);
+    }
+  },
+
+  /**
+   * 确保Canvas准备就绪
+   */
+  ensureCanvasReady: function(width, height) {
+    console.log('确保Canvas准备就绪，尺寸:', { width, height });
+    
+    // 重要：移除.in(this)限制，因为Canvas在页面根级别，不在组件内部
+    const query = wx.createSelectorQuery();
+    query.select('#captureCanvas').boundingClientRect((rect) => {
+      if (rect) {
+        console.log('Canvas元素存在:', rect);
+        
+        // 如果Canvas尺寸为0，尝试重新设置
+        if (rect.width === 0 || rect.height === 0) {
+          console.warn('Canvas尺寸为0，需要重新设置');
+          
+          // 使用setData更新Canvas样式
+          this.setData({
+            canvasStyle: `width: ${width}px; height: ${height}px; position: absolute; left: -9999px; top: -9999px;`
+          });
+        }
+      } else {
+        console.error('Canvas元素不存在，将尝试创建');
+        
+        // 如果Canvas不存在，立即设置样式
+        this.setData({
+          canvasStyle: `width: ${width}px; height: ${height}px; position: absolute; left: -9999px; top: -9999px;`
+        });
+      }
+    }).exec();
+  },
+
+  /**
+   * 转换Canvas为图片
+   */
+  convertCanvasToImage: function(canvasWidth, canvasHeight, rect, resolve, reject) {
+    console.log('开始转换Canvas为图片...');
+    console.log('Canvas尺寸:', { width: canvasWidth, height: canvasHeight });
+    
+    // 重要：在转换前检查Canvas内容
+    this.checkCanvasContent(() => {
+      // 额外增加延迟，确保背景完全渲染
+      setTimeout(() => {
+        console.log('开始Canvas转换，背景色应该已完全渲染');
+        
+        try {
+          // 使用标准Canvas转换 - 重要：确保组件上下文正确
+          wx.canvasToTempFilePath({
+            canvasId: 'captureCanvas',
+            x: 0,
+            y: 0,
+            width: canvasWidth,
+            height: canvasHeight,
+            destWidth: canvasWidth, // 使用原始尺寸避免缩放问题
+            destHeight: canvasHeight,
+            quality: 1,
+            fileType: 'png', // 明确指定PNG格式
+            success: (res) => {
+              console.log('Canvas转图片成功:', res.tempFilePath);
+              console.log('图片尺寸:', { width: canvasWidth, height: canvasHeight });
+              
+              // 验证图片是否有效
+              this.validateGeneratedImage(res.tempFilePath, resolve, reject);
+            },
+            fail: (err) => {
+              console.error('Canvas转图片失败:', err);
+              console.error('失败详情:', {
+                canvasId: 'captureCanvas',
+                width: canvasWidth,
+                height: canvasHeight,
+                destWidth: canvasWidth,
+                destHeight: canvasHeight,
+                error: err
+              });
+              
+              // 如果Canvas转换失败，尝试使用系统截图API
+              this.trySystemScreenshot(rect, resolve, reject);
+            }
+          }, this); // 重要：必须传递this作为第二个参数
+        } catch (error) {
+          console.error('Canvas转换调用异常:', error);
+          // 如果Canvas转换异常，尝试使用系统截图API
+          this.trySystemScreenshot(rect, resolve, reject);
+        }
+      }, 300); // 额外300ms延迟确保背景渲染
+    });
+  },
+
+  /**
+   * 检查Canvas内容
+   */
+  checkCanvasContent: function(callback) {
+    console.log('检查Canvas内容...');
+    
+    // 重要：移除.in(this)限制，因为Canvas在页面根级别
+    const query = wx.createSelectorQuery();
+    query.select('#captureCanvas').fields({
+      node: true,
+      size: true
+    }).exec((res) => {
+      if (res[0]) {
+        console.log('Canvas节点信息:', res[0]);
+        const canvas = res[0].node;
+        if (canvas) {
+          console.log('Canvas节点存在，尺寸:', res[0].width, 'x', res[0].height);
+          
+          // 尝试获取Canvas像素数据来验证内容
+          try {
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              // 获取左上角像素颜色
+              const imageData = ctx.getImageData(0, 0, 1, 1);
+              console.log('左上角像素数据:', imageData.data);
+              
+              // 检查是否为黑色 (0,0,0) 或透明 (0,0,0,0)
+              const isBlack = imageData.data[0] === 0 && imageData.data[1] === 0 && imageData.data[2] === 0;
+              const isTransparent = imageData.data[3] === 0;
+              
+              if (isBlack || isTransparent) {
+                console.warn('Canvas可能为黑色或透明，需要重新绘制');
+              } else {
+                console.log('Canvas像素数据正常');
+              }
+            }
+          } catch (e) {
+            console.log('无法获取像素数据:', e);
+          }
+        }
+      } else {
+        console.log('无法获取Canvas节点信息，Canvas可能不存在');
+      }
+      
+      // 无论检查结果如何，继续转换流程
+      callback();
+    });
+  },
+
+  /**
+   * 验证生成的图片是否有效
+   */
+  validateGeneratedImage: function(imagePath, resolve, reject) {
+    console.log('验证生成的图片:', imagePath);
+    
+    // 使用getImageInfo检查图片
+    wx.getImageInfo({
+      src: imagePath,
+      success: (info) => {
+        console.log('图片信息:', info);
+        
+        // 检查图片尺寸是否合理
+        if (info.width > 0 && info.height > 0) {
+          console.log('图片尺寸有效:', { width: info.width, height: info.height });
+          resolve(imagePath);
+        } else {
+          console.error('图片尺寸无效');
+          reject(new Error('生成的图片尺寸无效'));
+        }
+      },
+      fail: (err) => {
+        console.error('获取图片信息失败:', err);
+        // 即使验证失败，也返回原路径让用户尝试
+        resolve(imagePath);
+      }
+    });
+  },
+
+  /**
+   * 尝试使用系统截图API作为后备方案
+   */
+  trySystemScreenshot: function(rect, resolve, reject) {
+    console.log('尝试使用系统截图API...');
+    
+    // 首先尝试使用页面截图API
+    try {
+      wx.canvasToTempFilePath({
+        canvasId: 'captureCanvas',
+        x: 0,
+        y: 0,
+        width: rect.width || 375,
+        height: rect.height || 800,
+        destWidth: (rect.width || 375) * 2,
+        destHeight: (rect.height || 800) * 2,
+        quality: 1,
+        success: (res) => {
+          console.log('系统截图成功:', res.tempFilePath);
+          resolve(res.tempFilePath);
+        },
+        fail: (err) => {
+          console.error('系统截图失败:', err);
+          
+          // 尝试使用页面截图API作为最终后备
+          this.tryPageScreenshot(rect, resolve, reject);
+        }
+      }, this);
+    } catch (error) {
+      console.error('系统截图调用异常:', error);
+      this.tryPageScreenshot(rect, resolve, reject);
+    }
+  },
+  
+  /**
+   * 尝试使用页面截图API
+   */
+  tryPageScreenshot: function(rect, resolve, reject) {
+    console.log('尝试使用页面截图API...');
+    
+    // 使用页面截图API
+    wx.canvasGetImageData({
+      canvasId: 'captureCanvas',
+      x: 0,
+      y: 0,
+      width: Math.min(rect.width || 375, 1000),
+      height: Math.min(rect.height || 800, 1000),
+      success: (res) => {
+        console.log('页面截图API成功，数据长度:', res.data.length);
+        
+        // 创建临时图片文件
+        this.createImageFromData(res.data, res.width, res.height, resolve, reject);
+      },
+      fail: (err) => {
+        console.error('页面截图API也失败:', err);
+        
+        // 最后尝试离屏Canvas
+        this.tryOffscreenCanvas(rect, resolve, reject);
+      }
+    });
+  },
+  
+  /**
+   * 从图片数据创建文件
+   */
+  createImageFromData: function(imageData, width, height, resolve, reject) {
+    console.log('从图片数据创建文件...');
+    
+    try {
+      // 使用离屏Canvas创建图片
+      const offscreenCanvas = wx.createOffscreenCanvas({
+        type: '2d',
+        width: width,
+        height: height
+      });
+      
+      const ctx = offscreenCanvas.getContext('2d');
+      
+      // 创建ImageData对象
+      const imgData = ctx.createImageData(width, height);
+      for (let i = 0; i < imageData.length; i++) {
+        imgData.data[i] = imageData[i];
+      }
+      
+      // 将ImageData绘制到Canvas
+      ctx.putImageData(imgData, 0, 0);
+      
+      // 转换为临时文件
+      wx.canvasToTempFilePath({
+        canvas: offscreenCanvas,
+        x: 0,
+        y: 0,
+        width: width,
+        height: height,
+        destWidth: width * 2,
+        destHeight: height * 2,
+        quality: 1,
+        success: (res) => {
+          console.log('从数据创建图片成功:', res.tempFilePath);
+          resolve(res.tempFilePath);
+        },
+        fail: (err) => {
+          console.error('从数据创建图片失败:', err);
+          reject(err);
+        }
+      });
+    } catch (error) {
+      console.error('从数据创建图片异常:', error);
+      reject(error);
+    }
+  },
+
+  /**
+   * 尝试使用离屏Canvas
+   */
+  tryOffscreenCanvas: function(rect, resolve, reject) {
+    console.log('尝试使用离屏Canvas...');
+    
+    try {
+      // 创建离屏Canvas
+      const offscreenCanvas = wx.createOffscreenCanvas({
+        type: '2d',
+        width: rect.width || 375,
+        height: rect.height || 800
+      });
+      
+      if (!offscreenCanvas) {
+        throw new Error('无法创建离屏Canvas');
+      }
+      
+      const ctx = offscreenCanvas.getContext('2d');
+      
+      if (!ctx) {
+        throw new Error('无法获取离屏Canvas上下文');
+      }
+      
+      // 绘制背景
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, rect.width || 375, rect.height || 800);
+      
+      // 绘制模板内容
+      this.drawTemplateToOffscreenCanvas(ctx, this.data.templateId, { 
+        width: rect.width || 375, 
+        height: rect.height || 800 
+      }).then(() => {
+        // 转换为图片
+        wx.canvasToTempFilePath({
+          canvas: offscreenCanvas,
+          x: 0,
+          y: 0,
+          width: rect.width || 375,
+          height: rect.height || 800,
+          destWidth: (rect.width || 375) * 2,
+          destHeight: (rect.height || 800) * 2,
+          quality: 1,
+          success: (res) => {
+            console.log('离屏Canvas转图片成功:', res.tempFilePath);
+            resolve(res.tempFilePath);
+          },
+          fail: (err) => {
+            console.error('离屏Canvas转图片失败:', err);
+            this.showFinalErrorFallback(reject);
+          }
+        });
+      }).catch(error => {
+        console.error('离屏Canvas绘制失败:', error);
+        this.showFinalErrorFallback(reject);
+      });
+      
+    } catch (error) {
+      console.error('离屏Canvas创建失败:', error);
+      this.showFinalErrorFallback(reject);
+    }
+  },
+
+  /**
+   * 显示最终错误回退
+   */
+  showFinalErrorFallback: function(reject) {
+    console.error('所有截图方法都失败了');
+    
+    // 最后尝试使用页面截图API
+    this.tryFinalPageScreenshot(reject);
+  },
+  
+  /**
+   * 最终页面截图尝试
+   */
+  tryFinalPageScreenshot: function(reject) {
+    console.log('尝试最终页面截图方案...');
+    
+    try {
+      // 使用页面截图API作为最后手段
+      wx.canvasToTempFilePath({
+        canvasId: 'captureCanvas',
+        success: (res) => {
+          console.log('最终页面截图成功:', res.tempFilePath);
+          wx.hideLoading();
+          
+          // 显示截图结果
+          wx.previewImage({
+            urls: [res.tempFilePath],
+            current: res.tempFilePath,
+            success: () => {
+              console.log('截图预览成功');
+              wx.showToast({
+                title: '截图生成成功',
+                icon: 'success',
+                duration: 2000
+              });
+            },
+            fail: (err) => {
+              console.error('截图预览失败:', err);
+              wx.showToast({
+                title: '截图生成成功',
+                icon: 'success',
+                duration: 2000
+              });
+            }
+          });
+        },
+        fail: (err) => {
+          console.error('最终页面截图也失败:', err);
+          wx.hideLoading();
+          wx.showToast({
+            title: '截图失败，请重试',
+            icon: 'none',
+            duration: 2000
+          });
+          reject(new Error('截图失败，所有方法都不可用'));
+        }
+      }, this);
+    } catch (error) {
+      console.error('最终页面截图异常:', error);
+      wx.hideLoading();
+      wx.showToast({
+        title: '截图失败，请重试',
+        icon: 'none',
+        duration: 2000
+      });
+      reject(new Error('截图失败，所有方法都不可用'));
+    }
+  },
+  
+  /**
+   * 绘制模板到离屏Canvas
+   */
+  drawTemplateToOffscreenCanvas: function(ctx, templateId, dimensions) {
+    console.log('开始绘制模板到离屏Canvas，模板ID:', templateId);
+    console.log('简历数据:', this.data.resumeData);
+    console.log('用户信息:', this.data.userInfo);
+    
+    return new Promise((resolve, reject) => {
+      try {
+        // 获取个人信息
+        const personalInfo = this.getPersonalInfoData();
+        console.log('整合的个人信息:', personalInfo);
+        
+        // 设置起始位置
+        let currentY = 60;
+        const lineHeight = 35;
+        const leftMargin = 40;
+        
+        // 模板配色方案
+        const colorSchemes = {
+          'template-one': { bgColor: '#f8f9fa', primaryColor: '#2c3e50' },
+          'template-two': { bgColor: '#ffffff', primaryColor: '#34495e' },
+          'template-three': { bgColor: '#f5f7fa', primaryColor: '#409eff' },
+          'template-four': { bgColor: '#ffffff', primaryColor: '#67c23a' },
+          'template-five': { bgColor: '#fafafa', primaryColor: '#e6a23c' },
+          'template-six': { bgColor: '#f0f2f5', primaryColor: '#f56c6c' }
+        };
+        
+        const colors = colorSchemes[templateId] || colorSchemes['template-one'];
+        
+        // 绘制背景
+        ctx.fillStyle = colors.bgColor;
+        ctx.fillRect(0, 0, dimensions.width, dimensions.height);
+        
+        // 绘制标题
+        ctx.fillStyle = colors.primaryColor;
+        ctx.font = 'bold 24px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('个人简历', dimensions.width / 2, currentY);
+        currentY += lineHeight * 1.5;
+        
+        // 绘制个人信息
+        ctx.textAlign = 'left';
+        ctx.font = '16px sans-serif';
+        ctx.fillText(`姓名: ${personalInfo.name}`, leftMargin, currentY);
+        currentY += lineHeight;
+        ctx.fillText(`职位: ${personalInfo.jobTitle}`, leftMargin, currentY);
+        currentY += lineHeight;
+        ctx.fillText(`电话: ${personalInfo.phone}`, leftMargin, currentY);
+        currentY += lineHeight;
+        ctx.fillText(`邮箱: ${personalInfo.email}`, leftMargin, currentY);
+        currentY += lineHeight * 1.5;
+        
+        // 绘制技能信息（如果有）
+        if (this.data.resumeData.skills && this.data.resumeData.skills.length > 0) {
+          ctx.font = 'bold 18px sans-serif';
+          ctx.fillText('技能特长', leftMargin, currentY);
+          currentY += lineHeight;
+          
+          ctx.font = '14px sans-serif';
+          this.data.resumeData.skills.forEach(skill => {
+            ctx.fillText(`• ${skill}`, leftMargin + 20, currentY);
+            currentY += lineHeight;
+          });
+          currentY += lineHeight * 0.5;
+        }
+        
+        // 绘制底部信息
+        ctx.fillStyle = '#909399';
+        ctx.font = '12px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('简历生成时间: ' + new Date().toLocaleString(), dimensions.width / 2, dimensions.height - 30);
+        
+        console.log('离屏Canvas模板绘制完成');
+        resolve();
+        
+      } catch (error) {
+        console.error('离屏Canvas绘制模板失败:', error);
+        reject(error);
+      }
+    });
+  },
+
+  /**
+   * 绘制template-one的完整布局（模拟两栏布局）
+   */
+  drawTemplateOneFullLayout: function(ctx, personalInfo, resumeData, colors, rect, startY, resolve, templateId) {
+    console.log('绘制template-one完整两栏布局');
+    
+    const { leftMargin, rightMargin, lineHeight, primaryColor, textColor, secondaryColor, bgColor } = colors;
+    const panelWidth = (rect.width - leftMargin - rightMargin - 20) / 2; // 两栏宽度
+    const leftPanelX = leftMargin;
+    const rightPanelX = leftMargin + panelWidth + 20;
+    
+    let leftY = startY;
+    let rightY = startY;
+    
+    // 右侧：个人信息区域（模拟template-one的右侧面板）
+    ctx.setFillStyle('#f8f9fa');
+    ctx.fillRect(rightPanelX - 10, startY - 30, panelWidth + 20, rect.height - startY - 100);
+    
+    // 右侧：头像和基本信息
+    if (personalInfo.name) {
+      ctx.setFillStyle(textColor);
+      ctx.setFontSize(24);
+      ctx.fillText(personalInfo.name, rightPanelX, rightY);
+      rightY += lineHeight;
+      
+      if (personalInfo.jobTitle) {
+        ctx.setFontSize(18);
+        ctx.setFillStyle(primaryColor);
+        ctx.fillText(personalInfo.jobTitle, rightPanelX, rightY);
+        rightY += lineHeight;
+      }
+      
+      // 联系信息
+      ctx.setFillStyle(secondaryColor);
+      ctx.setFontSize(14);
+      if (personalInfo.phone) {
+        ctx.fillText(`📞 ${personalInfo.phone}`, rightPanelX, rightY);
+        rightY += lineHeight * 0.8;
+      }
+      if (personalInfo.email) {
+        ctx.fillText(`📧 ${personalInfo.email}`, rightPanelX, rightY);
+        rightY += lineHeight * 0.8;
+      }
+      if (personalInfo.address) {
+        ctx.fillText(`📍 ${personalInfo.address}`, rightPanelX, rightY);
+        rightY += lineHeight * 0.8;
+      }
+    }
+    
+    // 左侧：教育经历
+    if (resumeData && resumeData.education && resumeData.education.length > 0) {
+      leftY += 20;
+      ctx.setFillStyle(primaryColor);
+      ctx.setFontSize(20);
+      ctx.fillText('教育背景', leftPanelX, leftY);
+      leftY += lineHeight;
+      
+      ctx.setFillStyle(primaryColor);
+      ctx.fillRect(leftPanelX, leftY - 5, 30, 2);
+      leftY += 15;
+      
+      ctx.setFillStyle(textColor);
+      ctx.setFontSize(16);
+      
+      resumeData.education.forEach((edu) => {
+        if (leftY < rect.height - 100) {
+          const school = edu.school || '未知学校';
+          const major = edu.major || '未知专业';
+          const startDate = edu.startDate || '';
+          const endDate = edu.endDate || '';
+          
+          ctx.fillText(`${school}`, leftPanelX, leftY);
+          leftY += lineHeight * 0.8;
+          
+          if (major) {
+            ctx.setFillStyle(secondaryColor);
+            ctx.fillText(`${major}`, leftPanelX, leftY);
+            leftY += lineHeight * 0.8;
+            ctx.setFillStyle(textColor);
+          }
+          
+          if (startDate || endDate) {
+            ctx.setFillStyle(secondaryColor);
+            ctx.fillText(`${startDate} - ${endDate}`, leftPanelX, leftY);
+            leftY += lineHeight * 0.8;
+            ctx.setFillStyle(textColor);
+          }
+          
+          leftY += 10;
+        }
+      });
+    }
+    
+    // 左侧：工作经历
+    if (resumeData && resumeData.workExperience && resumeData.workExperience.length > 0) {
+      leftY += 20;
+      ctx.setFillStyle(primaryColor);
+      ctx.setFontSize(20);
+      ctx.fillText('工作经历', leftPanelX, leftY);
+      leftY += lineHeight;
+      
+      ctx.setFillStyle(primaryColor);
+      ctx.fillRect(leftPanelX, leftY - 5, 30, 2);
+      leftY += 15;
+      
+      ctx.setFillStyle(textColor);
+      ctx.setFontSize(16);
+      
+      resumeData.workExperience.forEach((work) => {
+        if (leftY < rect.height - 100) {
+          const company = work.company || '未知公司';
+          const position = work.position || '未知职位';
+          const startDate = work.startDate || '';
+          const endDate = work.endDate || '';
+          
+          ctx.fillText(`${company} - ${position}`, leftPanelX, leftY);
+          leftY += lineHeight * 0.8;
+          
+          if (startDate || endDate) {
+            ctx.setFillStyle(secondaryColor);
+            ctx.fillText(`${startDate} - ${endDate}`, leftPanelX, leftY);
+            leftY += lineHeight * 0.8;
+            ctx.setFillStyle(textColor);
+          }
+          
+          if (work.description) {
+            ctx.setFontSize(14);
+            ctx.fillText(work.description.substring(0, 50) + '...', leftPanelX, leftY);
+            leftY += lineHeight * 0.8;
+            ctx.setFontSize(16);
+          }
+          
+          leftY += 10;
+        }
+      });
+    }
+    
+    // 右侧：技能特长
+    if (resumeData && resumeData.skillsWithLevel && resumeData.skillsWithLevel.length > 0) {
+      rightY += 40;
+      ctx.setFillStyle(primaryColor);
+      ctx.setFontSize(20);
+      ctx.fillText('专业技能', rightPanelX, rightY);
+      rightY += lineHeight;
+      
+      ctx.setFillStyle(primaryColor);
+      ctx.fillRect(rightPanelX, rightY - 5, 30, 2);
+      rightY += 15;
+      
+      ctx.setFillStyle(textColor);
+      ctx.setFontSize(14);
+      
+      resumeData.skillsWithLevel.forEach((skill) => {
+        if (rightY < rect.height - 100) {
+          const skillName = skill.name || '未知技能';
+          const skillLevel = skill.level || 0;
+          
+          ctx.fillText(`• ${skillName}`, rightPanelX, rightY);
+          
+          // 技能进度条
+          if (skillLevel > 0) {
+            const barWidth = 60;
+            const barHeight = 3;
+            const filledWidth = (skillLevel / 100) * barWidth;
+            
+            ctx.setFillStyle('#e0e0e0');
+            ctx.fillRect(rightPanelX + 80, rightY - 8, barWidth, barHeight);
+            
+            ctx.setFillStyle(primaryColor);
+            ctx.fillRect(rightPanelX + 80, rightY - 8, filledWidth, barHeight);
+          }
+          
+          rightY += lineHeight * 0.8;
+        }
+      });
+    }
+    
+    // 底部信息
+    const bottomY = rect.height - 40;
+    ctx.setFillStyle('#e0e0e0');
+    ctx.fillRect(leftMargin, bottomY - 20, rect.width - leftMargin - rightMargin, 1);
+    
+    ctx.setFillStyle(secondaryColor);
+    ctx.setFontSize(12);
+    ctx.fillText(`模板: ${templateId} | 生成时间: ${new Date().toLocaleString()}`, leftMargin, bottomY);
+    
+    console.log('template-one完整布局绘制完成');
+  },
+
+  /**
+   * 绘制template-two的完整布局（顶部header + 分栏内容）
+   */
+  drawTemplateTwoFullLayout: function(ctx, personalInfo, resumeData, colors, rect, startY, resolve, templateId) {
+    console.log('绘制template-two完整布局');
+    
+    const { leftMargin, rightMargin, lineHeight, primaryColor, textColor, secondaryColor, bgColor } = colors;
+    
+    // 顶部Header区域（模拟template-two的header样式）
+    ctx.setFillStyle('#2c3e50');
+    ctx.fillRect(0, startY - 20, rect.width, 180);
+    
+    let yPosition = startY;
+    
+    // Header内容
+    ctx.setFillStyle('#ffffff');
+    ctx.setFontSize(28);
+    if (personalInfo.name) {
+      ctx.fillText(personalInfo.name, leftMargin, yPosition);
+    }
+    
+    if (personalInfo.jobTitle) {
+      ctx.setFontSize(18);
+      ctx.setFillStyle('#ecf0f1');
+      ctx.fillText(personalInfo.jobTitle, leftMargin, yPosition + 35);
+    }
+    
+    // Header右侧联系信息
+    ctx.setFontSize(14);
+    let contactY = yPosition;
+    if (personalInfo.phone) {
+      ctx.fillText(`📞 ${personalInfo.phone}`, rect.width - 200, contactY);
+      contactY += 25;
+    }
+    if (personalInfo.email) {
+      ctx.fillText(`📧 ${personalInfo.email}`, rect.width - 200, contactY);
+      contactY += 25;
+    }
+    if (personalInfo.address) {
+      ctx.fillText(`📍 ${personalInfo.address}`, rect.width - 200, contactY);
+      contactY += 25;
+    }
+    
+    yPosition += 140; // Header结束
+    
+    // 主要内容区域
+    const sectionSpacing = 30;
+    
+    // 教育经历
+    if (resumeData && resumeData.education && resumeData.education.length > 0) {
+      ctx.setFillStyle(primaryColor);
+      ctx.setFontSize(22);
+      ctx.fillText('教育经历', leftMargin, yPosition);
+      yPosition += lineHeight;
+      
+      ctx.setFillStyle(primaryColor);
+      ctx.fillRect(leftMargin, yPosition - 8, 50, 3);
+      yPosition += 20;
+      
+      ctx.setFillStyle(textColor);
+      ctx.setFontSize(16);
+      
+      resumeData.education.forEach((edu) => {
+        if (yPosition < rect.height - 100) {
+          const school = edu.school || '未知学校';
+          const major = edu.major || '未知专业';
+          const degree = edu.degree || '学历';
+          const startDate = edu.startDate || '';
+          const endDate = edu.endDate || '';
+          
+          ctx.fillText(`${school} - ${major}`, leftMargin, yPosition);
+          yPosition += lineHeight * 0.8;
+          
+          ctx.setFillStyle(secondaryColor);
+          ctx.fillText(`${degree} | ${startDate} - ${endDate}`, leftMargin + 20, yPosition);
+          yPosition += lineHeight * 0.8;
+          
+          ctx.setFillStyle(textColor);
+          yPosition += 15;
+        }
+      });
+    }
+    
+    yPosition += sectionSpacing;
+    
+    // 工作经历
+    if (resumeData && resumeData.workExperience && resumeData.workExperience.length > 0) {
+      ctx.setFillStyle(primaryColor);
+      ctx.setFontSize(22);
+      ctx.fillText('工作经历', leftMargin, yPosition);
+      yPosition += lineHeight;
+      
+      ctx.setFillStyle(primaryColor);
+      ctx.fillRect(leftMargin, yPosition - 8, 50, 3);
+      yPosition += 20;
+      
+      ctx.setFillStyle(textColor);
+      ctx.setFontSize(16);
+      
+      resumeData.workExperience.forEach((work) => {
+        if (yPosition < rect.height - 100) {
+          const company = work.company || '未知公司';
+          const position = work.position || '未知职位';
+          const startDate = work.startDate || '';
+          const endDate = work.endDate || '';
+          
+          ctx.fillText(`${company} - ${position}`, leftMargin, yPosition);
+          yPosition += lineHeight * 0.8;
+          
+          ctx.setFillStyle(secondaryColor);
+          ctx.fillText(`${startDate} - ${endDate}`, leftMargin + 20, yPosition);
+          yPosition += lineHeight * 0.8;
+          
+          if (work.description) {
+            ctx.setFontSize(14);
+            const desc = work.description.length > 80 ? work.description.substring(0, 80) + '...' : work.description;
+            ctx.fillText(desc, leftMargin + 20, yPosition);
+            yPosition += lineHeight * 0.8;
+            ctx.setFontSize(16);
+          }
+          
+          ctx.setFillStyle(textColor);
+          yPosition += 20;
+        }
+      });
+    }
+    
+    yPosition += sectionSpacing;
+    
+    // 项目经验
+    if (resumeData && resumeData.projectExperienceList && resumeData.projectExperienceList.length > 0) {
+      ctx.setFillStyle(primaryColor);
+      ctx.setFontSize(22);
+      ctx.fillText('项目经验', leftMargin, yPosition);
+      yPosition += lineHeight;
+      
+      ctx.setFillStyle(primaryColor);
+      ctx.fillRect(leftMargin, yPosition - 8, 50, 3);
+      yPosition += 20;
+      
+      ctx.setFillStyle(textColor);
+      ctx.setFontSize(16);
+      
+      resumeData.projectExperienceList.forEach((project) => {
+        if (yPosition < rect.height - 100) {
+          const name = project.name || project.projectName || '项目名称';
+          const startDate = project.startDate || '';
+          const endDate = project.endDate || '';
+          
+          ctx.fillText(name, leftMargin, yPosition);
+          yPosition += lineHeight * 0.8;
+          
+          ctx.setFillStyle(secondaryColor);
+          ctx.fillText(`${startDate} - ${endDate}`, leftMargin + 20, yPosition);
+          yPosition += lineHeight * 0.8;
+          
+          if (project.description) {
+            ctx.setFontSize(14);
+            const desc = project.description.length > 80 ? project.description.substring(0, 80) + '...' : project.description;
+            ctx.fillText(desc, leftMargin + 20, yPosition);
+            yPosition += lineHeight * 0.8;
+            ctx.setFontSize(16);
+          }
+          
+          ctx.setFillStyle(textColor);
+          yPosition += 20;
+        }
+      });
+    }
+    
+    yPosition += sectionSpacing;
+    
+    // 技能
+    if (resumeData && resumeData.skillsWithLevel && resumeData.skillsWithLevel.length > 0) {
+      ctx.setFillStyle(primaryColor);
+      ctx.setFontSize(22);
+      ctx.fillText('专业技能', leftMargin, yPosition);
+      yPosition += lineHeight;
+      
+      ctx.setFillStyle(primaryColor);
+      ctx.fillRect(leftMargin, yPosition - 8, 50, 3);
+      yPosition += 20;
+      
+      // 技能标签云
+      const skillTags = resumeData.skillsWithLevel.map(skill => skill.name || skill).filter(Boolean);
+      if (skillTags.length > 0) {
+        ctx.setFillStyle(textColor);
+        ctx.setFontSize(14);
+        
+        let skillX = leftMargin;
+        let skillY = yPosition;
+        const tagPadding = 10;
+        const tagHeight = 25;
+        
+        skillTags.forEach((skill, index) => {
+          if (skillY < rect.height - 100) {
+            const tagWidth = ctx.measureText(skill).width + tagPadding * 2;
+            
+            // 换行处理
+            if (skillX + tagWidth > rect.width - rightMargin) {
+              skillX = leftMargin;
+              skillY += tagHeight + 5;
+            }
+            
+            // 绘制技能标签背景
+            ctx.setFillStyle('#f8f9fa');
+            ctx.fillRect(skillX, skillY - 15, tagWidth, tagHeight);
+            
+            // 绘制技能文字
+            ctx.setFillStyle(primaryColor);
+            ctx.fillText(skill, skillX + tagPadding, skillY);
+            
+            skillX += tagWidth + 5;
+          }
+        });
+        
+        yPosition = skillY + tagHeight + 20;
+      }
+    }
+    
+    // 底部信息
+    const bottomY = rect.height - 40;
+    ctx.setFillStyle('#e0e0e0');
+    ctx.fillRect(leftMargin, bottomY - 20, rect.width - leftMargin - rightMargin, 1);
+    
+    ctx.setFillStyle(secondaryColor);
+    ctx.setFontSize(12);
+    ctx.fillText(`模板: ${templateId} | 生成时间: ${new Date().toLocaleString()}`, leftMargin, bottomY);
+    
+    console.log('template-two完整布局绘制完成');
+  },
+
+
+
+  /**
+   * 将模板内容绘制到canvas
+   * @param {Object} ctx - canvas上下文
+   * @param {string} templateId - 模板ID
+   * @param {Object} rect - 容器尺寸信息
+   * @returns {Promise<void>}
+   */
+  drawTemplateToCanvas: function(ctx, templateId, rect) {
+    return new Promise((resolve) => {
+      const resumeData = this.data.resumeData;
+      const userInfo = this.data.userInfo;
+      
+      console.log('开始绘制模板到canvas，模板ID:', templateId);
+      console.log('简历数据:', resumeData);
+      console.log('用户信息:', userInfo);
+      
+      // 设置背景色 - 根据模板ID使用不同的背景色
+      let bgColor = '#ffffff';
+      let primaryColor = '#1677ff';
+      let textColor = '#333333';
+      let secondaryColor = '#666666';
+      
+      // 根据模板设置不同的配色方案
+      switch(templateId) {
+        case 'template-one':
+          bgColor = '#f8f9fa';
+          primaryColor = '#2c3e50';
+          break;
+        case 'template-two':
+          bgColor = '#ffffff';
+          primaryColor = '#e74c3c';
+          break;
+        case 'template-three':
+          bgColor = '#f5f7fa';
+          primaryColor = '#3498db';
+          break;
+        case 'template-four':
+          bgColor = '#ffffff';
+          primaryColor = '#9b59b6';
+          break;
+        case 'template-five':
+          bgColor = '#f8f9fa';
+          primaryColor = '#27ae60';
+          break;
+        case 'template-six':
+          bgColor = '#ffffff';
+          primaryColor = '#f39c12';
+          break;
+      }
+      
+      // 绘制背景 - 多重保障确保背景可见
+      console.log('绘制背景色:', bgColor, '尺寸:', rect.width, 'x', rect.height);
+      
+      // 第一层：基础背景
+      ctx.setFillStyle(bgColor);
+      ctx.fillRect(0, 0, rect.width, rect.height);
+      
+      // 第二层：强制刷新背景色
+      ctx.save();
+      ctx.setFillStyle(bgColor);
+      ctx.fillRect(0, 0, rect.width, rect.height);
+      ctx.restore();
+      
+      // 第三层：添加白色边框确保可见性
+      ctx.setStrokeStyle('#ffffff');
+      ctx.setLineWidth(2);
+      ctx.strokeRect(1, 1, rect.width - 2, rect.height - 2);
+      
+      console.log('背景绘制完成');
+      
+      // 根据是否完整页面绘制调整布局参数
+      const isFullPage = rect.fullPage === true;
+      let yPosition = isFullPage ? 80 : 60; // 完整页面时增加顶部边距
+      const lineHeight = isFullPage ? 40 : 35; // 完整页面时增加行高
+      const leftMargin = isFullPage ? 60 : 40; // 完整页面时增加左边距
+      const rightMargin = isFullPage ? 60 : 40; // 完整页面时增加右边距
+      const contentWidth = rect.width - leftMargin - rightMargin;
+      
+      console.log(`开始绘制完整模板内容，全页面模式: ${isFullPage}, 尺寸: ${rect.width}x${rect.height}`);
+      
+      // 绘制顶部装饰线
+      ctx.setFillStyle(primaryColor);
+      ctx.fillRect(leftMargin, yPosition - 30, 60, 4);
+      
+      // 绘制标题 - 使用模板名称
+      ctx.setFillStyle(primaryColor);
+      ctx.setFontSize(32);
+      ctx.fillText('个人简历', leftMargin, yPosition);
+      yPosition += lineHeight * 1.2;
+      
+      // 获取个人信息数据
+      const personalInfo = this.getPersonalInfoData();
+      console.log('整合的个人信息:', personalInfo);
+      
+      // 根据模板类型绘制不同的布局
+      if (isFullPage) {
+        if (templateId === 'template-one') {
+          // template-one 特有布局：左侧内容 + 右侧个人信息
+          this.drawTemplateOneFullLayout(ctx, personalInfo, resumeData, {
+            leftMargin, rightMargin, lineHeight, primaryColor, textColor, secondaryColor, bgColor
+          }, rect, yPosition, resolve, templateId);
+          return; // 使用专用布局方法，提前返回
+        } else if (templateId === 'template-two') {
+          // template-two 特有布局：顶部header + 分栏内容
+          this.drawTemplateTwoFullLayout(ctx, personalInfo, resumeData, {
+            leftMargin, rightMargin, lineHeight, primaryColor, textColor, secondaryColor, bgColor
+          }, rect, yPosition, resolve, templateId);
+          return; // 使用专用布局方法，提前返回
+        } else if (templateId === 'template-four') {
+          // template-four 特有布局：左侧栏（个人信息+技能）+ 右侧栏（教育/工作/项目）
+          this.drawTemplateFourFullLayout(ctx, personalInfo, resumeData, {
+            leftMargin, rightMargin, lineHeight, primaryColor, textColor, secondaryColor, bgColor
+          }, rect, yPosition, resolve, templateId);
+          return; // 使用专用布局方法，提前返回
+        }
+      }
+      
+      // 通用模板布局（适用于其他模板）
+      // 绘制个人信息区域
+      if (personalInfo.name) {
+        // 姓名（大字体）
+        ctx.setFillStyle(textColor);
+        ctx.setFontSize(28);
+        ctx.fillText(personalInfo.name, leftMargin, yPosition);
+        yPosition += lineHeight;
+        
+        // 职位/标题
+        if (personalInfo.jobTitle) {
+          ctx.setFontSize(20);
+          ctx.setFillStyle(primaryColor);
+          ctx.fillText(personalInfo.jobTitle, leftMargin, yPosition);
+          yPosition += lineHeight * 1.2;
+        }
+        
+        // 联系信息（小字体，灰色）
+        ctx.setFillStyle(secondaryColor);
+        ctx.setFontSize(16);
+        
+        const contactLines = [];
+        if (personalInfo.phone) contactLines.push(`📞 ${personalInfo.phone}`);
+        if (personalInfo.email) contactLines.push(`📧 ${personalInfo.email}`);
+        if (personalInfo.address) contactLines.push(`📍 ${personalInfo.address}`);
+        
+        contactLines.forEach(line => {
+          if (yPosition < rect.height - 100) { // 确保不超出画布
+            ctx.fillText(line, leftMargin, yPosition);
+            yPosition += lineHeight * 0.8;
+          }
+        });
+      }
+      
+      // 绘制技能信息
+      if (resumeData && resumeData.skillsWithLevel && resumeData.skillsWithLevel.length > 0) {
+        yPosition += 20;
+        
+        // 区域标题
+        ctx.setFillStyle(primaryColor);
+        ctx.setFontSize(22);
+        ctx.fillText('专业技能', leftMargin, yPosition);
+        yPosition += lineHeight * 0.8;
+        
+        // 标题下划线
+        ctx.setFillStyle(primaryColor);
+        ctx.fillRect(leftMargin, yPosition - 8, 40, 2);
+        yPosition += 15;
+        
+        // 技能列表
+        ctx.setFillStyle(textColor);
+        ctx.setFontSize(16);
+        
+        resumeData.skillsWithLevel.slice(0, 6).forEach((skill, index) => {
+          if (yPosition < rect.height - 100) {
+            const skillName = skill.name || '未知技能';
+            const skillLevel = skill.level || 0;
+            
+            // 技能名称
+            ctx.fillText(`• ${skillName}`, leftMargin, yPosition);
+            
+            // 技能等级（进度条效果）
+            if (skillLevel > 0) {
+              const barWidth = 100;
+              const barHeight = 4;
+              const filledWidth = (skillLevel / 100) * barWidth;
+              
+              // 背景条
+              ctx.setFillStyle('#e0e0e0');
+              ctx.fillRect(leftMargin + 120, yPosition - 8, barWidth, barHeight);
+              
+              // 填充条
+              ctx.setFillStyle(primaryColor);
+              ctx.fillRect(leftMargin + 120, yPosition - 8, filledWidth, barHeight);
+              
+              // 等级文字
+              ctx.setFillStyle(secondaryColor);
+              ctx.setFontSize(12);
+              ctx.fillText(`${skillLevel}%`, leftMargin + 230, yPosition);
+              ctx.setFontSize(16);
+              ctx.setFillStyle(textColor);
+            }
+            
+            yPosition += lineHeight * 0.9;
+          }
+        });
+      }
+      
+      // 绘制教育背景
+      if (resumeData && resumeData.education && resumeData.education.length > 0) {
+        yPosition += 20;
+        
+        // 区域标题
+        ctx.setFillStyle(primaryColor);
+        ctx.setFontSize(22);
+        ctx.fillText('教育背景', leftMargin, yPosition);
+        yPosition += lineHeight * 0.8;
+        
+        // 标题下划线
+        ctx.setFillStyle(primaryColor);
+        ctx.fillRect(leftMargin, yPosition - 8, 40, 2);
+        yPosition += 15;
+        
+        // 教育经历列表
+        ctx.setFillStyle(textColor);
+        ctx.setFontSize(16);
+        
+        resumeData.education.slice(0, 3).forEach((edu, index) => {
+          if (yPosition < rect.height - 100) {
+            const school = edu.school || '未知学校';
+            const major = edu.major || '未知专业';
+            const startDate = edu.startDate || '';
+            const endDate = edu.endDate || '';
+            
+            // 学校和专业
+            ctx.setFontSize(16);
+            ctx.fillText(`${school} - ${major}`, leftMargin, yPosition);
+            yPosition += lineHeight * 0.8;
+            
+            // 时间段
+            if (startDate || endDate) {
+              ctx.setFillStyle(secondaryColor);
+              ctx.setFontSize(14);
+              ctx.fillText(`${startDate} - ${endDate}`, leftMargin, yPosition);
+              yPosition += lineHeight * 0.8;
+              ctx.setFillStyle(textColor);
+            }
+            
+            // 添加间距
+            if (index < resumeData.education.length - 1) {
+              yPosition += 10;
+            }
+          }
+        });
+      }
+      
+      // 绘制工作经验
+      if (resumeData && resumeData.workExperience && resumeData.workExperience.length > 0) {
+        yPosition += 20;
+        
+        // 区域标题
+        ctx.setFillStyle(primaryColor);
+        ctx.setFontSize(22);
+        ctx.fillText('工作经验', leftMargin, yPosition);
+        yPosition += lineHeight * 0.8;
+        
+        // 标题下划线
+        ctx.setFillStyle(primaryColor);
+        ctx.fillRect(leftMargin, yPosition - 8, 40, 2);
+        yPosition += 15;
+        
+        // 工作经历列表
+        ctx.setFillStyle(textColor);
+        ctx.setFontSize(16);
+        
+        resumeData.workExperience.slice(0, 3).forEach((work, index) => {
+          if (yPosition < rect.height - 100) {
+            const company = work.company || '未知公司';
+            const position = work.position || '未知职位';
+            const startDate = work.startDate || '';
+            const endDate = work.endDate || '';
+            
+            // 公司和职位
+            ctx.setFontSize(16);
+            ctx.fillText(`${company} - ${position}`, leftMargin, yPosition);
+            yPosition += lineHeight * 0.8;
+            
+            // 时间段
+            if (startDate || endDate) {
+              ctx.setFillStyle(secondaryColor);
+              ctx.setFontSize(14);
+              ctx.fillText(`${startDate} - ${endDate}`, leftMargin, yPosition);
+              yPosition += lineHeight * 0.8;
+              ctx.setFillStyle(textColor);
+            }
+            
+            // 添加间距
+            if (index < resumeData.workExperience.length - 1) {
+              yPosition += 10;
+            }
+          }
+        });
+      }
+      
+      // 绘制底部信息
+      const bottomY = rect.height - 40;
+      if (yPosition < bottomY - 50) {
+        ctx.setFillStyle('#e0e0e0');
+        ctx.fillRect(leftMargin, bottomY - 20, contentWidth, 1);
+        
+        ctx.setFillStyle(secondaryColor);
+        ctx.setFontSize(12);
+        ctx.fillText(`模板: ${templateId} | 生成时间: ${new Date().toLocaleString()}`, leftMargin, bottomY);
+      }
+      
+      // 重要：确保绘制完成后再resolve
+      ctx.draw(false, () => {
+        console.log('模板绘制完成回调触发');
+        
+        // 增加延迟确保绘制完全完成
+        setTimeout(() => {
+          console.log('延迟完成，resolve Promise');
+          resolve();
+        }, 100);
+      });
+    });
+  },
+
+  /**
+   * 获取整合的个人信息数据
+   */
+  getPersonalInfoData: function() {
+    const resumeData = this.data.resumeData;
+    const userInfo = this.data.userInfo;
+    
+    // 优先使用userInfo中的数据，如果没有则使用resumeData中的数据
+    return {
+      name: (userInfo && userInfo.name) || (resumeData && resumeData.personalInfo && resumeData.personalInfo.name) || '',
+      jobTitle: (userInfo && userInfo.jobTitle) || (resumeData && resumeData.personalInfo && resumeData.personalInfo.jobTitle) || '',
+      phone: (resumeData && resumeData.personalInfo && resumeData.personalInfo.phone) || '',
+      email: (resumeData && resumeData.personalInfo && resumeData.personalInfo.email) || '',
+      address: (resumeData && resumeData.personalInfo && resumeData.personalInfo.address) || '',
+      expectedSalary: (resumeData && resumeData.personalInfo && resumeData.personalInfo.expectedSalary) || ''
+    };
+  },
+
+  /**
+   * 显示截图保存选项
+   * @param {string} imagePath - 图片路径
+   */
+  showScreenshotSaveOption: function(imagePath) {
+    wx.showModal({
+      title: '截图已生成',
+      content: '截图生成成功！是否保存到相册？',
+      success: (res) => {
+        if (res.confirm) {
+          // 保存图片到相册
+          wx.saveImageToPhotosAlbum({
+            filePath: imagePath,
+            success: () => {
+              wx.showToast({
+                title: '已保存到相册',
+                icon: 'success',
+                duration: 2000
+              });
+            },
+            fail: (err) => {
+              console.error('保存到相册失败:', err);
+              wx.showToast({
+                title: '保存失败',
+                icon: 'none',
+                duration: 2000
+              });
+            }
+          });
+        }
+      }
+    });
+  },
+
+  /**
+   * template-four 专用完整布局绘制方法
+   * 左侧栏：个人信息 + 技能
+   * 右侧栏：教育背景 + 工作经验 + 项目经验
+   */
+  drawTemplateFourFullLayout: function(ctx, personalInfo, resumeData, styleOptions, rect, startY, resolve, templateId) {
+    const { leftMargin, rightMargin, lineHeight, primaryColor, textColor, secondaryColor, bgColor } = styleOptions;
+    
+    // 布局参数
+    const leftColumnWidth = rect.width * 0.3; // 左侧栏宽度 30%
+    const rightColumnWidth = rect.width * 0.7; // 右侧栏宽度 70%
+    const leftColumnX = 0;
+    const rightColumnX = leftColumnWidth;
+    
+    // 背景色填充
+    ctx.setFillStyle('#2c3e50'); // 左侧栏深蓝色背景
+    ctx.fillRect(0, 0, leftColumnWidth, rect.height);
+    
+    ctx.setFillStyle('#ffffff'); // 右侧栏白色背景
+    ctx.fillRect(leftColumnWidth, 0, rightColumnWidth, rect.height);
+    
+    let leftY = 60; // 左侧栏起始Y坐标
+    let rightY = 60; // 右侧栏起始Y坐标
+    
+    // === 左侧栏绘制 ===
+    
+    // 1. 个人信息区域
+    if (personalInfo && personalInfo.name) {
+      // 姓名
+      ctx.setFillStyle('#ffffff');
+      ctx.setFontSize(24);
+      ctx.fillText(personalInfo.name, leftColumnX + 30, leftY);
+      leftY += lineHeight * 1.2;
+      
+      // 职位
+      if (personalInfo.jobTitle) {
+        ctx.setFillStyle('#bdc3c7');
+        ctx.setFontSize(16);
+        ctx.fillText(personalInfo.jobTitle, leftColumnX + 30, leftY);
+        leftY += lineHeight * 1.5;
+      }
+      
+      // 联系信息
+      ctx.setFillStyle('#ecf0f1');
+      ctx.setFontSize(14);
+      if (personalInfo.phone) {
+        ctx.fillText(`📱 ${personalInfo.phone}`, leftColumnX + 30, leftY);
+        leftY += lineHeight * 0.8;
+      }
+      if (personalInfo.email) {
+        ctx.fillText(`📧 ${personalInfo.email}`, leftColumnX + 30, leftY);
+        leftY += lineHeight * 0.8;
+      }
+      if (personalInfo.address) {
+        ctx.fillText(`📍 ${personalInfo.address}`, leftColumnX + 30, leftY);
+        leftY += lineHeight * 0.8;
+      }
+      if (personalInfo.expectedSalary) {
+        ctx.fillText(`💰 ${personalInfo.expectedSalary}`, leftColumnX + 30, leftY);
+        leftY += lineHeight * 0.8;
+      }
+    }
+    
+    // 2. 技能区域
+    if (resumeData && resumeData.skills && resumeData.skills.length > 0) {
+      leftY += 40; // 增加间距
+      
+      // 技能标题
+      ctx.setFillStyle('#3498db');
+      ctx.setFontSize(18);
+      ctx.fillText('专业技能', leftColumnX + 30, leftY);
+      leftY += lineHeight * 0.8;
+      
+      // 技能列表
+      ctx.setFillStyle('#ecf0f1');
+      ctx.setFontSize(14);
+      
+      resumeData.skills.slice(0, 8).forEach((skill, index) => {
+        if (leftY < rect.height - 100) {
+          const skillName = skill.name || '未知技能';
+          const skillLevel = parseInt(skill.level) || 0;
+          
+          // 技能名称
+          ctx.fillText(skillName, leftColumnX + 30, leftY);
+          
+          // 进度条背景
+          const barWidth = 80;
+          const barHeight = 4;
+          const filledWidth = (skillLevel / 100) * barWidth;
+          
+          ctx.setFillStyle('#34495e');
+          ctx.fillRect(leftColumnX + 120, leftY - 8, barWidth, barHeight);
+          
+          // 进度条填充
+          ctx.setFillStyle('#3498db');
+          ctx.fillRect(leftColumnX + 120, leftY - 8, filledWidth, barHeight);
+          
+          leftY += lineHeight * 0.9;
+        }
+      });
+    }
+    
+    // === 右侧栏绘制 ===
+    
+    // 1. 教育背景
+    if (resumeData && resumeData.education && resumeData.education.length > 0) {
+      // 标题
+      ctx.setFillStyle(primaryColor);
+      ctx.setFontSize(22);
+      ctx.fillText('教育背景', rightColumnX + 40, rightY);
+      rightY += lineHeight * 0.8;
+      
+      // 标题下划线
+      ctx.setFillStyle(primaryColor);
+      ctx.fillRect(rightColumnX + 40, rightY - 8, 40, 2);
+      rightY += 20;
+      
+      // 教育经历
+      ctx.setFillStyle(textColor);
+      ctx.setFontSize(16);
+      
+      resumeData.education.slice(0, 3).forEach((edu, index) => {
+        if (rightY < rect.height - 200) {
+          const school = edu.school || '未知学校';
+          const major = edu.major || '未知专业';
+          const startDate = edu.startDate || '';
+          const endDate = edu.endDate || '';
+          
+          // 学校和专业
+          ctx.setFontSize(16);
+          ctx.fillText(`${school} - ${major}`, rightColumnX + 40, rightY);
+          rightY += lineHeight * 0.8;
+          
+          // 时间段
+          if (startDate || endDate) {
+            ctx.setFillStyle(secondaryColor);
+            ctx.setFontSize(14);
+            ctx.fillText(`${startDate} - ${endDate}`, rightColumnX + 40, rightY);
+            rightY += lineHeight * 0.8;
+            ctx.setFillStyle(textColor);
+          }
+          
+          // 添加间距
+          if (index < resumeData.education.length - 1) {
+            rightY += 10;
+          }
+        }
+      });
+    }
+    
+    // 2. 工作经验
+    if (resumeData && resumeData.workExperience && resumeData.workExperience.length > 0) {
+      rightY += 30;
+      
+      // 标题
+      ctx.setFillStyle(primaryColor);
+      ctx.setFontSize(22);
+      ctx.fillText('工作经验', rightColumnX + 40, rightY);
+      rightY += lineHeight * 0.8;
+      
+      // 标题下划线
+      ctx.setFillStyle(primaryColor);
+      ctx.fillRect(rightColumnX + 40, rightY - 8, 40, 2);
+      rightY += 20;
+      
+      // 工作经历
+      ctx.setFillStyle(textColor);
+      ctx.setFontSize(16);
+      
+      resumeData.workExperience.slice(0, 4).forEach((work, index) => {
+        if (rightY < rect.height - 100) {
+          const company = work.company || '未知公司';
+          const position = work.position || '未知职位';
+          const startDate = work.startDate || '';
+          const endDate = work.endDate || '';
+          
+          // 公司和职位
+          ctx.setFontSize(16);
+          ctx.fillText(`${company} - ${position}`, rightColumnX + 40, rightY);
+          rightY += lineHeight * 0.8;
+          
+          // 时间段
+          if (startDate || endDate) {
+            ctx.setFillStyle(secondaryColor);
+            ctx.setFontSize(14);
+            ctx.fillText(`${startDate} - ${endDate}`, rightColumnX + 40, rightY);
+            rightY += lineHeight * 0.8;
+            ctx.setFillStyle(textColor);
+          }
+          
+          // 添加间距
+          if (index < resumeData.workExperience.length - 1) {
+            rightY += 15;
+          }
+        }
+      });
+    }
+    
+    // 3. 项目经验
+    if (resumeData && resumeData.projects && resumeData.projects.length > 0) {
+      rightY += 30;
+      
+      // 标题
+      ctx.setFillStyle(primaryColor);
+      ctx.setFontSize(22);
+      ctx.fillText('项目经验', rightColumnX + 40, rightY);
+      rightY += lineHeight * 0.8;
+      
+      // 标题下划线
+      ctx.setFillStyle(primaryColor);
+      ctx.fillRect(rightColumnX + 40, rightY - 8, 40, 2);
+      rightY += 20;
+      
+      // 项目经历
+      ctx.setFillStyle(textColor);
+      ctx.setFontSize(16);
+      
+      resumeData.projects.slice(0, 3).forEach((project, index) => {
+        if (rightY < rect.height - 50) {
+          const projectName = project.name || '未知项目';
+          const role = project.role || '未知角色';
+          const startDate = project.startDate || '';
+          const endDate = project.endDate || '';
+          
+          // 项目名称和角色
+          ctx.setFontSize(16);
+          ctx.fillText(`${projectName} - ${role}`, rightColumnX + 40, rightY);
+          rightY += lineHeight * 0.8;
+          
+          // 时间段
+          if (startDate || endDate) {
+            ctx.setFillStyle(secondaryColor);
+            ctx.setFontSize(14);
+            ctx.fillText(`${startDate} - ${endDate}`, rightColumnX + 40, rightY);
+            rightY += lineHeight * 0.8;
+            ctx.setFillStyle(textColor);
+          }
+          
+          // 添加间距
+          if (index < resumeData.projects.length - 1) {
+            rightY += 15;
+          }
+        }
+      });
+    }
+    
+    // 绘制底部信息
+    const bottomY = rect.height - 40;
+    ctx.setFillStyle('#e0e0e0');
+    ctx.fillRect(leftColumnWidth, bottomY - 20, rightColumnWidth, 1);
+    
+    ctx.setFillStyle(secondaryColor);
+    ctx.setFontSize(12);
+    ctx.fillText(`模板: ${templateId} | 生成时间: ${new Date().toLocaleString()}`, rightColumnX + 40, bottomY);
+    
+    // 重要：确保绘制完成后再resolve
+    ctx.draw(false, () => {
+      console.log('template-four 专用布局绘制完成回调触发');
+      
+      // 增加延迟确保绘制完全完成
+      setTimeout(() => {
+        console.log('template-four 延迟完成，resolve Promise');
+        resolve();
+      }, 100);
+    });
   }
 })

@@ -163,3 +163,34 @@ page {
 .download-pdf-btn:active {
   background-color: #389e0d;
 }
+
+/* 测试简历截图按钮样式 */
+.screenshot-btn {
+  width: 100%;
+  background-color: #fa8c16;
+  color: white;
+  border: none;
+  padding: 20rpx 0;
+  font-size: 32rpx;
+  border-radius: 8rpx;
+  box-shadow: 0 2rpx 8rpx rgba(250, 140, 22, 0.3);
+  margin-top: 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.screenshot-btn:active {
+  background-color: #d46b08;
+}
+
+/* 截图canvas样式 */
+.screenshot-canvas {
+  width: 0;
+  height: 0;
+  position: absolute;
+  left: -9999rpx;
+  top: -9999rpx;
+  opacity: 0;
+  pointer-events: none;
+}
