@@ -19,10 +19,14 @@ public class PuppeteerBrowserManager {
 
     @PostConstruct
     public void init() throws Exception {
+        String chromiumExecutable = "/root/.jvppeteer/headless-chrome/chrome-linux/chrome";
         LaunchOptions options = LaunchOptions.builder()
                 .headless(true)
-                .executablePath(System.getenv("PUPPETEER_EXECUTABLE_PATH")) // 关键点：用容器里安装的 Chromium
-                .args(Arrays.asList("--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"))
+                .executablePath(chromiumExecutable) // 关键点：用容器里安装的 Chromium
+                .args(Arrays.asList("--no-sandbox",
+                        "--disable-setuid-sandbox",
+                        "--disable-dev-shm-usage",
+                        "--disable-gpu"))
                 .product(Product.Chromium)
                 .build();
         browser = Puppeteer.launch(options);
