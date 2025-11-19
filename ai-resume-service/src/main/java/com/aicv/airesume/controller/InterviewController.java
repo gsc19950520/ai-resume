@@ -2,7 +2,9 @@ package com.aicv.airesume.controller;
 
 import com.aicv.airesume.model.dto.InterviewResponseDTO;
 import com.aicv.airesume.model.dto.InterviewReportDTO;
+import com.aicv.airesume.model.dto.ResumeAnalysisDTO;
 import com.aicv.airesume.service.InterviewService;
+import com.aicv.airesume.service.ResumeAnalysisService;
 import com.aicv.airesume.service.config.DynamicConfigService;
 import com.aicv.airesume.utils.ResponseUtils;
 import com.aicv.airesume.model.vo.BaseResponseVO;
@@ -46,6 +48,9 @@ public class InterviewController {
     
     @Autowired
     private DynamicConfigService dynamicConfigService;
+
+    @Autowired
+    private ResumeAnalysisService resumeAnalysisService;
 
     /**
      * 获取面试配置
@@ -154,6 +159,33 @@ public class InterviewController {
         }
     }
     
+    /**
+     * 分析简历并生成结构化面试问题清单
+     * @param request 请求参数（包含resumeId、jobType、analysisDepth）
+     * @return 简历分析结果和面试问题清单
+     */
+    @PostMapping("/analyze-resume")
+    public BaseResponseVO analyzeResume(@RequestBody Map<String, Object> request) {
+        try {
+            Long resumeId = Long.valueOf(request.get("resumeId").toString());
+            String jobType = (String) request.getOrDefault("jobType", "");
+            String analysisDepth = (String) request.getOrDefault("analysisDepth", "intermediate");
+            
+            log.info("开始分析简历，resumeId: {}, jobType: {}, analysisDepth: {}", resumeId, jobType, analysisDepth);
+            
+            // 调用简历分析服务
+            ResumeAnalysisDTO analysisResult = resumeAnalysisService.analyzeResume(resumeId, jobType, analysisDepth);
+            
+            log.info("简历分析完成，analysisId: {}", analysisResult.getAnalysisId());
+            
+            return BaseResponseVO.success(analysisResult);
+            
+        } catch (Exception e) {
+            log.error("简历分析失败: {}", e.getMessage(), e);
+            return BaseResponseVO.error("简历分析失败：" + e.getMessage());
+        }
+    }
+
     /**
      * 获取AI运行日志（调试模式）
      */

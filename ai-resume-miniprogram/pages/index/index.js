@@ -147,41 +147,59 @@ Page({
       return
     }
     
-    // 检查用户是否有简历
-    this.checkUserResumeStatus()
+    // 检查用户是否有简历并获取最新简历数据
+    this.checkUserResumeAndGetLatest()
   },
   
-  // 检查用户简历状态
-  checkUserResumeStatus: function() {
+  // 检查用户简历状态并获取最新简历数据
+  checkUserResumeAndGetLatest: function() {
     wx.showLoading({ title: '检查简历中...' })
     
-    // 模拟获取简历列表
-    setTimeout(() => {
-      wx.hideLoading()
-      
-      // 使用模拟数据检查简历状态
-      const resumeList = this.getMockResumeList()
-      
-      if (resumeList && resumeList.length > 0) {
-        // 有简历，跳转到风格和简历选择页面 - 使用模板字符串便于代码依赖分析
-        wx.navigateTo({ url: `/pages/interview/interview_style_select` })
-      } else {
-        // 无简历，提示用户创建或上传简历
-        wx.showModal({
-          title: '提示',
-          content: '您还没有创建简历，请先创建或上传一份简历后再进行AI模拟面试。',
-          showCancel: true,
-          cancelText: '稍后',
-          confirmText: '去创建简历',
-          success: (res) => {
-            if (res.confirm) {
-              // 跳转到创建简历页面
-              wx.navigateTo({ url: '/pages/create/create' })
-            }
-          }
-        })
+    const app = getApp()
+    const userId = app.globalData.userInfo?.id || wx.getStorageSync('userId') || '0'
+    
+    // 先调用/getLatest接口获取用户最新简历
+    get('/resume/getLatest', { userId: userId })
+      .then(res => {
+        wx.hideLoading()
+        
+        if (res && res.success && res.data) {
+          // 有简历，将最新简历数据存储到全局
+          app.globalData.latestResumeData = res.data
+          
+          // 跳转到风格和简历选择页面
+          wx.navigateTo({ 
+            url: `/pages/interview/interview_style_select?resumeId=${res.data.id || ''}` 
+          })
+        } else {
+          // 无简历，提示用户创建或上传简历
+          this.showNoResumePrompt()
+        }
+      })
+      .catch(error => {
+        wx.hideLoading()
+        console.error('获取最新简历失败:', error)
+        
+        // 如果获取失败，也提示用户创建简历
+        this.showNoResumePrompt()
+      })
+  },
+  
+  // 显示无简历提示
+  showNoResumePrompt: function() {
+    wx.showModal({
+      title: '提示',
+      content: '您还没有创建简历，请先创建或上传一份简历后再进行AI模拟面试。',
+      showCancel: true,
+      cancelText: '稍后',
+      confirmText: '去创建简历',
+      success: (res) => {
+        if (res.confirm) {
+          // 跳转到创建简历页面
+          wx.navigateTo({ url: '/pages/create/create' })
+        }
       }
-    }, 500)
+    })
   },
   
   // 获取模拟简历列表

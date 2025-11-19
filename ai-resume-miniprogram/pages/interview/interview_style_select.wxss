@@ -301,6 +301,27 @@
   border-left: 8rpx solid #07c160;
 }
 
+/* 分析简历按钮 */
+.analyze-resume-btn {
+  width: 100%;
+  height: 90rpx;
+  line-height: 90rpx;
+  font-size: 36rpx;
+  border-radius: 45rpx;
+  margin: 0 0 20rpx 0;
+  transition: all 0.3s ease;
+}
+
+.analyze-resume-btn.active {
+  background-color: #1989fa;
+  color: white;
+}
+
+.analyze-resume-btn.disabled {
+  background-color: #f0f0f0;
+  color: #999;
+}
+
 /* 开始面试按钮 */
 .start-interview-btn {
   width: 100%;

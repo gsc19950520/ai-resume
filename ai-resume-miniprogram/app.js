@@ -10,7 +10,8 @@ App({
     cloudBaseUrl: '', // 云托管服务地址，使用callContainer时无需配置
     useCloud: true, // 使用云托管服务（通过callContainer调用）
     cloudEnvId: 'prod-1gwm267i6a10e7cb', // 微信云托管环境ID
-    cloudServiceName: 'springboot-bq0e' // 云托管服务名称
+    cloudServiceName: 'springboot-bq0e', // 云托管服务名称
+    latestResumeData: null // 存储最新简历数据，用于面试页面
   },
   
   // 初始化云开发环境

@@ -21,10 +21,12 @@ public class PuppeteerBrowserManager {
     public void init() throws Exception {
         LaunchOptions options = LaunchOptions.builder()
                 .headless(true)
-                .args(Arrays.asList("--no-sandbox", "--disable-setuid-sandbox"))
+                .executablePath(System.getenv("PUPPETEER_EXECUTABLE_PATH")) // 关键点：用容器里安装的 Chromium
+                .args(Arrays.asList("--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"))
                 .product(Product.Chrome)
                 .build();
         browser = Puppeteer.launch(options);
+
         System.out.println("Browser 已启动！");
     }
 

@@ -23,18 +23,44 @@ Page({
   },
 
   onLoad: function(options) {
+    const app = getApp()
+    
+    // 获取全局中的最新简历数据
+    const latestResumeData = app.globalData.latestResumeData
+    
     // 获取简历ID和用户ID
     this.setData({
-      resumeId: options.resumeId || '',
+      resumeId: options.resumeId || latestResumeData?.id || '',
       userId: app.globalData.userInfo?.id || wx.getStorageSync('userId') || '0',
-      industryJobTag: options.industryJobTag || ''
-    });
+      industryJobTag: options.industryJobTag || latestResumeData?.occupation || ''
+    })
 
-    // 加载用户简历列表
-    this.loadUserResumes();
+    // 如果有全局简历数据，直接使用，否则加载用户简历列表
+    if (latestResumeData) {
+      this.processLatestResumeData(latestResumeData)
+    } else {
+      this.loadUserResumes()
+    }
     
     // 加载面试官风格配置
-    this.loadPersonaConfigs();
+    this.loadPersonaConfigs()
+  },
+  
+  // 处理最新简历数据
+  processLatestResumeData: function(latestResumeData) {
+    // 构建简历列表（只包含最新简历）
+    const resumeList = [{
+      id: latestResumeData.id,
+      title: latestResumeData.title || '我的简历',
+      occupation: latestResumeData.occupation || '未设置职位'
+    }]
+    
+    this.setData({
+      resumeList: resumeList,
+      resumeIndex: 0,
+      selectedResume: resumeList[0],
+      industryJobTag: latestResumeData.occupation || this.data.industryJobTag
+    })
   },
   
   // 加载用户简历列表
@@ -286,6 +312,68 @@ Page({
       })
       .finally(() => {
         clearTimeout(timeoutId);
+      });
+    });
+  },
+
+  // 分析简历
+  analyzeResume: async function() {
+    if (!this.data.selectedResume) {
+      wx.showToast({
+        title: '请先选择简历',
+        icon: 'none'
+      });
+      return;
+    }
+
+    wx.showLoading({ title: '正在分析简历...' });
+    
+    try {
+      // 调用后端API分析简历
+      const analysisResult = await this.callAnalyzeResumeAPI();
+      
+      wx.hideLoading();
+      
+      // 跳转到简历分析结果页面
+      wx.navigateTo({
+        url: `/pages/interview/resume_analysis_result?analysisData=${encodeURIComponent(JSON.stringify(analysisResult))}`
+      });
+      
+    } catch (error) {
+      wx.hideLoading();
+      wx.showToast({
+        title: error.message || '简历分析失败',
+        icon: 'none',
+        duration: 2000
+      });
+      console.error('简历分析失败:', error);
+    }
+  },
+  
+  // 调用分析简历API
+  callAnalyzeResumeAPI: function() {
+    return new Promise((resolve, reject) => {
+      const timeoutId = setTimeout(() => {
+        reject(new Error('分析请求超时'));
+      }, 30000); // 30秒超时，因为分析可能需要较长时间
+      
+      post('/api/interview/analyze-resume', {
+        resumeId: this.data.resumeId,
+        jobType: this.data.industryJobTag,
+        analysisDepth: 'comprehensive' // 综合分析
+      })
+      .then(resData => {
+        clearTimeout(timeoutId);
+        if (resData.code === 0) {
+          resolve(resData.data);
+        } else {
+          reject(new Error(resData.message || '分析失败'));
+        }
+      })
+      .catch(error => {
+        clearTimeout(timeoutId);
+        console.error('API请求失败:', error);
+        reject(new Error('网络连接异常，请重试'));
       });
     });
   },

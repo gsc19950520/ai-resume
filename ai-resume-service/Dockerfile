@@ -1,29 +1,53 @@
-# 构建阶段
+######################################################
+# 1️⃣ 编译阶段：使用 Maven 构建项目
+######################################################
 FROM maven:3.8.6-openjdk-8-slim AS builder
+
 WORKDIR /app
 
-# 复制pom.xml和源代码
 COPY pom.xml .
 COPY src ./src
 
-# 执行构建，跳过测试以加快构建速度
-RUN mvn clean package -DskipTests
+# 先拉依赖再打包，加速构建
+RUN mvn -B -q dependency:resolve dependency:resolve-plugins && \
+    mvn clean package -DskipTests
 
-# 运行阶段
+
+######################################################
+# 2️⃣ 运行阶段：安装 Chromium + 启动 Spring Boot
+######################################################
 FROM openjdk:8-jre-slim
+
 WORKDIR /app
 
-# 从构建阶段复制构建好的jar文件
-COPY --from=builder /app/target/ai-resume-optimizer-1.0.0.jar app.jar
+# ==== 安装 Chromium 及依赖 ====
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    chromium \
+    chromium-driver \
+    fonts-wqy-microhei \
+    wget \
+    ca-certificates \
+    tzdata && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
-# 设置时区
+
+# ==== 设置 Puppeteer 可执行浏览器路径 ====
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+
+
+# ==== 设置时区（可选）====
 RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 
-# 暴露应用端口
+# 复制编译后的 jar
+COPY --from=builder /app/target/*.jar app.jar
+
+# 暴露服务端口
 EXPOSE 8080
 
-# 设置Spring配置环境变量
+# 生产配置
 ENV SPRING_PROFILES_ACTIVE=prod
 
-# 启动应用
-CMD ["java", "-jar", "app.jar"]
+# ==== 容器启动时运行 ====
+ENTRYPOINT ["java","-Djava.security.egd=file:/dev/./urandom","-jar","app.jar"]

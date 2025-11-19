@@ -60,7 +60,12 @@
       <view class="preview-question">{{previewQuestion || '请先选择面试官风格'}}</view>
     </view>
     
-    <!-- 开始面试按钮 -->
+    <!-- 分析简历按钮 -->
+    <button class="analyze-resume-btn {{selectedResume ? 'active' : 'disabled'}}" disabled="{{!selectedResume}}" bindtap="analyzeResume">
+      分析简历
+    </button>
+    
+      <!-- 开始面试按钮 -->
     <button class="start-interview-btn {{selectedPersona && resumeList.length > 0 ? 'active' : 'disabled'}}" disabled="{{!selectedPersona || resumeList.length === 0}}" bindtap="startInterview">
       开始面试
     </button>

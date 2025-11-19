@@ -489,10 +489,10 @@ Page({
   
   /**
    * 下载PDF文件
-   * 调用后端API生成并下载PDF，支持模拟模式
+   * 调用后端API生成并下载PDF，使用云托管的/export/pdf接口
    */
   downloadPdf: function() {
-    const { templateId, resumeData, enableMock } = this.data;
+    const { templateId, resumeData } = this.data;
     wx.showLoading({
       title: '正在生成PDF...',
     });
@@ -505,132 +505,108 @@ Page({
       resumeId = wx.getStorageSync('resumeId') || '';
     }
 
-    // 实现页面截图功能
-    this.captureResumePage().then(tempFilePath => {
-      console.log('截图成功，临时文件路径:', tempFilePath);
-      
-      // 将截图上传到后端生成PDF
-      const fileName = `resume_${resumeId || 'temp'}_${Date.now()}.png`;
-      
-      // 使用云托管服务的方式上传文件并生成PDF
-      const app = getApp();
-      
-      // 首先检查是否已初始化云开发环境
-      if (!wx.cloud) {
-        console.error('云开发未初始化');
+    // 验证必要参数
+    if (!resumeId) {
+      wx.hideLoading();
+      wx.showToast({
+        title: '请先保存简历',
+        icon: 'none'
+      });
+      return;
+    }
+
+    if (!templateId) {
+      wx.hideLoading();
+      wx.showToast({
+        title: '模板ID不能为空',
+        icon: 'none'
+      });
+      return;
+    }
+
+    const app = getApp();
+    
+    // 使用云托管调用后端/export/pdf接口
+    if (app.cloudCallBinary) {
+      app.cloudCallBinary({
+        url: `/resume/export/pdf?resumeId=${resumeId}&templateId=${templateId}`,
+        method: 'GET',
+        header: {
+          'Authorization': `Bearer ${app.globalData.token || ''}`
+        }
+      }).then(pdfBuffer => {
         wx.hideLoading();
-        wx.showToast({
-          title: '云开发未初始化',
-          icon: 'none'
-        });
-        return;
-      }
-      
-      // 使用wx.cloud.uploadFile上传文件到云存储
-      wx.cloud.uploadFile({
-        cloudPath: `resume_images/${fileName}`,
-        filePath: tempFilePath,
-        success: res => {
-          console.log('文件上传成功:', res);
-          const fileID = res.fileID;
-          
-          // 调用云托管服务生成PDF
-          if (app.cloudCallBinary) {
-            app.cloudCallBinary({
-              url: '/api/generate/pdf-from-fileid',
-              method: 'POST',
-              data: {
-                fileId: fileID,
-                fileName: 'resume'
+        console.log('PDF生成成功，数据长度:', pdfBuffer ? pdfBuffer.byteLength : 0);
+        
+        if (!pdfBuffer || pdfBuffer.byteLength === 0) {
+          wx.showToast({
+            title: 'PDF生成失败',
+            icon: 'none'
+          });
+          return;
+        }
+        
+        // 保存PDF到本地
+        const fileName = `resume_${resumeId}_${templateId}.pdf`;
+        const filePath = wx.env.USER_DATA_PATH + '/' + fileName;
+        
+        wx.getFileSystemManager().writeFile({
+          filePath: filePath,
+          data: pdfBuffer,
+          encoding: 'binary',
+          success: () => {
+            console.log('PDF保存成功');
+            // 打开PDF文件预览
+            wx.openDocument({
+              filePath: filePath,
+              showMenu: true,
+              fileType: 'pdf',
+              success: function(res) {
+                console.log('打开PDF成功', res);
               },
-              success: pdfRes => {
-                wx.hideLoading();
-                console.log('PDF生成成功，状态码:', pdfRes.statusCode);
-                // 处理PDF二进制数据
-                const pdfBuffer = pdfRes.data;
-                
-                // 保存PDF到本地
-                wx.getFileSystemManager().writeFile({
-                  filePath: wx.env.USER_DATA_PATH + '/resume.pdf',
-                  data: pdfBuffer,
-                  encoding: 'binary',
-                  success: () => {
-                    console.log('PDF保存成功');
-                    // 打开PDF文件预览
-                    wx.openDocument({
-                      filePath: wx.env.USER_DATA_PATH + '/resume.pdf',
-                      showMenu: true,
-                      fileType: 'pdf',
-                      success: function(res) {
-                        console.log('打开PDF成功', res);
-                      },
-                      fail: function(err) {
-                        console.error('打开PDF失败', err);
-                        wx.showToast({
-                          title: '打开PDF失败',
-                          icon: 'none'
-                        });
-                      }
-                    });
-                  },
-                  fail: (err) => {
-                    console.error('保存PDF失败:', err);
-                    wx.showToast({
-                      title: '保存PDF失败',
-                      icon: 'none'
-                    });
-                  }
-                });
-              },
-              fail: err => {
-                wx.hideLoading();
-                console.error('调用后端生成PDF失败:', err);
+              fail: function(err) {
+                console.error('打开PDF失败', err);
                 wx.showToast({
-                  title: '生成PDF失败',
+                  title: '打开PDF失败',
                   icon: 'none'
                 });
-                // 失败时尝试使用模拟模式
-                if (enableMock) {
-                  this.mockPdfDownload();
-                }
               }
             });
-          } else {
-            wx.hideLoading();
-            console.error('云托管调用方法不可用');
+          },
+          fail: (err) => {
+            console.error('保存PDF失败:', err);
             wx.showToast({
-              title: '系统错误',
+              title: '保存PDF失败',
               icon: 'none'
             });
           }
-        },
-        fail: err => {
-          wx.hideLoading();
-          console.error('上传文件失败:', err);
-          wx.showToast({
-            title: '上传文件失败',
-            icon: 'none'
-          });
-          
-          // 失败时尝试使用模拟模式
-          if (enableMock) {
-            this.mockPdfDownload();
-          }
+        });
+      }).catch(err => {
+        wx.hideLoading();
+        console.error('调用后端生成PDF失败:', err);
+        wx.showToast({
+          title: '生成PDF失败',
+          icon: 'none'
+        });
+        
+        // 失败时尝试使用模拟模式
+        if (this.data.enableMock) {
+          this.mockPdfDownload();
         }
       });
-    }).catch(err => {
+    } else {
       wx.hideLoading();
-      console.error('截图失败:', err);
+      console.error('云托管调用方法不可用');
       wx.showToast({
-        title: '截图失败',
+        title: '系统错误',
         icon: 'none'
       });
       
       // 失败时尝试使用模拟模式
-      if (enableMock) {
+      if (this.data.enableMock) {
         this.mockPdfDownload();
       }
-    });
+    }
   },
   
   /**
