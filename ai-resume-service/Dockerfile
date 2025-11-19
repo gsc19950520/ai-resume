@@ -20,17 +20,18 @@ FROM openjdk:8-jre-slim
 
 WORKDIR /app
 
-# ==== 安装 Chromium 及依赖 ====
+# ==== 安装 Chromium 及所有必要依赖 ====
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-    chromium \
-    chromium-driver \
-    fonts-wqy-microhei \
-    wget \
-    ca-certificates \
-    tzdata && \
+    chromium chromium-common chromium-driver \
+    libasound2 libatk1.0-0 libatk-bridge2.0-0 \
+    libatspi2.0-0 libcups2 libxkbcommon0 \
+    libpangocairo-1.0-0 libgtk-3-0 libgbm-dev \
+    libnss3 libxss1 fonts-wqy-microhei \
+    tzdata ca-certificates wget && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
+
 
 
 # ==== 设置 Puppeteer 可执行浏览器路径 ====
