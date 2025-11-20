@@ -12,6 +12,7 @@ import com.ruiyun.jvppeteer.api.core.Browser;
 import com.ruiyun.jvppeteer.api.core.Page;
 import com.ruiyun.jvppeteer.cdp.core.Puppeteer;
 import com.ruiyun.jvppeteer.cdp.entities.LaunchOptions;
+import com.ruiyun.jvppeteer.common.Product;
 
 @Component
 public class PuppeteerBrowserManager {
@@ -46,6 +47,7 @@ public class PuppeteerBrowserManager {
             LaunchOptions options = LaunchOptions.builder()
                     .headless(true)
                     .executablePath(chromiumPath)
+                    .product(Product.Chromium)
                     .args(Arrays.asList(
                         "--no-sandbox",
                         "--disable-setuid-sandbox", 
