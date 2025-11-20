@@ -6,7 +6,6 @@ WORKDIR /app
 COPY pom.xml . 
 COPY src ./src
 RUN mvn clean package -DskipTests
-
 #########################################################
 # 2️⃣ 运行阶段
 #########################################################
@@ -37,6 +36,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     chromium \
     chromium-l10n \
     && rm -rf /var/lib/apt/lists/*
+
+# 添加诊断命令
+RUN echo "=== 检查Chromium安装 ===" && \
+    which chromium && \
+    ls -la /usr/bin/chromium* && \
+    chromium --version && \
+    echo "=== 检查完成 ==="
 
 # 设置时区
 RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
