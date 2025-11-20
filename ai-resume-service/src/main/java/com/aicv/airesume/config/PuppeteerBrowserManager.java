@@ -40,9 +40,6 @@ public class PuppeteerBrowserManager {
             this.isCloudEnv = isCloudEnvironment();
             logger.info("当前运行环境: {}", isCloudEnv ? "云环境" : "本地环境");
             
-            // 方法1：尝试设置系统属性
-            System.setProperty("puppeteer_product", "chrome");
-            
             // 初始化浏览器实例
             initializeBrowser();
             
@@ -59,9 +56,14 @@ public class PuppeteerBrowserManager {
             try {
                 logger.info("开始初始化浏览器，第 {} 次尝试", retry + 1);
                 
+                // 先尝试查找浏览器路径，以便确定正确的产品类型
+                String browserPath = findBrowserPath();
+                Product browserProduct = determineProductType(browserPath);
+                logger.info("使用浏览器路径: {}，对应产品类型: {}", browserPath, browserProduct);
+                
                 // 构建基础配置 - 使用builder模式
                 LaunchOptions.Builder optionsBuilder = LaunchOptions.builder()
-                    .product(Product.Chrome)
+                    .product(browserProduct)
                     .headless(true)
                     .args(Arrays.asList(getBrowserArgs()));
                     
@@ -70,42 +72,14 @@ public class PuppeteerBrowserManager {
                     optionsBuilder.timeout(30000); // 本地环境设置30秒超时
                 }
                 
-                LaunchOptions options = optionsBuilder.build();
-                
-                // 尝试自动发现浏览器
-                try {
-                    logger.info("尝试自动发现浏览器");
-                    this.browser = Puppeteer.launch(options);
-                    logger.info("自动发现浏览器成功");
-                    break;
-                } catch (Exception e) {
-                    logger.warn("自动发现浏览器失败: {}, 将尝试使用指定路径", e.getMessage());
-                }
-                
-                // 如果自动发现失败，尝试使用指定路径
-                String browserPath = findBrowserPath();
-                logger.info("使用指定浏览器路径: {}", browserPath);
-                
-                // 使用指定路径启动 - 创建新的builder并设置executablePath
-                LaunchOptions.Builder pathOptionsBuilder = LaunchOptions.builder()
-                    .product(Product.Chrome)
-                    .headless(true)
-                    .args(Arrays.asList(getBrowserArgs()))
-                    .executablePath(browserPath);
-                    
-                // 本地环境下设置超时
-                if (!isCloudEnv) {
-                    pathOptionsBuilder.timeout(30000);
-                }
-                
-                this.browser = Puppeteer.launch(pathOptionsBuilder.build());
+                // 尝试使用指定路径启动
+                LaunchOptions pathOptions = optionsBuilder.executablePath(browserPath).build();
+                this.browser = Puppeteer.launch(pathOptions);
                 
                 // 浏览器已成功启动，更新日志状态
                 logger.info("浏览器初始化成功，正在验证版本信息");
                 // 测试浏览器版本
                 testBrowserVersion(browserPath);
-                // 标记浏览器初始化任务完成
-                logger.info("浏览器初始化任务完成");
                 
                 logger.info("浏览器初始化成功");
                 break;
@@ -303,6 +277,32 @@ public class PuppeteerBrowserManager {
             logger.info("浏览器版本: {}", version);
         } catch (Exception e) {
             logger.warn("无法获取浏览器版本: {}", e.getMessage());
+        }
+    }
+    
+    /**
+     * 根据浏览器路径确定产品类型
+     * @param browserPath 浏览器可执行文件路径
+     * @return 对应的产品类型
+     */
+    private Product determineProductType(String browserPath) {
+        if (browserPath == null || browserPath.isEmpty()) {
+            logger.warn("浏览器路径为空，默认使用Chrome产品类型");
+            return Product.Chrome;
+        }
+        
+        // 根据路径中的关键字判断产品类型
+        String pathLower = browserPath.toLowerCase();
+        if (pathLower.contains("chromium") || pathLower.contains("/usr/bin/chromium")) {
+            logger.info("检测到Chromium浏览器路径，使用Chromium产品类型");
+            return Product.Chromium;
+        } else if (pathLower.contains("edge")) {
+            logger.info("检测到Edge浏览器路径，但使用Chrome产品类型作为替代");
+            return Product.Chrome;
+        } else {
+            // 默认为Chrome
+            logger.info("使用默认Chrome产品类型");
+            return Product.Chrome;
         }
     }
     
