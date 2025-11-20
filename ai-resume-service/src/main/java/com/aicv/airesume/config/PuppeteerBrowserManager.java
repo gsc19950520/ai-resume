@@ -54,62 +54,50 @@ public class PuppeteerBrowserManager {
     private void initializeBrowser() {
         for (int retry = 0; retry < MAX_RETRY_COUNT; retry++) {
             try {
-                // 先尝试查找浏览器路径，以便确定正确的产品类型
+                // 先尝试查找浏览器路径
                 String browserPath = findBrowserPath();
                 
-                // 尝试使用determineProductType返回的产品类型启动
-                Product browserProduct = determineProductType(browserPath);
-                logger.info("开始初始化浏览器，第 {} 次尝试，使用浏览器路径: {}，对应产品类型: {}", retry + 1, browserPath, browserProduct);
+                // 直接尝试使用所有可能的产品类型，而不仅仅是根据路径判断的类型
+                // 按照兼容性从高到低的顺序尝试
+                Product[] productTypesToTry = {Product.Chrome, Product.Chromium};
                 
-                // 构建基础配置 - 使用builder模式
-                LaunchOptions.Builder optionsBuilder = LaunchOptions.builder()
-                    .product(browserProduct)
-                    .headless(true)
-                    .args(Arrays.asList(getBrowserArgs()));
-                    
-                // 本地环境下可以考虑设置超时
-                if (!isCloudEnv) {
-                    optionsBuilder.timeout(30000); // 本地环境设置30秒超时
-                }
-                
-                try {
-                    // 尝试使用指定路径和产品类型启动
-                    LaunchOptions pathOptions = optionsBuilder.executablePath(browserPath).build();
-                    this.browser = Puppeteer.launch(pathOptions);
-                } catch (Exception e) {
-                    // 如果启动失败且错误信息包含产品类型不匹配的提示，尝试使用备用产品类型
-                    if (e.getMessage() != null && e.getMessage().contains("The ExecutablePath does not match the product")) {
-                        logger.warn("产品类型不匹配，尝试使用备用产品类型启动");
+                for (Product product : productTypesToTry) {
+                    try {
+                        logger.info("开始初始化浏览器，第 {} 次尝试，使用产品类型: {}, 浏览器路径: {}", 
+                                retry + 1, product, browserPath);
                         
-                        // 切换产品类型：如果是Chromium则切换到Chrome，如果是Chrome则切换到Chromium
-                        Product alternativeProduct = (browserProduct == Product.Chromium) ? Product.Chrome : Product.Chromium;
-                        logger.info("尝试使用备用产品类型: {} 启动浏览器", alternativeProduct);
-                        
-                        // 使用备用产品类型重新构建配置
-                        LaunchOptions.Builder altOptionsBuilder = LaunchOptions.builder()
-                            .product(alternativeProduct)
+                        // 构建配置
+                        LaunchOptions.Builder optionsBuilder = LaunchOptions.builder()
+                            .product(product)
                             .headless(true)
                             .args(Arrays.asList(getBrowserArgs()));
-                        
+                            
+                        // 本地环境下设置超时
                         if (!isCloudEnv) {
-                            altOptionsBuilder.timeout(30000);
+                            optionsBuilder.timeout(30000); // 本地环境设置30秒超时
                         }
                         
-                        LaunchOptions altPathOptions = altOptionsBuilder.executablePath(browserPath).build();
-                        this.browser = Puppeteer.launch(altPathOptions);
-                    } else {
-                        // 如果不是产品类型不匹配的错误，则重新抛出异常
-                        throw e;
+                        // 构建完整的启动选项
+                        LaunchOptions options = optionsBuilder.executablePath(browserPath).build();
+                        
+                        // 尝试启动浏览器
+                        this.browser = Puppeteer.launch(options);
+                        
+                        // 浏览器已成功启动，更新日志状态
+                        logger.info("浏览器初始化成功，使用产品类型: {}", product);
+                        // 测试浏览器版本
+                        testBrowserVersion(browserPath);
+                        
+                        return; // 成功启动后直接返回
+                    } catch (Exception e) {
+                        // 如果当前产品类型启动失败，记录错误并尝试下一个产品类型
+                        logger.warn("使用产品类型 {} 启动浏览器失败: {}", product, e.getMessage());
+                        // 不抛出异常，继续尝试下一个产品类型
                     }
                 }
                 
-                // 浏览器已成功启动，更新日志状态
-                logger.info("浏览器初始化成功，正在验证版本信息");
-                // 测试浏览器版本
-                testBrowserVersion(browserPath);
-                
-                logger.info("浏览器初始化成功");
-                break;
+                // 如果所有产品类型都尝试失败，抛出异常
+                throw new RuntimeException("所有产品类型都无法启动浏览器");
             } catch (Exception e) {
                 logger.error("浏览器初始化失败，第 {} 次尝试: {}", retry + 1, e.getMessage(), e);
                 
@@ -318,22 +306,21 @@ public class PuppeteerBrowserManager {
             return Product.Chrome;
         }
         
-        // 根据路径中的关键字判断产品类型
+        // 从错误日志分析看，即使路径是/usr/bin/chromium且产品类型设置为Chromium，jvppeteer库仍报错不匹配
+        // 为了避免这个问题，在云环境中我们直接使用Chrome产品类型，因为它具有更好的兼容性
+        if (isCloudEnv) {
+            logger.info("在云环境中，直接使用Chrome产品类型以避免路径验证问题");
+            return Product.Chrome;
+        }
+        
+        // 本地环境仍然根据路径判断产品类型，但做了简化
         String pathLower = browserPath.toLowerCase();
         
-        // 在云环境中，对于Chromium路径也优先尝试使用Chrome产品类型
-        // 这是为了解决某些环境中虽然路径是chromium但实际需要使用Chrome产品类型的问题
-        if (isCloudEnv && (pathLower.contains("chromium") || pathLower.contains("/usr/bin/chromium"))) {
-            logger.info("在云环境中检测到Chromium浏览器路径，优先使用Chrome产品类型");
-            return Product.Chrome;
-        } else if (pathLower.contains("chromium") || pathLower.contains("/usr/bin/chromium")) {
-            logger.info("检测到Chromium浏览器路径，使用Chromium产品类型");
-            return Product.Chromium;
-        } else if (pathLower.contains("edge")) {
+        if (pathLower.contains("edge")) {
             logger.info("检测到Edge浏览器路径，但使用Chrome产品类型作为替代");
             return Product.Chrome;
         } else {
-            // 默认为Chrome
+            // 默认为Chrome，因为它在大多数情况下更具兼容性
             logger.info("使用默认Chrome产品类型");
             return Product.Chrome;
         }
