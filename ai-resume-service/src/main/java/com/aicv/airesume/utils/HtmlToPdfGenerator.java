@@ -142,49 +142,248 @@ public class HtmlToPdfGenerator {
         return engine.process("template-four", context); // template-four.html
     }
 
+    /**
+     * 检查WKHtmlToPdf是否可用
+     * @return true表示WKHtmlToPdf可用
+     */
+    /**
+     * 检查WKHtmlToPdf是否可用，可指定路径
+     * @param wkHtmlToPdfPath 可选的WKHtmlToPdf可执行文件路径，如果为null则使用系统PATH中的wkhtmltopdf
+     * @return 是否可用
+     */
+    public static boolean isWkHtmlToPdfAvailable(String... wkHtmlToPdfPath) {
+        // 优先使用环境变量中的WKHtmlToPdf路径（云托管环境）
+        String executable = System.getenv("WKHTMLTOPDF_PATH");
+        
+        // 如果环境变量未设置，则检查参数中的路径
+        if (executable == null && wkHtmlToPdfPath != null && wkHtmlToPdfPath.length > 0 && wkHtmlToPdfPath[0] != null) {
+            executable = wkHtmlToPdfPath[0];
+        }
+        
+        // 如果以上都未设置，则使用系统PATH中的wkhtmltopdf
+        if (executable == null) {
+            executable = "wkhtmltopdf";
+        }
+        
+        try {
+            Process process = Runtime.getRuntime().exec(new String[]{executable, "--version"});
+            int exitCode = process.waitFor();
+            if (exitCode == 0) {
+                System.out.println("WKHtmlToPdf可用 (路径: " + executable + ")");
+                return true;
+            }
+        } catch (Exception e) {
+            System.out.println("WKHtmlToPdf不可用 (路径: " + executable + "): " + e.getMessage());
+        }
+        return false;
+    }
+    
+    /**
+     * 检查WKHtmlToPdf是否可用（默认方法，使用系统PATH）
+     * @return 是否可用
+     */
+    public static boolean isWkHtmlToPdfAvailable() {
+        return isWkHtmlToPdfAvailable((String[]) null);
+    }
+
+    /**
+     * 使用WKHtmlToPdf将HTML转换为PDF（默认方法，使用系统PATH）
+     * @param htmlContent HTML内容
+     * @param outputPdfPath 输出PDF路径
+     * @return 是否成功
+     */
+    public static boolean convertHtmlToPdfWithWkHtml(String htmlContent, String outputPdfPath) {
+        return convertHtmlToPdfWithWkHtml(htmlContent, outputPdfPath, null);
+    }
+    
+    /**
+     * 使用WKHtmlToPdf将HTML转换为PDF，可指定WKHtmlToPdf路径
+     * @param htmlContent HTML内容
+     * @param outputPdfPath 输出PDF路径
+     * @param wkHtmlToPdfPath WKHtmlToPdf可执行文件路径
+     * @return 是否成功
+     */
+    public static boolean convertHtmlToPdfWithWkHtml(String htmlContent, String outputPdfPath, String wkHtmlToPdfPath) {
+        try {
+            // 创建临时HTML文件
+            java.io.File tempHtmlFile = java.io.File.createTempFile("temp_", ".html");
+            tempHtmlFile.deleteOnExit();
+            
+            // 写入HTML内容到临时文件
+            Files.write(tempHtmlFile.toPath(), htmlContent.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            
+            // 构建WKHtmlToPdf命令
+            List<String> command = new ArrayList<>();
+            
+            // 优先使用环境变量中的WKHtmlToPdf路径（云托管环境）
+            String executable = System.getenv("WKHTMLTOPDF_PATH");
+            
+            // 如果环境变量未设置，则检查参数中的路径
+            if (executable == null && wkHtmlToPdfPath != null) {
+                executable = wkHtmlToPdfPath;
+            }
+            
+            // 如果以上都未设置，则使用系统PATH中的wkhtmltopdf
+            if (executable == null) {
+                executable = "wkhtmltopdf";
+            }
+            
+            command.add(executable);
+            
+            // 添加高级参数以保持复杂样式
+            command.add("--enable-local-file-access");
+            command.add("--disable-javascript"); // 可选，某些复杂JS可能导致渲染问题
+            command.add("--disable-smart-shrinking"); // 保持精确的大小控制
+            command.add("--print-media-type"); // 使用打印样式表
+            command.add("--margin-top");
+            command.add("10mm");
+            command.add("--margin-right");
+            command.add("10mm");
+            command.add("--margin-bottom");
+            command.add("10mm");
+            command.add("--margin-left");
+            command.add("10mm");
+            
+            // 添加输入和输出文件路径
+            command.add(tempHtmlFile.getAbsolutePath());
+            command.add(outputPdfPath);
+            
+            System.out.println("执行WKHtmlToPdf命令: " + String.join(" ", command));
+            
+            // 执行命令
+            ProcessBuilder processBuilder = new ProcessBuilder(command);
+            processBuilder.redirectErrorStream(true);
+            Process process = processBuilder.start();
+            
+            // 读取输出
+            try (java.io.BufferedReader reader = new java.io.BufferedReader(
+                    new java.io.InputStreamReader(process.getInputStream()))) {
+                String line;
+                StringBuilder output = new StringBuilder();
+                while ((line = reader.readLine()) != null) {
+                    output.append(line).append("\n");
+                }
+                System.out.println("WKHtmlToPdf输出: " + output.toString());
+            }
+            
+            // 等待进程完成
+            int exitCode = process.waitFor();
+            
+            // 清理临时文件
+            tempHtmlFile.delete();
+            
+            if (exitCode == 0) {
+                System.out.println("WKHtmlToPdf执行成功，退出码: " + exitCode);
+                return true;
+            } else {
+                System.out.println("WKHtmlToPdf执行失败，退出码: " + exitCode);
+                return false;
+            }
+        } catch (Exception e) {
+            System.out.println("WKHtmlToPdf执行异常: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     public static void main(String[] args) throws Exception {
         Map<String, Object> data = HtmlToPdfGenerator.getData();
         String htmlContent = HtmlToPdfGenerator.renderHtml(data);
 
-        System.out.println("htmlContent: " + htmlContent);
-        // 2️⃣ 启动浏览器
-        LaunchOptions options = LaunchOptions.builder()
-                .headless(true)
-                .args(Arrays.asList("--no-sandbox", "--disable-setuid-sandbox"))
-                .product(Product.Chrome)  // 指定 Chrome
-                .build();
+        System.out.println("开始生成PDF...");
+        
+        // 从命令行参数获取WKHtmlToPdf路径（如果提供）
+        String wkHtmlToPdfPath = null;
+        wkHtmlToPdfPath = "D:\\software\\wkhtmltopdf\\bin\\wkhtmltopdf.exe";
+        System.out.println("使用命令行提供的WKHtmlToPdf路径: " + wkHtmlToPdfPath);
+        
+        // 检查WKHtmlToPdf是否可用
+        boolean wkHtmlToPdfAvailable = isWkHtmlToPdfAvailable(wkHtmlToPdfPath);
+        boolean pdfGenerated = false;
+        
+        // 优先使用WKHtmlToPdf生成PDF（本地测试模式）
+        if (wkHtmlToPdfAvailable) {
+            System.out.println("WKHtmlToPdf可用，优先使用WKHtmlToPdf生成PDF...");
+            pdfGenerated = convertHtmlToPdfWithWkHtml(htmlContent, "output_wkhtmltopdf.pdf", wkHtmlToPdfPath);
+            
+            if (pdfGenerated) {
+                System.out.println("WKHtmlToPdf方式PDF生成成功！");
+            } else {
+                System.out.println("WKHtmlToPdf方式生成PDF失败，尝试使用浏览器方式...");
+            }
+        } else {
+            System.out.println("WKHtmlToPdf不可用，尝试使用浏览器方式生成PDF...");
+        }
+        
+        // 如果WKHtmlToPdf生成失败或不可用，则尝试使用浏览器方式
+        if (!pdfGenerated) {
+            try {
+                System.out.println("尝试使用浏览器方式生成PDF...");
+                // 启动浏览器
+                LaunchOptions options = LaunchOptions.builder()
+                        .headless(true)
+                        .args(Arrays.asList("--no-sandbox", "--disable-setuid-sandbox"))
+                        .product(Product.Chrome)  // 指定 Chrome
+                        .build();
 
-        Browser browser = Puppeteer.launch(options);
+                Browser browser = null;
+                try {
+                    browser = Puppeteer.launch(options);
 
-        // 3️⃣ 新建页面
-        Page page = browser.newPage();
+                    // 新建页面
+                    Page page = browser.newPage();
 
-        // 4️⃣ 设置 HTML 内容
-        WaitForOptions waitForOptions = new WaitForOptions();
-        waitForOptions.setTimeout(30000);
-        waitForOptions.setWaitUntil(Arrays.asList(PuppeteerLifeCycle.load));
+                    // 设置 HTML 内容
+                    WaitForOptions waitForOptions = new WaitForOptions();
+                    waitForOptions.setTimeout(30000);
+                    waitForOptions.setWaitUntil(Arrays.asList(PuppeteerLifeCycle.load));
 
-        page.setContent(htmlContent, waitForOptions);
+                    page.setContent(htmlContent, waitForOptions);
 
-        // 5️⃣ 配置 PDF
-        PDFOptions pdfOptions = new PDFOptions();
-        pdfOptions.setWidth("210mm");  
-        pdfOptions.setHeight("297mm"); 
-        pdfOptions.setPrintBackground(true);
-        pdfOptions.setPreferCSSPageSize(true);
-        pdfOptions.setTimeout(30000);
-        pdfOptions.setPath("output.pdf");
-        pdfOptions.setLandscape(false);
+                    // 配置 PDF
+                    PDFOptions pdfOptions = new PDFOptions();
+                    pdfOptions.setWidth("210mm");  
+                    pdfOptions.setHeight("297mm"); 
+                    pdfOptions.setPrintBackground(true);
+                    pdfOptions.setPreferCSSPageSize(true);
+                    pdfOptions.setTimeout(30000);
+                    pdfOptions.setPath("output_browser.pdf");
+                    pdfOptions.setLandscape(false);
 
-        // 6️⃣ 生成 PDF
-        byte[] pdfBytes = page.pdf(pdfOptions);
+                    // 生成 PDF
+                    byte[] pdfBytes = page.pdf(pdfOptions);
 
-        // 7️⃣ 保存 PDF
-        Files.write(Paths.get("output2.pdf"), pdfBytes);
+                    // 保存 PDF
+                    Files.write(Paths.get("output2_browser.pdf"), pdfBytes);
+                    
+                    System.out.println("浏览器方式PDF生成成功！");
+                    pdfGenerated = true;
+                } finally {
+                    // 确保关闭浏览器
+                    if (browser != null) {
+                        try {
+                            browser.close();
+                        } catch (Exception e) {
+                            System.out.println("关闭浏览器时出错: " + e.getMessage());
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                System.out.println("浏览器方式生成PDF失败: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }
 
-        // 8️⃣ 关闭浏览器
-        browser.close();
-
-        System.out.println("PDF 已生成！");
+        if (pdfGenerated) {
+            System.out.println("PDF已成功生成！");
+        } else {
+            System.out.println("PDF生成失败！");
+            System.out.println("使用说明：");
+            System.out.println("1. 确保已安装WKHtmlToPdf工具");
+            System.out.println("2. 可通过命令行参数指定WKHtmlToPdf路径，例如：");
+            System.out.println("   java -jar [jar文件名] [wkhtmltopdf.exe的完整路径]");
+            System.out.println("   或");
+            System.out.println("   mvn compile exec:java -Dexec.mainClass=com.aicv.airesume.utils.HtmlToPdfGenerator -Dexec.args=\"C:\\\\path\\\\to\\\\wkhtmltopdf.exe\"");
+        }
     }
 }
