@@ -27,55 +27,48 @@ public class PuppeteerBrowserManager {
                 return;
             }
             
-            // 1. 首先检查浏览器是否存在
-            String chromiumPath = findBrowserPath();
-            System.out.println("最终使用浏览器路径: " + chromiumPath);
+            String chromiumPath = "/usr/bin/chromium";
+            System.out.println("使用浏览器路径: " + chromiumPath);
             
-            // 2. 验证浏览器可执行文件
-            File browserFile = new File(chromiumPath);
-            if (!browserFile.exists()) {
-                throw new RuntimeException("浏览器文件不存在: " + chromiumPath);
-            }
-            if (!browserFile.canExecute()) {
-                throw new RuntimeException("浏览器文件不可执行: " + chromiumPath);
-            }
+            // 方法1：尝试设置系统属性
+            System.setProperty("puppeteer_product", "chrome");
             
-            // 3. 测试浏览器版本
-            testBrowserVersion(chromiumPath);
-            
-            // 4. 启动浏览器
-            LaunchOptions options = LaunchOptions.builder()
-                    .headless(true)
-                    .executablePath(chromiumPath)
-                    .product(Product.Chromium)
-                    .args(Arrays.asList(
-                        "--no-sandbox",
-                        "--disable-setuid-sandbox", 
-                        "--disable-dev-shm-usage",
-                        "--disable-gpu",
-                        "--disable-software-rasterizer",
-                        "--disable-web-security",
-                        "--no-first-run",
-                        "--no-default-browser-check",
-                        "--disable-default-apps",
-                        "--disable-translate",
-                        "--disable-extensions",
-                        "--remote-debugging-port=0",
-                        "--user-data-dir=/tmp/chrome-user-data"
-                    )).build();
-
+            // 方法2：使用不同的启动方式
             try {
-                browser = Puppeteer.launch(options);
-                System.out.println("Browser 已成功启动！");
+                // 尝试1：不使用 executablePath，让库自动发现
+                System.out.println("尝试自动发现浏览器...");
+                LaunchOptions autoOptions = LaunchOptions.builder()
+                        .headless(true)
+                        .args(Arrays.asList(
+                            "--no-sandbox",
+                            "--disable-setuid-sandbox", 
+                            "--disable-dev-shm-usage"
+                        )).build();
+                browser = Puppeteer.launch(autoOptions);
+            } catch (Exception e1) {
+                System.err.println("自动发现失败: " + e1.getMessage());
                 
-                // 测试浏览器是否正常工作
-                testBrowser();
-                
-            } catch (Exception e) {
-                System.err.println("Browser 启动失败: " + e.getMessage());
-                e.printStackTrace();
-                throw e;
+                // 尝试2：使用完整的启动选项但不指定 product
+                try {
+                    System.out.println("尝试指定路径但不指定product...");
+                    LaunchOptions options = LaunchOptions.builder()
+                            .headless(true)
+                            .executablePath(chromiumPath)
+                            .args(Arrays.asList(
+                                "--no-sandbox",
+                                "--disable-setuid-sandbox", 
+                                "--disable-dev-shm-usage",
+                                "--disable-gpu"
+                            )).build();
+                    browser = Puppeteer.launch(options);
+                } catch (Exception e2) {
+                    System.err.println("指定路径失败: " + e2.getMessage());
+                    throw e2;
+                }
             }
+            
+            System.out.println("Browser 已成功启动！");
+            testBrowser();
         }
     }
     
