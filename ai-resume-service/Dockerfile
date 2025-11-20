@@ -12,7 +12,7 @@ RUN mvn clean package -DskipTests
 FROM openjdk:11-jre-slim
 WORKDIR /app
 
-# 安装 Chromium 浏览器和所有必要依赖
+# 安装 Chromium 浏览器、WKHtmlToPdf 和所有必要依赖
 RUN apt-get update && apt-get install -y --no-install-recommends \
     wget \
     gnupg \
@@ -35,6 +35,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     tzdata \
     chromium \
     chromium-l10n \
+    wkhtmltopdf \
     && rm -rf /var/lib/apt/lists/*
 
 # 添加诊断命令
@@ -42,6 +43,9 @@ RUN echo "=== 检查Chromium安装 ===" && \
     which chromium && \
     ls -la /usr/bin/chromium* && \
     chromium --version && \
+    echo "=== 检查WKHtmlToPdf安装 ===" && \
+    which wkhtmltopdf && \
+    wkhtmltopdf --version && \
     echo "=== 检查完成 ==="
 
 # 设置时区
@@ -60,5 +64,6 @@ EXPOSE 8080
 ENV SPRING_PROFILES_ACTIVE=prod
 ENV CHROMIUM_PATH=/usr/bin/chromium
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV WKHTMLTOPDF_PATH=/usr/bin/wkhtmltopdf
 
 ENTRYPOINT ["java","-Xmx512m","-Djava.security.egd=file:/dev/./urandom","-jar","app.jar"]
