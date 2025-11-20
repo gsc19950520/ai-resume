@@ -32,7 +32,6 @@ public class PuppeteerBrowserManager {
             LaunchOptions options = LaunchOptions.builder()
                     .headless(true)
                     .executablePath(chromiumPath)
-                    .product(Product.Chromium)
                     .args(Arrays.asList(
                         "--no-sandbox",
                         "--disable-setuid-sandbox", 
