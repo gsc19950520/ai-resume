@@ -57,47 +57,102 @@ public class PuppeteerBrowserManager {
                 // 先尝试查找浏览器路径
                 String browserPath = findBrowserPath();
                 
-                // 直接尝试使用所有可能的产品类型，而不仅仅是根据路径判断的类型
-                // 按照兼容性从高到低的顺序尝试
-                Product[] productTypesToTry = {Product.Chrome, Product.Chromium};
+                logger.info("开始初始化浏览器，第 {} 次尝试，浏览器路径: {}", retry + 1, browserPath);
                 
-                for (Product product : productTypesToTry) {
-                    try {
-                        logger.info("开始初始化浏览器，第 {} 次尝试，使用产品类型: {}, 浏览器路径: {}", 
-                                retry + 1, product, browserPath);
+                // 尝试第一种方法：不设置产品类型，让jvppeteer自动检测
+                try {
+                    logger.info("方法1：不设置产品类型，让jvppeteer自动检测");
+                    
+                    // 构建配置 - 不设置产品类型
+                    LaunchOptions.Builder optionsBuilder = LaunchOptions.builder()
+                        .headless(true)
+                        .args(Arrays.asList(getBrowserArgs()));
                         
-                        // 构建配置
-                        LaunchOptions.Builder optionsBuilder = LaunchOptions.builder()
-                            .product(product)
-                            .headless(true)
-                            .args(Arrays.asList(getBrowserArgs()));
-                            
-                        // 本地环境下设置超时
-                        if (!isCloudEnv) {
-                            optionsBuilder.timeout(30000); // 本地环境设置30秒超时
-                        }
-                        
-                        // 构建完整的启动选项
-                        LaunchOptions options = optionsBuilder.executablePath(browserPath).build();
-                        
-                        // 尝试启动浏览器
-                        this.browser = Puppeteer.launch(options);
-                        
-                        // 浏览器已成功启动，更新日志状态
-                        logger.info("浏览器初始化成功，使用产品类型: {}", product);
-                        // 测试浏览器版本
-                        testBrowserVersion(browserPath);
-                        
-                        return; // 成功启动后直接返回
-                    } catch (Exception e) {
-                        // 如果当前产品类型启动失败，记录错误并尝试下一个产品类型
-                        logger.warn("使用产品类型 {} 启动浏览器失败: {}", product, e.getMessage());
-                        // 不抛出异常，继续尝试下一个产品类型
+                    // 本地环境下设置超时
+                    if (!isCloudEnv) {
+                        optionsBuilder.timeout(30000); // 本地环境设置30秒超时
                     }
+                    
+                    // 构建完整的启动选项
+                    LaunchOptions options = optionsBuilder.executablePath(browserPath).build();
+                    
+                    // 尝试启动浏览器
+                    this.browser = Puppeteer.launch(options);
+                    
+                    // 浏览器已成功启动，更新日志状态
+                    logger.info("浏览器初始化成功（自动检测产品类型）");
+                    // 测试浏览器版本
+                    testBrowserVersion(browserPath);
+                    
+                    return; // 成功启动后直接返回
+                } catch (Exception e) {
+                    logger.warn("方法1失败: {}", e.getMessage());
                 }
                 
-                // 如果所有产品类型都尝试失败，抛出异常
-                throw new RuntimeException("所有产品类型都无法启动浏览器");
+                // 尝试第二种方法：使用Chrome产品类型
+                try {
+                    logger.info("方法2：使用Chrome产品类型");
+                    
+                    // 构建配置 - 使用Chrome产品类型
+                    LaunchOptions.Builder optionsBuilder = LaunchOptions.builder()
+                        .product(Product.Chrome)
+                        .headless(true)
+                        .args(Arrays.asList(getBrowserArgs()));
+                        
+                    // 本地环境下设置超时
+                    if (!isCloudEnv) {
+                        optionsBuilder.timeout(30000); // 本地环境设置30秒超时
+                    }
+                    
+                    // 构建完整的启动选项
+                    LaunchOptions options = optionsBuilder.executablePath(browserPath).build();
+                    
+                    // 尝试启动浏览器
+                    this.browser = Puppeteer.launch(options);
+                    
+                    // 浏览器已成功启动，更新日志状态
+                    logger.info("浏览器初始化成功（使用Chrome产品类型）");
+                    // 测试浏览器版本
+                    testBrowserVersion(browserPath);
+                    
+                    return; // 成功启动后直接返回
+                } catch (Exception e) {
+                    logger.warn("方法2失败: {}", e.getMessage());
+                }
+                
+                // 尝试第三种方法：使用Chromium产品类型
+                try {
+                    logger.info("方法3：使用Chromium产品类型");
+                    
+                    // 构建配置 - 使用Chromium产品类型
+                    LaunchOptions.Builder optionsBuilder = LaunchOptions.builder()
+                        .product(Product.Chromium)
+                        .headless(true)
+                        .args(Arrays.asList(getBrowserArgs()));
+                        
+                    // 本地环境下设置超时
+                    if (!isCloudEnv) {
+                        optionsBuilder.timeout(30000); // 本地环境设置30秒超时
+                    }
+                    
+                    // 构建完整的启动选项
+                    LaunchOptions options = optionsBuilder.executablePath(browserPath).build();
+                    
+                    // 尝试启动浏览器
+                    this.browser = Puppeteer.launch(options);
+                    
+                    // 浏览器已成功启动，更新日志状态
+                    logger.info("浏览器初始化成功（使用Chromium产品类型）");
+                    // 测试浏览器版本
+                    testBrowserVersion(browserPath);
+                    
+                    return; // 成功启动后直接返回
+                } catch (Exception e) {
+                    logger.warn("方法3失败: {}", e.getMessage());
+                }
+                
+                // 所有方法都失败，抛出异常
+                throw new RuntimeException("所有方法都无法启动浏览器");
             } catch (Exception e) {
                 logger.error("浏览器初始化失败，第 {} 次尝试: {}", retry + 1, e.getMessage(), e);
                 
@@ -144,7 +199,7 @@ public class PuppeteerBrowserManager {
      */
     private String[] getBrowserArgs() {
         if (isCloudEnv) {
-            // 云环境参数 - 安全且资源受限环境的配置
+            // 云环境参数 - 增强的配置，添加更多稳定性选项
             return new String[]{
                 "--no-sandbox",
                 "--disable-setuid-sandbox",
@@ -155,7 +210,13 @@ public class PuppeteerBrowserManager {
                 "--disable-features=TranslateUI",
                 "--disable-features=IsolateOrigins,site-per-process",
                 "--enable-features=NetworkServiceInProcess",
-                "--window-size=1920,1080"
+                "--window-size=1920,1080",
+                "--no-zygote",
+                "--single-process",
+                "--no-first-run",
+                "--disable-extensions",
+                "--disable-background-networking",
+                "--remote-debugging-port=9222"
             };
         } else {
             // 本地环境参数 - 更加灵活的配置，优化开发体验
@@ -301,29 +362,9 @@ public class PuppeteerBrowserManager {
      * @return 对应的产品类型
      */
     private Product determineProductType(String browserPath) {
-        if (browserPath == null || browserPath.isEmpty()) {
-            logger.warn("浏览器路径为空，默认使用Chrome产品类型");
-            return Product.Chrome;
-        }
-        
-        // 从错误日志分析看，即使路径是/usr/bin/chromium且产品类型设置为Chromium，jvppeteer库仍报错不匹配
-        // 为了避免这个问题，在云环境中我们直接使用Chrome产品类型，因为它具有更好的兼容性
-        if (isCloudEnv) {
-            logger.info("在云环境中，直接使用Chrome产品类型以避免路径验证问题");
-            return Product.Chrome;
-        }
-        
-        // 本地环境仍然根据路径判断产品类型，但做了简化
-        String pathLower = browserPath.toLowerCase();
-        
-        if (pathLower.contains("edge")) {
-            logger.info("检测到Edge浏览器路径，但使用Chrome产品类型作为替代");
-            return Product.Chrome;
-        } else {
-            // 默认为Chrome，因为它在大多数情况下更具兼容性
-            logger.info("使用默认Chrome产品类型");
-            return Product.Chrome;
-        }
+        // 保留此方法以维持兼容性，但在当前实现中已不再直接使用
+        logger.info("调用determineProductType方法，但当前实现已不再依赖此方法的返回值");
+        return Product.Chrome;
     }
     
     private void testBrowser() throws Exception {
