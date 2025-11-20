@@ -37,6 +37,9 @@ Page({
     // 如果未登录，提示用户登录
     if (!this.data.userInfo) {
       this.showLoginTip()
+    } else {
+      // 如果已登录，调用接口获取最新个人信息
+      this.fetchUserInfo()
     }
 
     // 加载数据
@@ -48,6 +51,84 @@ Page({
     this.setData({
       userInfo: app.globalData.userInfo
     })
+    
+    // 如果已登录，刷新用户信息
+    if (this.data.userInfo) {
+      this.fetchUserInfo()
+    }
+  },
+
+  // 获取最新用户信息
+  fetchUserInfo: function() {
+    // 获取用户信息（优先使用全局数据，其次使用本地存储）
+    let userInfo = app.globalData.userInfo;
+    
+    // 如果全局数据不存在，尝试从本地存储获取
+    if (!userInfo) {
+      const userInfoStr = wx.getStorageSync('userInfo');
+      if (userInfoStr) {
+        try {
+          userInfo = JSON.parse(userInfoStr);
+        } catch (e) {
+          console.error('解析本地用户信息失败:', e);
+        }
+      }
+    }
+    
+    if (!userInfo || !userInfo.openId) {
+      console.log('没有有效的用户信息或openId，无法获取用户信息')
+      return
+    }
+    
+    console.log('开始获取用户信息，openId:', userInfo.openId)
+    
+    // 使用统一的cloudCall方法调用接口获取用户信息
+    app.cloudCall('/user/info', { openId: userInfo.openId }, 'GET')
+      .then(result => {
+        console.log('获取用户信息接口返回:', result)
+        
+        // 处理响应数据
+        let responseData;
+        if (result && result.data && typeof result.data === 'object') {
+          responseData = result.data;
+        } else if (typeof result === 'object') {
+          responseData = result;
+        } else {
+          console.error('获取用户信息返回格式无效:', result)
+          return;
+        }
+        
+        // 检查响应是否成功
+        if (responseData && (responseData.success === true || responseData.code === 200) && responseData.data) {
+          // 更新本地用户信息
+          const updatedUserInfo = responseData.data
+          console.log('获取到最新用户信息:', updatedUserInfo)
+          
+          // 更新页面数据
+          this.setData({
+            userInfo: updatedUserInfo
+          })
+          
+          // 更新全局用户信息
+          app.globalData.userInfo = updatedUserInfo
+          
+          // 更新本地存储
+          wx.setStorageSync('userInfo', JSON.stringify(updatedUserInfo))
+          if (updatedUserInfo.id) {
+            wx.setStorageSync('userId', updatedUserInfo.id)
+          }
+          if (updatedUserInfo.openId) {
+            wx.setStorageSync('openId', updatedUserInfo.openId)
+          }
+          
+          console.log('用户信息更新完成')
+        } else {
+          console.log('获取用户信息失败或返回格式异常:', responseData)
+        }
+      })
+      .catch(error => {
+        console.error('获取用户信息失败:', error)
+      })
   },
 
   // 显示登录提示
@@ -195,8 +276,8 @@ Page({
       confirmText: '去创建简历',
       success: (res) => {
         if (res.confirm) {
-          // 跳转到创建简历页面
-          wx.navigateTo({ url: '/pages/create/create' })
+          // 跳转到模板选择页面（main页面）
+          wx.navigateTo({ url: '/pages/template/list/list' })
         }
       }
     })

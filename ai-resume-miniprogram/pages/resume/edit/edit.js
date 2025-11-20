@@ -71,8 +71,39 @@ Page({
 
   onLoad: function(options) {
     try {
-      // 优先从options获取模板ID
+      // 优先从options获取模板ID和resumeId
       let templateId = options.templateId || this.data.resumeInfo.templateId;
+      let resumeId = options.resumeId;
+      
+      // 检查是否有从预览页面传递过来的编辑数据
+      const app = getApp();
+      if (app.globalData.editResumeData && app.globalData.editTemplateId === templateId) {
+        console.log('检测到从预览页面传递的编辑数据');
+        
+        // 使用预览页面传递的数据
+        const editData = app.globalData.editResumeData;
+        const editTemplateId = app.globalData.editTemplateId;
+        
+        // 清空全局编辑数据，避免重复加载
+        app.globalData.editResumeData = null;
+        app.globalData.editTemplateId = null;
+        app.globalData.editResumeId = null;
+        
+        // 格式化并填充数据
+        this.fillResumeDataFromBackend(editData, editTemplateId);
+        
+        // 标记已从后端加载数据
+        this.setData({
+          hasLoadedFromBackend: true
+        });
+        
+        console.log('成功加载预览页面传递的编辑数据');
+        
+        // 加载职位类型和用户信息
+        this.loadJobTypes();
+        this.loadUserInfo();
+        return;
+      }
       
       // 先调用后端接口获取用户最新简历数据（异步操作）
       this.loadLatestResumeData(templateId);

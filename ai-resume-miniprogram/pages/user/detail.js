@@ -415,6 +415,20 @@ Page({
           // 同时保存到本地存储专用键，用于离线使用，同样保留原始用户ID
             wx.setStorageSync('userInfoLocal', JSON.stringify(updatedUserInfo))
           
+          // 触发用户信息更新事件，通知其他页面数据已更新
+          wx.notifyBLECharacteristicValueChange({
+            deviceId: 'userInfoUpdated',
+            serviceId: 'userService',
+            characteristicId: 'userInfoCharacteristic',
+            state: true,
+            success: function() {
+              console.info('用户信息更新事件已触发');
+            },
+            fail: function(error) {
+              console.warn('触发用户信息更新事件失败:', error);
+            }
+          });
+          
           // 根据是否有返回路径参数决定跳转方式
           setTimeout(() => {
             if (this.returnToPage) {

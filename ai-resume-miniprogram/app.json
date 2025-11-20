@@ -1,6 +1,7 @@
 {
   "pages": [
     "pages/index/index",
+    "pages/resume/redirect/redirect",
     "pages/resume/main/main",
     "pages/login/login",
     "pages/profile/profile",
@@ -44,7 +45,7 @@
         "selectedIconPath": "images/home_active.png"
       },
       {
-        "pagePath": "pages/resume/main/main",
+        "pagePath": "pages/resume/redirect/redirect",
         "text": "简历",
         "iconPath": "images/resume.png",
         "selectedIconPath": "images/resume_active.png"

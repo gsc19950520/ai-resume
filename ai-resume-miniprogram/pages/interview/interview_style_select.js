@@ -32,18 +32,40 @@ Page({
     this.setData({
       resumeId: options.resumeId || latestResumeData?.id || '',
       userId: app.globalData.userInfo?.id || wx.getStorageSync('userId') || '0',
-      industryJobTag: options.industryJobTag || latestResumeData?.occupation || ''
+      industryJobTag: options.industryJobTag || latestResumeData?.occupation || '',
+      // 新增：标记是否直接来自首页的简历数据
+      hasResumeFromHome: !!latestResumeData || !!options.resumeId
     })
 
-    // 如果有全局简历数据，直接使用，否则加载用户简历列表
+    // 如果有全局简历数据或传入了resumeId，直接使用，否则加载用户简历列表
     if (latestResumeData) {
       this.processLatestResumeData(latestResumeData)
+    } else if (options.resumeId) {
+      // 如果有resumeId参数，构建单个简历数据
+      this.processSingleResumeData(options.resumeId, options.title, options.occupation)
     } else {
       this.loadUserResumes()
     }
     
     // 加载面试官风格配置
     this.loadPersonaConfigs()
+  },
+
+  // 处理单个简历数据（来自首页）
+  processSingleResumeData: function(resumeId, title, occupation) {
+    // 构建简历列表（只包含该简历）
+    const resumeList = [{
+      id: resumeId,
+      title: title || '我的简历',
+      occupation: occupation || '未设置职位'
+    }]
+    
+    this.setData({
+      resumeList: resumeList,
+      resumeIndex: 0,
+      selectedResume: resumeList[0],
+      industryJobTag: occupation || this.data.industryJobTag
+    })
   },
   
   // 处理最新简历数据
@@ -383,12 +405,12 @@ Page({
     wx.navigateBack();
   },
   
-  // 跳转到创建简历页面
+  // 跳转到创建简历页面（模板选择页面）
   navigateToCreateResume() {
     wx.navigateTo({
-      url: '/pages/create/create',
+      url: '/pages/template/list/list',
       fail: (err) => {
-        console.error('跳转到创建简历页面失败:', err);
+        console.error('跳转到模板选择页面失败:', err);
         wx.showToast({
           title: '页面跳转失败',
           icon: 'none'

@@ -2,7 +2,7 @@
 <view class="container">
 
   <!-- 简历选择模块 - 有简历时显示 -->
-  <block wx:if="{{resumeList.length > 0}}">
+  <block wx:if="{{resumeList.length > 0 && !hasResumeFromHome}}">
   <!-- 顶部导航栏 -->
   <view class="header">
     <view class="header-left">
@@ -31,10 +31,9 @@
   <block wx:elif="{{resumeList.length === 0}}">
     <view class="no-resume-prompt">
       <view class="no-resume-icon">📄</view>
-      <view class="no-resume-title">您还没有上传简历</view>
-      <view class="no-resume-desc">为了开始面试模拟，您需要先创建或上传一份简历</view>
+      <view class="no-resume-title">您还没有创建简历</view>
+      <view class="no-resume-desc">为了开始面试模拟，您需要先创建一份简历</view>
       <view class="buttons-container">
-        <button class="upload-resume-btn" bindtap="uploadResume" type="default">上传简历</button>
         <button class="create-resume-btn" bindtap="navigateToCreateResume" type="default">创建简历</button>
       </view>
     </view>
@@ -66,7 +65,7 @@
     </button>
     
       <!-- 开始面试按钮 -->
-    <button class="start-interview-btn {{selectedPersona && resumeList.length > 0 ? 'active' : 'disabled'}}" disabled="{{!selectedPersona || resumeList.length === 0}}" bindtap="startInterview">
+    <button class="start-interview-btn {{selectedPersona && selectedResume ? 'active' : 'disabled'}}" disabled="{{!selectedPersona || !selectedResume}}" bindtap="startInterview">
       开始面试
     </button>
   </view>

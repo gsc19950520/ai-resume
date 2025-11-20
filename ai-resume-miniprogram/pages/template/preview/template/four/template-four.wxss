@@ -13,7 +13,7 @@
 
 /* 左侧栏 */
 .template-four-container .left-panel {
-  width: 30%;
+  width: 35%;
   min-height: 100mm;
   background: #1482918e;
   border-radius: 19rpx;
@@ -137,7 +137,7 @@
 
 /* 右侧栏 */
 .template-four-container .right-panel {
-  width: 70%;
+  width: 68%;
   padding-left: 20rpx;
   gap: 10rpx;
   display: flex;

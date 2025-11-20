@@ -52,6 +52,39 @@ Page({
     }
   },
 
+  // 监听用户信息更新事件
+  onLoad: function() {
+    // 监听用户信息更新事件
+    const app = getApp();
+    const that = this;
+    
+    // 监听蓝牙特征值变化事件（这里用于监听用户信息更新）
+    wx.onBLECharacteristicValueChange(function(res) {
+      if (res.deviceId === 'userInfoUpdated' && res.characteristicId === 'userInfoCharacteristic') {
+        console.info('收到用户信息更新事件');
+        // 重新加载用户信息
+        that.reloadUserInfoFromStorage();
+      }
+    });
+  },
+
+  // 从本地存储重新加载用户信息
+  reloadUserInfoFromStorage: function() {
+    const app = getApp();
+    const userInfoStr = wx.getStorageSync('userInfo');
+    
+    if (userInfoStr) {
+      try {
+        const userInfo = JSON.parse(userInfoStr);
+        this.setData({ userInfo });
+        app.globalData.userInfo = userInfo;
+        console.info('用户信息已从本地存储重新加载');
+      } catch (e) {
+        console.error('重新加载用户信息失败:', e);
+      }
+    }
+  },
+
   // 点击用户信息区域
   onUserInfoTap: function() {
     if (!this.data.userInfo) {

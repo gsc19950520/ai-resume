@@ -7,7 +7,7 @@
     </view>
     <view class="user-info">
       <view class="nickname">{{userInfo ? userInfo.nickName : '点击登录'}}</view>
-      <view class="user-id">{{userInfo ? 'ID: ' + userInfo.openId : '登录后享受更多功能'}}</view>
+      <view class="user-id">{{userInfo ? '' : '登录后享受更多功能'}}</view>
     </view>
     <view class="arrow">
       <image src="/images/arrow.png" mode="aspectFit"></image>
@@ -26,9 +26,18 @@
       <view class="stat-label">面试次数</view>
     </view>
   </view>
-
-  <!-- 面试历史 -->
-  <view class="menu-section" wx:if="{{userInfo}}">
+  
+  <!-- 功能列表 -->
+  <view class="menu-section">
+    <view class="menu-item" bindtap="editProfile">
+      <view class="menu-icon">
+        <image src="/images/user.png" mode="aspectFit"></image>
+      </view>
+      <view class="menu-text">信息编辑</view>
+      <view class="menu-arrow">
+        <image src="/images/arrow.png" mode="aspectFit"></image>
+      </view>
+    </view>
     <view class="menu-item" bindtap="interviewHistory">
       <view class="menu-icon">
         <image src="/images/list.png" mode="aspectFit"></image>
@@ -38,31 +47,8 @@
         <image src="/images/arrow.png" mode="aspectFit"></image>
       </view>
     </view>
-  </view>
-  
-  <!-- 功能列表 -->
-  <view class="menu-section">
-    <view class="menu-item" bindtap="myResumes">
-      <view class="menu-icon">
-        <image src="/images/resume.png" mode="aspectFit"></image>
-      </view>
-      <view class="menu-text">我的简历</view>
-      <view class="menu-arrow">
-        <image src="/images/arrow.png" mode="aspectFit"></image>
-      </view>
-    </view>
     
-    <view class="menu-item" bindtap="editProfile">
-      <view class="menu-icon">
-        <image src="/images/user.png" mode="aspectFit"></image>
-      </view>
-      <view class="menu-text">个人信息编辑</view>
-      <view class="menu-arrow">
-        <image src="/images/arrow.png" mode="aspectFit"></image>
-      </view>
-    </view>
-    
-    <view class="menu-item" bindtap="settings">
+    <!-- <view class="menu-item" bindtap="settings">
       <view class="menu-icon">
         <image src="/images/settings.png" mode="aspectFit"></image>
       </view>
@@ -70,7 +56,7 @@
       <view class="menu-arrow">
         <image src="/images/arrow.png" mode="aspectFit"></image>
       </view>
-    </view>
+    </view> -->
     
     <view class="menu-item" bindtap="feedback">
       <view class="menu-icon">
@@ -96,8 +82,4 @@
   <!-- 退出登录按钮 -->
   <button class="logout-btn" wx:if="{{userInfo}}" bindtap="logout">退出登录</button>
 
-  <!-- 底部版本信息 -->
-  <view class="version-info">
-    <text>当前版本：v1.0.0</text>
-  </view>
 </view>

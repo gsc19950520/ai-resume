@@ -1,0 +1,7 @@
+<!--pages/resume/redirect/redirect.wxml-->
+<view class="container">
+  <view class="loading-container">
+    <text class="loading-text">正在加载简历...</text>
+    <view class="loading-spinner"></view>
+  </view>
+</view>

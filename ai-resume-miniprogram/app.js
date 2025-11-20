@@ -382,6 +382,9 @@ App({
         console.error('保存用户信息到本地存储失败:', e);
       }
       
+      // 登录成功后立即获取用户详细信息
+      this.fetchUserInfoAfterLogin(userInfo);
+      
       // 回调成功，返回标准格式的响应对象
       const successResponse = { code: 0, message: '登录成功' };
       console.info('登录成功处理完成，返回响应:', successResponse);
@@ -396,6 +399,61 @@ App({
       });
       if (callback) callback(new Error(errorMsg));
     }
+  },
+  
+  // 登录成功后获取用户详细信息
+  fetchUserInfoAfterLogin: function(userInfo) {
+    console.info('开始获取用户详细信息，userInfo:', userInfo);
+    
+    if (!userInfo.openId) {
+      console.warn('用户openId不存在，无法获取详细信息');
+      return;
+    }
+    
+    // 调用用户信息接口获取详细信息
+    this.cloudCall('/user/info', { openId: userInfo.openId }, 'GET')
+      .then(res => {
+        console.info('获取用户详细信息成功，响应:', res);
+        
+        if (res && res.success && res.data) {
+          const userData = res.data;
+          
+          // 合并详细信息到用户信息
+          const updatedUserInfo = { ...userInfo, ...userData };
+          
+          // 更新全局用户信息
+          this.globalData.userInfo = updatedUserInfo;
+          
+          // 更新本地存储
+          try {
+            wx.setStorageSync('userInfo', JSON.stringify(updatedUserInfo));
+            wx.setStorageSync('userInfoLocal', JSON.stringify(updatedUserInfo));
+            console.info('用户详细信息保存成功');
+          } catch (e) {
+            console.error('保存用户详细信息到本地存储失败:', e);
+          }
+          
+          // 触发用户信息更新事件，供其他页面监听
+          wx.notifyBLECharacteristicValueChange({
+            deviceId: 'userInfoUpdated',
+            serviceId: 'userService',
+            characteristicId: 'userInfoCharacteristic',
+            state: true,
+            success: function() {
+              console.info('用户信息更新事件已触发');
+            },
+            fail: function(error) {
+              console.warn('触发用户信息更新事件失败:', error);
+            }
+          });
+          
+        } else {
+          console.error('获取用户详细信息失败:', res);
+        }
+      })
+      .catch(err => {
+        console.error('获取用户详细信息接口调用失败:', err);
+      });
   },
 
   // 退出登录
