@@ -54,14 +54,12 @@ public class PuppeteerBrowserManager {
     private void initializeBrowser() {
         for (int retry = 0; retry < MAX_RETRY_COUNT; retry++) {
             try {
-                logger.info("开始初始化浏览器，第 {} 次尝试", retry + 1);
-                
                 // 先尝试查找浏览器路径，以便确定正确的产品类型
                 String browserPath = findBrowserPath();
                 
                 // 尝试使用determineProductType返回的产品类型启动
                 Product browserProduct = determineProductType(browserPath);
-                logger.info("使用浏览器路径: {}，对应产品类型: {}", browserPath, browserProduct);
+                logger.info("开始初始化浏览器，第 {} 次尝试，使用浏览器路径: {}，对应产品类型: {}", retry + 1, browserPath, browserProduct);
                 
                 // 构建基础配置 - 使用builder模式
                 LaunchOptions.Builder optionsBuilder = LaunchOptions.builder()
