@@ -58,6 +58,8 @@ public class PuppeteerBrowserManager {
                 
                 // 先尝试查找浏览器路径，以便确定正确的产品类型
                 String browserPath = findBrowserPath();
+                
+                // 尝试使用determineProductType返回的产品类型启动
                 Product browserProduct = determineProductType(browserPath);
                 logger.info("使用浏览器路径: {}，对应产品类型: {}", browserPath, browserProduct);
                 
@@ -72,9 +74,36 @@ public class PuppeteerBrowserManager {
                     optionsBuilder.timeout(30000); // 本地环境设置30秒超时
                 }
                 
-                // 尝试使用指定路径启动
-                LaunchOptions pathOptions = optionsBuilder.executablePath(browserPath).build();
-                this.browser = Puppeteer.launch(pathOptions);
+                try {
+                    // 尝试使用指定路径和产品类型启动
+                    LaunchOptions pathOptions = optionsBuilder.executablePath(browserPath).build();
+                    this.browser = Puppeteer.launch(pathOptions);
+                } catch (Exception e) {
+                    // 如果启动失败且错误信息包含产品类型不匹配的提示，尝试使用备用产品类型
+                    if (e.getMessage() != null && e.getMessage().contains("The ExecutablePath does not match the product")) {
+                        logger.warn("产品类型不匹配，尝试使用备用产品类型启动");
+                        
+                        // 切换产品类型：如果是Chromium则切换到Chrome，如果是Chrome则切换到Chromium
+                        Product alternativeProduct = (browserProduct == Product.Chromium) ? Product.Chrome : Product.Chromium;
+                        logger.info("尝试使用备用产品类型: {} 启动浏览器", alternativeProduct);
+                        
+                        // 使用备用产品类型重新构建配置
+                        LaunchOptions.Builder altOptionsBuilder = LaunchOptions.builder()
+                            .product(alternativeProduct)
+                            .headless(true)
+                            .args(Arrays.asList(getBrowserArgs()));
+                        
+                        if (!isCloudEnv) {
+                            altOptionsBuilder.timeout(30000);
+                        }
+                        
+                        LaunchOptions altPathOptions = altOptionsBuilder.executablePath(browserPath).build();
+                        this.browser = Puppeteer.launch(altPathOptions);
+                    } else {
+                        // 如果不是产品类型不匹配的错误，则重新抛出异常
+                        throw e;
+                    }
+                }
                 
                 // 浏览器已成功启动，更新日志状态
                 logger.info("浏览器初始化成功，正在验证版本信息");
@@ -293,7 +322,13 @@ public class PuppeteerBrowserManager {
         
         // 根据路径中的关键字判断产品类型
         String pathLower = browserPath.toLowerCase();
-        if (pathLower.contains("chromium") || pathLower.contains("/usr/bin/chromium")) {
+        
+        // 在云环境中，对于Chromium路径也优先尝试使用Chrome产品类型
+        // 这是为了解决某些环境中虽然路径是chromium但实际需要使用Chrome产品类型的问题
+        if (isCloudEnv && (pathLower.contains("chromium") || pathLower.contains("/usr/bin/chromium"))) {
+            logger.info("在云环境中检测到Chromium浏览器路径，优先使用Chrome产品类型");
+            return Product.Chrome;
+        } else if (pathLower.contains("chromium") || pathLower.contains("/usr/bin/chromium")) {
             logger.info("检测到Chromium浏览器路径，使用Chromium产品类型");
             return Product.Chromium;
         } else if (pathLower.contains("edge")) {
