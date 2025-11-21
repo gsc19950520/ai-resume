@@ -35,6 +35,11 @@ public class ResumeProject {
     private String description; // 项目描述
     
     private Integer orderIndex; // 排序索引
+    
+    private String role; // 项目角色
+    
+    @Column(name = "tech_stack")
+    private String techStack; // 技术栈
 
     @CreationTimestamp
     @Column(name = "create_time", nullable = false)

@@ -1,6 +1,8 @@
 package com.aicv.airesume.model.dto;
 
 import lombok.Data;
+
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -68,7 +70,7 @@ public class ResumeAnalysisDTO {
     /**
      * 分析完成时间
      */
-    private String analysisTime;
+    private Date analysisTime;
 
     /**
      * 候选人基本信息内部类
@@ -76,11 +78,17 @@ public class ResumeAnalysisDTO {
     @Data
     public static class CandidateInfo {
         private String name;
+        private String phone; // 电话
+        private String email; // 邮箱
+        private Integer gender;
         private String jobTitle;
         private Integer workYears;
         private String educationLevel;
         private String expectedSalary;
         private String selfEvaluation;
+        private String school; // 学校名称
+        private String education; // 学位
+        private String major; // 专业
     }
 
     /**
@@ -101,9 +109,7 @@ public class ResumeAnalysisDTO {
     @Data
     public static class TechSkill {
         private String name;
-        private String category;
         private String proficiency;
-        private Integer yearsOfExperience;
         private Boolean isCoreSkill;
     }
 
@@ -150,23 +156,8 @@ public class ResumeAnalysisDTO {
      */
     @Data
     public static class InterviewQuestions {
-        private List<QuestionDetail> technicalQuestions;
-        private List<QuestionDetail> behavioralQuestions;
-        private List<QuestionDetail> situationalQuestions;
-        private List<QuestionDetail> projectQuestions;
-        private List<QuestionDetail> cultureFitQuestions;
+        private List<String> questions;
+        private String analysisType;
     }
-
-    /**
-     * 问题详情内部类
-     */
-    @Data
-    public static class QuestionDetail {
-        private String question;
-        private String category;
-        private String difficulty;
-        private String purpose;
-        private List<String> expectedPoints;
-        private String followUpQuestions;
-    }
+    
 }

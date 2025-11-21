@@ -16,6 +16,9 @@ import com.aicv.airesume.repository.InterviewQuestionRepository;
 import com.aicv.airesume.entity.InterviewQuestion;
 import com.aicv.airesume.service.InterviewService;
 import com.aicv.airesume.service.AIGenerateService;
+import com.aicv.airesume.service.ResumeAnalysisService;
+import com.aicv.airesume.service.ResumeService;
+import com.aicv.airesume.model.dto.ResumeAnalysisDTO;
 import com.aicv.airesume.utils.AiServiceUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -30,6 +33,7 @@ import org.springframework.util.StringUtils;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 
 /**
  * 面试服务实现类
@@ -65,6 +69,12 @@ public class InterviewServiceImpl implements InterviewService {
     @Autowired
     private DynamicConfigService dynamicConfigService;
     
+    @Autowired
+    private ResumeAnalysisService resumeAnalysisService;
+    
+    @Autowired
+    private ResumeService resumeService;
+    
     // 保存AI调用的跟踪日志
      private void saveAiTraceLog(String sessionId, String actionType, String promptInput, String aiResponse) {
          try {
@@ -85,15 +95,52 @@ public class InterviewServiceImpl implements InterviewService {
         try {
             // 1. 获取简历内容
             Resume resume = resumeRepository.findById(resumeId).orElseThrow(() -> new RuntimeException("简历不存在"));
-            String resumeText = resume.getOriginalContent() != null ? resume.getOriginalContent() : "";
-            if (resumeText.isEmpty() && resume.getOptimizedContent() != null) {
-                resumeText = resume.getOptimizedContent();
+            
+            // 2. 调用ResumeAnalysisService分析简历，获取结构化信息 - 添加异常处理和降级策略
+            ResumeAnalysisDTO analysisDTO = null;
+            List<String> techItems = new ArrayList<>();
+            List<Map<String, Object>> projectPoints = new ArrayList<>();
+            String initialDepthLevel = "usage"; // 默认深度级别
+            Map<String, Object> interviewState = new HashMap<>();
+            
+            try {
+                // 调用简历分析服务
+                analysisDTO = resumeAnalysisService.analyzeResume(resumeId, null, "intermediate");
+                log.info("成功获取简历分析结果，包含基本信息、技术分析和项目分析");
+                
+                // 从分析结果中提取技术项和项目点
+                techItems = extractTechItemsFromAnalysis(analysisDTO);
+                projectPoints = extractProjectPointsFromAnalysis(analysisDTO);
+                log.info("从分析结果中成功提取数据: 技术项{}个，项目点{}个", techItems.size(), projectPoints.size());
+            } catch (Exception analysisException) {
+                // 降级策略1：简历分析服务调用失败，记录详细错误
+                log.error("简历分析服务调用失败: {}, 错误详情: {}", 
+                        analysisException.getMessage(), ExceptionUtils.getStackTrace(analysisException));
+                // 继续执行，将使用默认值或备用方法
             }
-
-            // 2. 调用projectAnalyzer模块提取技术项和项目点
-            Map<String, Object> extractedData = extractTechItemsAndProjectPoints(resumeText);
-            List<String> techItems = (List<String>) extractedData.get("techItems");
-            List<Map<String, Object>> projectPoints = (List<Map<String, Object>>) extractedData.get("projectPoints");
+            
+            // 降级策略2：如果技术项或项目点为空，使用原始文本提取方法
+            if (techItems.isEmpty() || projectPoints.isEmpty()) {
+                log.warn("简历分析结果不完整或为空，使用备用方法提取数据");
+                try {
+                    // 使用从五张表关联查询获取的完整简历内容
+                    Map<String, Object> fullResumeData = resumeService.getResumeFullData(resumeId);
+                    String resumeContent = convertFullDataToText(fullResumeData);
+                    Map<String, Object> extractedData = extractTechItemsAndProjectPoints(resumeContent);
+                    if (extractedData != null) {
+                        if (techItems.isEmpty() && extractedData.containsKey("techItems")) {
+                            techItems = (List<String>) extractedData.get("techItems");
+                        }
+                        if (projectPoints.isEmpty() && extractedData.containsKey("projectPoints")) {
+                            projectPoints = (List<Map<String, Object>>) extractedData.get("projectPoints");
+                        }
+                        log.info("备用方法提取数据成功: 技术项{}个，项目点{}个", techItems.size(), projectPoints.size());
+                    }
+                } catch (Exception extractionException) {
+                    log.error("备用方法提取数据失败: {}", extractionException.getMessage());
+                    // 继续执行，使用空列表或默认值
+                }
+            }
 
             // 3. 创建面试会话
             InterviewSession session = new InterviewSession();
@@ -117,22 +164,64 @@ public class InterviewServiceImpl implements InterviewService {
             session.setProjectPoints(objectMapper.writeValueAsString(projectPoints));
             
             // 初始化面试状态
-            Map<String, Object> interviewState = new HashMap<>();
             interviewState.put("usedTechItems", new ArrayList<>());
             interviewState.put("usedProjectPoints", new ArrayList<>());
-            interviewState.put("currentDepthLevel", "usage");
+            
+            // 根据经验级别设置初始深度 - 添加异常处理
+            try {
+                if (analysisDTO != null && analysisDTO.getExperienceLevel() != null) {
+                    initialDepthLevel = getInitialDepthLevelByExperience(analysisDTO.getExperienceLevel());
+                    // 保存更多分析信息以便后续使用
+                    interviewState.put("candidateStrengths", analysisDTO.getStrengths());
+                    interviewState.put("improvementAreas", analysisDTO.getImprovements());
+                } else {
+                    // 降级策略3：如果没有经验级别信息，使用默认值
+                    log.warn("没有获取到经验级别信息，使用默认深度级别: {}", initialDepthLevel);
+                }
+            } catch (Exception e) {
+                log.error("设置初始深度级别失败: {}", e.getMessage());
+            }
+            interviewState.put("currentDepthLevel", initialDepthLevel);
+            
             session.setInterviewState(objectMapper.writeValueAsString(interviewState));
 
             sessionRepository.save(session);
 
-            // 4. 动态生成第一个问题
-            Map<String, Object> firstQuestionData = generateNextQuestion(
-                    techItems,
-                    projectPoints,
-                    interviewState,
-                    session.getSessionTimeRemaining(),
-                    session.getPersona()
-            );
+            // 4. 动态生成第一个问题 - 添加异常处理和降级策略
+            Map<String, Object> firstQuestionData = null;
+            try {
+                firstQuestionData = generateNextQuestion(
+                        techItems,
+                        projectPoints,
+                        interviewState,
+                        session.getSessionTimeRemaining(),
+                        session.getPersona()
+                );
+                if (firstQuestionData == null || firstQuestionData.get("nextQuestion") == null) {
+                    throw new RuntimeException("生成的问题数据为空");
+                }
+            } catch (Exception questionException) {
+                // 降级策略4：生成问题失败，使用备用问题生成方法
+                log.error("动态生成问题失败: {}, 尝试使用备用方法", questionException.getMessage());
+                try {
+                    // 使用备用的问题生成方法
+                    if (!projectPoints.isEmpty()) {
+                        firstQuestionData = generateFirstQuestion(projectPoints, session.getJobType());
+                    } else {
+                        // 降级策略5：如果项目点也为空，使用静态默认问题
+                        log.warn("无可用项目点，使用静态默认问题");
+                        firstQuestionData = new HashMap<>();
+                        firstQuestionData.put("nextQuestion", "请简单介绍一下您自己和您的工作经验。");
+                        firstQuestionData.put("depthLevel", "usage");
+                    }
+                } catch (Exception fallbackException) {
+                    log.error("备用问题生成方法也失败: {}", fallbackException.getMessage());
+                    // 最终降级：使用最简单的默认问题
+                    firstQuestionData = new HashMap<>();
+                    firstQuestionData.put("nextQuestion", "您好，请开始您的自我介绍。");
+                    firstQuestionData.put("depthLevel", "usage");
+                }
+            }
             
             // 保存AI生成问题的跟踪日志
               saveAiTraceLog(session.getSessionId(), "generate_question", 
@@ -169,8 +258,142 @@ public class InterviewServiceImpl implements InterviewService {
 
             return response;
         } catch (Exception e) {
-            log.error("开始面试失败", e);
-            throw new RuntimeException("面试初始化失败: " + e.getMessage());
+                log.error("开始面试失败: {}, 详细错误: {}", 
+                        e.getMessage(), ExceptionUtils.getStackTrace(e));
+                
+                // 最终降级策略：即使初始化失败，也尝试提供一个基本的响应
+                try {
+                    // 创建一个基本的会话
+                    InterviewSession fallbackSession = new InterviewSession();
+                    fallbackSession.setSessionId(UUID.randomUUID().toString());
+                    fallbackSession.setUserId(userId);
+                    fallbackSession.setResumeId(resumeId);
+                    fallbackSession.setStatus("IN_PROGRESS");
+                    fallbackSession.setJobType(null);
+                    fallbackSession.setQuestionCount(0);
+                    fallbackSession.setAdaptiveLevel("auto");
+                    fallbackSession.setPersona(StringUtils.hasText(persona) ? persona : dynamicConfigService.getDefaultPersona());
+                    fallbackSession.setSessionSeconds(sessionSeconds != null ? sessionSeconds : dynamicConfigService.getDefaultSessionSeconds());
+                    fallbackSession.setSessionTimeRemaining(fallbackSession.getSessionSeconds());
+                    sessionRepository.save(fallbackSession);
+                    
+                    // 创建一个简单的响应
+                    InterviewResponseDTO fallbackResponse = new InterviewResponseDTO();
+                    fallbackResponse.setSessionId(fallbackSession.getSessionId());
+                    
+                    Map<String, Object> additionalInfo = new HashMap<>();
+                    additionalInfo.put("firstQuestion", "系统暂时无法分析您的简历，但我们仍可以继续面试。请开始您的自我介绍。");
+                    additionalInfo.put("questionId", UUID.randomUUID().toString());
+                    additionalInfo.put("depthLevel", "usage");
+                    additionalInfo.put("sessionTimeRemaining", fallbackSession.getSessionTimeRemaining());
+                    fallbackResponse.setAdditionalInfo(additionalInfo);
+                    
+                    log.info("成功提供降级响应，会话ID: {}", fallbackSession.getSessionId());
+                    return fallbackResponse;
+                } catch (Exception fallbackException) {
+                    log.error("降级响应创建失败: {}", fallbackException.getMessage());
+                    // 如果所有降级策略都失败，才抛出异常
+                    throw new RuntimeException("面试初始化失败，请稍后再试");
+                }
+            }
+    }
+    
+    /**
+     * 从简历分析结果中提取技术项列表
+     * @param analysisDTO 简历分析结果
+     * @return 技术项列表
+     */
+    private List<String> extractTechItemsFromAnalysis(ResumeAnalysisDTO analysisDTO) {
+        // 添加空值检查，避免空指针异常
+        if (analysisDTO == null) {
+            log.warn("提取技术项：分析结果为空");
+            return new ArrayList<>();
+        }
+        List<String> techItems = new ArrayList<>();
+        
+        // 从主要技能中提取
+        if (analysisDTO.getTechnicalAnalysis() != null && 
+            analysisDTO.getTechnicalAnalysis().getPrimarySkills() != null) {
+            analysisDTO.getTechnicalAnalysis().getPrimarySkills().stream()
+                .filter(Objects::nonNull)
+                .map(ResumeAnalysisDTO.TechSkill::getName)
+                .forEach(techItems::add);
+        }
+        
+        // 从次要技能中提取
+        if (analysisDTO.getTechnicalAnalysis() != null && 
+            analysisDTO.getTechnicalAnalysis().getSecondarySkills() != null) {
+            analysisDTO.getTechnicalAnalysis().getSecondarySkills().stream()
+                .filter(Objects::nonNull)
+                .map(ResumeAnalysisDTO.TechSkill::getName)
+                .forEach(techItems::add);
+        }
+        
+        // 从技能熟练度映射中提取
+        if (analysisDTO.getTechnicalAnalysis() != null && 
+            analysisDTO.getTechnicalAnalysis().getSkillProficiency() != null) {
+            techItems.addAll(analysisDTO.getTechnicalAnalysis().getSkillProficiency().keySet());
+        }
+        
+        return techItems;
+    }
+    
+    /**
+     * 从简历分析结果中提取项目点列表
+     * @param analysisDTO 简历分析结果
+     * @return 项目点列表
+     */
+    private List<Map<String, Object>> extractProjectPointsFromAnalysis(ResumeAnalysisDTO analysisDTO) {
+        // 添加空值检查，避免空指针异常
+        if (analysisDTO == null) {
+            log.warn("提取项目点：分析结果为空");
+            return new ArrayList<>();
+        }
+        List<Map<String, Object>> projectPoints = new ArrayList<>();
+        
+        if (analysisDTO.getProjectAnalysis() != null && 
+            analysisDTO.getProjectAnalysis().getKeyProjects() != null) {
+            for (ResumeAnalysisDTO.ProjectInfo project : analysisDTO.getProjectAnalysis().getKeyProjects()) {
+                if (project != null) {
+                    Map<String, Object> projectPoint = new HashMap<>();
+                    projectPoint.put("name", project.getName());
+                    projectPoint.put("description", project.getDescription());
+                    projectPoint.put("role", project.getRole());
+                    projectPoint.put("technologies", project.getTechnologies());
+                    projectPoint.put("complexity", project.getComplexity());
+                    projectPoint.put("businessImpact", project.getBusinessImpact());
+                    projectPoints.add(projectPoint);
+                }
+            }
+        }
+        
+        return projectPoints;
+    }
+    
+    /**
+     * 根据经验级别确定初始深度
+     * @param experienceLevel 经验级别
+     * @return 初始深度级别
+     */
+    private String getInitialDepthLevelByExperience(String experienceLevel) {
+        if (experienceLevel == null) {
+            return "usage";
+        }
+        
+        switch (experienceLevel.toLowerCase()) {
+            case "初级":
+            case "助理":
+                return "usage";
+            case "中级":
+                return "application";
+            case "高级":
+            case "资深":
+                return "principle";
+            case "专家":
+            case "架构师":
+                return "design";
+            default:
+                return "usage";
         }
     }
 
@@ -1107,6 +1330,97 @@ public class InterviewServiceImpl implements InterviewService {
     /**
      * dynamicInterviewer模块：生成下一个问题
      */
+    /**
+     * 将完整的简历数据转换为文本格式，用于提取技术项和项目点
+     * @param fullResumeData 完整的简历数据
+     * @return 转换后的文本内容
+     */
+    private String convertFullDataToText(Map<String, Object> fullResumeData) {
+        StringBuilder content = new StringBuilder();
+        
+        // 添加个人基本信息
+        Map<String, Object> userInfo = (Map<String, Object>) fullResumeData.get("userInfo");
+        if (userInfo != null) {
+            content.append("个人信息：\n");
+            if (userInfo.containsKey("name")) content.append("姓名：").append(userInfo.get("name")).append("\n");
+            if (userInfo.containsKey("phone")) content.append("电话：").append(userInfo.get("phone")).append("\n");
+            if (userInfo.containsKey("email")) content.append("邮箱：").append(userInfo.get("email")).append("\n");
+            content.append("\n");
+        }
+        
+        // 添加简历基本信息
+        if (fullResumeData.containsKey("jobTitle")) content.append("求职意向：").append(fullResumeData.get("jobTitle")).append("\n\n");
+        if (fullResumeData.containsKey("selfEvaluation")) {
+            content.append("自我评价：\n")
+                  .append(fullResumeData.get("selfEvaluation"))
+                  .append("\n\n");
+        }
+        
+        // 添加教育经历
+        List<Map<String, Object>> educationList = (List<Map<String, Object>>) fullResumeData.get("educationList");
+        if (educationList != null && !educationList.isEmpty()) {
+            content.append("教育经历：\n");
+            for (Map<String, Object> education : educationList) {
+                content.append("- 学校：").append(education.get("school"));
+                content.append(", 专业：").append(education.get("major"));
+                content.append(", 学历：").append(education.get("degree"));
+                content.append(", 时间段：").append(education.get("startDate")).append(" - ").append(education.get("endDate")).append("\n");
+                if (education.containsKey("description")) {
+                    content.append("  描述：").append(education.get("description")).append("\n");
+                }
+            }
+            content.append("\n");
+        }
+        
+        // 添加工作经历
+        List<Map<String, Object>> workExperienceList = (List<Map<String, Object>>) fullResumeData.get("workExperienceList");
+        if (workExperienceList != null && !workExperienceList.isEmpty()) {
+            content.append("工作经历：\n");
+            for (Map<String, Object> work : workExperienceList) {
+                content.append("- 公司：").append(work.get("companyName"));
+                content.append(", 职位：").append(work.get("positionName"));
+                content.append(", 时间段：").append(work.get("startDate")).append(" - ").append(work.get("endDate")).append("\n");
+                if (work.containsKey("description")) {
+                    content.append("  工作描述：").append(work.get("description")).append("\n");
+                }
+            }
+            content.append("\n");
+        }
+        
+        // 添加项目经历
+        List<Map<String, Object>> projectList = (List<Map<String, Object>>) fullResumeData.get("projectList");
+        if (projectList != null && !projectList.isEmpty()) {
+            content.append("项目经历：\n");
+            for (Map<String, Object> project : projectList) {
+                content.append("- 项目名称：").append(project.get("projectName"));
+                content.append(", 角色：").append(project.get("role"));
+                content.append(", 时间段：").append(project.get("startDate")).append(" - ").append(project.get("endDate")).append("\n");
+                if (project.containsKey("techStack")) {
+                    content.append("  技术栈：").append(project.get("techStack")).append("\n");
+                }
+                if (project.containsKey("description")) {
+                    content.append("  项目描述：").append(project.get("description")).append("\n");
+                }
+            }
+            content.append("\n");
+        }
+        
+        // 添加技能
+        List<Map<String, Object>> skillList = (List<Map<String, Object>>) fullResumeData.get("skillList");
+        if (skillList != null && !skillList.isEmpty()) {
+            content.append("技能：\n");
+            for (Map<String, Object> skill : skillList) {
+                content.append("- ").append(skill.get("name"));
+                if (skill.containsKey("level")) {
+                    content.append(" (熟练度：").append(skill.get("level")).append(")");
+                }
+                content.append("\n");
+            }
+        }
+        
+        return content.toString();
+    }
+    
     private Map<String, Object> generateNextQuestionForDynamicInterviewer(List<Map<String, Object>> projectPoints, String jobType, Map<String, Object> interviewState) {
         try {
             String lastAnswer = (String) interviewState.get("lastAnswer");
