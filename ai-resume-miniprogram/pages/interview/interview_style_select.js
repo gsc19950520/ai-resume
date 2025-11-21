@@ -379,24 +379,52 @@ Page({
         reject(new Error('分析请求超时'));
       }, 30000); // 30秒超时，因为分析可能需要较长时间
       
-      post('/api/interview/analyze-resume', {
-        resumeId: this.data.resumeId,
-        jobType: this.data.industryJobTag,
-        analysisDepth: 'comprehensive' // 综合分析
-      })
-      .then(resData => {
+      try {
+        console.log('准备调用分析简历API，参数:', {
+          resumeId: this.data.resumeId,
+          jobType: this.data.industryJobTag,
+          analysisDepth: 'comprehensive'
+        });
+        
+        post('/api/interview/analyze-resume', {
+          resumeId: this.data.resumeId,
+          jobType: this.data.industryJobTag,
+          analysisDepth: 'comprehensive' // 综合分析
+        })
+        .then(resData => {
+          clearTimeout(timeoutId);
+          // 打印完整的API响应数据
+          console.log('分析简历API返回完整数据:', resData);
+          
+          // 支持多种成功判断条件：code为0或200，或者message为'success'
+          if (resData.code === 0 || resData.code === 200 || (resData.message && resData.message.toLowerCase() === 'success')) {
+            const resultToReturn = resData.data || resData;
+            console.log('返回给页面的数据:', resultToReturn);
+            resolve(resultToReturn);
+          } else {
+            console.log('API返回失败状态:', resData);
+            reject(new Error(resData.message || '分析失败'));
+          }
+        })
+        .catch(error => {
+          clearTimeout(timeoutId);
+          console.error('API请求失败:', error);
+          console.log('错误详情:', error);
+          // 特殊处理：如果错误消息是'success'，认为是成功的
+          if (error.message && error.message.toLowerCase() === 'success') {
+            console.log('检测到message为success，视为成功处理');
+            const fallbackData = error.originalError?.data || {};
+            console.log('使用的备用数据:', fallbackData);
+            resolve(fallbackData);
+          } else {
+            reject(new Error('网络连接异常，请重试'));
+          }
+        });
+      } catch (err) {
         clearTimeout(timeoutId);
-        if (resData.code === 0) {
-          resolve(resData.data);
-        } else {
-          reject(new Error(resData.message || '分析失败'));
-        }
-      })
-      .catch(error => {
-        clearTimeout(timeoutId);
-        console.error('API请求失败:', error);
-        reject(new Error('网络连接异常，请重试'));
-      });
+        console.error('调用API过程中发生异常:', err);
+        reject(new Error('调用过程异常，请重试'));
+      }
     });
   },
 

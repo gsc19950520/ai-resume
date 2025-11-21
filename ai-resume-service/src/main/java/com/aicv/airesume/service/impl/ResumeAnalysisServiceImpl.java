@@ -22,9 +22,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
@@ -91,35 +96,200 @@ public class ResumeAnalysisServiceImpl implements ResumeAnalysisService {
             // 检查缓存
             CachedAnalysis cachedAnalysis = analysisCache.get(cacheKey);
             if (cachedAnalysis != null && !cachedAnalysis.isExpired()) {
-                log.info("从缓存获取简历分析结果: {}", cacheKey);
-                return cachedAnalysis.getAnalysis();
+                ResumeAnalysisDTO cachedResult = cachedAnalysis.getAnalysis();
+                // 验证缓存结果的关键字段完整性
+                if (validateAnalysisDTO(cachedResult)) {
+                    log.info("从缓存获取简历分析结果: {}", cacheKey);
+                    return cachedResult;
+                } else {
+                    log.warn("缓存结果不完整，将重新分析: {}", cacheKey);
+                }
             }
             
             // 获取简历基础数据
             Resume resume = resumeService.getResumeById(resumeId);
             if (resume == null) {
                 log.error("未找到简历: {}", resumeId);
-                return createDefaultAnalysisDTO();
+                throw new RuntimeException("未找到简历");
             }
             
-            // 查询关联数据
+            // 查询关联数据 - 确保集合不为null
             List<ResumeEducation> educationList = resumeEducationRepository.findByResumeIdOrderByOrderIndexAsc(resumeId);
             List<ResumeProject> projectList = resumeProjectRepository.findByResumeIdOrderByOrderIndexAsc(resumeId);
             List<ResumeSkill> skillList = resumeSkillRepository.findByResumeIdOrderByOrderIndexAsc(resumeId);
             List<ResumeWorkExperience> workExperienceList = resumeWorkExperienceRepository.findByResumeIdOrderByOrderIndexAsc(resumeId);
             
+            // 确保关联数据集合不为null
+            if (educationList == null) educationList = new ArrayList<>();
+            if (projectList == null) projectList = new ArrayList<>();
+            if (skillList == null) skillList = new ArrayList<>();
+            if (workExperienceList == null) workExperienceList = new ArrayList<>();
+            
             // 分析简历内容
             ResumeAnalysisDTO analysisDTO = analyzeResumeContent(resume, educationList, projectList, skillList, workExperienceList, jobType, analysisDepth);
             
+            // 验证并确保关键字段完整性
+            if (!validateAnalysisDTO(analysisDTO)) {
+                log.warn("分析结果关键字段不完整，正在补充必要信息: resumeId={}", resumeId);
+                ensureKeyFieldsComplete(analysisDTO, workExperienceList, projectList, skillList);
+            }
+            
             // 存入缓存
             analysisCache.put(cacheKey, new CachedAnalysis(analysisDTO, CACHE_EXPIRATION));
-            log.info("简历分析完成并缓存: resumeId={}, 生成了{}个面试问题", resumeId, 
-                    analysisDTO.getInterviewQuestions().getQuestions().size());
+            
+            // 记录分析结果的关键信息
+            log.info("简历分析完成并缓存: resumeId={}, 工作年限={}, 经验级别={}, 生成了{}个面试问题", 
+                    resumeId, 
+                    analysisDTO.getCandidateInfo() != null ? analysisDTO.getCandidateInfo().getWorkYears() : null,
+                    analysisDTO.getExperienceLevel(),
+                    analysisDTO.getInterviewQuestions() != null && analysisDTO.getInterviewQuestions().getQuestions() != null ? 
+                            analysisDTO.getInterviewQuestions().getQuestions().size() : 0);
             
             return analysisDTO;
         } catch (Exception e) {
-            log.error("分析简历失败: {}", e.getMessage());
-            return createDefaultAnalysisDTO();
+            log.error("分析简历失败: {}", e.getMessage(), e);
+            // 返回增强的默认分析结果，确保包含必要的关键字段
+            throw new RuntimeException("分析简历失败", e);
+        }
+    }
+    
+    /**
+     * 提取领导经验信息
+     * @param workExperienceList 工作经历列表
+     * @param projectList 项目经历列表
+     * @return 领导经验描述
+     */
+    private String extractLeadershipExperience(List<ResumeWorkExperience> workExperienceList, List<ResumeProject> projectList) {
+        StringBuilder leadershipInfo = new StringBuilder();
+        
+        // 从工作经历中提取领导相关信息
+        if (workExperienceList != null) {
+            for (ResumeWorkExperience exp : workExperienceList) {
+                if (exp.getPositionName() != null && (exp.getPositionName().contains("经理") || 
+                    exp.getPositionName().contains("主管") || exp.getPositionName().contains("负责人") ||
+                    exp.getPositionName().contains("Leader") || exp.getPositionName().contains("Manager"))) {
+                    leadershipInfo.append("担任").append(exp.getPositionName()).append("，");
+                }
+            }
+        }
+        
+        // 从项目经历中提取领导相关信息
+        if (projectList != null) {
+            int leadProjectCount = 0;
+            for (ResumeProject project : projectList) {
+                if (project.getRole() != null && (project.getRole().contains("负责") || 
+                    project.getRole().contains("主导") || project.getRole().contains("lead") ||
+                    project.getRole().contains("负责") || project.getRole().contains("主管"))) {
+                    leadProjectCount++;
+                }
+            }
+            if (leadProjectCount > 0) {
+                leadershipInfo.append("主导过").append(leadProjectCount).append("个项目");
+            }
+        }
+        
+        // 如果没有提取到领导经验，返回默认值
+        if (leadershipInfo.length() == 0) {
+            return "无明确领导经验描述";
+        }
+        
+        // 移除末尾的逗号并返回
+        String result = leadershipInfo.toString();
+        if (result.endsWith("，")) {
+            result = result.substring(0, result.length() - 1);
+        }
+        return result;
+    }
+    
+    /**
+     * 验证分析结果DTO的关键字段完整性
+     */
+    private boolean validateAnalysisDTO(ResumeAnalysisDTO analysisDTO) {
+        if (analysisDTO == null) {
+            return false;
+        }
+        
+        // 验证候选人基本信息和工作年限
+        if (analysisDTO.getCandidateInfo() == null || analysisDTO.getCandidateInfo().getWorkYears() == null) {
+            return false;
+        }
+        
+        // 验证经验级别
+        if (analysisDTO.getExperienceLevel() == null || analysisDTO.getExperienceLevel().isEmpty()) {
+            return false;
+        }
+        
+        // 验证业务分析能力
+        if (analysisDTO.getBusinessAnalysis() == null || 
+            analysisDTO.getBusinessAnalysis().getDomainKnowledge() == null || 
+            analysisDTO.getBusinessAnalysis().getDomainKnowledge().isEmpty()) {
+            return false;
+        }
+        
+        return true;
+    }
+    
+    /**
+     * 确保关键分析字段完整
+     */
+    private void ensureKeyFieldsComplete(ResumeAnalysisDTO analysisDTO, 
+                                        List<ResumeWorkExperience> workExperienceList,
+                                        List<ResumeProject> projectList,
+                                        List<ResumeSkill> skillList) {
+        // 确保候选人信息存在
+        if (analysisDTO.getCandidateInfo() == null) {
+            analysisDTO.setCandidateInfo(new ResumeAnalysisDTO.CandidateInfo());
+        }
+        
+        // 确保工作年限存在
+        if (analysisDTO.getCandidateInfo().getWorkYears() == null) {
+            Integer workYears = calculateWorkYears(workExperienceList);
+            analysisDTO.getCandidateInfo().setWorkYears(workYears);
+            log.info("补充工作年限: {}", workYears);
+        }
+        
+        // 确保经验级别存在
+        if (analysisDTO.getExperienceLevel() == null || analysisDTO.getExperienceLevel().isEmpty()) {
+            // 准备评估经验级别所需的数据
+            Integer workYears = analysisDTO.getCandidateInfo().getWorkYears();
+            int projectCount = projectList != null ? projectList.size() : 0;
+            
+            // 构建技能等级映射
+            Map<String, Integer> skillLevelMap = new HashMap<>();
+            if (skillList != null) {
+                for (ResumeSkill skill : skillList) {
+                    if (skill != null && skill.getName() != null && skill.getLevel() != null) {
+                        try {
+                            int level = skill.getLevel();
+                            skillLevelMap.put(skill.getName(), Math.min(10, Math.max(1, level)));
+                        } catch (NumberFormatException e) {
+                            // 使用默认级别
+                            skillLevelMap.put(skill.getName(), 5);
+                        }
+                    }
+                }
+            }
+            
+            String experienceLevel = assessExperienceLevel(workYears, projectCount, skillLevelMap);
+            analysisDTO.setExperienceLevel(experienceLevel);
+            log.info("补充经验级别: {}", experienceLevel);
+        }
+        
+        // 确保业务分析能力存在
+        if (analysisDTO.getBusinessAnalysis() == null) {
+            analysisDTO.setBusinessAnalysis(new ResumeAnalysisDTO.BusinessAnalysis());
+        }
+        
+        // 确保业务领域知识存在
+        if (analysisDTO.getBusinessAnalysis().getDomainKnowledge() == null || 
+            analysisDTO.getBusinessAnalysis().getDomainKnowledge().isEmpty()) {
+            analysisDTO.getBusinessAnalysis().setDomainKnowledge(Collections.singletonList("业务领域分析中"));
+        }
+        
+        // 确保软技能存在
+        if (analysisDTO.getBusinessAnalysis().getSoftSkills() == null || 
+            analysisDTO.getBusinessAnalysis().getSoftSkills().isEmpty()) {
+            analysisDTO.getBusinessAnalysis().setSoftSkills(Arrays.asList("团队协作", "沟通表达", "问题解决"));
         }
     }
     
@@ -144,50 +314,135 @@ public class ResumeAnalysisServiceImpl implements ResumeAnalysisService {
                                                  List<ResumeProject> projectList, List<ResumeSkill> skillList,
                                                  List<ResumeWorkExperience> workExperienceList, String jobType, 
                                                  String analysisDepth) {
-        ResumeAnalysisDTO analysisDTO = new ResumeAnalysisDTO();
-        
-        // 1. 分析候选人基本信息
-        analysisDTO.setCandidateInfo(parseCandidateInfo(resume, educationList, workExperienceList));
-        
-        // 2. 分析技术栈
-        analysisDTO.setTechnicalAnalysis(parseTechnicalAnalysis(skillList, jobType));
-        
-        // 3. 分析项目经验
-        analysisDTO.setProjectAnalysis(parseProjectAnalysis(projectList));
-        
-        // 4. 分析业务能力
-        analysisDTO.setBusinessAnalysis(parseBusinessAnalysis(workExperienceList));
-        
-        // 5. 评估经验级别
-        Integer workYears = analysisDTO.getCandidateInfo().getWorkYears();
-        Integer totalProjects = analysisDTO.getProjectAnalysis().getTotalProjects();
-        Map<String, Integer> skillProficiency = analysisDTO.getTechnicalAnalysis().getSkillProficiency();
-        
-        String experienceLevel = assessExperienceLevel(
-            workYears != null ? workYears : 0,
-            totalProjects != null ? totalProjects : 0,
-            skillProficiency
-        );
-        analysisDTO.setExperienceLevel(experienceLevel);
-        
-        // 6. 生成优势分析（使用DeepSeek AI）
-        analysisDTO.setStrengths(generateStrengthsWithAI(resume, educationList, projectList, skillList, workExperienceList));
-        
-        // 7. 生成待提升项（使用DeepSeek AI）
-        analysisDTO.setImprovements(generateImprovementsWithAI(resume, educationList, projectList, skillList, workExperienceList));
-        
-        // 8. 生成面试问题清单（通过DeepSeek AI）
-        analysisDTO.setInterviewQuestions(generateInterviewQuestionsWithAI(
-            resume, educationList, projectList, skillList, workExperienceList, jobType, analysisDepth));
-        
-        // 9. 计算综合评分并进行类型转换（Double转Integer）
-        Double score = calculateOverallScore(resume, educationList, projectList, skillList, workExperienceList, jobType);
-        analysisDTO.setOverallScore(score != null ? score.intValue() : null);
-        
-        // 10. 设置分析时间
-        analysisDTO.setAnalysisTime(new Date());
-        
-        return analysisDTO;
+        try {
+            log.info("开始分析简历内容: resumeId={}, userId={}, jobType={}", resume.getId(), resume.getUserId(), jobType);
+            
+            ResumeAnalysisDTO analysisDTO = new ResumeAnalysisDTO();
+            
+            // 1. 分析候选人基本信息 - 确保返回有效的CandidateInfo对象
+            ResumeAnalysisDTO.CandidateInfo candidateInfo = parseCandidateInfo(resume, educationList, workExperienceList);
+            if (candidateInfo == null) {
+                candidateInfo = new ResumeAnalysisDTO.CandidateInfo();
+                log.warn("解析候选人基本信息失败，创建默认CandidateInfo对象");
+            }
+            analysisDTO.setCandidateInfo(candidateInfo);
+            
+            // 2. 分析技术栈 - 确保返回有效的TechnicalAnalysis对象
+            ResumeAnalysisDTO.TechnicalAnalysis technicalAnalysis = parseTechnicalAnalysis(skillList, jobType);
+            if (technicalAnalysis == null) {
+                technicalAnalysis = new ResumeAnalysisDTO.TechnicalAnalysis();
+                technicalAnalysis.setSkillProficiency(new HashMap<>());
+                log.warn("解析技术栈失败，创建默认TechnicalAnalysis对象");
+            }
+            analysisDTO.setTechnicalAnalysis(technicalAnalysis);
+            
+            // 3. 分析项目经验 - 确保返回有效的ProjectAnalysis对象
+            ResumeAnalysisDTO.ProjectAnalysis projectAnalysis = parseProjectAnalysis(projectList);
+            if (projectAnalysis == null) {
+                projectAnalysis = new ResumeAnalysisDTO.ProjectAnalysis();
+                projectAnalysis.setTotalProjects(0);
+                log.warn("解析项目经验失败，创建默认ProjectAnalysis对象");
+            }
+            analysisDTO.setProjectAnalysis(projectAnalysis);
+            
+            // 4. 分析业务能力 - 确保返回有效的BusinessAnalysis对象
+            ResumeAnalysisDTO.BusinessAnalysis businessAnalysis = parseBusinessAnalysis(workExperienceList);
+            if (businessAnalysis == null) {
+                // 创建默认业务分析对象并填充基础数据
+                businessAnalysis = new ResumeAnalysisDTO.BusinessAnalysis();
+                businessAnalysis.setDomainKnowledge(Collections.singletonList("业务领域分析中"));
+                businessAnalysis.setSoftSkills(Arrays.asList("团队协作", "沟通表达", "问题解决"));
+                log.warn("解析业务能力失败，创建默认BusinessAnalysis对象并设置基础数据");
+            } else {
+                // 确保业务分析对象的关键字段不为空
+                if (businessAnalysis.getDomainKnowledge() == null || businessAnalysis.getDomainKnowledge().isEmpty()) {
+                    businessAnalysis.setDomainKnowledge(Collections.singletonList("业务领域知识提取中"));
+                }
+                if (businessAnalysis.getSoftSkills() == null || businessAnalysis.getSoftSkills().isEmpty()) {
+                    businessAnalysis.setSoftSkills(Arrays.asList("基础软技能具备"));
+                }
+            }
+            analysisDTO.setBusinessAnalysis(businessAnalysis);
+            
+            // 5. 评估经验级别 - 确保生成有效的经验级别
+            // 获取或计算工作年限
+            Integer workYears = candidateInfo.getWorkYears();
+            if (workYears == null) {
+                // 重新计算工作年限
+                workYears = calculateWorkYears(workExperienceList);
+                candidateInfo.setWorkYears(workYears);
+                log.info("重新计算工作年限: {}", workYears);
+            }
+            
+            // 获取项目数量
+            Integer totalProjects = projectAnalysis.getTotalProjects();
+            if (totalProjects == null) {
+                totalProjects = projectList != null ? projectList.size() : 0;
+                projectAnalysis.setTotalProjects(totalProjects);
+                log.info("重置项目总数: {}", totalProjects);
+            }
+            
+            // 获取技能熟练度映射
+            Map<String, Integer> skillProficiency = technicalAnalysis.getSkillProficiency();
+            if (skillProficiency == null) {
+                skillProficiency = new HashMap<>();
+                technicalAnalysis.setSkillProficiency(skillProficiency);
+            }
+            
+            // 调用优化后的经验级别评估方法
+            String experienceLevel = assessExperienceLevel(workYears, totalProjects, skillProficiency);
+            log.info("候选人经验级别评估结果: {}", experienceLevel);
+            
+            // 设置经验级别
+            analysisDTO.setExperienceLevel(experienceLevel);
+            
+            // 6. 生成优势分析
+            List<String> strengths = generateStrengthsWithAI(resume, educationList, projectList, skillList, workExperienceList);
+            if (strengths == null || strengths.isEmpty()) {
+                strengths = Arrays.asList("具备相关工作经验", "拥有一定的专业技能");
+                log.warn("生成优势分析失败，使用默认优势描述");
+            }
+            analysisDTO.setStrengths(strengths);
+            
+            // 7. 生成待提升项
+            List<String> improvements = generateImprovementsWithAI(resume, educationList, projectList, skillList, workExperienceList);
+            if (improvements == null) {
+                improvements = new ArrayList<>();
+                log.warn("生成待提升项失败，创建空列表");
+            }
+            analysisDTO.setImprovements(improvements);
+            
+            // 8. 生成面试问题清单
+            ResumeAnalysisDTO.InterviewQuestions interviewQuestions = generateInterviewQuestionsWithAI(
+                resume, educationList, projectList, skillList, workExperienceList, jobType, analysisDepth);
+            
+            // 确保interviewQuestions不为空
+            if (interviewQuestions == null) {
+                interviewQuestions = new ResumeAnalysisDTO.InterviewQuestions();
+                interviewQuestions.setQuestions(new ArrayList<>());
+                log.warn("生成面试问题清单失败，创建空的InterviewQuestions对象");
+            }
+            
+            // 确保analysisType已设置
+            if (interviewQuestions.getAnalysisType() == null) {
+                interviewQuestions.setAnalysisType(analysisDepth);
+            }
+            
+            analysisDTO.setInterviewQuestions(interviewQuestions);
+            
+            // 9. 计算综合评分
+            Double score = calculateOverallScore(resume, educationList, projectList, skillList, workExperienceList, jobType);
+            analysisDTO.setOverallScore(score != null ? score.intValue() : null);
+            
+            // 10. 设置分析时间
+            analysisDTO.setAnalysisTime(new Date());
+            
+            log.info("简历内容分析完成: 工作年限={}, 经验级别={}", workYears, experienceLevel);
+            return analysisDTO;
+        } catch (Exception e) {
+            log.error("分析简历内容失败: {}", e.getMessage(), e);
+            throw new RuntimeException("分析简历内容失败");
+        }
     }
 
     private ResumeAnalysisDTO.CandidateInfo parseCandidateInfo(Resume resume, List<ResumeEducation> educationList, List<ResumeWorkExperience> workExperienceList) {
@@ -410,81 +665,260 @@ public class ResumeAnalysisServiceImpl implements ResumeAnalysisService {
             ResumeAnalysisDTO.BusinessAnalysis businessAnalysis = new ResumeAnalysisDTO.BusinessAnalysis();
             List<String> domainKnowledge = new ArrayList<>();
             List<String> softSkills = new ArrayList<>();
+            List<String> businessAchievements = new ArrayList<>();
+            Map<String, Integer> industryExperienceCount = new HashMap<>();
+            
+            log.info("开始解析业务分析数据，工作经历数量: {}", 
+                    workExperienceList != null ? workExperienceList.size() : 0);
             
             if (workExperienceList != null && !workExperienceList.isEmpty()) {
+                // 1. 提取业务领域知识和行业经验统计
                 for (ResumeWorkExperience workExp : workExperienceList) {
-                    // 提取业务领域知识
-                    // 2. 从公司名称中提取业务领域
+                    // 从公司名称中提取业务领域
                     if (workExp.getCompanyName() != null && !workExp.getCompanyName().isEmpty()) {
                         String domainFromCompany = extractBusinessDomainFromText(workExp.getCompanyName());
-                        if (domainFromCompany != null && !domainKnowledge.contains(domainFromCompany)) {
-                            domainKnowledge.add(domainFromCompany);
+                        if (domainFromCompany != null) {
+                            // 添加到领域知识列表
+                            if (!domainKnowledge.contains(domainFromCompany)) {
+                                domainKnowledge.add(domainFromCompany);
+                                log.debug("从公司名称提取业务领域: {}", domainFromCompany);
+                            }
+                            // 统计行业经验次数
+                            industryExperienceCount.put(domainFromCompany, 
+                                    industryExperienceCount.getOrDefault(domainFromCompany, 0) + 1);
                         }
                     }
-                    // 3. 从职位名称中提取业务领域
+                    
+                    // 从职位名称中提取业务领域
                     if (workExp.getPositionName() != null && !workExp.getPositionName().isEmpty()) {
                         String domainFromPosition = extractBusinessDomainFromText(workExp.getPositionName());
                         if (domainFromPosition != null && !domainKnowledge.contains(domainFromPosition)) {
                             domainKnowledge.add(domainFromPosition);
+                            log.debug("从职位名称提取业务领域: {}", domainFromPosition);
+                        }
+                    }
+                    
+                    // 从工作描述中提取业务领域
+                    if (workExp.getDescription() != null && !workExp.getDescription().isEmpty()) {
+                        String domainFromDesc = extractBusinessDomainFromText(workExp.getDescription());
+                        if (domainFromDesc != null && !domainKnowledge.contains(domainFromDesc)) {
+                            domainKnowledge.add(domainFromDesc);
+                            log.debug("从工作描述提取业务领域: {}", domainFromDesc);
                         }
                     }
                 }
                 
-                // 定义软技能关键词，用于更好地识别软技能
-                Set<String> softSkillKeywords = new HashSet<>(Arrays.asList(
-                    "沟通", "communication", "团队合作", "teamwork", "协作", "collaboration",
-                    "领导", "leadership", "管理", "management", "项目管理", "project management",
-                    "分析", "analysis", "解决问题", "problem solving", "创新", "innovation",
-                    "学习", "learning", "适应", "adaptation", "组织", "organization",
-                    "时间管理", "time management", "决策", "decision making", "压力", "pressure",
-                    "协调", "coordination", "谈判", "negotiation", "演讲", "presentation"
-                ));
+                // 2. 增强软技能识别
+                // 定义更全面的软技能关键词，按类别分组
+                Map<String, List<String>> softSkillCategories = new HashMap<>();
+                softSkillCategories.put("沟通协作", Arrays.asList("沟通", "communication", "团队合作", "teamwork", 
+                    "协作", "collaboration", "协调", "coordination", "演讲", "presentation"));
+                softSkillCategories.put("领导力", Arrays.asList("领导", "leadership", "管理", "management", 
+                    "项目管理", "project management", "团队管理", "team management"));
+                softSkillCategories.put("问题解决", Arrays.asList("分析", "analysis", "解决问题", "problem solving", 
+                    "故障排除", "troubleshooting", "优化", "optimization"));
+                softSkillCategories.put("创新学习", Arrays.asList("创新", "innovation", "学习", "learning", 
+                    "适应", "adaptation", "研究", "research"));
+                softSkillCategories.put("自我管理", Arrays.asList("组织", "organization", "时间管理", "time management", 
+                    "决策", "decision making", "压力", "pressure", "优先级", "priority"));
+                softSkillCategories.put("业务能力", Arrays.asList("业务理解", "business understanding", "产品思维", 
+                    "product thinking", "用户体验", "ux", "需求分析", "requirements analysis"));
                 
-                // 提取软技能和职责相关信息
+                // 提取软技能、业务成就和职责信息
                 for (ResumeWorkExperience workExp : workExperienceList) {
                     if (workExp.getDescription() != null && !workExp.getDescription().isEmpty()) {
-                        // 完善split方法，包含更多可能的句子分隔符
-                        String[] duties = workExp.getDescription().split("；|。|！|？|\n|\r\n|\t|", 0);
+                        // 分割描述为句子
+                        String[] sentences = workExp.getDescription().split("[；。！？\n\r\n\t]");
                         
-                        for (String duty : duties) {
-                            String trimmedDuty = duty.trim();
+                        for (String sentence : sentences) {
+                            String trimmedSentence = sentence.trim();
                             
-                            // 过滤太短或无效的条目
-                            if (trimmedDuty.length() < 4 || !trimmedDuty.matches(".*[a-zA-Z0-9\u4e00-\u9fa5].*")) {
+                            // 过滤太短或无效的句子
+                            if (trimmedSentence.length() < 4 || !trimmedSentence.matches(".*[a-zA-Z0-9\u4e00-\u9fa5].*")) {
                                 continue;
                             }
                             
-                            // 检查是否包含软技能关键词或其他重要内容
-                            boolean isImportant = false;
-                            String lowerDuty = trimmedDuty.toLowerCase();
-                            
-                            for (String keyword : softSkillKeywords) {
-                                if (lowerDuty.contains(keyword.toLowerCase())) {
-                                    isImportant = true;
-                                    break;
-                                }
+                            // 检查是否为业务成就（包含数字、成果等关键词）
+                            if (isAchievementSentence(trimmedSentence)) {
+                                businessAchievements.add(trimmedSentence);
+                                log.debug("提取业务成就: {}", trimmedSentence);
+                                continue;
                             }
                             
-                            // 如果是重要内容或者长度适中，添加到软技能列表
-                            if (isImportant || trimmedDuty.length() > 10) {
-                                if (!softSkills.contains(trimmedDuty)) {
-                                    softSkills.add(trimmedDuty);
+                            // 检查是否包含软技能关键词
+                            boolean skillFound = false;
+                            String lowerSentence = trimmedSentence.toLowerCase();
+                            
+                            for (Map.Entry<String, List<String>> category : softSkillCategories.entrySet()) {
+                                for (String keyword : category.getValue()) {
+                                    if (lowerSentence.contains(keyword.toLowerCase())) {
+                                        // 提取更精确的软技能描述
+                                        String skillDescription = extractSkillFromSentence(trimmedSentence, keyword);
+                                        if (!softSkills.contains(skillDescription)) {
+                                            softSkills.add(skillDescription);
+                                            log.debug("从句子提取软技能[{}]: {}", category.getKey(), skillDescription);
+                                        }
+                                        skillFound = true;
+                                        break;
+                                    }
+                                }
+                                if (skillFound) break;
+                            }
+                            
+                            // 如果没有识别到具体软技能，但句子包含职责描述，也作为重要信息保存
+                            if (!skillFound && isResponsibilitySentence(trimmedSentence)) {
+                                if (!softSkills.contains(trimmedSentence) && softSkills.size() < 15) { // 限制数量避免过多
+                                    softSkills.add(trimmedSentence);
+                                    log.debug("添加职责描述: {}", trimmedSentence);
                                 }
                             }
                         }
+                    }
+                }
+                
+                // 3. 确保业务领域知识不为空
+                if (domainKnowledge.isEmpty()) {
+                    log.warn("未能从工作经历中提取业务领域知识，使用通用描述");
+                    domainKnowledge.add("通用业务领域");
+                }
+                
+                // 4. 确保软技能不为空
+                if (softSkills.isEmpty()) {
+                    log.warn("未能从工作经历中提取软技能，使用通用软技能描述");
+                    softSkills.add("具备团队协作能力");
+                    softSkills.add("良好的沟通表达能力");
+                    softSkills.add("具备问题分析与解决能力");
+                }
+            } else {
+                // 当没有工作经历时，设置默认值确保返回数据不为空
+                log.warn("工作经历列表为空，设置默认业务分析数据");
+                domainKnowledge.add("待补充业务领域经验");
+                softSkills.add("具备基本的团队协作能力");
+                softSkills.add("良好的学习能力");
+            }
+            
+            // 5. 找出主要行业经验
+            String primaryIndustry = null;
+            int maxCount = 0;
+            for (Map.Entry<String, Integer> entry : industryExperienceCount.entrySet()) {
+                if (entry.getValue() > maxCount) {
+                    maxCount = entry.getValue();
+                    primaryIndustry = entry.getKey();
+                }
+            }
+            
+            // 6. 设置业务分析数据
+            businessAnalysis.setDomainKnowledge(domainKnowledge);
+            businessAnalysis.setSoftSkills(softSkills);
+            businessAnalysis.setLeadershipExperience(extractLeadershipExperience(workExperienceList, null));
+            businessAnalysis.setCommunicationSkills("良好的团队协作与沟通能力");
+            businessAnalysis.setProblemSolvingAbility("具备问题分析与解决能力");
+            
+            log.info("业务分析解析完成，提取领域知识{}个，软技能{}个", 
+                    domainKnowledge.size(), softSkills.size());
+            
+            return businessAnalysis;
+        } catch (Exception e) {
+            log.error("解析业务分析失败: {}", e.getMessage(), e);
+            // 发生异常时返回包含默认值的对象，确保不会返回空数据
+            ResumeAnalysisDTO.BusinessAnalysis fallbackAnalysis = new ResumeAnalysisDTO.BusinessAnalysis();
+            fallbackAnalysis.setDomainKnowledge(Collections.singletonList("业务领域分析中"));
+            fallbackAnalysis.setSoftSkills(Arrays.asList("团队协作", "沟通表达", "问题解决"));
+            fallbackAnalysis.setLeadershipExperience("待评估");
+            fallbackAnalysis.setCommunicationSkills("待评估");
+            fallbackAnalysis.setProblemSolvingAbility("待评估");
+            return fallbackAnalysis;
+        }
+    }
+    
+    /**
+     * 判断句子是否为成就描述（通常包含数字、成果等关键词）
+     */
+    private boolean isAchievementSentence(String sentence) {
+        // 成就关键词
+        Set<String> achievementKeywords = new HashSet<>(Arrays.asList(
+            "提升", "优化", "节省", "增加", "减少", "提高", "改进", "成功", "完成",
+            "实现", "突破", "首创", "主导", "负责", "带领", "创建", "设计", "开发",
+            "deliver", "improve", "optimize", "reduce", "increase", "save", "achieve", "complete",
+            "implement", "design", "develop", "lead", "create"
+        ));
+        
+        // 检查是否包含数字
+        boolean containsNumber = sentence.matches(".*\\d+.*");
+        
+        // 检查是否包含百分比符号
+        boolean containsPercent = sentence.contains("%") || sentence.contains("percent");
+        
+        // 检查是否包含成就关键词
+        boolean containsKeyword = false;
+        String lowerSentence = sentence.toLowerCase();
+        for (String keyword : achievementKeywords) {
+            if (lowerSentence.contains(keyword.toLowerCase())) {
+                containsKeyword = true;
+                break;
+            }
+        }
+        
+        return containsNumber || containsPercent || containsKeyword;
+    }
+    
+    /**
+     * 判断句子是否为职责描述
+     */
+    private boolean isResponsibilitySentence(String sentence) {
+        // 职责关键词
+        Set<String> responsibilityKeywords = new HashSet<>(Arrays.asList(
+            "负责", "参与", "协助", "跟进", "处理", "管理", "维护", "支持", "协调",
+            "主导", "组织", "规划", "执行", "监督", "评估", "report to", "responsible for",
+            "in charge of", "participate in", "assist with", "manage", "coordinate", "lead"
+        ));
+        
+        String lowerSentence = sentence.toLowerCase();
+        for (String keyword : responsibilityKeywords) {
+            if (lowerSentence.contains(keyword.toLowerCase())) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
+     * 从句子中提取更精确的技能描述
+     */
+    private String extractSkillFromSentence(String sentence, String keyword) {
+        // 简单实现：返回包含关键词的短句或原文
+        // 可以根据需要优化为更复杂的提取逻辑
+        int keywordIndex = sentence.toLowerCase().indexOf(keyword.toLowerCase());
+        if (keywordIndex > -1) {
+            // 尝试提取关键词前后的相关内容
+            int start = Math.max(0, keywordIndex - 20);
+            int end = Math.min(sentence.length(), keywordIndex + keyword.length() + 30);
+            
+            // 尝试找到句子的自然边界
+            if (start > 0 && Character.isLetterOrDigit(sentence.charAt(start))) {
+                for (int i = start; i > 0; i--) {
+                    if (!Character.isLetterOrDigit(sentence.charAt(i)) && sentence.charAt(i) != ' ') {
+                        start = i + 1;
+                        break;
                     }
                 }
             }
             
-            // 使用正确的setter方法
-            businessAnalysis.setDomainKnowledge(domainKnowledge);
-            businessAnalysis.setSoftSkills(softSkills);
+            if (end < sentence.length() && Character.isLetterOrDigit(sentence.charAt(end))) {
+                for (int i = end; i < sentence.length(); i++) {
+                    if (!Character.isLetterOrDigit(sentence.charAt(i)) && sentence.charAt(i) != ' ') {
+                        end = i;
+                        break;
+                    }
+                }
+            }
             
-            return businessAnalysis;
-        } catch (Exception e) {
-            log.error("解析业务分析失败: {}", e.getMessage());
-            return new ResumeAnalysisDTO.BusinessAnalysis();
+            String extracted = sentence.substring(start, end).trim();
+            return extracted.length() > 0 ? extracted : sentence;
         }
+        
+        return sentence;
     }
 
     public Map<String, Object> getProfessionalQuestions(String jobType, String experienceLevel) {
@@ -714,54 +1148,143 @@ public class ResumeAnalysisServiceImpl implements ResumeAnalysisService {
     
     public String assessExperienceLevel(Integer workYears, Integer projectCount, Map<String, Integer> skills) {
         try {
-            log.info("评估经验级别");
+            // 确保参数不为空
+            int years = workYears != null ? workYears : 0;
+            int projects = projectCount != null ? projectCount : 0;
             
-            // 计算技能成熟度总分
-            int skillMaturityScore = 0;
-            if (skills != null) {
-                for (Integer level : skills.values()) {
-                    if (level != null) {
-                        skillMaturityScore += level;
-                    }
-                }
-                // 计算平均技能水平
-                if (!skills.isEmpty()) {
-                    skillMaturityScore = skillMaturityScore / skills.size();
-                }
-            }
+            log.info("评估经验级别: 工作年限={}, 项目数量={}, 技能数量={}", 
+                    years, projects, skills != null ? skills.size() : 0);
             
-            // 根据工作年限、项目数量和技能成熟度综合评估
-            int totalScore = 0;
+            // 1. 基于工作年限的评分（更精细化）
+            int yearsScore = calculateYearsScore(years);
             
-            // 工作年限评分
-            if (workYears != null) {
-                if (workYears >= 7) totalScore += 30;
-                else if (workYears >= 5) totalScore += 25;
-                else if (workYears >= 3) totalScore += 20;
-                else if (workYears >= 1) totalScore += 10;
-                else totalScore += 5;
-            }
+            // 2. 基于项目数量的评分（更合理的权重）
+            int projectScore = calculateProjectScore(projects);
             
-            // 项目数量评分
-            if (projectCount != null) {
-                if (projectCount >= 10) totalScore += 20;
-                else if (projectCount >= 7) totalScore += 15;
-                else if (projectCount >= 4) totalScore += 10;
-                else if (projectCount >= 1) totalScore += 5;
-                else totalScore += 0;
-            }
+            // 3. 基于技能成熟度的评分（更综合的评估）
+            int skillScore = calculateSkillScore(skills);
             
-            // 技能成熟度评分
-            totalScore += skillMaturityScore;
+            // 计算总分
+            int totalScore = yearsScore + projectScore + skillScore;
+            log.info("经验级别评估得分: 年限分={}, 项目分={}, 技能分={}, 总分={}", 
+                    yearsScore, projectScore, skillScore, totalScore);
             
-            // 确定经验级别
-            if (totalScore >= 70) return "高级";
-            else if (totalScore >= 50) return "中级";
-            else return "初级";
+            // 根据总分确定经验级别（更精细的分级）
+            String experienceLevel = determineExperienceLevel(totalScore, years);
+            
+            log.info("最终评估经验级别: {}", experienceLevel);
+            return experienceLevel;
         } catch (Exception e) {
-            log.error("评估经验级别失败: {}", e.getMessage());
-            return "未知";
+            log.error("评估经验级别失败: {}", e.getMessage(), e);
+            return "初级"; // 发生异常时返回保守的默认值
         }
+    }
+    
+    /**
+     * 计算工作年限得分
+     */
+    private int calculateYearsScore(int workYears) {
+        // 非线性评分，随着工作年限增长，分数增速逐渐放缓
+        if (workYears <= 0) return 0;
+        else if (workYears <= 1) return 10;
+        else if (workYears <= 3) return 20 + (workYears - 1) * 10; // 20-40分
+        else if (workYears <= 5) return 40 + (workYears - 3) * 8;  // 48-56分
+        else if (workYears <= 8) return 56 + (workYears - 5) * 5;  // 61-71分
+        else if (workYears <= 10) return 71 + (workYears - 8) * 4; // 75-79分
+        else return 80; // 最高80分
+    }
+    
+    /**
+     * 计算项目数量得分
+     */
+    private int calculateProjectScore(int projectCount) {
+        // 基于项目数量的非线性评分
+        if (projectCount <= 0) return 0;
+        else if (projectCount <= 3) return projectCount * 5;      // 5-15分
+        else if (projectCount <= 5) return 15 + (projectCount - 3) * 4; // 19-23分
+        else if (projectCount <= 10) return 23 + (projectCount - 5) * 3; // 26-41分
+        else return 45; // 最高45分
+    }
+    
+    /**
+     * 计算技能成熟度得分
+     */
+    private int calculateSkillScore(Map<String, Integer> skills) {
+        if (skills == null || skills.isEmpty()) {
+            log.warn("技能列表为空，技能成熟度得分记为0");
+            return 0;
+        }
+        
+        int totalProficiency = 0;
+        int count = 0;
+        int highLevelSkills = 0;
+        
+        for (Map.Entry<String, Integer> entry : skills.entrySet()) {
+            Integer level = entry.getValue();
+            if (level != null) {
+                totalProficiency += level;
+                count++;
+                
+                // 统计高级技能数量（等级>=7）
+                if (level >= 7) {
+                    highLevelSkills++;
+                }
+            }
+        }
+        
+        if (count == 0) {
+            log.warn("没有有效的技能等级数据，技能成熟度得分记为0");
+            return 0;
+        }
+        
+        // 基础技能分（基于平均熟练度）
+        double avgProficiency = (double) totalProficiency / count;
+        int baseSkillScore = (int) (avgProficiency * 5); // 平均熟练度 * 5
+        
+        // 高级技能加分
+        int highLevelBonus = Math.min(highLevelSkills * 3, 15);
+        
+        // 技能数量适当加分
+        int quantityBonus = Math.min((count - 5) * 2, 20);
+        
+        int totalSkillScore = baseSkillScore + highLevelBonus + 
+                (quantityBonus > 0 ? quantityBonus : 0);
+        
+        log.debug("技能评分明细: 基础分={}, 高级技能加={}, 数量加={}", 
+                baseSkillScore, highLevelBonus, quantityBonus);
+        
+        return Math.min(totalSkillScore, 60); // 最高60分
+    }
+    
+    /**
+     * 根据总分确定经验级别
+     */
+    private String determineExperienceLevel(int totalScore, int workYears) {
+        // 基础级别判定
+        String level;
+        if (totalScore >= 120) {
+            level = "资深";
+        } else if (totalScore >= 90) {
+            level = "高级";
+        } else if (totalScore >= 60) {
+            level = "中级";
+        } else {
+            level = "初级";
+        }
+        
+        // 结合工作年限进行微调
+        // 确保工作年限与级别匹配
+        if (workYears >= 8 && !level.equals("资深")) {
+            level = "高级";
+        } else if (workYears >= 4 && level.equals("初级")) {
+            level = "中级";
+        } else if (workYears <= 1 && level.equals("高级")) {
+            level = "中级";
+        } else if (workYears <= 0.5 && !level.equals("初级")) {
+            level = "初级";
+        }
+        
+        return level;
     }
     
     // 辅助方法：计算整体技术深度
@@ -1653,53 +2176,77 @@ public class ResumeAnalysisServiceImpl implements ResumeAnalysisService {
     
     private int calculateWorkYears(List<ResumeWorkExperience> workExperienceList) {
         if (workExperienceList == null || workExperienceList.isEmpty()) {
+            log.info("工作经历列表为空，返回工作年限0");
             return 0;
         }
         
         int totalMonths = 0;
+        Calendar currentCal = Calendar.getInstance();
+        int currentYear = currentCal.get(Calendar.YEAR);
+        int currentMonth = currentCal.get(Calendar.MONTH) + 1;
+        
         for (ResumeWorkExperience exp : workExperienceList) {
             try {
-                if (exp.getStartDate() != null) {
-                    // 处理字符串类型的日期
-                    if (exp.getStartDate() instanceof String) {
-                        String startDateStr = (String) exp.getStartDate();
-                        String endDateStr = exp.getEndDate() != null && exp.getEndDate() instanceof String ? 
-                            (String) exp.getEndDate() : null;
-                        
-                        // 简单处理年月格式，如"2020-01"
-                        if (startDateStr.contains("-")) {
-                            String[] startParts = startDateStr.split("-");
-                            if (startParts.length >= 2) {
-                                try {
-                                    int startYear = Integer.parseInt(startParts[0]);
-                                    int startMonth = Integer.parseInt(startParts[1]);
-                                    
-                                    int endYear, endMonth;
-                                    if (endDateStr != null && endDateStr.contains("-")) {
-                                        String[] endParts = endDateStr.split("-");
-                                        if (endParts.length >= 2) {
-                                            endYear = Integer.parseInt(endParts[0]);
-                                            endMonth = Integer.parseInt(endParts[1]);
-                                        } else {
-                                            // 使用当前年月
-                                            Calendar cal = Calendar.getInstance();
-                                            endYear = cal.get(Calendar.YEAR);
-                                            endMonth = cal.get(Calendar.MONTH) + 1;
-                                        }
-                                    } else {
-                                        // 使用当前年月
-                                        Calendar cal = Calendar.getInstance();
-                                        endYear = cal.get(Calendar.YEAR);
-                                        endMonth = cal.get(Calendar.MONTH) + 1;
+                // 假设日期字段是字符串类型，这是简历系统中常见的存储方式
+                String startDateStr = exp.getStartDate();
+                String endDateStr = exp.getEndDate();
+                
+                if (startDateStr != null && !startDateStr.isEmpty()) {
+                    // 处理多种可能的日期格式：YYYY-MM、YYYY年MM月、YYYY/MM等
+                    String normalizedStart = startDateStr.replaceAll("[年月/]", "-");
+                    String normalizedEnd = endDateStr != null ? endDateStr.replaceAll("[年月/]", "-") : null;
+                    
+                    // 简单处理年月格式
+                    if (normalizedStart.contains("-")) {
+                        String[] startParts = normalizedStart.split("-");
+                        if (startParts.length >= 2) {
+                            try {
+                                int startYear = Integer.parseInt(startParts[0].trim());
+                                int startMonth = Integer.parseInt(startParts[1].trim());
+                                
+                                int endYear = currentYear;
+                                int endMonth = currentMonth;
+                                
+                                // 如果有结束日期，则使用结束日期
+                                if (normalizedEnd != null && normalizedEnd.contains("-")) {
+                                    String[] endParts = normalizedEnd.split("-");
+                                    if (endParts.length >= 2) {
+                                        endYear = Integer.parseInt(endParts[0].trim());
+                                        endMonth = Integer.parseInt(endParts[1].trim());
                                     }
+                                }
+                                
+                                // 检查日期有效性
+                                if (startYear > 1900 && startYear <= currentYear && 
+                                    startMonth >= 1 && startMonth <= 12 &&
+                                    endYear >= startYear && endMonth >= 1 && endMonth <= 12) {
                                     
                                     // 计算月数差
-                                    totalMonths += (endYear - startYear) * 12 + (endMonth - startMonth);
-                                } catch (NumberFormatException e) {
-                                    // 日期格式解析失败，跳过
-                                    log.warn("日期格式解析失败: {}", startDateStr);
+                                    int monthsDiff = (endYear - startYear) * 12 + (endMonth - startMonth);
+                                    if (monthsDiff > 0) {
+                                        totalMonths += monthsDiff;
+                                        log.debug("计算工作经验: {}-{} 到 {}-{}，月数差: {}", 
+                                                startYear, startMonth, endYear, endMonth, monthsDiff);
+                                    }
+                                }
+                            } catch (NumberFormatException e) {
+                                // 日期格式解析失败，尝试其他方法
+                                log.warn("日期格式解析失败: {}, 尝试基于文本描述估算", startDateStr);
+                                
+                                // 备用方案：基于文本描述估算
+                                int estimatedMonths = estimateWorkDurationFromText(exp.getDescription(), exp.getStartDate(), exp.getEndDate());
+                                if (estimatedMonths > 0) {
+                                    totalMonths += estimatedMonths;
+                                    log.debug("基于文本估算工作经验月数: {}", estimatedMonths);
                                 }
                             }
+                        }
+                    } else {
+                        // 没有连字符的日期格式，尝试其他方法
+                        int estimatedMonths = estimateWorkDurationFromText(exp.getDescription(), exp.getStartDate(), exp.getEndDate());
+                        if (estimatedMonths > 0) {
+                            totalMonths += estimatedMonths;
+                            log.debug("无连字符日期，基于文本估算工作经验月数: {}", estimatedMonths);
                         }
                     }
                 }
@@ -1710,7 +2257,63 @@ public class ResumeAnalysisServiceImpl implements ResumeAnalysisService {
         }
         
         // 转换为年，向下取整
-        return Math.max(0, totalMonths / 12);
+        int years = Math.max(0, totalMonths / 12);
+        log.info("计算总工作年限: {}年 ({}个月)", years, totalMonths);
+        return years;
+    }
+    
+    /**
+     * 基于文本描述估算工作时长
+     */
+    private int estimateWorkDurationFromText(String description, String startDate, String endDate) {
+        // 检查是否包含"至今"、"现在"等表示仍在工作的关键词
+        if (endDate != null && (endDate.contains("至今") || endDate.contains("现在") || endDate.contains("present"))) {
+            // 如果只有开始年份，估算为当前年减去开始年
+            if (startDate != null) {
+                try {
+                    // 提取年份
+                    Pattern yearPattern = Pattern.compile("(\\d{4})");
+                    Matcher matcher = yearPattern.matcher(startDate);
+                    if (matcher.find()) {
+                        int startYear = Integer.parseInt(matcher.group(1));
+                        Calendar cal = Calendar.getInstance();
+                        int currentYear = cal.get(Calendar.YEAR);
+                        return (currentYear - startYear) * 12;
+                    }
+                } catch (Exception e) {
+                    log.debug("从文本提取年份失败", e);
+                }
+            }
+        }
+        
+        // 检查描述中是否包含工作时长信息（如"3年"、"18个月"等）
+        if (description != null) {
+            Pattern durationPattern = Pattern.compile("(\\d+)[年]\\s*(\\d+)?[个月]?|(\\d+)[个月]");
+            Matcher matcher = durationPattern.matcher(description);
+            if (matcher.find()) {
+                try {
+                    int years = 0;
+                    int months = 0;
+                    
+                    if (matcher.group(1) != null) {
+                        years = Integer.parseInt(matcher.group(1));
+                    }
+                    if (matcher.group(2) != null) {
+                        months = Integer.parseInt(matcher.group(2));
+                    }
+                    if (matcher.group(3) != null) {
+                        months = Integer.parseInt(matcher.group(3));
+                    }
+                    
+                    return years * 12 + months;
+                } catch (Exception e) {
+                    log.debug("从描述提取工作时长失败", e);
+                }
+            }
+        }
+        
+        // 默认返回0，表示无法估算
+        return 0;
     }
     
     /**
