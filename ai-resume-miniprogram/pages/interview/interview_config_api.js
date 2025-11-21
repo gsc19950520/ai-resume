@@ -78,7 +78,7 @@ function getDefaultConfig() {
         description: '能够优化和解决复杂问题'
       }
     ],
-    defaultSessionSeconds: 900,
+    defaultSessionSeconds: 600,
     defaultPersona: 'friendly'
   };
 }

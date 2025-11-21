@@ -135,24 +135,40 @@
         <view class="record-button-container">
           <button 
             class="record-button {{recording ? 'recording' : ''}}"
-            bindtouchstart="startRecord"
-            bindtouchend="stopRecord"
+            bindtap="toggleRecording"
           >
             <image src="/images/mic_white.png" class="mic-icon"></image>
           </button>
-          <view class="record-hint">长按录音</view>
+          <view class="record-hint">{{recording ? '点击停止' : '点击录音'}}</view>
         </view>
 
         <!-- 转写文本框 -->
         <view class="transcription-box">
+          <!-- 语音识别状态指示器 -->
+          <view class="recognition-status-indicator" wx:if="{{recognitionStatus === 'recognizing' || isTranscribing}}">
+            <view class="status-dots">
+              <view class="dot dot-1"></view>
+              <view class="dot dot-2"></view>
+              <view class="dot dot-3"></view>
+            </view>
+            <text class="status-text">语音识别中...</text>
+          </view>
+          
+          <!-- 转写内容文本框 -->
           <textarea 
             class="transcription-textarea" 
-            placeholder="回答内容将显示在这里..."
+            placeholder="语音转文字内容会实时显示在这里"
             value="{{userAnswer}}"
             bindinput="onAnswerInput"
             auto-height
             maxlength="1000"
           ></textarea>
+          
+          <!-- 语音识别提示 -->
+          <view class="transcription-tips">
+            <text wx:if="{{!userAnswer}}">点击下方麦克风开始录音</text>
+            <text wx:else>说的内容会实时显示在这里</text>
+          </view>
         </view>
 
         <!-- 提交行 -->
@@ -180,62 +196,35 @@
         </view>
       </view>
 
-      <!-- 评分反馈区域 - PerQuestionFeedback -->
-      <view class="ai-feedback-card {{animationState.feedbackPanel !== 'idle' ? 'fade-in' : ''}}" wx:if="showFeedback">
-        <view class="feedback-header">
-          <view class="feedback-title">AI评分反馈</view>
-          <view class="overall-score">{{calculateOverallScore()}}</view>
+      <!-- 问答记录列表 - InterviewHistoryList -->
+      <view class="interview-history-list fade-in" wx:if="true">
+        <view class="history-list-header">
+          <view class="history-list-title">问答记录</view>
+          <view class="history-list-count">共 {{interviewHistory.length}} 条</view>
         </view>
         
-        <view class="score-donut">
-          <view class="score-item">
-            <view class="score-circle tech">{{questionScore.tech}}</view>
-            <view class="score-label">技术</view>
-          </view>
-          <view class="score-item">
-            <view class="score-circle logic">{{questionScore.logic}}</view>
-            <view class="score-label">逻辑</view>
-          </view>
-          <view class="score-item">
-            <view class="score-circle clarity">{{questionScore.clarity}}</view>
-            <view class="score-label">表达</view>
-          </view>
-          <view class="score-item">
-            <view class="score-circle depth">{{questionScore.depth}}</view>
-            <view class="score-label">深度</view>
-          </view>
-        </view>
-        
-        <view class="matched-points-tags">
-          <view 
-            wx:for="{{matchedPoints}}" 
-            wx:key="index" 
-            class="matched-point-tag"
-          >
-            ✓ {{item}}
-          </view>
-        </view>
-        
-        <view class="quick-tips">
-          {{feedbackText}}
-        </view>
-        
-        <!-- 城市薪资匹配结果 -->
-        <view class="salary-match-card" wx:if="salaryMatchResult && salaryMatchResult.industryAverage">
-          <view class="salary-title">
-            <image src="/images/settings.png" class="salary-icon"></image>
-            薪资匹配分析
-          </view>
-          <view class="salary-content">
-            <view class="salary-item">
-              <view class="salary-label">行业平均</view>
-              <view class="salary-value">{{salaryMatchResult.industryAverage}}</view>
-            </view>
-            <view class="salary-item">
-              <view class="salary-label">您的水平</view>
-              <view class="salary-value salary-match">
-                {{salaryMatchResult.matchPercentage}}% <text class="match-status">{{salaryMatchResult.matchStatus}}</text>
+        <view class="history-list-content" id="history-list-content">
+          <view wx:for="{{interviewHistory}}" wx:key="id" class="history-list-item">
+            <!-- 问题记录 -->
+            <view class="question-block" wx:if="{{item.type === 'question'}}">
+              <view class="block-header">
+                <view class="block-icon question-icon">
+                  <image src="/images/avatar.jpg" mode="aspectFit"></image>
+                </view>
+                <view class="block-title">面试官</view>
+                <view class="block-time">{{item.formattedTime}}</view>
               </view>
+              <view class="question-content">{{item.content}}</view>
+            </view>
+            
+            <!-- 回答记录 -->
+            <view class="answer-block" wx:if="{{item.type === 'answer'}}">
+              <view class="block-header">
+                <view class="block-icon answer-icon">👤</view>
+                <view class="block-title">您的回答</view>
+                <view class="block-time">{{item.formattedTime}}</view>
+              </view>
+              <view class="answer-content">{{item.content}}</view>
             </view>
           </view>
         </view>
