@@ -93,9 +93,6 @@ public class InterviewServiceImpl implements InterviewService {
     @Override
     public InterviewResponseDTO startInterview(Long userId, Long resumeId, String persona, Integer sessionSeconds) {
         try {
-            // 1. 获取简历内容
-            Resume resume = resumeRepository.findById(resumeId).orElseThrow(() -> new RuntimeException("简历不存在"));
-            
             // 2. 调用ResumeAnalysisService分析简历，获取结构化信息 - 添加异常处理和降级策略
             ResumeAnalysisDTO analysisDTO = null;
             List<String> techItems = new ArrayList<>();
