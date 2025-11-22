@@ -238,17 +238,10 @@ public class HtmlToPdfGenerator {
             command.add("--disable-javascript"); // 禁用JavaScript以避免渲染问题
             command.add("--disable-smart-shrinking"); // 保持精确的大小控制
             command.add("--print-media-type"); // 使用打印样式表
-            command.add("--no-background"); // 确保背景渲染正确
-            command.add("--encoding");
-            command.add("utf-8"); // 确保正确的字符编码
-            command.add("--javascript-delay");
-            command.add("2000"); // 增加JavaScript执行延迟
-            command.add("--allow");
-            command.add("."); // 允许访问本地文件
-            command.add("--cache-dir");
-            command.add(System.getProperty("java.io.tmpdir")); // 设置缓存目录
-            
-            // 边距设置
+            command.add("--dpi 300"); // 提高分辨率
+            // 移除--no-background以保留背景颜色
+            command.add("--encoding utf-8"); // 确保编码正确
+            command.add("--quiet"); // 减少输出
             command.add("--margin-top");
             command.add("10mm");
             command.add("--margin-right");
@@ -301,33 +294,35 @@ public class HtmlToPdfGenerator {
     }
 
     /**
-     * 预处理HTML内容，优化微信小程序PDF查看器兼容性
+     * 预处理HTML内容，为微信小程序PDF查看器优化样式兼容性
+     * 保留原始模板的所有样式，只添加必要的兼容性设置
      * @param htmlContent 原始HTML内容
      * @return 优化后的HTML内容
      */
     private static String preprocessHtmlForWechat(String htmlContent) {
-        // 添加内联基本样式以确保在微信小程序PDF查看器中正确显示
-        String baseStyles = "<style>\n" +
-            "/* 基础样式重置，提高微信小程序兼容性 */\n" +
-            "body { font-family: Arial, 'Microsoft YaHei', sans-serif; -webkit-print-color-adjust: exact; }\n" +
-            ".template-one-container, .resume-six-container { background: white !important; }\n" +
-            "/* 确保颜色正确显示 */\n" +
-            "* { color-adjust: exact !important; }\n" +
-            "/* 优化技能条等复杂元素的显示 */\n" +
-            ".skill-fill { background-color: #0072ff !important; }\n" +
-            "/* 确保边框和阴影正确显示 */\n" +
-            "* { box-shadow: none !important; border: 1px solid #e0e0e0 !important; }\n" +
-            "/* 确保背景和文本颜色对比度 */\n" +
-            ".right-panel-swapped { background-color: #572dca !important; color: white !important; }\n" +
+        // 只添加微信小程序PDF查看器必要的兼容性设置，不修改原始样式
+        String compatibilityMeta = "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n";
+        String compatibilityStyles = "<style>\n" +
+            "/* 确保在微信小程序内置PDF查看器中正确显示颜色 */\n" +
+            "* { -webkit-print-color-adjust: exact !important; color-adjust: exact !important; }\n" +
+            "/* 确保背景色显示 */\n" +
+            "body, div { background: transparent !important; }\n" +
+            "/* 确保元素不被截断 */\n" +
+            "* { box-sizing: border-box !important; }\n" +
+            "/* 确保文本可读性 */\n" +
+            "body { line-height: 1.5 !important; }\n" +
             "</style>\n";
         
-        // 在head标签内插入样式，如果没有head标签则在开始处添加
+        // 组合兼容性代码
+        String compatibilityCode = compatibilityMeta + compatibilityStyles;
+        
+        // 在head标签内插入兼容性代码，如果没有head标签则在开始处添加
         if (htmlContent.contains("</head>")) {
-            return htmlContent.replace("</head>", baseStyles + "</head>");
-        } else if (htmlContent.contains("<body>")) {
-            return htmlContent.replace("<body>", baseStyles + "<body>");
+            return htmlContent.replace("</head>", compatibilityCode + "</head>");
+        } else if (htmlContent.contains("<html>")) {
+            return htmlContent.replace("<html>", "<html>\n<head>" + compatibilityCode + "</head>");
         } else {
-            return baseStyles + htmlContent;
+            return "<html>\n<head>" + compatibilityCode + "</head>\n<body>" + htmlContent + "</body>\n</html>";
         }
     }
     
@@ -378,12 +373,15 @@ public class HtmlToPdfGenerator {
                     // 新建页面
                     Page page = browser.newPage();
 
+                    // 预处理HTML内容，优化微信小程序PDF查看器兼容性
+                    String optimizedHtml = preprocessHtmlForWechat(htmlContent);
+                    
                     // 设置 HTML 内容
                     WaitForOptions waitForOptions = new WaitForOptions();
                     waitForOptions.setTimeout(30000);
                     waitForOptions.setWaitUntil(Arrays.asList(PuppeteerLifeCycle.load));
 
-                    page.setContent(htmlContent, waitForOptions);
+                    page.setContent(optimizedHtml, waitForOptions);
 
                     // 配置 PDF
                     PDFOptions pdfOptions = new PDFOptions();
