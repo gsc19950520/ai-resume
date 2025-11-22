@@ -14,6 +14,7 @@ Page({
     resumeId: '',
     userId: '',
     industryJobTag: '',
+    jobTypeId: '',
     resumeList: [], // 用户简历列表
     resumeIndex: 0, // 当前选中的简历索引
     selectedResume: null, // 选中的简历对象
@@ -284,33 +285,43 @@ Page({
       return;
     }
 
-    wx.showLoading({ title: '正在生成第一个问题...' });
+    wx.showLoading({ title: '正在准备面试...' });
     
     try {
-      // 调用后端API生成第一个问题，现在会直接返回数据或抛出异常
+      // 调用后端API生成第一个问题和会话，使用start接口
+      this.data.jobTypeId = app.globalData.latestResumeData.jobTypeId || 1
       const data = await this.generateFirstQuestion();
       
-      // 如果成功，直接使用返回的数据
-      // 将encodeURIComponent移到模板字符串之外，便于代码依赖分析工具识别
-      const encodedQuestion = encodeURIComponent(data.question);
+      // 隐藏加载提示
+      wx.hideLoading();
+      
+      // 确保有question对象和sessionId
+      if (!data.question || !data.sessionId) {
+        throw new Error('返回数据不完整');
+      }
+      
+      console.log('准备跳转到面试页面，传递参数:', {
+        question: data.question,
+        sessionId: data.sessionId
+      });
+      
+      // 跳转到面试页面，传递第一个问题和会话ID
       wx.navigateTo({
-        url: `/pages/interview/interview?resumeId=${this.data.resumeId}&persona=${this.data.selectedPersona}&industryJobTag=${this.data.industryJobTag}&firstQuestion=${encodedQuestion}`
+        url: `/pages/interview/interview?firstQuestion=${encodeURIComponent(JSON.stringify(data.question))}&sessionId=${encodeURIComponent(data.sessionId)}`
       });
     } catch (error) {
-      // 立即显示错误提示
-      wx.showToast({
-        title: error.message || '服务器异常，请稍后重试',
-        icon: 'none',
-        duration: 2000
-      });
-      console.error('生成问题失败:', error);
-    } finally {
-      // 确保loading状态被隐藏
       wx.hideLoading();
+      console.error('开始面试失败:', error);
+      
+      // 显示友好的错误提示
+      wx.showToast({
+        title: error.message || '开始面试失败，请重试',
+        icon: 'none'
+      });
     }
   },
   
-  // 调用后端API生成第一个问题
+  // 调用后端API生成面试会话并获取第一个问题
   generateFirstQuestion: function() {
     return new Promise((resolve, reject) => {
       // 添加超时处理，延长超时时间为15秒
@@ -318,14 +329,43 @@ Page({
         reject(new Error('请求超时，请检查网络连接'));
       }, 15000); // 15秒超时
       
-      post('/api/interview/generate-first-question', {
+      post('/api/interview/start', {
+        userId: this.data.userId,
         resumeId: this.data.resumeId,
-        personaId: this.data.selectedPersona,
-        industryJobTag: this.data.industryJobTag
+        persona: this.data.selectedPersona,
+        jobTypeId: this.data.jobTypeId,
+        sessionSeconds: 600 // 默认面试时长10分钟
       })
       .then(resData => {
         clearTimeout(timeoutId);
-        resolve(resData);
+        // 处理API返回数据，支持多种格式
+        if (resData.code === 0 || resData.code === 200 || (resData.message && resData.message.toLowerCase() === 'success')) {
+          const data = resData.data || resData;
+          console.log('start接口返回数据:', data);
+          
+          // 根据后端返回的数据结构，正确提取interviewInfo对象
+          const interviewInfo = data.interviewInfo || {};
+          
+          // 构建兼容格式的响应，确保包含question字段供现有代码使用
+          // 后端返回的question可能是字符串，需要转换为前端需要的对象格式
+          const responseData = {
+            ...data,
+            // 确保question字段存在且为对象格式
+            question: {
+              content: interviewInfo.question || '',
+              depthLevel: data.depthLevel || '用法',
+              questionId: data.questionId || '',
+              expectedKeyPoints: data.expectedKeyPoints || []
+            },
+            // 保留会话ID用于后续请求
+            sessionId: interviewInfo.sessionId || data.sessionId || ''
+          };
+          
+          console.log('处理后的响应数据:', responseData);
+          resolve(responseData);
+        } else {
+          reject(new Error(resData.message || '创建面试会话失败'));
+        }
       })
       .catch(error => {
         clearTimeout(timeoutId);

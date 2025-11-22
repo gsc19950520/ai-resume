@@ -6,16 +6,14 @@ import com.aicv.airesume.model.dto.ResumeAnalysisDTO;
 import com.aicv.airesume.service.InterviewService;
 import com.aicv.airesume.service.ResumeAnalysisService;
 import com.aicv.airesume.service.config.DynamicConfigService;
-import com.aicv.airesume.utils.ResponseUtils;
 import com.aicv.airesume.model.vo.BaseResponseVO;
 import com.aicv.airesume.model.vo.InterviewConfigVO;
 import com.aicv.airesume.model.vo.InterviewPersonasVO;
 import com.aicv.airesume.model.vo.InterviewStartVO;
+import com.aicv.airesume.model.dto.InterviewStartRequestDTO;
 import com.aicv.airesume.model.vo.InterviewAnswerVO;
 import com.aicv.airesume.model.vo.InterviewReportVO;
 import com.aicv.airesume.model.vo.InterviewHistoryListVO;
-
-import com.aicv.airesume.model.vo.InterviewDetailVO;
 import com.aicv.airesume.model.vo.FirstQuestionVO;
 import com.aicv.airesume.model.vo.AiTraceLogVO;
 import com.aicv.airesume.model.vo.InterviewHistoryVO;
@@ -99,65 +97,47 @@ public class InterviewController {
         }
     }
     
-    /**
-     * 开始面试 - 支持动态配置
-     * @param request 请求参数
-     * @return 会话信息和第一个问题
-     */
+
     @PostMapping("/start")
-    public BaseResponseVO startInterview(@RequestBody Map<String, Object> request) {
+    public BaseResponseVO startInterview(@RequestBody InterviewStartRequestDTO request) {
         try {
-            Long userId = Long.valueOf(request.get("userId").toString());
-            Long resumeId = Long.valueOf(request.get("resumeId").toString());
+            // 从DTO中获取参数
+            Long userId = request.getUserId();
+            Long resumeId = request.getResumeId();
+            String persona = request.getPersona();
             
-            // 从动态配置获取默认值
-            String defaultPersona = dynamicConfigService.getDefaultPersona();
+            // 从动态配置获取默认值（仅用于会话时长）
             Integer defaultSessionSeconds = dynamicConfigService.getDefaultSessionSeconds();
             
             // 使用请求参数或默认配置
-            String persona = (String) request.getOrDefault("persona", defaultPersona);
-            String toneStyle = (String) request.getOrDefault("toneStyle", "neutral"); // 添加语气风格参数
-            Integer sessionSeconds = request.get("sessionSeconds") != null ? 
-                Integer.valueOf(request.get("sessionSeconds").toString()) : defaultSessionSeconds;
-
-            // 根据语气风格增强面试官角色描述
-            String enhancedPersona = enhancePersonaWithTone(persona, toneStyle);
-            InterviewResponseDTO result = interviewService.startInterview(userId, resumeId, enhancedPersona, sessionSeconds);
+            Integer sessionSeconds = request.getSessionSeconds() != null ? 
+                request.getSessionSeconds() : defaultSessionSeconds;
             
-            // 转换为VO对象
+            // 创建综合响应对象
+            Map<String, Object> responseData = new HashMap<>();
+            
+            // 调用服务层开始面试
+            Integer jobTypeId = request.getJobTypeId();
+            log.info("接收到的jobTypeId: {}", jobTypeId);
+            InterviewResponseDTO result = interviewService.startInterview(userId, resumeId, persona, sessionSeconds, jobTypeId);
+            
+            // 转换为VO对象并添加到响应中
             InterviewStartVO vo = new InterviewStartVO();
             vo.setSessionId(result.getSessionId());
             vo.setQuestion(result.getQuestion());
             vo.setQuestionType(result.getQuestionType());
-            vo.setPersona(enhancedPersona);
+            vo.setPersona(persona);
             vo.setSessionSeconds(sessionSeconds);
             
-            return BaseResponseVO.success(vo);
+            responseData.put("interviewInfo", vo);
+            
+            return BaseResponseVO.success(responseData);
         } catch (Exception e) {
             log.error("Start interview failed:", e);
             return BaseResponseVO.error("开始面试失败：" + e.getMessage());
         }
     }
-    /**
-     * 根据语气风格增强面试官角色描述
-     */
-    private String enhancePersonaWithTone(String basePersona, String toneStyle) {
-        switch (toneStyle) {
-            case "friendly":
-                return basePersona + "，语气友好亲切，鼓励候选人表达。";
-            case "challenging":
-                return basePersona + "，语气具有挑战性，会深入追问技术细节。";
-            case "analytical":
-                return basePersona + "，语气分析性强，注重逻辑推理过程。";
-            case "encouraging":
-                return basePersona + "，语气鼓励性强，给予正面反馈。";
-            case "formal":
-                return basePersona + "，语气正式专业，严格遵循技术评估标准。";
-            case "neutral":
-            default:
-                return basePersona + "，语气客观中立，关注事实和技术能力。";
-        }
-    }
+
     
     /**
      * 分析简历并生成结构化面试问题清单
@@ -329,34 +309,6 @@ public class InterviewController {
         } catch (Exception e) {
             log.error("Get interview detail failed:", e);
             return BaseResponseVO.error("获取面试详情失败：" + e.getMessage());
-        }
-    }
-    
-    /**
-     * 生成第一个面试问题
-     * @param request 请求参数（包含resumeId、personaId、industryJobTag）
-     * @return 生成的问题
-     */
-    @PostMapping("/generate-first-question")
-    public BaseResponseVO generateFirstQuestion(@RequestBody Map<String, Object> request) {
-        try {
-            Long resumeId = Long.valueOf(request.get("resumeId").toString());
-            String personaId = (String) request.get("personaId");
-            String industryJobTag = (String) request.getOrDefault("industryJobTag", "");
-            
-            Map<String, Object> result = interviewService.generateFirstQuestion(resumeId, personaId, industryJobTag);
-            
-            // 转换为VO对象
-            FirstQuestionVO vo = new FirstQuestionVO();
-            vo.setQuestion((String) result.get("question"));
-            vo.setQuestionType((String) result.get("questionType"));
-            vo.setDifficulty((String) result.get("difficulty"));
-            vo.setCategory((String) result.get("category"));
-            
-            return BaseResponseVO.success(vo);
-        } catch (Exception e) {
-            log.error("Generate first question failed:", e);
-            return BaseResponseVO.error("生成问题失败：" + e.getMessage());
         }
     }
 

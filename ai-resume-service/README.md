@@ -71,7 +71,6 @@ wechat.app-id=your_app_id
 wechat.app-secret=your_app_secret
 
 # AI API配置
-openai.api-key=your_openai_api_key
 
 # 阿里云OSS配置
 oss.endpoint=your_oss_endpoint

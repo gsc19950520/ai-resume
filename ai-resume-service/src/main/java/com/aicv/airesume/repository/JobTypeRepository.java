@@ -10,7 +10,7 @@ import java.util.Optional;
  * 职位类型数据访问接口
  */
 @Repository
-public interface JobTypeRepository extends JpaRepository<JobType, Long> {
+public interface JobTypeRepository extends JpaRepository<JobType, Integer> {
 
     /**
      * 根据职位名称查询职位类型
@@ -25,4 +25,5 @@ public interface JobTypeRepository extends JpaRepository<JobType, Long> {
      * @return 职位类型列表
      */
     java.util.List<JobType> findByDomainId(Long domainId);
+    
 }

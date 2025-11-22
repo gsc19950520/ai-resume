@@ -667,69 +667,21 @@ page {
   color: #0F172A;
 }
 
-.recording-status {
-  font-size: 24rpx;
-  color: #EF4444;
-  font-weight: 500;
-  animation: pulse 1s infinite;
-}
-
-/* 录音按钮 */
-.record-button-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin: 30rpx 0;
-}
-
-.record-button {
-  width: 112rpx;
-  height: 112rpx;
-  border-radius: 50%;
-  background-color: #4F46E5;
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4rpx 12rpx rgba(79, 70, 229, 0.3);
-  transition: all 0.3s ease;
-}
-
-.record-button.recording {
-  background-color: #EF4444;
-  box-shadow: 0 4rpx 12rpx rgba(239, 68, 68, 0.3);
-}
-
-.record-button:active {
-  transform: scale(0.95);
-}
-
-.mic-icon {
-  width: 48rpx;
-  height: 48rpx;
-}
-
-.record-hint {
-  margin-top: 16rpx;
-  font-size: 24rpx;
-  color: #64748B;
-}
-
-/* 转写文本框 */
-.transcription-box {
+/* 回答输入区域样式 */
+.answer-input-area {
+  width: 100%;
   margin: 20rpx 0;
 }
 
-.transcription-textarea {
+.answer-textarea {
   width: 100%;
   min-height: 200rpx;
-  padding: 24rpx;
+  padding: 20rpx;
+  border: 1rpx solid #dcdfe6;
+  border-radius: 10rpx;
   font-size: 28rpx;
-  color: #0F172A;
-  background-color: #F7FAFF;
-  border: 2rpx solid #E0E7FF;
-  border-radius: 12rpx;
-  box-sizing: border-box;
+  color: #333;
+  background-color: #f9f9f9;
 }
 
 /* 提交行 */

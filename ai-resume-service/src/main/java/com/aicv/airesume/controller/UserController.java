@@ -6,6 +6,7 @@ import com.aicv.airesume.model.vo.WechatLoginVO;
 import com.aicv.airesume.model.vo.BaseResponseVO;
 import com.aicv.airesume.service.StatisticsService;
 import com.aicv.airesume.service.UserService;
+import com.aicv.airesume.utils.TokenUtils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -13,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -259,15 +261,20 @@ public class UserController {
         }
     }
 
+    @Autowired
+    private TokenUtils tokenUtils;
+    
     /**
      * 获取用户信息和统计数据
      * @param openId 用户的微信openId
-     * @return 包含用户信息和统计数据的响应
+     * @param request HTTP请求对象，用于获取Authorization头
+     * @return 包含用户信息和统计数据的响应，以及可能的新token
      */
     @GetMapping("/info")
-    public ResponseEntity<Map<String, Object>> getUserInfo(@RequestParam("openId") String openId) {
+    public ResponseEntity<Map<String, Object>> getUserInfo(@RequestParam("openId") String openId, HttpServletRequest request) {
         Map<String, Object> response = new HashMap<>();
         Map<String, Object> data = new HashMap<>();
+        HttpHeaders headers = new HttpHeaders();
         
         try {
             // 验证openId参数
@@ -275,10 +282,26 @@ public class UserController {
                 response.put("success", false);
                 response.put("message", "缺少openId参数");
                 response.put("data", null);
-                return ResponseEntity.ok(response);
+                return ResponseEntity.ok().headers(headers).body(response);
             }
             
             log.info("开始获取用户信息，openId: {}", openId);
+            
+            // 获取Authorization头并尝试刷新token
+            String authorizationHeader = request.getHeader("Authorization");
+            if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
+                String token = authorizationHeader.substring(7);
+                // 解析token，即使过期也尝试获取用户信息
+                Map<String, Object> claims = tokenUtils.parseToken(token);
+                if (claims != null && claims.get("userId") != null) {
+                    // 生成新的token
+                    Long userId = Long.valueOf(claims.get("userId").toString());
+                    String newToken = tokenUtils.generateToken(userId);
+                    // 添加新token到响应头
+                    headers.add("X-New-Token", newToken);
+                    headers.add("X-Token-Refreshed", "true");
+                }
+            }
             
             // 使用UserService根据openId获取用户基本信息
             Optional<User> userOpt = userService.getUserByOpenId(openId);
@@ -286,7 +309,7 @@ public class UserController {
                 response.put("success", false);
                 response.put("message", "用户不存在");
                 response.put("data", null);
-                return ResponseEntity.ok(response);
+                return ResponseEntity.ok().headers(headers).body(response);
             }
             
             User user = userOpt.get();
@@ -326,6 +349,13 @@ public class UserController {
             response.put("success", true);
             response.put("data", data);
             
+            // 如果请求中没有token，但用户存在，为该用户生成一个新token
+            if (user.getId() != null && (authorizationHeader == null || !authorizationHeader.startsWith("Bearer "))) {
+                String newToken = tokenUtils.generateToken(user.getId());
+                headers.add("X-New-Token", newToken);
+                headers.add("X-Token-Refreshed", "true");
+            }
+            
         } catch (Exception e) {
             log.error("获取用户信息失败", e);
             response.put("success", false);
@@ -333,7 +363,7 @@ public class UserController {
             response.put("data", null);
         }
         
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok().headers(headers).body(response);
     }
     
     /**

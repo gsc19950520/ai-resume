@@ -1,8 +1,6 @@
 package com.aicv.airesume.service.impl;
 
 import com.aicv.airesume.entity.AiTraceLog;
-import com.aicv.airesume.entity.InterviewLog;
-import com.aicv.airesume.entity.InterviewSession;
 import com.aicv.airesume.entity.JobType;
 import com.aicv.airesume.model.vo.SalaryRangeVO;
 import com.aicv.airesume.repository.AiTraceLogRepository;
@@ -15,10 +13,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * AI生成服务实现类
@@ -101,7 +97,7 @@ public class AIGenerateServiceImpl implements AIGenerateService {
     }
 
     @Override
-    public String getJobDomain(Long jobTypeId) {
+    public String getJobDomain(Integer jobTypeId) {
         try {
             JobType jobType = jobTypeRepository.findById(jobTypeId)
                     .orElseThrow(() -> new RuntimeException("职位类型不存在"));

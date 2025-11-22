@@ -42,7 +42,7 @@ public interface AIGenerateService {
      * @param jobTypeId 职位ID
      * @return 领域信息
      */
-    String getJobDomain(Long jobTypeId);
+    String getJobDomain(Integer jobTypeId);
     
     /**
      * 分析用户技能短板

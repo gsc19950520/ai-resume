@@ -23,15 +23,6 @@ import java.util.Base64;
 @Component
 public class AiServiceUtils {
 
-    @Value("${openai.api-key}")
-    private String openaiApiKey;
-
-    @Value("${tongyi.api-key}")
-    private String tongyiApiKey;
-
-    @Value("${wenxin.api-key}")
-    private String wenxinApiKey;
-
     @Value("${deepseek.api-key}")
     private String deepseekApiKey;
 
@@ -47,24 +38,6 @@ public class AiServiceUtils {
         // 实现OpenAI API调用逻辑
         // 这里简化处理，实际项目中需要按照OpenAI API文档规范实现
         return "优化后的简历内容 (OpenAI)";
-    }
-    
-    /**
-     * 调用AI服务
-     * @param prompt 提示词
-     * @return AI生成的内容
-     */
-    public String callAiService(String prompt) {
-        try {
-            // 这里直接调用DeepSeek API作为AI服务的实现
-            // 在实际项目中，可能需要根据配置或业务需求选择不同的AI服务提供商
-            return callDeepSeekApi(prompt);
-        } catch (Exception e) {
-            // 记录错误日志
-            System.err.println("Error calling AI service: " + e.getMessage());
-            // 返回空字符串，让调用方处理错误情况
-            return "";
-        }
     }
 
     /**

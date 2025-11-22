@@ -1394,7 +1394,7 @@ public class ResumeAnalysisServiceImpl implements ResumeAnalysisService {
             prompt.append("请列出候选人的5-8个主要优势，每个优势用简洁的句子描述，不要使用编号，直接返回要点列表。");
             
             // 调用AI服务
-            String response = aiServiceUtils.callAiService(prompt.toString());
+            String response = aiServiceUtils.callDeepSeekApi(prompt.toString());
             
             // 解析响应
             List<String> strengths = new ArrayList<>();
@@ -1488,7 +1488,7 @@ public class ResumeAnalysisServiceImpl implements ResumeAnalysisService {
             prompt.append("请列出候选人的3-5个主要提升点，每个提升点用简洁的句子描述，不要使用编号，直接返回要点列表。");
             
             // 调用AI服务
-            String response = aiServiceUtils.callAiService(prompt.toString());
+            String response = aiServiceUtils.callDeepSeekApi(prompt.toString());
             
             // 解析响应
             List<String> improvements = new ArrayList<>();

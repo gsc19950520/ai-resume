@@ -28,8 +28,8 @@ public class InterviewSession {
     @Column(name = "resume_id", nullable = false)
     private Long resumeId;
 
-    @Column(name = "job_type", nullable = false, length = 100)
-    private String jobType;
+    @Column(name = "job_type_id", nullable = false, length = 100)
+    private Integer jobTypeId;
 
     @Column(name = "city", nullable = false, length = 50)
     private String city;

@@ -1,37 +1,5 @@
 <!-- interview.wxml -->
 <view class="container">
-  
-  <!-- 简历选择弹窗 -->
-  <view class="modal-overlay" wx:if="{{showResumeSelectModal}}" bindtap="">
-    <view class="resume-select-modal" catchtap="">
-      <view class="modal-header">
-        <view class="modal-title">选择面试简历</view>
-      </view>
-      <view class="modal-content">
-        <view class="resume-list">
-          <view 
-            wx:for="{{resumeList}}" 
-            wx:key="id" 
-            class="resume-item {{selectedResumeId === item.id ? 'selected' : ''}}" 
-            bindtap="selectResume" 
-            data-id="{{item.id}}"
-          >
-            <view class="resume-info">
-              <view class="resume-title">{{item.title}}</view>
-              <view class="resume-occupation">{{item.occupation}}</view>
-              <view class="resume-time">更新时间: {{item.updateTime}}</view>
-            </view>
-            <view class="resume-select-icon" wx:if="{{selectedResumeId === item.id}}">
-              <image src="/images/check.png" mode="aspectFit"></image>
-            </view>
-          </view>
-        </view>
-      </view>
-      <view class="modal-footer">
-        <text class="tips">请选择一份简历，AI将基于简历内容生成面试问题</text>
-      </view>
-    </view>
-  </view>
   <!-- 顶部导航栏 -->
   <view class="header">
     <view class="header-left" bindtap="goBack">
@@ -54,38 +22,7 @@
     </view>
   </view>
 
-  <!-- 面试官风格选择模块 - personaSelector -->
-  <view class="persona-selector" wx:if="{{false}}">
-    <view class="selector-title">选择面试官风格</view>
-    
-    <!-- 水平卡片布局 -->
-    <view class="persona-cards">
-      <view 
-        wx:for="{{personas}}" 
-        wx:key="id" 
-        class="persona-card persona-{{item.id}} {{persona === item.id ? 'selected' : ''}}"
-        bindtap="selectPersona"
-        data-id="{{item.id}}"
-      >
-        <view class="persona-emoji">{{item.emoji}}</view>
-        <view class="persona-name">{{item.name}}</view>
-      </view>
-    </view>
-    
-    <!-- 预览区域 -->
-    <view class="preview-section" wx:if="{{previewQuestion}}">
-      <view class="preview-question">{{previewQuestion}}</view>
-    </view>
-    
-    <!-- 开始面试按钮 -->
-    <button 
-      class="start-interview-btn {{personaSelected ? 'active' : 'disabled'}}"
-      bindtap="startInterview"
-      disabled="{{!personaSelected}}"
-    >
-      开始面试
-    </button>
-  </view>
+  
 
   <!-- 主内容区域 -->
   <view class="main-content">
@@ -104,22 +41,6 @@
           </view>
         </view>
       </view>
-
-      <!-- 历史记录面板 -->
-      <view class="history-panel" wx:if="{{interviewHistory && interviewHistory.length > 0}}">
-        <view class="history-header" bindtap="toggleHistory">
-          <view class="history-title">历史问答</view>
-          <view class="history-count">{{interviewHistory.length}} 条</view>
-          <view class="history-toggle">{{historyExpanded ? '收起' : '展开'}}</view>
-        </view>
-        <view class="history-content" wx:if="{{historyExpanded || interviewHistory.length <= 2}}">
-          <view wx:for="{{interviewHistory}}" wx:key="index" class="history-item">
-            <view class="history-question">{{item.question}}</view>
-            <view class="history-answer">{{item.answer.substring(0, 30)}}...</view>
-            <view class="history-score">评分: {{item.score}}</view>
-          </view>
-        </view>
-      </view>
     </view>
 
     <!-- 右侧：用户回答面板和AI反馈卡片 -->
@@ -128,27 +49,15 @@
       <view class="user-answer-panel">
         <view class="panel-header">
           <view class="panel-title">请回答</view>
-          <view class="recording-status" wx:if="{{recording}}">正在录音...</view>
-        </view>
-        
-        <!-- 录音按钮 -->
-        <view class="record-button-container">
-          <button 
-            class="record-button {{recording ? 'recording' : ''}}"
-            bindtap="toggleRecording"
-          >
-            <image src="/images/mic_white.png" class="mic-icon"></image>
-          </button>
-          <view class="record-hint">{{recording ? '点击停止' : '点击录音'}}</view>
         </view>
 
-        <!-- 转写文本框 -->
-        <view class="transcription-box">
+        <!-- 回答输入区域 -->
+        <view class="answer-input-area">
           <textarea 
-            class="transcription-textarea" 
-            placeholder="语音转文字内容会显示在这里"
+            class="answer-textarea" 
+            placeholder="请输入您的回答..."
             value="{{userAnswer}}"
-            bindinput="onAnswerInput"
+            bindinput="onUserAnswerInput"
             auto-height
             maxlength="1000"
           ></textarea>
@@ -157,24 +66,11 @@
         <!-- 提交行 -->
         <view class="submit-row">
           <button 
-            class="submit-btn-secondary"
-            bindtap="resetRecording"
-            disabled="{{!userAnswer}}"
-          >
-            重录
-          </button>
-          <button 
             class="submit-btn-primary"
             bindtap="submitAnswer"
             disabled="{{!userAnswer.trim()}}"
           >
             提交回答
-          </button>
-          <button 
-            class="submit-btn-secondary"
-            bindtap="addNote"
-          >
-            补充说明
           </button>
         </view>
       </view>

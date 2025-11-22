@@ -1,6 +1,7 @@
 package com.aicv.airesume.service.impl;
 
 import com.aicv.airesume.entity.InterviewSession;
+import com.aicv.airesume.entity.JobType;
 import com.aicv.airesume.entity.InterviewLog;
 import com.aicv.airesume.entity.Resume;
 import com.aicv.airesume.model.dto.InterviewQuestionDTO;
@@ -13,6 +14,7 @@ import com.aicv.airesume.repository.InterviewSessionRepository;
 import com.aicv.airesume.repository.InterviewLogRepository;
 import com.aicv.airesume.repository.ResumeRepository;
 import com.aicv.airesume.repository.InterviewQuestionRepository;
+import com.aicv.airesume.repository.JobTypeRepository;
 import com.aicv.airesume.entity.InterviewQuestion;
 import com.aicv.airesume.service.InterviewService;
 import com.aicv.airesume.service.AIGenerateService;
@@ -68,9 +70,9 @@ public class InterviewServiceImpl implements InterviewService {
     
     @Autowired
     private DynamicConfigService dynamicConfigService;
-    
+
     @Autowired
-    private ResumeAnalysisService resumeAnalysisService;
+    private JobTypeRepository jobTypeRepository;
     
     @Autowired
     private ResumeService resumeService;
@@ -91,53 +93,33 @@ public class InterviewServiceImpl implements InterviewService {
      }
 
     @Override
-    public InterviewResponseDTO startInterview(Long userId, Long resumeId, String persona, Integer sessionSeconds) {
+    public InterviewResponseDTO startInterview(Long userId, Long resumeId, String persona, Integer sessionSeconds, Integer jobTypeId) {
         try {
-            // 2. 调用ResumeAnalysisService分析简历，获取结构化信息 - 添加异常处理和降级策略
-            ResumeAnalysisDTO analysisDTO = null;
+            // 1. 初始化变量
             List<String> techItems = new ArrayList<>();
             List<Map<String, Object>> projectPoints = new ArrayList<>();
             String initialDepthLevel = "usage"; // 默认深度级别
             Map<String, Object> interviewState = new HashMap<>();
             
-            try {
-                // 调用简历分析服务
-                analysisDTO = resumeAnalysisService.analyzeResume(resumeId, null, "intermediate");
-                log.info("成功获取简历分析结果，包含基本信息、技术分析和项目分析");
-                
-                // 从分析结果中提取技术项和项目点
-                techItems = extractTechItemsFromAnalysis(analysisDTO);
-                projectPoints = extractProjectPointsFromAnalysis(analysisDTO);
-                log.info("从分析结果中成功提取数据: 技术项{}个，项目点{}个", techItems.size(), projectPoints.size());
-            } catch (Exception analysisException) {
-                // 降级策略1：简历分析服务调用失败，记录详细错误
-                log.error("简历分析服务调用失败: {}, 错误详情: {}", 
-                        analysisException.getMessage(), ExceptionUtils.getStackTrace(analysisException));
-                // 继续执行，将使用默认值或备用方法
+            // 2. 获取完整简历内容并提取结构化信息
+            Map<String, Object> fullResumeData = resumeService.getResumeFullData(resumeId);
+            String resumeContent = convertFullDataToText(fullResumeData);
+            log.info("成功获取完整简历内容，将直接用于生成面试问题");
+            
+            // 从简历内容中提取技术项和项目点
+            Map<String, Object> extractedData = extractTechItemsAndProjectPoints(resumeContent);
+            if (extractedData != null) {
+                if (extractedData.containsKey("techItems")) {
+                    techItems = (List<String>) extractedData.get("techItems");
+                }
+                if (extractedData.containsKey("projectPoints")) {
+                    projectPoints = (List<Map<String, Object>>) extractedData.get("projectPoints");
+                }
+                log.info("从简历内容中提取数据: 技术项{}个，项目点{}个", techItems.size(), projectPoints.size());
             }
             
-            // 降级策略2：如果技术项或项目点为空，使用原始文本提取方法
-            if (techItems.isEmpty() || projectPoints.isEmpty()) {
-                log.warn("简历分析结果不完整或为空，使用备用方法提取数据");
-                try {
-                    // 使用从五张表关联查询获取的完整简历内容
-                    Map<String, Object> fullResumeData = resumeService.getResumeFullData(resumeId);
-                    String resumeContent = convertFullDataToText(fullResumeData);
-                    Map<String, Object> extractedData = extractTechItemsAndProjectPoints(resumeContent);
-                    if (extractedData != null) {
-                        if (techItems.isEmpty() && extractedData.containsKey("techItems")) {
-                            techItems = (List<String>) extractedData.get("techItems");
-                        }
-                        if (projectPoints.isEmpty() && extractedData.containsKey("projectPoints")) {
-                            projectPoints = (List<Map<String, Object>>) extractedData.get("projectPoints");
-                        }
-                        log.info("备用方法提取数据成功: 技术项{}个，项目点{}个", techItems.size(), projectPoints.size());
-                    }
-                } catch (Exception extractionException) {
-                    log.error("备用方法提取数据失败: {}", extractionException.getMessage());
-                    // 继续执行，使用空列表或默认值
-                }
-            }
+            // 将完整简历内容存储到面试状态中
+            interviewState.put("fullResumeContent", resumeContent);
 
             // 3. 创建面试会话
             InterviewSession session = new InterviewSession();
@@ -145,94 +127,55 @@ public class InterviewServiceImpl implements InterviewService {
             session.setUserId(userId);
             session.setResumeId(resumeId);
             session.setStatus("IN_PROGRESS");
-            // Resume实体中没有jobType属性，使用jobTypeId替代或留空
-            session.setJobType(null); // 或者可以设置为其他合适的值
+            session.setJobTypeId(jobTypeId != null ? jobTypeId : 1); // 使用传入的jobTypeId，默认职位类型为general
+            session.setCity("未知城市");
             session.setQuestionCount(0);
             session.setAdaptiveLevel("auto");
-            session.setAiQuestionSeed(new Random().nextInt(1000)); // 设置随机种子
+            session.setAiQuestionSeed(new Random().nextInt(1000));
             
             // 设置动态面试参数
             session.setPersona(StringUtils.hasText(persona) ? persona : dynamicConfigService.getDefaultPersona());
             session.setSessionSeconds(sessionSeconds != null ? sessionSeconds : dynamicConfigService.getDefaultSessionSeconds());
             session.setSessionTimeRemaining(session.getSessionSeconds());
             
-            // 存储提取的数据
+            // 存储提取的数据和初始化面试状态
             session.setTechItems(objectMapper.writeValueAsString(techItems));
             session.setProjectPoints(objectMapper.writeValueAsString(projectPoints));
-            
-            // 初始化面试状态
             interviewState.put("usedTechItems", new ArrayList<>());
             interviewState.put("usedProjectPoints", new ArrayList<>());
-            
-            // 根据经验级别设置初始深度 - 添加异常处理
-            try {
-                if (analysisDTO != null && analysisDTO.getExperienceLevel() != null) {
-                    initialDepthLevel = getInitialDepthLevelByExperience(analysisDTO.getExperienceLevel());
-                    // 保存更多分析信息以便后续使用
-                    interviewState.put("candidateStrengths", analysisDTO.getStrengths());
-                    interviewState.put("improvementAreas", analysisDTO.getImprovements());
-                } else {
-                    // 降级策略3：如果没有经验级别信息，使用默认值
-                    log.warn("没有获取到经验级别信息，使用默认深度级别: {}", initialDepthLevel);
-                }
-            } catch (Exception e) {
-                log.error("设置初始深度级别失败: {}", e.getMessage());
-            }
             interviewState.put("currentDepthLevel", initialDepthLevel);
             
             session.setInterviewState(objectMapper.writeValueAsString(interviewState));
-
             sessionRepository.save(session);
 
-            // 4. 动态生成第一个问题 - 添加异常处理和降级策略
-            Map<String, Object> firstQuestionData = null;
-            try {
-                firstQuestionData = generateNextQuestion(
-                        techItems,
-                        projectPoints,
-                        interviewState,
-                        session.getSessionTimeRemaining(),
-                        session.getPersona()
-                );
-                if (firstQuestionData == null || firstQuestionData.get("nextQuestion") == null) {
-                    throw new RuntimeException("生成的问题数据为空");
-                }
-            } catch (Exception questionException) {
-                // 降级策略4：生成问题失败，使用备用问题生成方法
-                log.error("动态生成问题失败: {}, 尝试使用备用方法", questionException.getMessage());
-                try {
-                    // 使用备用的问题生成方法
-                    if (!projectPoints.isEmpty()) {
-                        firstQuestionData = generateFirstQuestion(projectPoints, session.getJobType());
-                    } else {
-                        // 降级策略5：如果项目点也为空，使用静态默认问题
-                        log.warn("无可用项目点，使用静态默认问题");
-                        firstQuestionData = new HashMap<>();
-                        firstQuestionData.put("nextQuestion", "请简单介绍一下您自己和您的工作经验。");
-                        firstQuestionData.put("depthLevel", "usage");
-                    }
-                } catch (Exception fallbackException) {
-                    log.error("备用问题生成方法也失败: {}", fallbackException.getMessage());
-                    // 最终降级：使用最简单的默认问题
-                    firstQuestionData = new HashMap<>();
-                    firstQuestionData.put("nextQuestion", "您好，请开始您的自我介绍。");
-                    firstQuestionData.put("depthLevel", "usage");
-                }
+            // 4. 生成第一个问题
+            Map<String, Object> firstQuestionData = generateNextQuestion(
+                    techItems,
+                    projectPoints,
+                    interviewState,
+                    session.getSessionTimeRemaining(),
+                    session.getPersona(),
+                    jobTypeId
+            );
+            
+            if (firstQuestionData == null || firstQuestionData.get("nextQuestion") == null) {
+                throw new RuntimeException("生成的问题数据为空");
             }
             
             // 保存AI生成问题的跟踪日志
-              saveAiTraceLog(session.getSessionId(), "generate_question", 
-                      "生成第一个问题的prompt内容", 
-                      (String) firstQuestionData.get("nextQuestion"));
-              
-              session.setQuestionCount(1); // 增加问题计数
+            saveAiTraceLog(session.getSessionId(), "generate_question", 
+                    "生成第一个问题的prompt内容", 
+                    (String) firstQuestionData.get("nextQuestion"));
+            
+            session.setQuestionCount(1); // 增加问题计数
+            sessionRepository.save(session);
 
             String firstQuestion = (String) firstQuestionData.get("nextQuestion");
 
             // 5. 创建第一个问题日志
             InterviewLog firstLog = new InterviewLog();
             firstLog.setQuestionId(UUID.randomUUID().toString());
-            firstLog.setSessionId(session.getSessionId()); // 使用sessionId而不是被注释掉的session关联
+            firstLog.setSessionId(session.getSessionId());
             firstLog.setQuestionText(firstQuestion);
             firstLog.setDepthLevel((String) firstQuestionData.get("depthLevel"));
             firstLog.setRoundNumber(1);
@@ -242,57 +185,20 @@ public class InterviewServiceImpl implements InterviewService {
             InterviewResponseDTO response = new InterviewResponseDTO();
             response.setSessionId(session.getSessionId());
             
-            // 设置问题信息到additionalInfo
-            Map<String, Object> additionalInfo = response.getAdditionalInfo();
-            if (additionalInfo == null) {
-                additionalInfo = new HashMap<>();
-                response.setAdditionalInfo(additionalInfo);
-            }
+            Map<String, Object> additionalInfo = new HashMap<>();
             additionalInfo.put("firstQuestion", firstQuestion);
             additionalInfo.put("questionId", firstLog.getQuestionId());
             additionalInfo.put("depthLevel", firstQuestionData.get("depthLevel"));
             additionalInfo.put("sessionTimeRemaining", session.getSessionTimeRemaining());
+            response.setAdditionalInfo(additionalInfo);
 
             return response;
         } catch (Exception e) {
-                log.error("开始面试失败: {}, 详细错误: {}", 
-                        e.getMessage(), ExceptionUtils.getStackTrace(e));
-                
-                // 最终降级策略：即使初始化失败，也尝试提供一个基本的响应
-                try {
-                    // 创建一个基本的会话
-                    InterviewSession fallbackSession = new InterviewSession();
-                    fallbackSession.setSessionId(UUID.randomUUID().toString());
-                    fallbackSession.setUserId(userId);
-                    fallbackSession.setResumeId(resumeId);
-                    fallbackSession.setStatus("IN_PROGRESS");
-                    fallbackSession.setJobType(null);
-                    fallbackSession.setQuestionCount(0);
-                    fallbackSession.setAdaptiveLevel("auto");
-                    fallbackSession.setPersona(StringUtils.hasText(persona) ? persona : dynamicConfigService.getDefaultPersona());
-                    fallbackSession.setSessionSeconds(sessionSeconds != null ? sessionSeconds : dynamicConfigService.getDefaultSessionSeconds());
-                    fallbackSession.setSessionTimeRemaining(fallbackSession.getSessionSeconds());
-                    sessionRepository.save(fallbackSession);
-                    
-                    // 创建一个简单的响应
-                    InterviewResponseDTO fallbackResponse = new InterviewResponseDTO();
-                    fallbackResponse.setSessionId(fallbackSession.getSessionId());
-                    
-                    Map<String, Object> additionalInfo = new HashMap<>();
-                    additionalInfo.put("firstQuestion", "系统暂时无法分析您的简历，但我们仍可以继续面试。请开始您的自我介绍。");
-                    additionalInfo.put("questionId", UUID.randomUUID().toString());
-                    additionalInfo.put("depthLevel", "usage");
-                    additionalInfo.put("sessionTimeRemaining", fallbackSession.getSessionTimeRemaining());
-                    fallbackResponse.setAdditionalInfo(additionalInfo);
-                    
-                    log.info("成功提供降级响应，会话ID: {}", fallbackSession.getSessionId());
-                    return fallbackResponse;
-                } catch (Exception fallbackException) {
-                    log.error("降级响应创建失败: {}", fallbackException.getMessage());
-                    // 如果所有降级策略都失败，才抛出异常
-                    throw new RuntimeException("面试初始化失败，请稍后再试");
-                }
-            }
+            // 捕获异常后直接抛出，不再进行降级处理
+            log.error("开始面试失败: {}, 详细错误: {}", 
+                    e.getMessage(), ExceptionUtils.getStackTrace(e));
+            throw new RuntimeException("面试初始化失败: " + e.getMessage(), e);
+        }
     }
     
     /**
@@ -492,7 +398,8 @@ public class InterviewServiceImpl implements InterviewService {
                         projectPoints,
                         interviewState,
                         session.getSessionTimeRemaining(),
-                        session.getPersona()
+                        session.getPersona(),
+                        session.getJobTypeId()
                 );
                 
                 // 检查AI是否要求停止
@@ -602,14 +509,31 @@ public class InterviewServiceImpl implements InterviewService {
         }
     }
 
-    @Override
     public Map<String, Object> extractTechItemsAndProjectPoints(String resumeText) {
         try {
-            // 构建prompt调用projectAnalyzer
-            String prompt = String.format("从简历提取候选人核心技术项与可追问的项目点。\n简历内容：%s\n输出JSON:\n{\"techItems\":[\"SpringBoot\",\"MySQL\",\"Redis\"],\"projectPoints\":[{\"title\":\"订单系统性能优化\",\"difficulty\":\"advanced\"}]}", resumeText);
+            // 记录简历文本的长度和部分内容，确保不为空
+            log.info("extractTechItemsAndProjectPoints - 简历文本长度: {}, 开始部分: {}", 
+                     resumeText.length(), 
+                     resumeText.length() > 50 ? resumeText.substring(0, 50) + "..." : resumeText);
+                      
+            // 构建prompt调用projectAnalyzer，优化prompt以更好地提取技术项和项目点
+            String prompt = String.format("请仔细分析以下简历内容，提取候选人掌握的核心技术项（编程语言、框架、工具等）以及可追问的项目点。\n请确保即使简历格式不规范也尝试提取信息。\n简历内容：%s\n请严格按照以下JSON格式输出，不要包含任何其他文字：\n{\"techItems\":[\"技术1\",\"技术2\",\"技术3\"],\"projectPoints\":[{\"title\":\"项目点描述\",\"difficulty\":\"easy|intermediate|advanced\"}]}", resumeText);
             
             // 调用AI服务
             String aiResponse = aiServiceUtils.callDeepSeekApi(prompt);
+            if(aiResponse == null || aiResponse.isEmpty()){
+                log.error("will TODO");
+                aiResponse = "{\r\n" + //
+                                        "\"techItems\": [\"java\", \"node\", \"pathon\"],\r\n" + //
+                                        "\"projectPoints\": [\r\n" + //
+                                        "{\r\n" + //
+                                        "\"title\": \"后端项目的具体技术实现和架构设计\",\r\n" + //
+                                        "\"difficulty\": \"intermediate\"\r\n" + //
+                                        "}\r\n" + //
+                                        "]\r\n" + //
+                                        "}";
+            }
+            log.info("extractTechItemsAndProjectPoints - AI服务响应: {}", aiResponse);
             
             // 解析结果
             JsonNode jsonNode = objectMapper.readTree(aiResponse);
@@ -632,8 +556,39 @@ public class InterviewServiceImpl implements InterviewService {
             }
             
             Map<String, Object> result = new HashMap<>();
+            
+            // 如果AI没有提取到技术项，尝试从简历文本中简单提取
+            if (techItems.isEmpty()) {
+                log.warn("AI未提取到技术项，尝试备用提取方法");
+                // 简单的技术词模式匹配
+                List<String> commonTechnologies = Arrays.asList(
+                    "Java", "Python", "JavaScript", "Spring", "MySQL", "Redis", "React", 
+                    "Vue", "Angular", "Node.js", "Docker", "Kubernetes", "Git", "MongoDB",
+                    "PostgreSQL", "HTML", "CSS", "SpringBoot", "MyBatis", "Redis"
+                );
+                
+                for (String tech : commonTechnologies) {
+                    if (resumeText.contains(tech) && !techItems.contains(tech)) {
+                        techItems.add(tech);
+                    }
+                }
+            }
+            
+            // 如果AI没有提取到项目点，尝试从简历文本中简单提取
+            if (projectPoints.isEmpty()) {
+                log.warn("AI未提取到项目点，尝试备用提取方法");
+                // 检查是否包含项目经历部分
+                if (resumeText.contains("项目经历") || resumeText.contains("项目名称")) {
+                    Map<String, Object> defaultProject = new HashMap<>();
+                    defaultProject.put("title", "简历中提到的项目经验");
+                    defaultProject.put("difficulty", "intermediate");
+                    projectPoints.add(defaultProject);
+                }
+            }
+            
             result.put("techItems", techItems);
             result.put("projectPoints", projectPoints);
+            log.info("最终提取结果 - 技术项数量: {}, 项目点数量: {}", techItems.size(), projectPoints.size());
             return result;
         } catch (Exception e) {
             log.error("提取技术项和项目点失败", e);
@@ -645,57 +600,6 @@ public class InterviewServiceImpl implements InterviewService {
             projectPointMap.put("difficulty", "intermediate");
             result.put("projectPoints", Arrays.asList(projectPointMap));
             return result;
-        }
-    }
-
-    @Override
-    public Map<String, Object> generateFirstQuestion(Long resumeId, String personaId, String industryJobTag) {
-        try {
-            // 获取简历内容
-            Resume resume = resumeRepository.findById(resumeId).orElseThrow(() -> new RuntimeException("简历不存在"));
-            String resumeText = resume.getOriginalContent() != null ? resume.getOriginalContent() : "";
-            if (resumeText.isEmpty() && resume.getOptimizedContent() != null) {
-                resumeText = resume.getOptimizedContent();
-            }
-
-            // 提取技术项和项目点
-            Map<String, Object> extractedData = extractTechItemsAndProjectPoints(resumeText);
-            List<String> techItems = (List<String>) extractedData.get("techItems");
-            List<Map<String, Object>> projectPoints = (List<Map<String, Object>>) extractedData.get("projectPoints");
-
-            // 初始化面试状态
-            Map<String, Object> interviewState = new HashMap<>();
-            interviewState.put("usedTechItems", new ArrayList<>());
-            interviewState.put("usedProjectPoints", new ArrayList<>());
-            interviewState.put("currentDepthLevel", "usage");
-
-            // 构建面试官风格描述
-            String persona = enhancePersonaWithStyle(personaId);
-            
-            // 生成第一个问题
-            Map<String, Object> questionData = generateNextQuestion(
-                    techItems,
-                    projectPoints,
-                    interviewState,
-                    900, // 默认15分钟
-                    persona
-            );
-
-            // 构建返回结果
-            Map<String, Object> result = new HashMap<>();
-            result.put("question", questionData.get("nextQuestion"));
-            result.put("depthLevel", questionData.get("depthLevel"));
-            result.put("techItems", techItems);
-            result.put("projectPoints", projectPoints);
-            
-            return result;
-        } catch (Exception e) {
-            log.error("生成第一个问题失败", e);
-            // 返回备用问题
-            Map<String, Object> fallbackResult = new HashMap<>();
-            fallbackResult.put("question", "请简单介绍一下你自己和你的项目经历。");
-            fallbackResult.put("depthLevel", "usage");
-            return fallbackResult;
         }
     }
     
@@ -745,16 +649,19 @@ public class InterviewServiceImpl implements InterviewService {
         }
     }
 
-    @Override
     public Map<String, Object> generateNextQuestion(List<String> techItems, List<Map<String, Object>> projectPoints,
                                                     Map<String, Object> interviewState, Integer sessionTimeRemaining,
-                                                    String persona) {
+                                                    String persona, Integer jobTypeId) {
         try {
             // 获取已使用的技术项和项目点
             List<String> usedTechItems = (List<String>) interviewState.getOrDefault("usedTechItems", new ArrayList<>());
             List<String> usedProjectPoints = (List<String>) interviewState.getOrDefault("usedProjectPoints", new ArrayList<>());
             String currentDepthLevel = (String) interviewState.getOrDefault("currentDepthLevel", "usage");
             String jobType = (String) interviewState.getOrDefault("jobType", "");
+            
+            // 获取完整简历内容（优化：直接使用存储的简历内容而不依赖分析结果）
+            String fullResumeContent = (String) interviewState.getOrDefault("fullResumeContent", "");
+            log.info("将使用完整简历内容生成问题，长度: {}字符", fullResumeContent != null ? fullResumeContent.length() : 0);
             
             // 1. 尝试从问题库中查找合适的问题
             Map<String, Object> result = findMatchingQuestionInDatabase(techItems, jobType, currentDepthLevel, persona);
@@ -777,8 +684,9 @@ public class InterviewServiceImpl implements InterviewService {
             }
             
             // 3. 未找到合适问题或匹配度不够，调用AI生成新问题
+            // 优化：传入完整简历内容，让AI能够直接基于简历生成更准确的问题
             result = generateNewQuestionWithAI(techItems, projectPoints, usedTechItems, usedProjectPoints,
-                                             currentDepthLevel, sessionTimeRemaining, persona, jobType);
+                                             currentDepthLevel, sessionTimeRemaining, persona, jobType, fullResumeContent);
             
             // 4. 计算问题的语义哈希并保存到数据库
             if (result.containsKey("nextQuestion")) {
@@ -803,6 +711,15 @@ public class InterviewServiceImpl implements InterviewService {
                     newQuestion.setSimilarityHash(similarityHash);
                     newQuestion.setCreatedAt(LocalDateTime.now());
                     newQuestion.setUpdatedAt(LocalDateTime.now());
+                    // 将jobTypeId从Integer转换为Long类型
+                    if (jobTypeId != null) {
+                        try {
+                            newQuestion.setJobTypeId(jobTypeId.longValue());
+                        } catch (NumberFormatException e) {
+                            log.warn("无效的jobTypeId格式: {}", jobTypeId);
+                            newQuestion.setJobTypeId(1L);
+                        }
+                    }
                     
                     // 如果有jobType信息，可以尝试关联JobType
                     // 这里简化处理，实际应该通过jobType名称查找对应的JobType实体
@@ -889,11 +806,21 @@ public class InterviewServiceImpl implements InterviewService {
     private Map<String, Object> generateNewQuestionWithAI(List<String> techItems, List<Map<String, Object>> projectPoints,
                                                         List<String> usedTechItems, List<String> usedProjectPoints,
                                                         String currentDepthLevel, Integer sessionTimeRemaining,
-                                                        String persona, String jobType) throws Exception {
+                                                        String persona, String jobType, String fullResumeContent) throws Exception {
         // 构建prompt调用dynamicInterviewer
         StringBuilder promptBuilder = new StringBuilder();
         promptBuilder.append(String.format("你是%s风格的面试官。问题需自然、亲和、不死板。\n", persona));
-        promptBuilder.append(String.format("根据候选人技术项%s与项目%s生成下一个问题。\n", techItems, projectPoints));
+        
+        // 优化：直接使用完整简历内容作为生成问题的基础，这样对用户更方便
+        if (StringUtils.hasText(fullResumeContent)) {
+            promptBuilder.append("以下是候选人的完整简历内容：\n");
+            promptBuilder.append(fullResumeContent).append("\n\n");
+            promptBuilder.append("请直接基于候选人的简历内容生成针对性的面试问题。\n");
+        } else {
+            // 降级：如果没有完整简历内容，仍使用提取的技术项和项目点
+            promptBuilder.append(String.format("根据候选人技术项%s与项目%s生成下一个问题。\n", techItems, projectPoints));
+        }
+        
         promptBuilder.append("规则：\n");
         promptBuilder.append("- 从用法或项目实践切入，逐步深入原理/优化。\n");
         promptBuilder.append(String.format("- 已使用技术项：%s\n", usedTechItems));
@@ -912,7 +839,19 @@ public class InterviewServiceImpl implements InterviewService {
         String prompt = promptBuilder.toString();
         
         // 调用AI服务
+        // 优化：传入完整简历内容后，Deepseek模型可以生成更准确、更符合候选人背景的问题
+        log.info("使用完整简历内容调用Deepseek API生成问题prompt: {}", prompt);
         String aiResponse = aiServiceUtils.callDeepSeekApi(prompt);
+        if(aiResponse.isEmpty()){
+            log.error("will TODO");
+            aiResponse = "{\n" +
+                                "\"nextQuestion\": \"看到你的技能里有Java，能聊聊你在项目中通常用Java来处理哪些具体的任务吗？比如在Web开发或者数据处理方面？\",\n" +
+                                "\"expectedKeyPoints\": [\"Web后端开发\", \"数据处理逻辑\", \"API设计与实现\"],\n" +
+                                "\"depthLevel\": \"usage\",\n" +
+                                "\"stopReason\": \"\"\n" +
+                                "}";
+        }
+        log.info("使用完整简历内容调用Deepseek API生成问题完成");
         
         // 解析结果
         JsonNode jsonNode = objectMapper.readTree(aiResponse);
@@ -1144,10 +1083,11 @@ public class InterviewServiceImpl implements InterviewService {
     public List<InterviewHistoryVO> getInterviewHistory(Long userId) {
         List<InterviewSession> sessions = sessionRepository.findByUserIdOrderByCreatedAtDesc(userId);
         return sessions.stream().map(session -> {
+            String jobType = jobTypeRepository.findById(session.getJobTypeId()).map(JobType::getName).orElse("面试");
             InterviewHistoryVO vo = new InterviewHistoryVO();
             vo.setSessionId(session.getId());
             vo.setUniqueSessionId(session.getSessionId()); // 添加唯一会话ID
-            vo.setTitle(session.getJobType() + " 面试");
+            vo.setTitle(jobType);
             vo.setFinalScore(session.getTotalScore());
             vo.setStatus(session.getStatus());
             
@@ -1171,11 +1111,11 @@ public class InterviewServiceImpl implements InterviewService {
     public SalaryRangeVO calculateSalary(String sessionId) {
         try {
             log.info("AI动态生成薪资范围，会话ID: {}", sessionId);
-            
             // 根据sessionId获取面试会话
             InterviewSession session = sessionRepository.findBySessionId(sessionId)
                     .orElseThrow(() -> new RuntimeException("Interview session not found"));
-            
+            String jobType = jobTypeRepository.findById(session.getJobTypeId()).map(JobType::getName).orElse("面试");
+
             // 获取评分信息
             Map<String, Double> aggregatedScores = new HashMap<>();
             aggregatedScores.put("tech", session.getTechScore());
@@ -1187,15 +1127,15 @@ public class InterviewServiceImpl implements InterviewService {
             // 准备用户性能数据
             Map<String, Object> userPerformanceData = new HashMap<>();
             userPerformanceData.put("experienceYears", estimateExperienceYears(aggregatedScores));
-            userPerformanceData.put("industryTrend", getIndustryTrend(session.getJobType()));
+            userPerformanceData.put("industryTrend", getIndustryTrend(jobType));
             
             // 使用AI动态生成薪资评估
             SalaryRangeVO vo = aiGenerateService.generateSalaryRange(
-                sessionId, session.getCity(), session.getJobType(), aggregatedScores, userPerformanceData);
+                sessionId, session.getCity(), jobType, aggregatedScores, userPerformanceData);
             
             // 保存AI薪资建议的跟踪日志
             saveAiTraceLog(sessionId, "give_advice", 
-                    "AI薪资范围生成：城市=" + session.getCity() + ",职位=" + session.getJobType() + ",评分=" + aggregatedScores,
+                    "AI薪资范围生成：城市=" + session.getCity() + ",职位=" + jobType + ",评分=" + aggregatedScores,
                     "薪资范围=" + vo.getMinSalary() + "-" + vo.getMaxSalary() + "K/月，建议薪资=" + vo.getSuggestedSalary() + "K/月");
             
             return vo;
@@ -1243,10 +1183,11 @@ public class InterviewServiceImpl implements InterviewService {
     public InterviewSessionVO getInterviewDetail(String sessionId) {
         InterviewSession session = sessionRepository.findBySessionId(sessionId)
                 .orElseThrow(() -> new RuntimeException("Interview session not found"));
+        String jobType = jobTypeRepository.findById(session.getJobTypeId()).map(JobType::getName).orElse("面试");
         
         InterviewSessionVO vo = new InterviewSessionVO();
         vo.setId(session.getId());
-        vo.setTitle(session.getJobType() + " 面试");
+        vo.setTitle(jobType + " 面试");
         vo.setDescription("会话ID: " + session.getSessionId());
         vo.setStatus(session.getStatus());
         vo.setPersona(session.getPersona());
@@ -1297,34 +1238,6 @@ public class InterviewServiceImpl implements InterviewService {
     }
 
     /**
-     * dynamicInterviewer模块：生成第一个问题
-     */
-    private Map<String, Object> generateFirstQuestion(List<Map<String, Object>> projectPoints, String jobType) {
-        try {
-            // 调用DeepSeek API生成第一个问题
-            String prompt = "作为技术面试官，请为" + jobType + "岗位生成第一个技术面试问题。问题应该涵盖基础知识，难度为basic。";
-            String response = aiServiceUtils.callDeepSeekApi(prompt);
-            
-            Map<String, Object> result = new HashMap<>();
-            result.put("nextQuestion", response);
-            result.put("expectedKeyPoints", Collections.emptyList());
-            result.put("depthLevel", "basic");
-            result.put("stopReason", "");
-            
-            return result;
-        } catch (Exception e) {
-            log.error("Generate first question failed:", e);
-            // 返回mock数据
-            Map<String, Object> result = new HashMap<>();
-            result.put("nextQuestion", "请简单介绍一下你在" + jobType + "开发的理解和经验。");
-            result.put("expectedKeyPoints", Collections.emptyList());
-            result.put("depthLevel", "basic");
-            result.put("stopReason", "");
-            return result;
-        }
-    }
-
-    /**
      * dynamicInterviewer模块：生成下一个问题
      */
     /**
@@ -1334,6 +1247,20 @@ public class InterviewServiceImpl implements InterviewService {
      */
     private String convertFullDataToText(Map<String, Object> fullResumeData) {
         StringBuilder content = new StringBuilder();
+        // 添加日志记录，检查传入的数据结构
+        log.info("convertFullDataToText - fullResumeData包含的键: {}", fullResumeData.keySet());
+        if (fullResumeData.containsKey("projectList")) {
+            Object projectList = fullResumeData.get("projectList");
+            if (projectList instanceof List) {
+                log.info("convertFullDataToText - 项目数量: {}", ((List<?>) projectList).size());
+            }
+        }
+        if (fullResumeData.containsKey("skillList")) {
+            Object skillList = fullResumeData.get("skillList");
+            if (skillList instanceof List) {
+                log.info("convertFullDataToText - 技能数量: {}", ((List<?>) skillList).size());
+            }
+        }
         
         // 添加个人基本信息
         Map<String, Object> userInfo = (Map<String, Object>) fullResumeData.get("userInfo");
@@ -1354,64 +1281,108 @@ public class InterviewServiceImpl implements InterviewService {
         }
         
         // 添加教育经历
-        List<Map<String, Object>> educationList = (List<Map<String, Object>>) fullResumeData.get("educationList");
-        if (educationList != null && !educationList.isEmpty()) {
-            content.append("教育经历：\n");
-            for (Map<String, Object> education : educationList) {
-                content.append("- 学校：").append(education.get("school"));
-                content.append(", 专业：").append(education.get("major"));
-                content.append(", 学历：").append(education.get("degree"));
-                content.append(", 时间段：").append(education.get("startDate")).append(" - ").append(education.get("endDate")).append("\n");
-                if (education.containsKey("description")) {
-                    content.append("  描述：").append(education.get("description")).append("\n");
+        if (fullResumeData.containsKey("educationList")) {
+            Object educationObj = fullResumeData.get("educationList");
+            if (educationObj instanceof List) {
+                List<?> educationList = (List<?>) educationObj;
+                if (!educationList.isEmpty()) {
+                    content.append("教育经历：\n");
+                    for (Object eduObj : educationList) {
+                        if (eduObj instanceof com.aicv.airesume.entity.ResumeEducation) {
+                            com.aicv.airesume.entity.ResumeEducation education = (com.aicv.airesume.entity.ResumeEducation) eduObj;
+                            content.append("- 学校：").append(education.getSchool() != null ? education.getSchool() : "");
+                            content.append(", 专业：").append(education.getMajor() != null ? education.getMajor() : "");
+                            content.append(", 学历：").append(education.getDegree() != null ? education.getDegree() : "");
+                            content.append(", 时间段：")
+                                  .append(education.getStartDate() != null ? education.getStartDate() : "")
+                                  .append(" - ")
+                                  .append(education.getEndDate() != null ? education.getEndDate() : "")
+                                  .append("\n");
+                            if (education.getDescription() != null) {
+                                content.append("  描述：").append(education.getDescription()).append("\n");
+                            }
+                        }
+                    }
+                    content.append("\n");
                 }
             }
-            content.append("\n");
         }
         
         // 添加工作经历
-        List<Map<String, Object>> workExperienceList = (List<Map<String, Object>>) fullResumeData.get("workExperienceList");
-        if (workExperienceList != null && !workExperienceList.isEmpty()) {
-            content.append("工作经历：\n");
-            for (Map<String, Object> work : workExperienceList) {
-                content.append("- 公司：").append(work.get("companyName"));
-                content.append(", 职位：").append(work.get("positionName"));
-                content.append(", 时间段：").append(work.get("startDate")).append(" - ").append(work.get("endDate")).append("\n");
-                if (work.containsKey("description")) {
-                    content.append("  工作描述：").append(work.get("description")).append("\n");
+        if (fullResumeData.containsKey("workExperienceList")) {
+            Object workExperienceObj = fullResumeData.get("workExperienceList");
+            if (workExperienceObj instanceof List) {
+                List<?> workExperienceList = (List<?>) workExperienceObj;
+                if (!workExperienceList.isEmpty()) {
+                    content.append("工作经历：\n");
+                    for (Object workObj : workExperienceList) {
+                        if (workObj instanceof com.aicv.airesume.entity.ResumeWorkExperience) {
+                            com.aicv.airesume.entity.ResumeWorkExperience work = (com.aicv.airesume.entity.ResumeWorkExperience) workObj;
+                            content.append("- 公司：").append(work.getCompanyName() != null ? work.getCompanyName() : "");
+                            content.append(", 职位：").append(work.getPositionName() != null ? work.getPositionName() : "");
+                            content.append(", 时间段：")
+                                  .append(work.getStartDate() != null ? work.getStartDate() : "")
+                                  .append(" - ")
+                                  .append(work.getEndDate() != null ? work.getEndDate() : "")
+                                  .append("\n");
+                            if (work.getDescription() != null) {
+                                content.append("  工作描述：").append(work.getDescription()).append("\n");
+                            }
+                        }
+                    }
+                    content.append("\n");
                 }
             }
-            content.append("\n");
         }
         
         // 添加项目经历
-        List<Map<String, Object>> projectList = (List<Map<String, Object>>) fullResumeData.get("projectList");
-        if (projectList != null && !projectList.isEmpty()) {
-            content.append("项目经历：\n");
-            for (Map<String, Object> project : projectList) {
-                content.append("- 项目名称：").append(project.get("projectName"));
-                content.append(", 角色：").append(project.get("role"));
-                content.append(", 时间段：").append(project.get("startDate")).append(" - ").append(project.get("endDate")).append("\n");
-                if (project.containsKey("techStack")) {
-                    content.append("  技术栈：").append(project.get("techStack")).append("\n");
-                }
-                if (project.containsKey("description")) {
-                    content.append("  项目描述：").append(project.get("description")).append("\n");
+        if (fullResumeData.containsKey("projectList")) {
+            Object projectObj = fullResumeData.get("projectList");
+            if (projectObj instanceof List) {
+                List<?> projectList = (List<?>) projectObj;
+                if (!projectList.isEmpty()) {
+                    content.append("项目经历：\n");
+                    for (Object projObj : projectList) {
+                        if (projObj instanceof com.aicv.airesume.entity.ResumeProject) {
+                            com.aicv.airesume.entity.ResumeProject project = (com.aicv.airesume.entity.ResumeProject) projObj;
+                            content.append("- 项目名称：").append(project.getProjectName() != null ? project.getProjectName() : "");
+                            content.append(", 角色：").append(project.getRole() != null ? project.getRole() : "");
+                            content.append(", 时间段：")
+                                  .append(project.getStartDate() != null ? project.getStartDate() : "")
+                                  .append(" - ")
+                                  .append(project.getEndDate() != null ? project.getEndDate() : "")
+                                  .append("\n");
+                            if (project.getTechStack() != null) {
+                                content.append("  技术栈：").append(project.getTechStack()).append("\n");
+                            }
+                            if (project.getDescription() != null) {
+                                content.append("  项目描述：").append(project.getDescription()).append("\n");
+                            }
+                        }
+                    }
+                    content.append("\n");
                 }
             }
-            content.append("\n");
         }
         
         // 添加技能
-        List<Map<String, Object>> skillList = (List<Map<String, Object>>) fullResumeData.get("skillList");
-        if (skillList != null && !skillList.isEmpty()) {
-            content.append("技能：\n");
-            for (Map<String, Object> skill : skillList) {
-                content.append("- ").append(skill.get("name"));
-                if (skill.containsKey("level")) {
-                    content.append(" (熟练度：").append(skill.get("level")).append(")");
+        if (fullResumeData.containsKey("skillList")) {
+            Object skillObj = fullResumeData.get("skillList");
+            if (skillObj instanceof List) {
+                List<?> skillList = (List<?>) skillObj;
+                if (!skillList.isEmpty()) {
+                    content.append("技能：\n");
+                    for (Object skillObjItem : skillList) {
+                        if (skillObjItem instanceof com.aicv.airesume.entity.ResumeSkill) {
+                            com.aicv.airesume.entity.ResumeSkill skill = (com.aicv.airesume.entity.ResumeSkill) skillObjItem;
+                            content.append("- ").append(skill.getName() != null ? skill.getName() : "");
+                            if (skill.getLevel() != null) {
+                                content.append(" (熟练度：").append(skill.getLevel()).append(")");
+                            }
+                            content.append("\n");
+                        }
+                    }
                 }
-                content.append("\n");
             }
         }
         
@@ -1554,20 +1525,20 @@ public class InterviewServiceImpl implements InterviewService {
                 logs.stream().map(this::convertToMap).collect(Collectors.toList()));
             
             // 获取职位领域 - 简化处理，使用jobType作为领域
-            String domain = session.getJobType();
+            String domain = jobTypeRepository.findById(session.getJobTypeId()).map(JobType::getName).orElse("未知");
             
             // 准备用户性能数据
             Map<String, Object> userPerformanceData = new HashMap<>();
-            userPerformanceData.put("industryTrends", getIndustryTrend(session.getJobType()));
+            userPerformanceData.put("industryTrends", getIndustryTrend(domain));
             userPerformanceData.put("performanceSummary", generatePerformanceSummary(aggregatedScores));
             
             // 使用AI动态生成成长建议
             Map<String, Object> growthAdvice = aiGenerateService.generateGrowthAdvice(
-                sessionId, session.getJobType(), domain, aggregatedScores, weakSkills, userPerformanceData);
+                sessionId, domain, domain, aggregatedScores, weakSkills, userPerformanceData);
             
             // 生成完整报告内容
             String reportContent = generateReportFromAdvice(
-                session.getJobType(), aggregatedScores, weakSkills, growthAdvice, salaryInfo);
+                session.getJobTypeId(), aggregatedScores, weakSkills, growthAdvice, salaryInfo);
             
             // 报告内容不需要保存到会话实体中
             // 可以考虑后续添加report_content字段来保存
@@ -1613,12 +1584,13 @@ public class InterviewServiceImpl implements InterviewService {
     /**
      * 从成长建议生成报告内容
      */
-    private String generateReportFromAdvice(String jobType, Map<String, Double> scores, 
+    private String generateReportFromAdvice(Integer jobTypeId, Map<String, Double> scores, 
                                           List<String> weakSkills, Map<String, Object> growthAdvice, 
                                           Map<String, Object> salaryInfo) {
         StringBuilder report = new StringBuilder();
         
         // 报告标题
+        String jobType = jobTypeRepository.findById(jobTypeId).map(JobType::getName).orElse("面试");
         report.append("# 职业成长评估报告\n\n");
         
         // 基本信息

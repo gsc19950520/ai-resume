@@ -122,10 +122,34 @@ class UserService {
       
       console.log('头像上传到云存储成功，fileID:', uploadResult.fileID);
       
-      // 调用后端接口，传递图片地址
+      // 转换cloud://格式的URL为https://格式
+      function convertCloudUrl(cloudUrl) {
+        if (!cloudUrl || !cloudUrl.startsWith('cloud://')) {
+          return cloudUrl;
+        }
+        
+        // 云存储URL格式: cloud://bucket-id.sub-domain/filename
+        // 转换为HTTP URL: https://sub-domain.tcb.qcloud.la/filename
+        const path = cloudUrl.substring(8); // 去掉 "cloud://"
+        const dotIndex = path.indexOf('.');
+        const firstSlashIndex = path.indexOf('/');
+        
+        if (dotIndex > 0 && firstSlashIndex > 0 && dotIndex < firstSlashIndex) {
+          const subDomain = path.substring(dotIndex + 1, firstSlashIndex);
+          const filename = path.substring(firstSlashIndex);
+          return 'https://' + subDomain + '.tcb.qcloud.la' + filename;
+        }
+        return cloudUrl;
+      }
+      
+      // 转换URL格式
+      const httpsAvatarUrl = convertCloudUrl(uploadResult.fileID);
+      console.log('转换后的HTTPS URL:', httpsAvatarUrl);
+      
+      // 调用后端接口，传递转换后的图片地址
       const response = await request.post('/api/user/avatar', {
         openId,
-        avatarUrl: uploadResult.fileID // 传递云存储的文件地址
+        avatarUrl: httpsAvatarUrl // 传递转换后的HTTPS格式地址
       });
       
       // 处理后端返回的标准格式
