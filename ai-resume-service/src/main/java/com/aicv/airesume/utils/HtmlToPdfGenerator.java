@@ -230,35 +230,11 @@ public class HtmlToPdfGenerator {
             
             command.add(executable);
             
-            // 添加高级参数以保持复杂样式，确保所有HTML样式正确转换
+            // 添加高级参数以保持复杂样式
             command.add("--enable-local-file-access");
-            command.add("--javascript-delay");
-            command.add("5000"); // 增加JavaScript执行时间，确保动态内容完全渲染
+            command.add("--disable-javascript"); // 可选，某些复杂JS可能导致渲染问题
+            command.add("--disable-smart-shrinking"); // 保持精确的大小控制
             command.add("--print-media-type"); // 使用打印样式表
-            command.add("--no-outline"); // 不生成大纲，避免某些渲染问题
-            command.add("--background"); // 确保背景颜色和图像被正确渲染
-            command.add("--images"); // 确保所有图像都被加载
-            command.add("--image-quality");
-            command.add("100"); // 使用最高图像质量
-            command.add("--zoom");
-            command.add("1.0"); // 设置缩放比例为1:1
-            command.add("--enable-font-antialiasing"); // 启用字体抗锯齿
-            command.add("--encoding");
-            command.add("UTF-8"); // 确保UTF-8编码
-            command.add("--disable-smart-shrinking"); // 禁用智能缩放，确保精确的布局控制
-            command.add("--no-stop-slow-scripts"); // 不要停止执行缓慢的脚本
-            command.add("--allow");
-            command.add("*"); // 允许加载所有资源
-            command.add("--disable-local-file-access=false"); // 明确启用本地文件访问
-            command.add("--custom-header");
-            command.add("Accept-Encoding");
-            command.add("gzip, deflate"); // 设置适当的请求头
-            command.add("--user-style-sheet");
-            command.add("-" + ":root { --webkit-print-color-adjust: exact; color-adjust: exact; }"); // 确保颜色正确打印
-            
-            // 页面尺寸和边距设置
-            command.add("--page-size");
-            command.add("A4"); // 使用A4纸张大小
             command.add("--margin-top");
             command.add("10mm");
             command.add("--margin-right");
