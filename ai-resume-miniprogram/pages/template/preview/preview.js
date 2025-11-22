@@ -598,37 +598,59 @@ Page({
         const fileName = `resume_${resumeId}_${templateId}.pdf`;
         const filePath = wx.env.USER_DATA_PATH + '/' + fileName;
         
-        wx.getFileSystemManager().writeFile({
-          filePath: filePath,
-          data: pdfBuffer,
-          encoding: 'binary',
-          success: () => {
-            console.log('PDF保存成功');
-            // 打开PDF文件预览
-            wx.openDocument({
-              filePath: filePath,
-              showMenu: true,
-              fileType: 'pdf',
-              success: function(res) {
-                console.log('打开PDF成功', res);
-              },
-              fail: function(err) {
-                console.error('打开PDF失败', err);
+        // 增加写入文件时的错误处理和重试机制
+        const writeFileWithRetry = (retryCount = 3) => {
+          wx.getFileSystemManager().writeFile({
+            filePath: filePath,
+            data: pdfBuffer,
+            encoding: 'binary',
+            success: () => {
+              console.log('PDF保存成功');
+              // 显示提示信息说明可能的兼容性问题
+              wx.showModal({
+                title: 'PDF预览提示',
+                content: '如果微信内置查看器中样式显示异常，可以点击右上角菜单选择"用其他应用打开"查看完整样式',
+                showCancel: false,
+                success: () => {
+                  // 打开PDF文件预览
+                  wx.openDocument({
+                    filePath: filePath,
+                    showMenu: true, // 确保显示菜单，方便用户选择其他应用打开
+                    fileType: 'pdf',
+                    success: function(res) {
+                      console.log('打开PDF成功', res);
+                    },
+                    fail: function(err) {
+                      console.error('打开PDF失败', err);
+                      // 提供更详细的错误提示
+                      wx.showModal({
+                        title: '打开失败',
+                        content: 'PDF打开失败，请尝试重新生成或在设置中检查权限。',
+                        showCancel: false
+                      });
+                    }
+                  });
+                }
+              });
+            },
+            fail: (err) => {
+              console.error('保存PDF失败:', err);
+              if (retryCount > 0) {
+                console.log(`保存失败，剩余重试次数: ${retryCount}`);
+                // 重试保存文件
+                setTimeout(() => writeFileWithRetry(retryCount - 1), 1000);
+              } else {
                 wx.showToast({
-                  title: '打开PDF失败',
+                  title: '保存PDF失败',
                   icon: 'none'
                 });
               }
-            });
-          },
-          fail: (err) => {
-            console.error('保存PDF失败:', err);
-            wx.showToast({
-              title: '保存PDF失败',
-              icon: 'none'
-            });
-          }
-        });
+            }
+          });
+        };
+        
+        // 开始保存文件（带重试机制）
+        writeFileWithRetry();
       }).catch(err => {
         wx.hideLoading();
         console.error('调用后端生成PDF失败:', err);

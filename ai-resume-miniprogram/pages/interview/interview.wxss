@@ -720,65 +720,6 @@ page {
   margin: 20rpx 0;
 }
 
-/* 语音识别状态指示器 */
-.recognition-status-indicator {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 15rpx;
-  padding: 10rpx;
-  background-color: #f0f9ff;
-  border-radius: 8rpx;
-}
-
-.status-dots {
-  display: flex;
-  margin-right: 10rpx;
-}
-
-.dot {
-  width: 12rpx;
-  height: 12rpx;
-  border-radius: 50%;
-  background-color: #4F46E5;
-  margin: 0 4rpx;
-  animation: pulse 1.4s infinite ease-in-out both;
-}
-
-.dot-1 {
-  animation-delay: -0.32s;
-}
-
-.dot-2 {
-  animation-delay: -0.16s;
-}
-
-@keyframes pulse {
-  0%, 80%, 100% {
-    transform: scale(0);
-  }
-  40% {
-    transform: scale(1.0);
-  }
-}
-
-.status-text {
-  font-size: 26rpx;
-  color: #4F46E5;
-  font-weight: 500;
-}
-
-/* 转写提示文本 */
-.transcription-tips {
-  margin-top: 15rpx;
-  text-align: center;
-}
-
-.transcription-tips text {
-  font-size: 24rpx;
-  color: #94A3B8;
-}
-
 .transcription-textarea {
   width: 100%;
   min-height: 200rpx;

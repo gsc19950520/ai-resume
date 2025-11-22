@@ -144,31 +144,14 @@
 
         <!-- 转写文本框 -->
         <view class="transcription-box">
-          <!-- 语音识别状态指示器 -->
-          <view class="recognition-status-indicator" wx:if="{{recognitionStatus === 'recognizing' || isTranscribing}}">
-            <view class="status-dots">
-              <view class="dot dot-1"></view>
-              <view class="dot dot-2"></view>
-              <view class="dot dot-3"></view>
-            </view>
-            <text class="status-text">语音识别中...</text>
-          </view>
-          
-          <!-- 转写内容文本框 -->
           <textarea 
             class="transcription-textarea" 
-            placeholder="语音转文字内容会实时显示在这里"
+            placeholder="语音转文字内容会显示在这里"
             value="{{userAnswer}}"
             bindinput="onAnswerInput"
             auto-height
             maxlength="1000"
           ></textarea>
-          
-          <!-- 语音识别提示 -->
-          <view class="transcription-tips">
-            <text wx:if="{{!userAnswer}}">点击下方麦克风开始录音</text>
-            <text wx:else>说的内容会实时显示在这里</text>
-          </view>
         </view>
 
         <!-- 提交行 -->

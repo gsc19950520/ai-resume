@@ -79,11 +79,6 @@ Page({
     // 录音转文字
     transcriptText: '',
     isTranscribing: false,
-    // 语音识别相关
-    speechRecognizer: null,
-    recognitionStatus: 'idle', // idle, recognizing, paused
-    recognizeResult: '',
-    lastRecognizeTime: 0,
     
     // 深度级别控制
     depthLevels: [], // 将从数据库获取
@@ -1175,198 +1170,106 @@ Page({
     wx.getSetting({ 
       success: res => {
         if (!res.authSetting['scope.record']) {
-          // 在真机环境下，使用showModal引导用户手动授权
-          wx.showModal({
-            title: '需要录音权限',
-            content: '请允许小程序访问您的麦克风，以便进行录音和语音转文字功能',
-            success: (modalRes) => {
-              if (modalRes.confirm) {
-                wx.openSetting({
-                  success: (settingRes) => {
-                    if (settingRes.authSetting['scope.record']) {
-                      // 立即设置录音状态
-                      this.setData({ recording: true });
-                      // 开始回答计时器
-                      this.startAnswerTimer();
-                      // 调用startRecord函数启动录音
-                      this.startRecord();
-                    } else {
-                      wx.showToast({
-                        title: '未获取录音权限',
-                        icon: 'none'
-                      })
-                    }
-                  }
-                })
-              }
+          wx.authorize({
+            scope: 'scope.record',
+            success: () => {
+              // 开始回答计时器
+              this.startAnswerTimer();
+              this.startRecord()
+            },
+            fail: () => {
+              wx.showToast({
+                title: '需要录音权限',
+                icon: 'none'
+              })
             }
           })
         } else {
-          // 已有权限，直接开始录音
-          this.setData({ recording: true }); // 立即设置录音状态
           // 开始回答计时器
           this.startAnswerTimer();
-          // 调用startRecord函数启动录音
-          this.startRecord();
+          this.startRecord()
         }
-      },
-      fail: (err) => {
-        console.error('获取权限设置失败:', err);
-        wx.showToast({
-          title: '无法获取权限设置',
-          icon: 'none'
-        })
       }
     })
   },
 
   // 开始录音实现
   startRecord: function() {
-    try {
-      // 添加详细调试日志
-      if (app.globalData && app.globalData.debug) {
-        console.log('=== 开始录音流程 ===');
-      }
-      
-      // 检查是否已经初始化了语音识别器
-      if (!this.data.speechRecognizer) {
-        console.warn('⚠️ 语音识别器未初始化，正在尝试重新初始化');
-        this.initSpeechRecognizer();
-        
-        // 如果仍然未初始化，提示用户
-        if (!this.data.speechRecognizer) {
-          wx.showToast({
-            title: '语音识别初始化失败，请重试',
-            icon: 'none'
-          });
-          this.setData({ recording: false });
-          return;
-        }
-      }
-      
-      // 清除之前可能存在的录音
-      const recorder = wx.getRecorderManager();
-      if (app.globalData && app.globalData.debug) {
-        console.log('停止任何正在进行的录音');
-      }
-      recorder.stop(); // 停止任何正在进行的录音
-      
-      // 初始化转写状态
-      if (app.globalData && app.globalData.debug) {
-        console.log('初始化录音和转写状态');
-      }
-      this.setData({ 
-        recording: true,
-        transcriptText: '', // 清空之前的转录文本
-        userAnswer: '', // 清空之前的回答内容
-        isTranscribing: true,
-        recognitionStatus: 'recognizing',
-        lastTranscribeTime: 0
+    // 清除之前可能存在的录音
+    const recorder = wx.getRecorderManager();
+    recorder.stop(); // 停止任何正在进行的录音
+    
+    // 开始回答计时器
+    this.startAnswerTimer();
+    
+    const options = {
+      duration: 60000,
+      sampleRate: 44100,
+      numberOfChannels: 1,
+      encodeBitRate: 192000,
+      format: 'aac',
+      frameSize: 5000 // 每5000ms返回一个录音片段，用于实时处理
+    }
+    
+    recorder.start(options)
+    this.setData({ 
+      recording: true,
+      transcriptText: '', // 清空之前的转录文本
+      userAnswer: '' // 清空之前的回答内容
+    })
+    
+    // 记录开始录音的时间
+    this.setData({ recordingStartTime: Date.now() })
+    
+    console.log('开始录音')
+    
+    recorder.onStop = (res) => {
+      this.setData({
+        recordingUrl: res.tempFilePath,
+        recording: false
       })
+      // 录音结束后停止回答计时器
+      this.stopAnswerTimer();
       
-      // 开始回答计时器
-      if (app.globalData && app.globalData.debug) {
-        console.log('开始回答计时器');
-      }
-      this.startAnswerTimer();
-      
-      // 优化录音参数以提高兼容性和实时性
-      const options = {
-        duration: 60000,
-        sampleRate: 16000, // 降低采样率提高兼容性
-        numberOfChannels: 1,
-        encodeBitRate: 64000, // 修改为有效值，范围要求24000-96000
-        format: 'aac',
-        frameSize: 2000 // 降低frameSize提高实时性
+      // 录音结束后进行最终转写
+      this.transcribeAudio();
+    }
+    
+    // 监听录音实时数据
+    recorder.onFrameRecorded = (res) => {
+      if (res.isLastFrame) {
+        return; // 最后一帧不需要处理
       }
       
-      console.log('开始录音，参数:', options);
-      recorder.start(options)
-      
-      // 启动语音识别
-      setTimeout(() => {
-        if (this.data.recording) {
-          console.log('立即启动语音识别');
-          this.transcribeAudio();
+      // 记录录音帧数据，可以用于实时处理
+      if (this.data.recording) {
+        // 每1秒更新一次模拟转写结果
+        const currentTime = Date.now();
+        const recordingTime = currentTime - this.data.recordingStartTime;
+        
+        if (recordingTime > 1000 && !this.data.isTranscribing) {
+          // 模拟实时转写效果
+          this.simulateRealtimeTranscribe();
         }
-      }, 500);
-      
-      if (app.globalData && app.globalData.debug) {
-        console.log('=== 录音启动流程完成 ===');
       }
-      console.log('录音启动完成');
-    } catch (error) {
-      console.error('❌ 开始录音处理错误:', error);
-      // 错误恢复
-      this.setData({ 
-        recording: false,
-        isTranscribing: false,
-        recognitionStatus: 'idle'
-      });
-      
-      // 显示友好的错误提示
+    }
+    
+    recorder.onError = (err) => {
+      console.error('录音失败:', err)
+      this.setData({ recording: false })
+      // 录音失败时停止回答计时器
+      this.stopAnswerTimer();
       wx.showToast({
-        title: '开始录音时出错，请重试',
+        title: '录音失败',
         icon: 'none'
-      });
+      })
     }
   },
 
   // 停止录音
   stopAudioRecording: function() {
-    try {
-      // 添加详细调试日志
-      if (app.globalData && app.globalData.debug) {
-        console.log('=== 停止录音流程 ===');
-      }
-      
-      // 停止录音管理器
-      const recorder = wx.getRecorderManager();
-      console.log('停止录音');
-      recorder.stop();
-      
-      // 停止语音识别器
-      if (this.data.speechRecognizer && this.data.recognitionStatus === 'recognizing') {
-        try {
-          const manager = this.data.speechRecognizer.getRecordRecognitionManager();
-          if (manager && manager.stop) {
-            manager.stop();
-            if (app.globalData && app.globalData.debug) {
-              console.log('✅ 语音识别器已停止');
-            }
-          }
-        } catch (recognizerError) {
-          console.error('❌ 停止语音识别器错误:', recognizerError);
-          // 即使出错也继续执行后续操作
-        }
-      }
-      
-      // 更新状态
-      this.setData({ 
-        recording: false,
-        isTranscribing: false,
-        recognitionStatus: 'idle'
-      });
-      
-      if (app.globalData && app.globalData.debug) {
-        console.log('已设置录音状态为false，语音识别状态为idle');
-      }
-      console.log('录音已停止')
-    } catch (error) {
-      console.error('❌ 停止录音处理错误:', error);
-      // 错误恢复
-      this.setData({ 
-        recording: false,
-        isTranscribing: false,
-        recognitionStatus: 'idle'
-      });
-      
-      // 显示友好的错误提示
-      wx.showToast({
-        title: '停止录音时出错',
-        icon: 'none'
-      });
-    }
+    const recorder = wx.getRecorderManager()
+    recorder.stop()
   },
   
   // 停止录音（按钮绑定用）
@@ -2163,32 +2066,11 @@ Page({
   
   // 模拟实时语音转文字
   simulateRealtimeTranscribe: function() {
-    // 添加调试日志
-    if (app.globalData && app.globalData.debug) {
-      console.log('开始模拟实时转写，当前录音状态:', this.data.recording);
-    }
-    
-    // 状态检查，避免非录音状态下执行
-    if (!this.data.recording) {
-      console.warn('非录音状态下尝试执行转写');
-      this.setData({ isTranscribing: false });
-      return;
-    }
-    
     // 避免频繁调用
     this.setData({ isTranscribing: true });
     
-    // 真机环境下使用更短的延迟
+    // 模拟转写延迟
     setTimeout(() => {
-      // 再次检查录音状态，确保在延迟期间没有停止录音
-      if (!this.data.recording) {
-        if (app.globalData && app.globalData.debug) {
-          console.log('录音已停止，取消本次转写');
-        }
-        this.setData({ isTranscribing: false });
-        return;
-      }
-      
       // 模拟不同的转写结果
       const mockTexts = [
         "你好",
@@ -2197,12 +2079,7 @@ Page({
         "首先",
         "其次",
         "最后",
-        "综上所述",
-        "我的回答如下",
-        "我认为",
-        "从多个角度来看",
-        "具体来说",
-        "总结一下"
+        "综上所述"
       ];
       
       // 随机选择一个文本片段
@@ -2213,202 +2090,22 @@ Page({
       const currentText = this.data.transcriptText || '';
       const updatedText = currentText + ' ' + newText;
       
-      // 添加调试日志
-      if (app.globalData && app.globalData.debug) {
-        console.log('转写更新:', { newText, updatedText });
-      }
-      
-      // 确保在真机环境下UI更新生效
       this.setData({
         transcriptText: updatedText,
-        userAnswer: updatedText
-      }, () => {
-        // 添加调试日志
-        if (app.globalData && app.globalData.debug) {
-          console.log('UI更新完成，转写文本已显示');
-        }
-        
-        // 回调函数确保设置完成后再更新isTranscribing
-        setTimeout(() => {
-          this.setData({ isTranscribing: false });
-        }, 100);
+        userAnswer: updatedText,
+        isTranscribing: false
       });
-    }, 600); // 调整延迟时间，使转写更自然
-  },
-  
-  // 页面加载时执行
-  onLoad: function() {
-    // 添加调试日志
-    if (app.globalData && app.globalData.debug) {
-      console.log('页面加载，初始化录音管理器和语音识别器');
-    }
+    }, 500); // 500ms后返回模拟结果
+    const mockText = this.data.userAnswer || '这是系统生成的默认转录文本，请根据实际情况修改。';
     
-    // 初始化录音管理器，确保在页面加载时就设置好事件监听
-    this.initRecorderManager();
-    // 初始化语音识别器
-    this.initSpeechRecognizer();
-  },
-  
-  // 初始化语音识别器
-  initSpeechRecognizer: function() {
-    // 添加详细调试日志
-    if (app.globalData && app.globalData.debug) {
-      console.log('=== 开始初始化语音识别器 ===');
-    }
-    
-    try {
-      // 获取微信同声传译插件实例
-      const plugin = requirePlugin('WechatSI');
-      this.setData({
-        speechRecognizer: plugin
-      });
-      
-      if (app.globalData && app.globalData.debug) {
-        console.log('✅ 成功初始化语音识别器');
-      }
-    } catch (error) {
-      console.error('❌ 初始化语音识别器失败:', error);
-      wx.showToast({
-        title: '语音识别初始化失败',
-        icon: 'none'
-      });
-    }
+    this.setData({
+      transcriptText: mockText,
+      userAnswer: mockText,
+      isTranscribing: false
+    });
+    wx.showToast({ title: '转写完成', icon: 'success' });
   },
 
-  // 初始化录音管理器和事件监听
-  initRecorderManager: function() {
-    // 添加详细调试日志
-    if (app.globalData && app.globalData.debug) {
-      console.log('=== 开始初始化录音管理器 ===');
-    }
-    
-    try {
-      const recorder = wx.getRecorderManager();
-      
-      if (app.globalData && app.globalData.debug) {
-        console.log('✅ 成功获取录音管理器实例');
-      }
-      
-      // 设置一次性事件监听，避免重复设置
-      if (app.globalData && app.globalData.debug) {
-        console.log('🔄 设置录音停止事件监听');
-      }
-      recorder.onStop = (res) => {
-        console.log('🔴 录音停止事件触发');
-        if (app.globalData && app.globalData.debug) {
-          console.log('录音停止，结果详情:', res);
-        }
-        
-        if (!res || !res.tempFilePath) {
-          console.warn('⚠️ 未获取到录音文件路径');
-          this.setData({ recording: false });
-          this.stopAnswerTimer();
-          return;
-        }
-        
-        this.setData({
-          recordingUrl: res.tempFilePath,
-          recording: false
-        });
-        
-        if (app.globalData && app.globalData.debug) {
-          console.log('✅ 成功设置录音文件路径和状态');
-        }
-        
-        // 录音结束后停止回答计时器
-        if (app.globalData && app.globalData.debug) {
-          console.log('⏱️ 停止回答计时器');
-        }
-        this.stopAnswerTimer();
-        
-        // 录音结束后进行最终转写
-        if (app.globalData && app.globalData.debug) {
-          console.log('🔊 执行最终语音转文字');
-        }
-        this.transcribeAudio();
-      };
-      
-      // 监听录音实时数据
-      if (app.globalData && app.globalData.debug) {
-        console.log('🔄 设置录音帧数据事件监听');
-      }
-      recorder.onFrameRecorded = (res) => {
-        if (app.globalData && app.globalData.debug) {
-          console.log('🟢 录音帧事件触发:', res?.isLastFrame ? '最后一帧' : '普通帧');
-        }
-        
-        // 真机环境下可能有延迟，确保res不为空
-        if (!res || res.isLastFrame) {
-          if (app.globalData && app.globalData.debug) {
-            console.log('⏭️ 跳过空帧或最后一帧');
-          }
-          return;
-        }
-        
-        // 确保recording状态为true
-        if (this.data.recording) {
-          // 使用时间间隔和计数器来控制转写频率
-          const currentTime = Date.now();
-          if (!this.lastTranscribeTime) {
-            this.lastTranscribeTime = 0;
-          }
-          
-          if (app.globalData && app.globalData.debug) {
-            console.log('⏱️ 转写频率检查:', {
-              currentTime,
-              lastTranscribeTime: this.lastTranscribeTime,
-              timeDiff: currentTime - this.lastTranscribeTime,
-              isTranscribing: this.data.isTranscribing
-            });
-          }
-          
-          // 每500ms执行一次转写
-            if (currentTime - this.lastTranscribeTime > 500 && !this.data.isTranscribing) {
-              this.lastTranscribeTime = currentTime;
-              console.log('🚀 触发实时语音识别');
-              
-              // 使用实际语音识别替换模拟转写
-              this.transcribeAudio();
-            }
-        } else {
-          if (app.globalData && app.globalData.debug) {
-            console.log('⚠️ 非录音状态，跳过转写检查');
-          }
-        }
-      };
-      
-      // 设置错误监听
-      if (app.globalData && app.globalData.debug) {
-        console.log('🔄 设置录音错误事件监听');
-      }
-      recorder.onError = (err) => {
-        console.error('🔴 录音错误事件触发:', err);
-        this.setData({ recording: false });
-        
-        if (app.globalData && app.globalData.debug) {
-          console.log('⏱️ 录音错误，停止回答计时器');
-        }
-        this.stopAnswerTimer();
-        
-        wx.showToast({ 
-          title: '录音失败: ' + (err?.errMsg || '未知错误'), 
-          icon: 'none' 
-        });
-      };
-      
-      if (app.globalData && app.globalData.debug) {
-        console.log('=== ✅ 录音管理器初始化完成 ===');
-      }
-      console.log('录音管理器初始化完成');
-    } catch (initError) {
-      console.error('❌ 录音管理器初始化失败:', initError);
-      wx.showToast({ 
-        title: '录音初始化失败', 
-        icon: 'none' 
-      });
-    }
-  },
-  
   // 更新进度
   updateProgress: function() {
     try {
@@ -2442,158 +2139,6 @@ Page({
     }
   },
 
-  // 语音转文字方法
-  transcribeAudio: function() {
-    const { speechRecognizer, recordingUrl, isTranscribing } = this.data;
-    
-    // 添加调试日志
-    if (app.globalData && app.globalData.debug) {
-      console.log('=== 开始语音转文字处理 ===', {
-        hasRecognizer: !!speechRecognizer,
-        hasRecordingUrl: !!recordingUrl,
-        isTranscribing: isTranscribing
-      });
-    }
-    
-    // 检查必要条件
-    if (!speechRecognizer) {
-      console.error('❌ 语音识别器未初始化');
-      wx.showToast({
-        title: '语音识别未初始化',
-        icon: 'none'
-      });
-      return;
-    }
-    
-    // 如果正在转写中，则跳过
-    if (isTranscribing) {
-      if (app.globalData && app.globalData.debug) {
-        console.log('⏱️ 正在转写中，跳过本次调用');
-      }
-      return;
-    }
-    
-    // 设置转写中状态
-    this.setData({ isTranscribing: true });
-    
-    // 调用微信同声传译插件的语音识别接口
-    try {
-      // 获取实时识别管理器
-      const manager = speechRecognizer.getRecordRecognitionManager();
-      
-      // 设置识别语言
-      manager.setLanguage('zh_CN');
-      
-      // 设置识别结果回调
-      manager.onResult = (res) => {
-        if (app.globalData && app.globalData.debug) {
-          console.log('🎯 语音识别结果:', res);
-        }
-        
-        if (res && res.result) {
-          const recognizeResult = res.result;
-          
-          // 更新转写文本和用户答案
-          this.setData({
-            transcriptText: recognizeResult,
-            userAnswer: recognizeResult,
-            recognizeResult: recognizeResult,
-            lastRecognizeTime: Date.now(),
-            recognitionStatus: 'recognizing'
-          }, () => {
-            if (app.globalData && app.globalData.debug) {
-              console.log('✅ 成功更新转写文本');
-            }
-          });
-        }
-      };
-      
-      // 设置识别错误回调
-      manager.onError = (err) => {
-        console.error('❌ 语音识别错误:', err);
-        this.setData({
-          isTranscribing: false,
-          recognitionStatus: 'error'
-        });
-        
-        // 非严重错误可以继续，不影响用户体验
-        if (app.globalData && app.globalData.debug) {
-          wx.showToast({
-            title: '识别错误: ' + (err?.errMsg || '未知错误'),
-            icon: 'none',
-            duration: 2000
-          });
-        }
-      };
-      
-      // 设置识别开始回调
-      manager.onStart = () => {
-        if (app.globalData && app.globalData.debug) {
-          console.log('🎤 语音识别已开始');
-        }
-        this.setData({
-          recognitionStatus: 'recognizing'
-        });
-      };
-      
-      // 设置识别停止回调
-      manager.onStop = () => {
-        if (app.globalData && app.globalData.debug) {
-          console.log('🎤 语音识别已停止');
-        }
-        this.setData({
-          recognitionStatus: 'idle',
-          isTranscribing: false
-        });
-      };
-      
-      // 如果是实时转写，只处理录音状态
-      if (this.data.recording) {
-        // 如果识别器没有在运行，启动识别
-        if (this.data.recognitionStatus !== 'recognizing') {
-          if (app.globalData && app.globalData.debug) {
-            console.log('▶️ 启动实时语音识别');
-          }
-          manager.start();
-        }
-      } else if (recordingUrl) {
-        // 录音已结束，使用录音文件进行转写
-        if (app.globalData && app.globalData.debug) {
-          console.log('📁 使用录音文件进行转写');
-        }
-        
-        // 使用语音识别接口处理录音文件
-        speechRecognizer.translate({ 
-          lang: 'zh_CN',
-          filePath: recordingUrl,
-          success: (result) => {
-            if (app.globalData && app.globalData.debug) {
-              console.log('✅ 文件转写成功:', result);
-            }
-            
-            if (result && result.result) {
-              const finalText = result.result;
-              this.setData({
-                transcriptText: finalText,
-                userAnswer: finalText,
-                recognizeResult: finalText
-              });
-            }
-          },
-          fail: (error) => {
-            console.error('❌ 文件转写失败:', error);
-          },
-          complete: () => {
-            this.setData({ isTranscribing: false });
-          }
-        });
-      }
-    } catch (error) {
-      console.error('❌ 语音转文字异常:', error);
-      this.setData({ isTranscribing: false });
-    }
-  },
-  
   // 结束面试
   finishInterview: function(stopReason = 'normal') {
     try {
