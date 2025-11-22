@@ -126,7 +126,41 @@ public class HtmlToPdfGenerator {
         return data;
     }
 
+    // Process cloud storage URL, convert to HTTP accessible URL
+    private static String convertCloudUrl(String cloudUrl) {
+        if (cloudUrl == null || !cloudUrl.startsWith("cloud://")) {
+            return cloudUrl;
+        }
+        
+        // Cloud storage URL format: cloud://bucket-id.sub-domain/filename
+        // Convert to HTTP URL: https://sub-domain.tcb.qcloud.la/filename
+        String path = cloudUrl.substring(8); // Remove "cloud://"
+        int dotIndex = path.indexOf('.');
+        int firstSlashIndex = path.indexOf('/');
+        
+        if (dotIndex > 0 && firstSlashIndex > 0 && dotIndex < firstSlashIndex) {
+            String subDomain = path.substring(dotIndex + 1, firstSlashIndex);
+            String filename = path.substring(firstSlashIndex);
+            return "https://" + subDomain + ".tcb.qcloud.la" + filename;
+        }
+        return cloudUrl;
+    }
+    
+    // Preprocess data, convert all cloud storage URLs
+    private static void preprocessData(Map<String, Object> data) {
+        // Process user avatar URL
+        if (data.containsKey("userInfo") && data.get("userInfo") instanceof Map) {
+            Map<String, Object> userInfo = (Map<String, Object>) data.get("userInfo");
+            if (userInfo.containsKey("avatarUrl")) {
+                String avatarUrl = (String) userInfo.get("avatarUrl");
+                userInfo.put("avatarUrl", convertCloudUrl(avatarUrl));
+            }
+        }
+    }
+    
     public static String renderHtml(Map<String, Object> data) {
+        // 预处理数据，转换云存储URL
+        preprocessData(data);
         ClassLoaderTemplateResolver resolver = new ClassLoaderTemplateResolver();
         resolver.setPrefix("templates/");
         resolver.setSuffix(".html");
