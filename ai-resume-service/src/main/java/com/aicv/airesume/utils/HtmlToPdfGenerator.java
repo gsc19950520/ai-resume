@@ -205,15 +205,12 @@ public class HtmlToPdfGenerator {
      */
     public static boolean convertHtmlToPdfWithWkHtml(String htmlContent, String outputPdfPath, String wkHtmlToPdfPath) {
         try {
-            // 预处理HTML内容，优化微信小程序PDF查看器兼容性
-            String optimizedHtml = preprocessHtmlForWechat(htmlContent);
-            
             // 创建临时HTML文件
             java.io.File tempHtmlFile = java.io.File.createTempFile("temp_", ".html");
             tempHtmlFile.deleteOnExit();
             
             // 写入HTML内容到临时文件
-            Files.write(tempHtmlFile.toPath(), optimizedHtml.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            Files.write(tempHtmlFile.toPath(), htmlContent.getBytes(java.nio.charset.StandardCharsets.UTF_8));
             
             // 构建WKHtmlToPdf命令
             List<String> command = new ArrayList<>();
@@ -233,15 +230,35 @@ public class HtmlToPdfGenerator {
             
             command.add(executable);
             
-            // 添加优化参数以提高微信小程序兼容性
+            // 添加高级参数以保持复杂样式，确保所有HTML样式正确转换
             command.add("--enable-local-file-access");
-            command.add("--disable-javascript"); // 禁用JavaScript以避免渲染问题
-            command.add("--disable-smart-shrinking"); // 保持精确的大小控制
+            command.add("--javascript-delay");
+            command.add("5000"); // 增加JavaScript执行时间，确保动态内容完全渲染
             command.add("--print-media-type"); // 使用打印样式表
-            command.add("--dpi 300"); // 提高分辨率
-            // 移除--no-background以保留背景颜色
-            command.add("--encoding utf-8"); // 确保编码正确
-            command.add("--quiet"); // 减少输出
+            command.add("--no-outline"); // 不生成大纲，避免某些渲染问题
+            command.add("--background"); // 确保背景颜色和图像被正确渲染
+            command.add("--images"); // 确保所有图像都被加载
+            command.add("--image-quality");
+            command.add("100"); // 使用最高图像质量
+            command.add("--zoom");
+            command.add("1.0"); // 设置缩放比例为1:1
+            command.add("--enable-font-antialiasing"); // 启用字体抗锯齿
+            command.add("--encoding");
+            command.add("UTF-8"); // 确保UTF-8编码
+            command.add("--disable-smart-shrinking"); // 禁用智能缩放，确保精确的布局控制
+            command.add("--no-stop-slow-scripts"); // 不要停止执行缓慢的脚本
+            command.add("--allow");
+            command.add("*"); // 允许加载所有资源
+            command.add("--disable-local-file-access=false"); // 明确启用本地文件访问
+            command.add("--custom-header");
+            command.add("Accept-Encoding");
+            command.add("gzip, deflate"); // 设置适当的请求头
+            command.add("--user-style-sheet");
+            command.add("-" + ":root { --webkit-print-color-adjust: exact; color-adjust: exact; }"); // 确保颜色正确打印
+            
+            // 页面尺寸和边距设置
+            command.add("--page-size");
+            command.add("A4"); // 使用A4纸张大小
             command.add("--margin-top");
             command.add("10mm");
             command.add("--margin-right");
@@ -293,39 +310,6 @@ public class HtmlToPdfGenerator {
         }
     }
 
-    /**
-     * 预处理HTML内容，为微信小程序PDF查看器优化样式兼容性
-     * 保留原始模板的所有样式，只添加必要的兼容性设置
-     * @param htmlContent 原始HTML内容
-     * @return 优化后的HTML内容
-     */
-    private static String preprocessHtmlForWechat(String htmlContent) {
-        // 只添加微信小程序PDF查看器必要的兼容性设置，不修改原始样式
-        String compatibilityMeta = "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n";
-        String compatibilityStyles = "<style>\n" +
-            "/* 确保在微信小程序内置PDF查看器中正确显示颜色 */\n" +
-            "* { -webkit-print-color-adjust: exact !important; color-adjust: exact !important; }\n" +
-            "/* 确保背景色显示 */\n" +
-            "body, div { background: transparent !important; }\n" +
-            "/* 确保元素不被截断 */\n" +
-            "* { box-sizing: border-box !important; }\n" +
-            "/* 确保文本可读性 */\n" +
-            "body { line-height: 1.5 !important; }\n" +
-            "</style>\n";
-        
-        // 组合兼容性代码
-        String compatibilityCode = compatibilityMeta + compatibilityStyles;
-        
-        // 在head标签内插入兼容性代码，如果没有head标签则在开始处添加
-        if (htmlContent.contains("</head>")) {
-            return htmlContent.replace("</head>", compatibilityCode + "</head>");
-        } else if (htmlContent.contains("<html>")) {
-            return htmlContent.replace("<html>", "<html>\n<head>" + compatibilityCode + "</head>");
-        } else {
-            return "<html>\n<head>" + compatibilityCode + "</head>\n<body>" + htmlContent + "</body>\n</html>";
-        }
-    }
-    
     public static void main(String[] args) throws Exception {
         Map<String, Object> data = HtmlToPdfGenerator.getData();
         String htmlContent = HtmlToPdfGenerator.renderHtml(data);
@@ -373,15 +357,12 @@ public class HtmlToPdfGenerator {
                     // 新建页面
                     Page page = browser.newPage();
 
-                    // 预处理HTML内容，优化微信小程序PDF查看器兼容性
-                    String optimizedHtml = preprocessHtmlForWechat(htmlContent);
-                    
                     // 设置 HTML 内容
                     WaitForOptions waitForOptions = new WaitForOptions();
                     waitForOptions.setTimeout(30000);
                     waitForOptions.setWaitUntil(Arrays.asList(PuppeteerLifeCycle.load));
 
-                    page.setContent(optimizedHtml, waitForOptions);
+                    page.setContent(htmlContent, waitForOptions);
 
                     // 配置 PDF
                     PDFOptions pdfOptions = new PDFOptions();

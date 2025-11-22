@@ -27,6 +27,11 @@ public class PdfServiceUtils {
         resolver.setSuffix(".html");
         resolver.setCharacterEncoding("UTF-8");
         resolver.setTemplateMode("HTML");
+        // 重要：设置缓存为false，确保每次都使用最新的模板
+        resolver.setCacheable(false);
+        // 增强HTML解析能力，确保样式完整性
+        resolver.setCheckExistence(true);
+        resolver.setOrder(1);
 
         templateEngine = new TemplateEngine();
         templateEngine.setTemplateResolver(resolver);
@@ -42,8 +47,24 @@ public class PdfServiceUtils {
     public byte[] generatePdf(Map<String, Object> data, String templateName) throws Exception {
         // 1️⃣ 渲染 HTML
         Context context = new Context();
+        // 设置上下文参数，确保UTF-8编码
+        context.setVariable("encoding", "UTF-8");
+        // 添加数据到上下文
         data.forEach(context::setVariable);
-        String htmlContent = templateEngine.process(templateName, context);
+        
+        // 处理模板名称，确保不含.html后缀
+        String processedTemplateName = templateName;
+        if (templateName.endsWith(".html")) {
+            processedTemplateName = templateName.substring(0, templateName.lastIndexOf(".html"));
+        }
+        
+        // 生成完整的HTML内容
+        String htmlContent = templateEngine.process(processedTemplateName, context);
+        
+        // 确保HTML内容包含必要的DOCTYPE声明和字符集设置
+        if (!htmlContent.trim().startsWith("<!DOCTYPE")) {
+            htmlContent = "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"></head><body>" + htmlContent + "</body></html>";
+        }
 
         // 2️⃣ 检查WKHtmlToPdf是否可用
         if (!HtmlToPdfGenerator.isWkHtmlToPdfAvailable()) {
