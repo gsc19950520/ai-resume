@@ -231,9 +231,12 @@ Page({
     // 使用云托管方式请求职位类型
     request.get('/job-types', {})
       .then(res => {
+        // 正确解析后端返回的BaseResponseVO结构
+        const jobTypeList = res && res.success && res.data ? res.data : [];
         this.setData({
-          jobTypes: res || []
+          jobTypes: jobTypeList
         });
+        console.log('加载职位类型成功:', jobTypeList);
       })
       .catch(error => {
         console.error('请求职位类型失败:', error);
@@ -243,14 +246,15 @@ Page({
   // 选择职位类型
   onJobTypeChange: function(e) {
     const jobTypeId = e.detail.value;
-    // 查找对应的职位名称
-    const selectedJobType = this.data.jobTypes.find(type => type.id === jobTypeId);
+    // 查找对应的职位名称，进行类型转换以确保匹配
+    const selectedJobType = this.data.jobTypes.find(type => String(type.id) === String(jobTypeId));
     
     this.setData({
       [`resumeInfo.personalInfo.jobTypeId`]: jobTypeId,
       [`resumeInfo.personalInfo.jobTitle`]: selectedJobType ? selectedJobType.name : ''
     });
     
+    console.log('选择职位类型:', {jobTypeId, jobTitle: selectedJobType ? selectedJobType.name : ''});
     // 即时保存数据到本地存储
     wx.setStorageSync('tempResumeInfo', this.data.resumeInfo);
   },
@@ -482,6 +486,16 @@ Page({
           startTime: backendData.startTime || '',
           jobTypeId: backendData.jobTypeId || ''
         };
+      }
+      
+      // 确保jobTypeId字段正确设置，同时从jobTypes列表中查找对应的职位名称更新jobTitle
+      if (resumeInfo.personalInfo.jobTypeId && this.data.jobTypes && this.data.jobTypes.length > 0) {
+        const jobTypeIdStr = String(resumeInfo.personalInfo.jobTypeId);
+        const selectedJobType = this.data.jobTypes.find(type => String(type.id) === jobTypeIdStr);
+        if (selectedJobType && selectedJobType.name) {
+          resumeInfo.personalInfo.jobTitle = selectedJobType.name;
+          console.log('根据jobTypeId更新jobTitle:', selectedJobType.name);
+        }
       }
       
       // 填充教育经历

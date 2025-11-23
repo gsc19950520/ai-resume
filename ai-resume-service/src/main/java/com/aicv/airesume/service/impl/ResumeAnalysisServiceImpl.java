@@ -519,6 +519,7 @@ public class ResumeAnalysisServiceImpl implements ResumeAnalysisService {
                 }
             }
             
+            // 使用setter方法
             techAnalysis.setPrimarySkills(primarySkills);
             techAnalysis.setSecondarySkills(secondarySkills);
             techAnalysis.setSkillProficiency(skillProficiency);
@@ -561,6 +562,7 @@ public class ResumeAnalysisServiceImpl implements ResumeAnalysisService {
                 for (ResumeProject project : mainProjects) {
                     ResumeAnalysisDTO.ProjectInfo projectInfo = new ResumeAnalysisDTO.ProjectInfo();
                     
+                    // 使用getter/setter方法
                     projectInfo.setName(project.getProjectName());
                     projectInfo.setDescription(project.getDescription());
                     projectInfo.setRole(project.getRole());

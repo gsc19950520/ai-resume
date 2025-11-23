@@ -3,6 +3,7 @@ package com.aicv.airesume.service;
 import com.aicv.airesume.model.dto.InterviewReportDTO;
 import com.aicv.airesume.model.dto.InterviewResponseDTO;
 import com.aicv.airesume.model.vo.InterviewHistoryVO;
+import com.aicv.airesume.model.vo.InterviewResponseVO;
 import com.aicv.airesume.model.vo.InterviewSessionVO;
 import com.aicv.airesume.model.vo.SalaryRangeVO;
 import java.util.List;
@@ -20,8 +21,9 @@ public interface InterviewService {
      * @param persona 面试官风格（可选）
      * * @param sessionSeconds 会话时长（可选）
      * @param jobTypeId 职位类型ID（可选）
+     * @return 面试响应VO
      */
-    InterviewResponseDTO startInterview(Long userId, Long resumeId, String persona, Integer sessionSeconds, Integer jobTypeId);
+    InterviewResponseVO startInterview(Long userId, Long resumeId, String persona, Integer sessionSeconds, Integer jobTypeId);
 
     /**
      * 提交回答 - 支持回答时长

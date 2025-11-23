@@ -60,9 +60,9 @@
     </view>
     
     <!-- 分析简历按钮 -->
-    <button class="analyze-resume-btn {{selectedResume ? 'active' : 'disabled'}}" disabled="{{!selectedResume}}" bindtap="analyzeResume">
+    <!-- <button class="analyze-resume-btn {{selectedResume ? 'active' : 'disabled'}}" disabled="{{!selectedResume}}" bindtap="analyzeResume">
       分析简历
-    </button>
+    </button> -->
     
       <!-- 开始面试按钮 -->
     <button class="start-interview-btn {{selectedPersona && selectedResume ? 'active' : 'disabled'}}" disabled="{{!selectedPersona || !selectedResume}}" bindtap="startInterview">

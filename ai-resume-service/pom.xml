@@ -117,13 +117,13 @@
             <optional>true</optional>
         </dependency>
         
-        <!-- 开发工具 -->
-        <dependency>
+        <!-- 开发工具 - 暂时注释掉以解决类加载器问题 -->
+        <!-- <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-devtools</artifactId>
             <scope>runtime</scope>
             <optional>true</optional>
-        </dependency>
+        </dependency> -->
 
         <!-- Database -->
         <dependency>

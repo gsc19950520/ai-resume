@@ -7,6 +7,7 @@ import com.aicv.airesume.entity.Resume;
 import com.aicv.airesume.model.dto.InterviewQuestionDTO;
 import com.aicv.airesume.model.dto.InterviewReportDTO;
 import com.aicv.airesume.model.dto.InterviewResponseDTO;
+import com.aicv.airesume.model.vo.InterviewResponseVO;
 import com.aicv.airesume.model.vo.InterviewHistoryVO;
 import com.aicv.airesume.model.vo.InterviewSessionVO;
 import com.aicv.airesume.model.vo.SalaryRangeVO;
@@ -93,7 +94,7 @@ public class InterviewServiceImpl implements InterviewService {
      }
 
     @Override
-    public InterviewResponseDTO startInterview(Long userId, Long resumeId, String persona, Integer sessionSeconds, Integer jobTypeId) {
+    public InterviewResponseVO startInterview(Long userId, Long resumeId, String persona, Integer sessionSeconds, Integer jobTypeId) {
         try {
             // 1. 初始化变量
             List<String> techItems = new ArrayList<>();
@@ -181,16 +182,14 @@ public class InterviewServiceImpl implements InterviewService {
             firstLog.setRoundNumber(1);
             logRepository.save(firstLog);
 
-            // 6. 构建返回对象
-            InterviewResponseDTO response = new InterviewResponseDTO();
+            // 6. 构建返回对象 - 直接返回InterviewResponseVO
+            InterviewResponseVO response = new InterviewResponseVO();
             response.setSessionId(session.getSessionId());
-            
-            Map<String, Object> additionalInfo = new HashMap<>();
-            additionalInfo.put("firstQuestion", firstQuestion);
-            additionalInfo.put("questionId", firstLog.getQuestionId());
-            additionalInfo.put("depthLevel", firstQuestionData.get("depthLevel"));
-            additionalInfo.put("sessionTimeRemaining", session.getSessionTimeRemaining());
-            response.setAdditionalInfo(additionalInfo);
+            response.setQuestion(firstQuestion); // 第一个问题作为当前问题
+            response.setQuestionType("first_question"); // 标记为第一个问题
+            response.setFeedback(null); // 首次没有反馈
+            response.setNextQuestion(null); // 第一个问题没有下一个问题
+            response.setIsCompleted(false); // 面试未完成
 
             return response;
         } catch (Exception e) {

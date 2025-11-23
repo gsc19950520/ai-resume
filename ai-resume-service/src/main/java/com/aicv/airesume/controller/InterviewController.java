@@ -10,6 +10,7 @@ import com.aicv.airesume.model.vo.BaseResponseVO;
 import com.aicv.airesume.model.vo.InterviewConfigVO;
 import com.aicv.airesume.model.vo.InterviewPersonasVO;
 import com.aicv.airesume.model.vo.InterviewStartVO;
+import com.aicv.airesume.model.vo.InterviewResponseVO;
 import com.aicv.airesume.model.dto.InterviewStartRequestDTO;
 import com.aicv.airesume.model.vo.InterviewAnswerVO;
 import com.aicv.airesume.model.vo.InterviewReportVO;
@@ -97,7 +98,6 @@ public class InterviewController {
         }
     }
     
-
     @PostMapping("/start")
     public BaseResponseVO startInterview(@RequestBody InterviewStartRequestDTO request) {
         try {
@@ -113,25 +113,13 @@ public class InterviewController {
             Integer sessionSeconds = request.getSessionSeconds() != null ? 
                 request.getSessionSeconds() : defaultSessionSeconds;
             
-            // 创建综合响应对象
-            Map<String, Object> responseData = new HashMap<>();
-            
-            // 调用服务层开始面试
+            // 调用服务层开始面试，直接获取InterviewResponseVO
             Integer jobTypeId = request.getJobTypeId();
             log.info("接收到的jobTypeId: {}", jobTypeId);
-            InterviewResponseDTO result = interviewService.startInterview(userId, resumeId, persona, sessionSeconds, jobTypeId);
+            InterviewResponseVO result = interviewService.startInterview(userId, resumeId, persona, sessionSeconds, jobTypeId);
             
-            // 转换为VO对象并添加到响应中
-            InterviewStartVO vo = new InterviewStartVO();
-            vo.setSessionId(result.getSessionId());
-            vo.setQuestion(result.getQuestion());
-            vo.setQuestionType(result.getQuestionType());
-            vo.setPersona(persona);
-            vo.setSessionSeconds(sessionSeconds);
-            
-            responseData.put("interviewInfo", vo);
-            
-            return BaseResponseVO.success(responseData);
+            // 直接返回VO对象，无需额外转换
+            return BaseResponseVO.success(result);
         } catch (Exception e) {
             log.error("Start interview failed:", e);
             return BaseResponseVO.error("开始面试失败：" + e.getMessage());

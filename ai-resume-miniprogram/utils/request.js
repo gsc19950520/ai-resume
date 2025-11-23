@@ -50,8 +50,23 @@ const request = (url, data = {}, method = 'GET', header = {}) => {
             return res
           } else if (res.code === 401) {
             // 登录过期，需要重新登录
-            app.logout()
-            wx.navigateTo({ url: '/pages/login/login' })
+            // 显示错误提示
+            wx.showModal({
+              title: '登录失效',
+              content: '您的登录已过期，请重新登录',
+              showCancel: false,
+              success: () => {
+                // 清除登录状态
+                app.logout()
+                // 使用redirectTo替代navigateTo，防止用户返回上一页
+                wx.redirectTo({ url: '/pages/login/login' })
+              }
+            })
+            // 显示全局遮罩层，阻止用户任何操作
+            wx.showLoading({
+              title: '请重新登录',
+              mask: true
+            })
             throw new Error('登录已过期，请重新登录')
           } else {
             // 其他错误，提示错误信息

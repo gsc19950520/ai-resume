@@ -22,12 +22,8 @@ Page({
     console.log('开始处理简历跳转逻辑');
     
     try {
-      // 1. 获取本地保存的简历数据
-      const resumeData = wx.getStorageSync('resumeData');
-      const tempResumeInfo = wx.getStorageSync('tempResumeInfo');
-      const resumeId = wx.getStorageSync('resumeId');
-      
-      // 2. 获取用户信息（注意：userInfo是JSON字符串，需要解析）
+      // 1. 首先检查用户是否登录
+      console.log('检查用户登录状态');
       const userInfoStr = wx.getStorageSync('userInfo');
       let userInfo = null;
       
@@ -39,49 +35,68 @@ Page({
         }
       }
       
+      // 检查全局用户信息（作为备选）
+      const app = getApp();
+      const globalUserInfo = app && app.globalData && app.globalData.userInfo;
+      const isLoggedIn = (userInfo || globalUserInfo) !== null;
+      
+      console.log('用户登录状态检查:');
+      console.log('- 本地用户信息:', userInfo ? '存在' : '不存在');
+      console.log('- 全局用户信息:', globalUserInfo ? '存在' : '不存在');
+      console.log('- 是否已登录:', isLoggedIn);
+      
+      // 如果未登录，直接跳转到main页面，由main页面处理登录提示
+      if (!isLoggedIn) {
+        console.log('用户未登录，跳转到简历主页面');
+        wx.reLaunch({
+          url: '/pages/resume/main/main',
+          success: () => {
+            console.log('成功跳转到简历主页面');
+          },
+          fail: (err) => {
+            console.error('跳转到简历主页面失败:', err);
+            this.fallbackToMain();
+          }
+        });
+        return;
+      }
+      
+      // 2. 用户已登录，获取本地保存的简历数据
+      const resumeData = wx.getStorageSync('resumeData');
+      const tempResumeInfo = wx.getStorageSync('tempResumeInfo');
+      const resumeId = wx.getStorageSync('resumeId');
+      
       console.log('本地简历数据检查:');
       console.log('- resumeData:', resumeData);
       console.log('- tempResumeInfo:', tempResumeInfo);
       console.log('- resumeId:', resumeId);
-      console.log('- userInfo字符串:', userInfoStr);
-      console.log('- userInfo对象:', userInfo);
       console.log('- userInfo.resumeCount:', userInfo ? userInfo.resumeCount : 'undefined');
+      console.log('- globalUserInfo.resumeCount:', globalUserInfo ? globalUserInfo.resumeCount : 'undefined');
       
       // 3. 判断是否有简历数据
       let hasResume = false;
       
-      // 方法1：检查本地存储的简历数据
-      if (resumeData || tempResumeInfo || resumeId) {
-        hasResume = true;
-        console.log('检测到本地简历数据');
-      }
-      
-      // 方法2：检查用户信息中的简历计数
-      if (userInfo && userInfo.resumeCount !== undefined && userInfo.resumeCount > 0) {
-        hasResume = true;
-        console.log('用户信息中检测到简历计数:', userInfo.resumeCount);
-      } else if (userInfo && userInfo.resumeCount !== undefined) {
-        console.log('用户信息中resumeCount为:', userInfo.resumeCount);
+      // 方法1：优先检查用户信息中的简历计数（最可靠的来源）
+      if (userInfo && userInfo.resumeCount !== undefined) {
+        hasResume = userInfo.resumeCount > 0;
+        console.log('用户信息中简历计数:', userInfo.resumeCount, '，判定', hasResume ? '有' : '无', '简历');
+      } else if (globalUserInfo && globalUserInfo.resumeCount !== undefined) {
+        hasResume = globalUserInfo.resumeCount > 0;
+        console.log('全局用户信息中简历计数:', globalUserInfo.resumeCount, '，判定', hasResume ? '有' : '无', '简历');
       } else {
-        console.log('用户信息中没有resumeCount字段');
-      }
-      
-      // 方法3：检查全局用户信息（作为备选）
-      const app = getApp();
-      if (!hasResume && app && app.globalData && app.globalData.userInfo) {
-        const globalUserInfo = app.globalData.userInfo;
-        console.log('检查全局用户信息:', globalUserInfo);
-        if (globalUserInfo.resumeCount !== undefined && globalUserInfo.resumeCount > 0) {
-          hasResume = true;
-          console.log('全局用户信息中检测到简历计数:', globalUserInfo.resumeCount);
-        }
+        console.log('用户信息中没有resumeCount字段，使用本地存储作为备选判断');
+        // 方法2：当没有resumeCount信息时，使用本地存储作为备选判断
+        const hasValidResumeData = resumeData && typeof resumeData === 'object' && Object.keys(resumeData).length > 0;
+        const hasValidTempResume = tempResumeInfo && typeof tempResumeInfo === 'object' && Object.keys(tempResumeInfo).length > 0;
+        hasResume = hasValidResumeData || hasValidTempResume;
+        console.log('本地存储判断结果:', hasResume ? '检测到有效的本地简历数据' : '未检测到有效简历数据');
       }
       
       console.log('最终判断结果 - 是否有简历:', hasResume);
       
       // 4. 根据判断结果进行跳转
       if (hasResume) {
-        console.log('有简历，跳转到预览页面');
+        console.log('用户已登录且有简历，跳转到预览页面');
         // 使用reLaunch确保清空页面栈，避免返回问题
         wx.reLaunch({
           url: '/pages/template/preview/preview',
@@ -94,7 +109,7 @@ Page({
           }
         });
       } else {
-        console.log('无简历，跳转到主页面');
+        console.log('用户已登录但无简历，跳转到主页面');
         // 使用reLaunch确保清空页面栈
         wx.reLaunch({
           url: '/pages/resume/main/main',
