@@ -17,7 +17,7 @@ public interface JobTypeRepository extends JpaRepository<JobType, Integer> {
      * @param name 职位名称
      * @return 职位类型对象
      */
-    Optional<JobType> findByName(String name);
+    Optional<JobType> findByJobName(String name);
 
     /**
      * 根据领域ID查询职位类型列表

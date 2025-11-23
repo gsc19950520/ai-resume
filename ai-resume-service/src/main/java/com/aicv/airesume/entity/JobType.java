@@ -19,8 +19,8 @@ public class JobType {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(nullable = false, length = 50, unique = true)
-    private String name;
+    @Column(name = "job_name")
+    private String jobName;
 
     @Column(length = 200)
     private String description;
@@ -36,6 +36,4 @@ public class JobType {
     @Temporal(TemporalType.TIMESTAMP)
     private Date updateTime = new Date();
 
-    // 领域关联（不使用外键约束）
-    // private Domain domain; // 暂时注释掉关联对象
 }

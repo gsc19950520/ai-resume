@@ -1082,7 +1082,7 @@ public class InterviewServiceImpl implements InterviewService {
     public List<InterviewHistoryVO> getInterviewHistory(Long userId) {
         List<InterviewSession> sessions = sessionRepository.findByUserIdOrderByCreatedAtDesc(userId);
         return sessions.stream().map(session -> {
-            String jobType = jobTypeRepository.findById(session.getJobTypeId()).map(JobType::getName).orElse("面试");
+            String jobType = jobTypeRepository.findById(session.getJobTypeId()).map(JobType::getJobName).orElse("面试");
             InterviewHistoryVO vo = new InterviewHistoryVO();
             vo.setSessionId(session.getId());
             vo.setUniqueSessionId(session.getSessionId()); // 添加唯一会话ID
@@ -1113,7 +1113,7 @@ public class InterviewServiceImpl implements InterviewService {
             // 根据sessionId获取面试会话
             InterviewSession session = sessionRepository.findBySessionId(sessionId)
                     .orElseThrow(() -> new RuntimeException("Interview session not found"));
-            String jobType = jobTypeRepository.findById(session.getJobTypeId()).map(JobType::getName).orElse("面试");
+            String jobType = jobTypeRepository.findById(session.getJobTypeId()).map(JobType::getJobName).orElse("面试");
 
             // 获取评分信息
             Map<String, Double> aggregatedScores = new HashMap<>();
@@ -1182,7 +1182,7 @@ public class InterviewServiceImpl implements InterviewService {
     public InterviewSessionVO getInterviewDetail(String sessionId) {
         InterviewSession session = sessionRepository.findBySessionId(sessionId)
                 .orElseThrow(() -> new RuntimeException("Interview session not found"));
-        String jobType = jobTypeRepository.findById(session.getJobTypeId()).map(JobType::getName).orElse("面试");
+        String jobType = jobTypeRepository.findById(session.getJobTypeId()).map(JobType::getJobName).orElse("面试");
         
         InterviewSessionVO vo = new InterviewSessionVO();
         vo.setId(session.getId());
@@ -1524,7 +1524,7 @@ public class InterviewServiceImpl implements InterviewService {
                 logs.stream().map(this::convertToMap).collect(Collectors.toList()));
             
             // 获取职位领域 - 简化处理，使用jobType作为领域
-            String domain = jobTypeRepository.findById(session.getJobTypeId()).map(JobType::getName).orElse("未知");
+            String domain = jobTypeRepository.findById(session.getJobTypeId()).map(JobType::getJobName).orElse("未知");
             
             // 准备用户性能数据
             Map<String, Object> userPerformanceData = new HashMap<>();
@@ -1589,7 +1589,7 @@ public class InterviewServiceImpl implements InterviewService {
         StringBuilder report = new StringBuilder();
         
         // 报告标题
-        String jobType = jobTypeRepository.findById(jobTypeId).map(JobType::getName).orElse("面试");
+        String jobType = jobTypeRepository.findById(jobTypeId).map(JobType::getJobName).orElse("面试");
         report.append("# 职业成长评估报告\n\n");
         
         // 基本信息
