@@ -3,19 +3,18 @@
   <!-- 顶部导航栏 -->
   <view class="header">
     <view class="header-left" bindtap="goBack">
-      <image src="/images/avatar.jpg" mode="aspectFit" class="avatar-icon"></image>
       <view class="job-badge">{{industryJobTag || '技术面试'}}</view>
     </view>
     <view class="header-center">AI 模拟面试</view>
     <view class="header-right">
       <view class="progress-area">
         <view class="countdown-timer {{sessionTimeRemaining < 60 ? 'time-warning pulse' : ''}}">
-          {{formatRemainingTime(sessionTimeRemaining)}}
-        </view>
+            {{formattedTimeRemaining}}
+          </view>
         <view class="progress-bar">
           <view 
             class="progress-fill"
-            style="width: {{(sessionTimeRemaining / data.sessionSeconds) * 100}}%"
+            style="width: {{(sessionTimeRemaining / sessionSeconds) * 100}}%"
           ></view>
         </view>
       </view>
@@ -35,10 +34,8 @@
               {{getPersonaText(persona)}}
             </view>
           </view>
-          <view class="question-content">{{currentQuestion.content}}</view>
-          <view class="hint-text" wx:if="{{currentQuestion.expectedKeyPoints && currentQuestion.expectedKeyPoints.length > 0}}">
-            提示: 请重点回答 {{currentQuestion.expectedKeyPoints.join('、')}}
-          </view>
+          <view class="question-content">{{question}}</view>
+          <!-- 提示信息已移除，根据新的数据结构 -->
         </view>
       </view>
     </view>

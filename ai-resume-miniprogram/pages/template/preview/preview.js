@@ -138,7 +138,8 @@ Page({
     const app = getApp();
     
     // 获取当前用户信息
-    const userInfo = app.globalData.userInfo;
+    const userInfoStr = wx.getStorageSync('userInfo');
+    const userInfo = JSON.parse(userInfoStr);
     if (!userInfo || !userInfo.id) {
       console.warn('用户ID不存在，使用本地数据');
       this.loadResumeDataFromLocal();

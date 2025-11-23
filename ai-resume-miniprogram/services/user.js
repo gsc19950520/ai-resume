@@ -13,32 +13,6 @@ class UserService {
   static async login(code) {
     return request.post('/api/user/login', { code })
   }
-
-  /**
-   * 获取用户信息
-   * @returns {Promise} 返回用户信息
-   */
-  static async getUserInfo(openId) {
-    try {
-      const response = await request.get('/api/user/info', {
-        params: { openId }
-      });
-      // 处理后端返回的标准格式：{success: true, data: {用户信息和统计数据}}
-      if (response && response.success === true && response.data) {
-        return response.data;
-      } else if (response && response.data) {
-        // 兼容旧格式，直接返回data
-        return response.data;
-      } else {
-        // 处理错误情况
-        throw new Error(response?.message || '获取用户信息失败');
-      }
-    } catch (error) {
-      console.error('获取用户信息出错:', error);
-      throw error;
-    }
-  }
-
   /**
    * 更新用户信息
    * @param {object} userInfo - 用户信息

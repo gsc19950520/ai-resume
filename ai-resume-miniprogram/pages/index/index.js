@@ -29,14 +29,33 @@ Page({
   },
 
   onLoad: function () {
-    // 获取用户信息
+    // 获取用户信息，确保是对象类型
+    let userInfo = app.globalData.userInfo;
+    // 如果全局数据不存在，尝试从本地存储获取
+    if (!userInfo || typeof userInfo !== 'object') {
+      try {
+        const userInfoStr = wx.getStorageSync('userInfo');
+        if (userInfoStr) {
+          userInfo = JSON.parse(userInfoStr);
+          // 再次检查是否为有效对象
+          if (typeof userInfo !== 'object' || userInfo === null) {
+            userInfo = null;
+          }
+        }
+      } catch (e) {
+        console.error('解析用户信息失败:', e);
+        userInfo = null;
+      }
+    }
+    
     this.setData({
-      userInfo: app.globalData.userInfo
+      userInfo: userInfo || this.data.userInfo // 如果获取失败，保持默认数据
     })
 
-    // 如果未登录，提示用户登录
-    if (!this.data.userInfo) {
-      this.showLoginTip()
+    // 如果未登录且没有默认昵称，保持默认值
+    if (!this.data.userInfo || !this.data.userInfo.nickName) {
+      console.log('未登录或用户昵称不存在，使用默认值')
+      // 不立即提示登录，让用户可以看到默认的"用户"文本
     } else {
       // 如果已登录，调用接口获取最新个人信息
       this.fetchUserInfo()
@@ -47,13 +66,27 @@ Page({
   },
 
   onShow: function() {
-    // 页面显示时更新用户信息
-    this.setData({
-      userInfo: app.globalData.userInfo
-    })
+    // 页面显示时更新用户信息，添加错误处理
+    try {
+      const userInfoStr = wx.getStorageSync('userInfo');
+      let userInfo = null;
+      if (userInfoStr) {
+        userInfo = JSON.parse(userInfoStr);
+        // 确保userInfo是对象类型
+        if (typeof userInfo !== 'object' || userInfo === null) {
+          userInfo = null;
+        }
+      }
+      this.setData({
+        userInfo: userInfo || this.data.userInfo // 如果获取失败，保持原有数据
+      })
+    } catch (e) {
+      console.error('解析用户信息失败:', e);
+      // 解析失败时保持原有数据
+    }
     
     // 如果已登录，刷新用户信息
-    if (this.data.userInfo) {
+    if (this.data.userInfo && this.data.userInfo.openId) {
       this.fetchUserInfo()
     }
   },
@@ -64,13 +97,14 @@ Page({
     let userInfo = app.globalData.userInfo;
     
     // 如果全局数据不存在，尝试从本地存储获取
-    if (!userInfo) {
+    if (!userInfo || typeof userInfo !== 'object') {
       const userInfoStr = wx.getStorageSync('userInfo');
       if (userInfoStr) {
         try {
           userInfo = JSON.parse(userInfoStr);
         } catch (e) {
           console.error('解析本地用户信息失败:', e);
+          userInfo = null;
         }
       }
     }
@@ -89,39 +123,40 @@ Page({
         
         // 处理响应数据
         let responseData;
-        if (result && result.data && typeof result.data === 'object') {
+        if (result && result.data) {
           responseData = result.data;
-        } else if (typeof result === 'object') {
-          responseData = result;
         } else {
           console.error('获取用户信息返回格式无效:', result)
           return;
         }
         
         // 检查响应是否成功
-        if (responseData && (responseData.success === true || responseData.code === 200) && responseData.data) {
-          // 更新本地用户信息
-          const updatedUserInfo = responseData.data
-          console.log('获取到最新用户信息:', updatedUserInfo)
+        if (responseData && result.success === true) {
+          // 确保responseData是对象类型
+          if (typeof responseData !== 'object' || responseData === null) {
+            console.error('返回的用户信息不是有效对象:', responseData);
+            return;
+          }
           
-          // 更新页面数据
+          // 更新页面数据（直接使用对象，不转成字符串）
           this.setData({
-            userInfo: updatedUserInfo
+            userInfo: responseData
           })
           
           // 更新全局用户信息
-          app.globalData.userInfo = updatedUserInfo
+          app.globalData.userInfo = responseData
           
-          // 更新本地存储
-          wx.setStorageSync('userInfo', JSON.stringify(updatedUserInfo))
-          if (updatedUserInfo.id) {
-            wx.setStorageSync('userId', updatedUserInfo.id)
+          // 更新本地存储（存储JSON字符串）
+          const updatedUserInfoStr = JSON.stringify(responseData);
+          wx.setStorageSync('userInfo', updatedUserInfoStr)
+          if (responseData.id) {
+            wx.setStorageSync('userId', responseData.id)
           }
-          if (updatedUserInfo.openId) {
-            wx.setStorageSync('openId', updatedUserInfo.openId)
+          if (responseData.openId) {
+            wx.setStorageSync('openId', responseData.openId)
           }
           
-          console.log('用户信息更新完成')
+          console.log('用户信息更新完成', responseData)
         } else {
           console.log('获取用户信息失败或返回格式异常:', responseData)
         }
@@ -237,13 +272,13 @@ Page({
     wx.showLoading({ title: '检查简历中...' })
     
     const app = getApp()
-    const userId = app.globalData.userInfo?.id || wx.getStorageSync('userId') || '0'
+    const userInfo = JSON.parse(wx.getStorageSync('userInfo'))
+    const userId = userInfo.userId
     
     // 先调用/getLatest接口获取用户最新简历
     get('/resume/getLatest', { userId: userId })
       .then(res => {
         wx.hideLoading()
-        
         if (res && res.success && res.data) {
           // 有简历，将最新简历数据存储到全局
           app.globalData.latestResumeData = res.data
@@ -268,17 +303,34 @@ Page({
   
   // 显示无简历提示
   showNoResumePrompt: function() {
+    console.log('showNoResumePrompt方法被调用');
+    
+    // 使用更简洁的配置，确保confirmText不超过4个中文字符
     wx.showModal({
       title: '提示',
-      content: '您还没有创建简历，请先创建或上传一份简历后再进行AI模拟面试。',
+      content: '请先创建简历后再进行AI模拟面试',
       showCancel: true,
       cancelText: '稍后',
-      confirmText: '去创建简历',
-      success: (res) => {
+      confirmText: '创建', // 修改为不超过4个中文字符
+      success: function(res) {
+        console.log('弹窗操作结果:', res);
         if (res.confirm) {
           // 跳转到模板选择页面（main页面）
-          wx.navigateTo({ url: '/pages/template/list/list' })
+          wx.navigateTo({ 
+            url: '/pages/template/list/list',
+            success: function() {
+              console.log('成功跳转到创建简历页面');
+            },
+            fail: function(err) {
+              console.error('跳转失败:', err)
+            }
+          })
+        } else if (res.cancel) {
+          console.log('用户点击了取消');
         }
+      },
+      fail: function(err) {
+        console.error('显示弹窗失败:', err);
       }
     })
   },

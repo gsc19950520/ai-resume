@@ -162,7 +162,7 @@
         
         <view class="form-item">
           <text class="label">工作描述</text>
-          <textarea class="textarea" placeholder="请描述您的工作职责和成就" value="{{item.description}}" bindinput="onWorkInput" data-index="{{index}}" data-field="description" />
+          <textarea class="textarea" placeholder="请描述您的工作职责和成就" value="{{item.description}}" bindinput="onWorkInput" data-index="{{index}}" data-field="description" maxlength="5000" />
         </view>
       </view>
       
@@ -197,7 +197,7 @@
         
         <view class="form-item">
           <text class="label">项目描述</text>
-          <textarea class="textarea" placeholder="请描述项目内容、技术栈和您的职责" value="{{item.description}}" bindinput="onProjectInput" data-index="{{index}}" data-field="description" />
+          <textarea class="textarea" placeholder="请描述项目内容、技术栈和您的职责" value="{{item.description}}" bindinput="onProjectInput" data-index="{{index}}" data-field="description" maxlength="5000" />
         </view>
       </view>
       

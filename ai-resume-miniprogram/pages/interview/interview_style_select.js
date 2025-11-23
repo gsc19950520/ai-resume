@@ -289,7 +289,7 @@ Page({
     
     try {
       // 调用后端API生成第一个问题和会话，使用start接口
-      this.data.jobTypeId = app.globalData.latestResumeData.jobTypeId || 1
+      this.data.jobTypeId = app.globalData.latestResumeData?.jobTypeId || 1
       const data = await this.generateFirstQuestion();
       
       // 隐藏加载提示
@@ -343,26 +343,7 @@ Page({
           const data = resData.data || resData;
           console.log('start接口返回数据:', data);
           
-          // 根据后端返回的数据结构，正确提取interviewInfo对象
-          const interviewInfo = data.interviewInfo || {};
-          
-          // 构建兼容格式的响应，确保包含question字段供现有代码使用
-          // 后端返回的question可能是字符串，需要转换为前端需要的对象格式
-          const responseData = {
-            ...data,
-            // 确保question字段存在且为对象格式
-            question: {
-              content: interviewInfo.question || '',
-              depthLevel: data.depthLevel || '用法',
-              questionId: data.questionId || '',
-              expectedKeyPoints: data.expectedKeyPoints || []
-            },
-            // 保留会话ID用于后续请求
-            sessionId: interviewInfo.sessionId || data.sessionId || ''
-          };
-          
-          console.log('处理后的响应数据:', responseData);
-          resolve(responseData);
+          resolve(data);
         } else {
           reject(new Error(resData.message || '创建面试会话失败'));
         }
