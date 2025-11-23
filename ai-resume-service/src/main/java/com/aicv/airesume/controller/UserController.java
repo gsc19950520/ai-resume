@@ -304,6 +304,7 @@ public class UserController {
             data.put("email", user.getEmail() != null ? user.getEmail() : "");
             data.put("name", user.getName() != null ? user.getName() : "");
             data.put("birthDate", user.getBirthDate() != null ? user.getBirthDate().toString() : "");
+            data.put("address", user.getAddress() != null ? user.getAddress() : "");
             
             // 使用StatisticsService获取统计数据
             Map<String, Object> statistics = statisticsService.getUserStatistics(user.getId());
