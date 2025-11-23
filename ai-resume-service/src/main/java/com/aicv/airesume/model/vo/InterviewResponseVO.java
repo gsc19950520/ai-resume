@@ -14,4 +14,5 @@ public class InterviewResponseVO {
     private String feedback;      // 反馈信息
     private String nextQuestion;  // 下一个问题
     private Boolean isCompleted;  // 是否完成面试
+    private String industryJobTag; // 行业职位标签
 }

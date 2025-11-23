@@ -305,9 +305,9 @@ Page({
         sessionId: data.sessionId
       });
       
-      // 跳转到面试页面，传递第一个问题和会话ID
+      // 跳转到面试页面，传递第一个问题、会话ID和行业职位标签
       wx.navigateTo({
-        url: `/pages/interview/interview?firstQuestion=${encodeURIComponent(JSON.stringify(data.question))}&sessionId=${encodeURIComponent(data.sessionId)}`
+        url: `/pages/interview/interview?firstQuestion=${encodeURIComponent(JSON.stringify(data.question))}&sessionId=${encodeURIComponent(data.sessionId)}&industryJobTag=${encodeURIComponent(data.industryJobTag || '')}`
       });
     } catch (error) {
       wx.hideLoading();

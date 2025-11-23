@@ -19,7 +19,7 @@ Page({
     formattedTimeRemaining: '10:00', // 格式化的剩余时间
     isPaused: false,
     showFeedback: false,
-    userAnswer: '',
+    userAnswer: null,
     
     // 动画状态
     animationState: {
@@ -31,20 +31,19 @@ Page({
     
     // 显示时间警告
     showTimeWarning: false,
+    // 显示时间警告覆盖层
+    showTimeWarningOverlay: false,
     
     // 倒计时定时器（非数据绑定字段，在onUnload中清除）
     // timer: null - 移到实例属性中
   },
 
-  onLoad: function(options) {
+  onLoad: async function(options) {
     try {
       console.log('interview页面接收到的options:', options);
       
       // 初始化页面数据
       const initialData = {
-        industryJobTag: app.globalData.latestResumeData?.jobType || 
-                        app.globalData.latestResumeData?.occupation || 
-                        '技术面试',
         formattedTimeRemaining: '10:00'
       };
       
@@ -69,18 +68,74 @@ Page({
                                firstQuestion.question || 
                                firstQuestion || 
                                '请简单介绍一下你自己。';
+          
+          // 从firstQuestion中获取industryJobTag，如果存在的话
+          if (firstQuestion.industryJobTag) {
+            initialData.industryJobTag = firstQuestion.industryJobTag;
+          } else {
+            // 回退到全局数据或默认值
+            initialData.industryJobTag = app.globalData.latestResumeData?.jobType || 
+                                       app.globalData.latestResumeData?.occupation || 
+                                       '技术面试';
+          }
+          
           initialData.questionType = 'first_question';
           
           console.log('更新后的面试数据:', {
             sessionId: initialData.sessionId,
-            question: initialData.question
+            question: initialData.question,
+            industryJobTag: initialData.industryJobTag
           });
           
         } catch (parseError) {
           console.error('处理参数失败:', parseError);
         }
       } else {
-        console.log('使用默认面试数据');
+        // 如果没有URL参数，尝试从/start接口获取数据
+        try {
+          wx.showLoading({ title: '正在加载面试数据...' });
+          
+          // 调用/start接口获取初始面试数据
+          const response = await post('/api/interview/start', {
+            resumeData: app.globalData.latestResumeData
+          });
+          
+          wx.hideLoading();
+          
+          if (response.code === 0 || response.code === 200 || (response.message && response.message.toLowerCase() === 'success')) {
+            const responseData = response.data || response;
+            
+            // 确保industryJobTag与question同级处理
+            initialData.sessionId = responseData.sessionId;
+            initialData.question = responseData.question?.content || 
+                                 responseData.question || 
+                                 '请简单介绍一下你自己。';
+            initialData.industryJobTag = responseData.industryJobTag || 
+                                       app.globalData.latestResumeData?.jobType || 
+                                       app.globalData.latestResumeData?.occupation || 
+                                       '技术面试';
+            initialData.questionType = 'first_question';
+            
+            console.log('从/start接口获取的面试数据:', {
+              sessionId: initialData.sessionId,
+              question: initialData.question,
+              industryJobTag: initialData.industryJobTag
+            });
+          } else {
+            console.error('获取面试数据失败:', response.message);
+            // 使用默认数据作为备选
+            initialData.industryJobTag = app.globalData.latestResumeData?.jobType || 
+                                       app.globalData.latestResumeData?.occupation || 
+                                       '技术面试';
+          }
+        } catch (error) {
+          wx.hideLoading();
+          console.error('调用/start接口失败:', error);
+          // 使用默认数据作为备选
+          initialData.industryJobTag = app.globalData.latestResumeData?.jobType || 
+                                     app.globalData.latestResumeData?.occupation || 
+                                     '技术面试';
+        }
       }
       
       // 设置初始数据
@@ -153,6 +208,19 @@ Page({
           });
         }
         
+        // 当剩余时间少于60秒时，显示警告覆盖层1秒后自动隐藏
+        if (remaining <= 60 && !this.data.showTimeWarningOverlay) {
+          this.setData({
+            showTimeWarningOverlay: true
+          });
+          // 1秒后隐藏警告覆盖层
+          setTimeout(() => {
+            this.setData({
+              showTimeWarningOverlay: false
+            });
+          }, 1000);
+        }
+        
         this.setData({
           sessionTimeRemaining: remaining,
           formattedTimeRemaining: this.formatRemainingTime(remaining)
@@ -182,18 +250,6 @@ Page({
     return `${hours}:${minutes}`;
   },
 
-  // 获取面试官风格文本
-  getPersonaText: function(persona) {
-    const personaMap = {
-      'technical': '技术面试官',
-      'hr': 'HR面试官',
-      'manager': '业务经理',
-      'architect': '架构师',
-      'cto': 'CTO'
-    };
-    return personaMap[persona] || '面试官';
-  },
-
   // 返回上一页
   goBack: function() {
     wx.navigateBack();
@@ -201,8 +257,9 @@ Page({
 
   // 用户回答输入
   onUserAnswerInput: function(e) {
+    const value = e.detail.value;
     this.setData({
-      userAnswer: e.detail.value
+      userAnswer: value || null // 如果输入为空字符串，则设置为null
     });
   },
 
@@ -233,7 +290,7 @@ Page({
     
     try {
       // 调用API提交回答
-      const response = await post('/api/interview/submit-answer', {
+      const response = await post('/api/interview/answer', {
         sessionId: sessionId,
         answer: userAnswer
         // 移除questionId参数，因为新的数据结构中没有这个字段
@@ -282,8 +339,10 @@ Page({
             questionType: 'follow_up',
             feedback: responseData.feedback || null,
             nextQuestion: null, // 将在下一轮回答后设置
-            userAnswer: '',
+            userAnswer: null,
             interviewHistory: updatedHistory,
+            // 确保industryJobTag与question同级处理，保留现有值或从响应中更新
+            industryJobTag: responseData.industryJobTag || this.data.industryJobTag,
             animationState: { questionCard: 'fade-in' }
           });
           
@@ -332,21 +391,6 @@ Page({
         icon: 'none'
       });
     }
-  },
-
-  // 跳过问题
-  skipQuestion: function() {
-    wx.showModal({
-      title: '确认跳过',
-      content: '确定要跳过这个问题吗？',
-      success: (res) => {
-        if (res.confirm) {
-          // 清除用户输入，然后提交（将作为跳过处理）
-          this.setData({ userAnswer: '' });
-          this.submitAnswer();
-        }
-      }
-    });
   },
 
   // 暂停/继续面试

@@ -32,7 +32,7 @@ public interface InterviewService {
      * @param answerDuration 回答时长（秒）
      * @return 评分和下一个问题
      */
-    InterviewResponseDTO submitAnswer(String sessionId, String userAnswerText, Integer answerDuration);
+    InterviewResponseDTO submitAnswer(String sessionId, String userAnswerText, Integer answerDuration, String toneStyle);
 
     /**
      * 完成面试

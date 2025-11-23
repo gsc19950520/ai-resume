@@ -64,7 +64,7 @@
   background-color: #07c160;
   color: #fff;
   font-size: 32rpx;
-  height: 96rpx;
+  height: 80rpx;
   line-height: 96rpx;
   border-radius: 48rpx;
   margin-bottom: 30rpx;
@@ -76,7 +76,7 @@
   font-size: 24rpx;
   color: #666;
   line-height: 1.6;
-  margin-bottom: 40rpx;
+  margin-bottom: 400rpx;
   padding: 0 40rpx;
 }
 

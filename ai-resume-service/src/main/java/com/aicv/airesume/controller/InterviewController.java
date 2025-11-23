@@ -193,7 +193,7 @@ public class InterviewController {
             // 支持动态更新面试官风格（可选参数）
             String toneStyle = (String) request.getOrDefault("toneStyle", null);
 
-            InterviewResponseDTO result = interviewService.submitAnswer(sessionId, userAnswerText, answerDuration);
+            InterviewResponseDTO result = interviewService.submitAnswer(sessionId, userAnswerText, answerDuration, toneStyle);
             
             // 转换为VO对象
             InterviewAnswerVO vo = new InterviewAnswerVO();

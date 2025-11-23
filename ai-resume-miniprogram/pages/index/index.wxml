@@ -38,7 +38,7 @@
       </view>
       
       <!-- 简历优化模块 -->
-      <view class="core-module-card resume-card" bindtap="resumeOptimization">
+      <!-- <view class="core-module-card resume-card" bindtap="resumeOptimization">
         <view class="module-icon resume-icon">
           <image src="/images/resume.png" mode="aspectFit"></image>
         </view>
@@ -46,7 +46,7 @@
           <view class="module-title">简历优化</view>
           <view class="module-desc">AI智能分析与提升建议</view>
         </view>
-      </view>
+      </view> -->
     </view>
   </view>
   

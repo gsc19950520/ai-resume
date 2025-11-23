@@ -13,7 +13,6 @@
   <view class="login-body">
     <!-- 登录按钮 -->
     <button class="wx-login-btn" bindtap="onGetUserInfo">
-      <image class="wx-icon" src="/images/wx.png" mode="aspectFit"></image>
       <text>微信登录</text>
     </button>
     

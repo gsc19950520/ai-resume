@@ -182,7 +182,21 @@ public class InterviewServiceImpl implements InterviewService {
             firstLog.setRoundNumber(1);
             logRepository.save(firstLog);
 
-            // 6. 构建返回对象 - 直接返回InterviewResponseVO
+            // 6. 通过jobTypeId查询job_type表数据获取jobName
+            String industryJobTag = "";
+            if (jobTypeId != null) {
+                try {
+                    JobType jobType = jobTypeRepository.findById(jobTypeId).orElse(null);
+                    if (jobType != null && jobType.getJobName() != null) {
+                        industryJobTag = jobType.getJobName();
+                    }
+                } catch (Exception e) {
+                    log.error("查询职位类型失败: {}", e.getMessage());
+                    // 查询失败不影响面试流程，使用空字符串作为默认值
+                }
+            }
+            
+            // 7. 构建返回对象 - 直接返回InterviewResponseVO
             InterviewResponseVO response = new InterviewResponseVO();
             response.setSessionId(session.getSessionId());
             response.setQuestion(firstQuestion); // 第一个问题作为当前问题
@@ -190,6 +204,7 @@ public class InterviewServiceImpl implements InterviewService {
             response.setFeedback(null); // 首次没有反馈
             response.setNextQuestion(null); // 第一个问题没有下一个问题
             response.setIsCompleted(false); // 面试未完成
+            response.setIndustryJobTag(industryJobTag); // 设置行业职位标签
 
             return response;
         } catch (Exception e) {
@@ -300,7 +315,7 @@ public class InterviewServiceImpl implements InterviewService {
     }
 
     @Override
-    public InterviewResponseDTO submitAnswer(String sessionId, String userAnswerText, Integer answerDuration) {
+    public InterviewResponseDTO submitAnswer(String sessionId, String userAnswerText, Integer answerDuration, String toneStyle) {
         try {
             // 1. 获取会话信息
             InterviewSession session = sessionRepository.findBySessionId(sessionId)

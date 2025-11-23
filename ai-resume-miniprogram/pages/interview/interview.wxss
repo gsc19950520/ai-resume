@@ -218,10 +218,6 @@ page {
   background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
 }
 
-.question-header {
-  margin-bottom: 30rpx;
-}
-
 .persona-label {
   display: inline-block;
   padding: 8rpx 20rpx;
@@ -523,15 +519,19 @@ page {
   white-space: pre-wrap;
 }
 
-/* 底部控制按钮 */
+/* 底部控制按钮 - 横排样式 */
 .footer-controls {
   display: flex;
+  flex-direction: row;
   gap: 20rpx;
   padding: 30rpx;
   background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
   border-top: 2rpx solid #e8eaf6;
+  border-radius: 30rpx 30rpx 0 0;
+  box-shadow: 0 -4rpx 20rpx rgba(0, 0, 0, 0.05);
   height: 140rpx;
   align-items: center;
+  justify-content: space-between;
 }
 
 .footer-btn {
@@ -541,13 +541,12 @@ page {
   align-items: center;
   justify-content: center;
   border-radius: 45rpx;
-  font-size: 32rpx;
+  font-size: 30rpx;
   font-weight: 600;
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
   border: none;
-  letter-spacing: 2rpx;
   user-select: none;
   -webkit-user-select: none;
 }
@@ -598,12 +597,6 @@ page {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   box-shadow: 0 6rpx 20rpx rgba(102, 126, 234, 0.3);
-}
-
-.footer-btn-secondary {
-  background-color: #f5f5f5;
-  color: #666;
-  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
 }
 
 .footer-btn-warning {
@@ -723,7 +716,7 @@ page {
   }
 }
 
-/* 响应式布局 */
+/* 响应式布局优化 */
 @media screen and (max-width: 768px) {
   .main-content {
     flex-direction: column;
@@ -749,13 +742,13 @@ page {
   }
   
   .footer-controls {
-    flex-direction: column;
-    height: auto;
+    padding: 20rpx;
     gap: 16rpx;
   }
   
   .footer-btn {
-    width: 100%;
+    height: 90rpx;
+    font-size: 32rpx;
   }
 }
 

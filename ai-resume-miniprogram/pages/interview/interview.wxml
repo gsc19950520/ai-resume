@@ -29,11 +29,6 @@
     <view class="left-column">
       <view class="question-card-wrapper" wx:if="{{!showFeedback}}">
         <view class="question-card {{animationState.questionCard !== 'idle' ? 'fade-in-bottom' : ''}}">
-          <view class="question-header">
-            <view class="persona-label persona-{{persona}}">
-              {{getPersonaText(persona)}}
-            </view>
-          </view>
           <view class="question-content">{{question}}</view>
           <!-- 提示信息已移除，根据新的数据结构 -->
         </view>
@@ -65,7 +60,7 @@
           <button 
             class="submit-btn-primary"
             bindtap="submitAnswer"
-            disabled="{{!userAnswer.trim()}}"
+            disabled="{{userAnswer === null || userAnswer === undefined || userAnswer.trim() === '' }}"
           >
             提交回答
           </button>
@@ -111,13 +106,6 @@
   <!-- 底部控制按钮 -->
   <view class="footer-controls">
     <button 
-      class="footer-btn footer-btn-secondary"
-      bindtap="skipQuestion"
-      disabled="{{!userAnswer}}"
-    >
-      跳过
-    </button>
-    <button 
       class="footer-btn footer-btn-warning"
       bindtap="togglePause"
     >
@@ -132,7 +120,7 @@
   </view>
 
   <!-- 时间警告覆盖层 -->
-  <view class="time-warning-overlay" wx:if="{{sessionTimeRemaining < 60}}">
+  <view class="time-warning-overlay" wx:if="{{showTimeWarningOverlay}}">
     <view class="warning-content">
       <view class="warning-icon">⚠️</view>
       <view class="warning-text">面试即将结束</view>

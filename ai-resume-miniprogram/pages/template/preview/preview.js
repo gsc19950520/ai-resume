@@ -35,7 +35,6 @@ Page({
    * @param {Object} options - 页面参数，包含templateId和templateName
    */
   onLoad: function(options) {
-    console.log('预览页面接收到的参数:', options);
     
     // 有效的模板ID列表 - 确保与实际存在的图片文件匹配
     const validTemplateIds = ['template-one', 'template-two', 'template-three', 'template-four', 'template-five', 'template-six'];
@@ -76,7 +75,6 @@ Page({
     this.setData({
       userInfo: { name: '用户姓名' }
     });
-    console.log('onLoad: 初始默认userInfo已设置');
     
     // 加载简历数据
     this.loadResumeData();
@@ -91,7 +89,6 @@ Page({
    * 验证userInfo是否正确设置
    */
   verifyUserInfo: function() {
-    console.log('verifyUserInfo: 开始验证userInfo数据');
     
     if (!this.data.userInfo || typeof this.data.userInfo !== 'object') {
       console.warn('verifyUserInfo: userInfo不存在或不是对象，创建默认值');
@@ -105,8 +102,6 @@ Page({
         userInfo: updatedUserInfo
       });
     }
-    
-    console.log('verifyUserInfo: 验证完成，最终userInfo:', this.data.userInfo);
   },
   
   /**
@@ -115,8 +110,6 @@ Page({
    */
   loadResumeData: function() {
     try {
-      console.log('开始加载简历数据');
-      
       // 首先尝试从后端API获取用户最新简历数据
       this.loadResumeDataFromBackend();
       
@@ -146,18 +139,11 @@ Page({
       return;
     }
     
-    console.log('从后端API加载简历数据，用户ID:', userInfo.id);
-    
     // 显示加载中
     this.setData({ loading: true });
     
     // 使用云托管调用后端API
     if (app.cloudCall) {
-      console.log('准备调用云托管API，用户ID:', userInfo.id);
-      console.log('token:', app.globalData.token);
-      console.log('云环境ID:', app.globalData.cloudEnvId);
-      console.log('云服务名称:', app.globalData.cloudServiceName);
-      
       // 检查云环境配置
       if (!app.globalData.cloudEnvId || !app.globalData.cloudServiceName) {
         console.warn('云托管环境配置不完整，使用本地数据');
@@ -184,7 +170,6 @@ Page({
       
       // 使用Promise.race实现超时控制
       Promise.race([apiPromise, timeoutPromise]).then(res => {
-        console.log('从后端API获取简历数据成功:', res);
         
         // 检查是否超时
         if (res === null) {
@@ -196,12 +181,10 @@ Page({
         if (res && res.data) {
           // 使用后端返回的简历数据
           const backendData = this.formatBackendResumeData(res.data);
-          console.log('格式化后的后端简历数据:', backendData);
           
           // 如果有resumeId，保存到本地存储
           if (backendData.id) {
             wx.setStorageSync('resumeId', backendData.id);
-            console.log('已将resumeId保存到本地存储:', backendData.id);
           }
           
           // 设置简历数据
@@ -210,8 +193,6 @@ Page({
             loading: false,
             userInfo: this.data.userInfo || { name: '用户姓名' }
           });
-          
-          console.log('后端简历数据加载完成');
         } else {
           console.log('后端未返回简历数据，使用本地数据');
           this.loadResumeDataFromLocal();
@@ -355,7 +336,6 @@ Page({
    * @returns {Object} 格式化后的简历数据
    */
   formatBackendResumeData: function(backendData) {
-    console.log('开始格式化后端简历数据:', backendData);
     
     // 根据后端接口返回的新数据结构进行格式化
     const formattedData = {

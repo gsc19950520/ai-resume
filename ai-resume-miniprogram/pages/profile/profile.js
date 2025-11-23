@@ -143,11 +143,9 @@ Page({
     
     // 调用用户服务获取详细信息和统计数据
     if (userInfo.openId) {
-      console.info('使用openId获取用户信息:', userInfo.openId);
       // 使用app.cloudCall方法调用后端API，确保路径格式正确
       app.cloudCall('/user/info', { openId: userInfo.openId }, 'GET')
         .then(res => {
-          console.info('获取用户信息成功，响应:', res);
           try {
             const response = res;
             // 处理用户信息数据

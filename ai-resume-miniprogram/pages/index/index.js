@@ -114,13 +114,9 @@ Page({
       return
     }
     
-    console.log('开始获取用户信息，openId:', userInfo.openId)
-    
     // 使用统一的cloudCall方法调用接口获取用户信息
     app.cloudCall('/user/info', { openId: userInfo.openId }, 'GET')
       .then(result => {
-        console.log('获取用户信息接口返回:', result)
-        
         // 处理响应数据
         let responseData;
         if (result && result.data) {
@@ -155,8 +151,6 @@ Page({
           if (responseData.openId) {
             wx.setStorageSync('openId', responseData.openId)
           }
-          
-          console.log('用户信息更新完成', responseData)
         } else {
           console.log('获取用户信息失败或返回格式异常:', responseData)
         }
