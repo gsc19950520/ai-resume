@@ -62,16 +62,12 @@
         
         <!-- 可编辑的简历相关信息 -->
         <view class="editable-section">
-          <view class="form-item">
-            <text class="label">职位</text>
-            <input class="input" placeholder="请输入求职职位" value="{{resumeInfo.personalInfo.jobTitle}}" bindinput="savePersonalInfo" data-field="jobTitle" />
-          </view>
           
           <view class="form-item">
             <text class="label">职位类型</text>
-            <picker bindchange="onJobTypeChange" value="{{resumeInfo.personalInfo.jobTypeId}}" range="{{jobTypes}}" range-key="name">
+            <picker bindchange="onJobTypeChange" value="{{jobTypeIndex}}" range="{{jobTypes}}" range-key="jobName">
               <view class="picker">
-                {{resumeInfo.personalInfo.jobTitle || '请选择职位类型'}}
+                {{selectedJobTypeName || '请选择职位类型'}}
               </view>
             </picker>
           </view>

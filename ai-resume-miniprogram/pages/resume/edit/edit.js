@@ -245,18 +245,21 @@ Page({
   
   // 选择职位类型
   onJobTypeChange: function(e) {
-    const jobTypeId = e.detail.value;
-    // 查找对应的职位名称，进行类型转换以确保匹配
-    const selectedJobType = this.data.jobTypes.find(type => String(type.id) === String(jobTypeId));
+    const index = e.detail.value;
+    const selectedJobType = this.data.jobTypes[index];
     
-    this.setData({
-      [`resumeInfo.personalInfo.jobTypeId`]: jobTypeId,
-      [`resumeInfo.personalInfo.jobTitle`]: selectedJobType ? selectedJobType.name : ''
-    });
-    
-    console.log('选择职位类型:', {jobTypeId, jobTitle: selectedJobType ? selectedJobType.name : ''});
-    // 即时保存数据到本地存储
-    wx.setStorageSync('tempResumeInfo', this.data.resumeInfo);
+    if (selectedJobType) {
+      this.setData({
+        [`resumeInfo.personalInfo.jobTypeId`]: selectedJobType.id,
+        [`resumeInfo.personalInfo.jobTitle`]: selectedJobType.jobName,
+        selectedJobTypeName: selectedJobType.jobName,
+        jobTypeIndex: index
+      });
+      
+      console.log('选择职位类型:', {jobTypeId: selectedJobType.id, jobTitle: selectedJobType.jobName});
+      // 即时保存数据到本地存储
+      wx.setStorageSync('tempResumeInfo', this.data.resumeInfo);
+    }
   },
   
   // 验证并修复简历数据结构完整性

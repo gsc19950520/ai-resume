@@ -52,7 +52,7 @@ public class JobTypeServiceImpl implements JobTypeService {
     private JobTypeVO convertToVO(JobType jobType) {
         JobTypeVO vo = new JobTypeVO();
         vo.setId(jobType.getId());
-        vo.setName(jobType.getJobName());
+        vo.setJobName(jobType.getJobName());
         return vo;
     }
 }

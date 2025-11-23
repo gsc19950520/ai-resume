@@ -9,5 +9,5 @@ import lombok.Data;
 @Data
 public class JobTypeVO {
     private Integer id;
-    private String name;
+    private String jobName;
 }
