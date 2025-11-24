@@ -70,6 +70,9 @@ public class InterviewLog {
     @Column(name = "related_project_points", columnDefinition = "text")
     private String relatedProjectPoints;
     
+    @Column(name = "expected_key_points", columnDefinition = "text")
+    private String expectedKeyPoints; // 期望的关键点，JSON格式存储
+    
     @Column(name = "stop_reason", length = 100)
     private String stopReason;
     

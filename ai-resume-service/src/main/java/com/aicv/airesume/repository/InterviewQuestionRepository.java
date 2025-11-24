@@ -2,9 +2,11 @@ package com.aicv.airesume.repository;
 
 import com.aicv.airesume.entity.InterviewQuestion;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -60,6 +62,8 @@ public interface InterviewQuestionRepository extends JpaRepository<InterviewQues
      * 增加问题的使用次数
      * @param id 问题ID
      */
+    @Modifying
+    @Transactional
     @Query("UPDATE InterviewQuestion q SET q.usageCount = q.usageCount + 1 WHERE q.id = :id")
     void incrementUsageCount(@Param("id") Long id);
 
@@ -84,6 +88,8 @@ public interface InterviewQuestionRepository extends JpaRepository<InterviewQues
      * @param newUsageCount 新的使用次数
      * @param newAvgScore 新的平均得分
      */
+    @Modifying
+    @Transactional
     @Query("UPDATE InterviewQuestion q SET q.usageCount = :newUsageCount, q.avgScore = :newAvgScore WHERE q.id = :id")
     void updateUsageStats(@Param("id") Long id, @Param("newUsageCount") Integer newUsageCount, @Param("newAvgScore") Float newAvgScore);
 

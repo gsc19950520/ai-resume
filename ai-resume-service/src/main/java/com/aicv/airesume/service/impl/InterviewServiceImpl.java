@@ -180,6 +180,15 @@ public class InterviewServiceImpl implements InterviewService {
             firstLog.setQuestionText(firstQuestion);
             firstLog.setDepthLevel((String) firstQuestionData.get("depthLevel"));
             firstLog.setRoundNumber(1);
+            // 保存期望的关键点
+            if (firstQuestionData.containsKey("expectedKeyPoints")) {
+                try {
+                    List<String> expectedKeyPoints = (List<String>) firstQuestionData.get("expectedKeyPoints");
+                    firstLog.setExpectedKeyPoints(objectMapper.writeValueAsString(expectedKeyPoints));
+                } catch (Exception e) {
+                    log.error("保存期望关键点失败: {}", e.getMessage());
+                }
+            }
             logRepository.save(firstLog);
 
             // 6. 通过jobTypeId查询job_type表数据获取jobName
@@ -336,17 +345,29 @@ public class InterviewServiceImpl implements InterviewService {
             session.setSessionTimeRemaining(session.getSessionTimeRemaining() - answerDuration);
             
             // 4. 调用aiAssessmentPerQuestion模块评分
-            List<String> expectedKeyPoints = new ArrayList<>(); // 简化处理，实际应从generateNextQuestion获取
+            List<String> expectedKeyPoints = new ArrayList<>(); 
+            // 从当前日志中获取期望的关键点
+            if (StringUtils.hasText(currentLog.getExpectedKeyPoints())) {
+                try {
+                    expectedKeyPoints = objectMapper.readValue(currentLog.getExpectedKeyPoints(), List.class);
+                } catch (Exception e) {
+                    log.error("解析期望关键点失败: {}", e.getMessage());
+                }
+            }
             Map<String, Object> assessment = assessAnswer(currentLog.getQuestionText(), userAnswerText, expectedKeyPoints, session.getPersona());
             
             // 5. 更新评分和反馈
             Map<String, Double> scoreDetail = (Map<String, Double>) assessment.get("score_detail");
-            currentLog.setTechScore(scoreDetail.get("tech"));
-            currentLog.setLogicScore(scoreDetail.get("logic"));
-            currentLog.setClarityScore(scoreDetail.get("clarity"));
-            currentLog.setDepthScore(scoreDetail.get("depth"));
+            // 确保scoreDetail不为null
+            if (scoreDetail == null) {
+                scoreDetail = new HashMap<>();
+            }
+            currentLog.setTechScore(scoreDetail.getOrDefault("tech", 0.0));
+            currentLog.setLogicScore(scoreDetail.getOrDefault("logic", 0.0));
+            currentLog.setClarityScore(scoreDetail.getOrDefault("clarity", 0.0));
+            currentLog.setDepthScore(scoreDetail.getOrDefault("depth", 0.0));
             currentLog.setFeedback((String) assessment.get("feedback"));
-            currentLog.setMatchedPoints(objectMapper.valueToTree(assessment.get("matchedPoints")).toString());
+            currentLog.setMatchedPoints(objectMapper.valueToTree(assessment.getOrDefault("matchedPoints", new ArrayList<>())).toString());
             
             // 保存AI原始评分和分析结果
             if (assessment.containsKey("aiFeedbackJson")) {
@@ -380,7 +401,8 @@ public class InterviewServiceImpl implements InterviewService {
             }
             
             // 检查连续不匹配次数
-            if (scoreDetail.get("tech") < 3.0) {
+            Double techScore = scoreDetail.getOrDefault("tech", 0.0);
+            if (techScore < 3.0) {
                 session.setConsecutiveNoMatchCount(session.getConsecutiveNoMatchCount() + 1);
                 if (session.getConsecutiveNoMatchCount() >= 2) {
                     shouldStop = true;
@@ -395,6 +417,20 @@ public class InterviewServiceImpl implements InterviewService {
             InterviewResponseDTO response = new InterviewResponseDTO();
             response.setSessionId(sessionId);
             
+            // 设置当前问题和类型（使用当前日志中的问题）
+            response.setQuestion(currentLog.getQuestionText());
+            response.setQuestionType("技术问题"); // 可以根据实际情况从currentLog获取
+            
+            // 设置评分（计算总分）
+            double totalScore = scoreDetail.getOrDefault("tech", 0.0) + 
+                               scoreDetail.getOrDefault("logic", 0.0) + 
+                               scoreDetail.getOrDefault("clarity", 0.0) + 
+                               scoreDetail.getOrDefault("depth", 0.0);
+            response.setScore(totalScore);
+            
+            // 设置反馈
+            response.setFeedback((String) assessment.get("feedback"));
+            
             // 设置评分和反馈信息到additionalInfo
             Map<String, Object> additionalInfo = response.getAdditionalInfo();
             if (additionalInfo == null) {
@@ -403,7 +439,6 @@ public class InterviewServiceImpl implements InterviewService {
             }
             additionalInfo.put("scoreDetail", scoreDetail);
             additionalInfo.put("feedback", assessment.get("feedback"));
-            response.setAdditionalInfo(additionalInfo);
             
             if (!shouldStop) {
                 // 9. 动态生成下一个问题
@@ -443,6 +478,16 @@ public class InterviewServiceImpl implements InterviewService {
                     // 设置当前问题的面试官风格
                     nextLog.setPersona(session.getPersona());
                     
+                    // 保存期望的关键点
+                    if (nextQuestionData.containsKey("expectedKeyPoints")) {
+                        try {
+                            List<String> nextExpectedKeyPoints = (List<String>) nextQuestionData.get("expectedKeyPoints");
+                            nextLog.setExpectedKeyPoints(objectMapper.writeValueAsString(nextExpectedKeyPoints));
+                        } catch (Exception e) {
+                            log.error("保存期望关键点失败: {}", e.getMessage());
+                        }
+                    }
+                    
                     logRepository.save(nextLog);
                     
                     // 增加问题计数
@@ -459,6 +504,10 @@ public class InterviewServiceImpl implements InterviewService {
                     interviewState.put("currentDepthLevel", nextQuestionData.getOrDefault("depthLevel", "usage"));
                     session.setInterviewState(objectMapper.writeValueAsString(interviewState));
 
+                    // 设置下一个问题和类型
+                    response.setNextQuestion((String) nextQuestionData.get("nextQuestion"));
+                    response.setNextQuestionType("技术问题"); // 可以根据实际情况获取
+                    
                     // 使用已有的additionalInfo变量，避免重复定义
                     additionalInfo.put("nextQuestion", nextQuestionData.get("nextQuestion"));
                     additionalInfo.put("depthLevel", nextQuestionData.get("depthLevel"));
@@ -466,6 +515,9 @@ public class InterviewServiceImpl implements InterviewService {
                     additionalInfo.put("nextQuestionId", nextLog.getQuestionId());
                 }
             }
+            
+            // 设置面试是否完成
+            response.setIsCompleted(shouldStop);
             
             // 保存会话更新
             sessionRepository.save(session);

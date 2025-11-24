@@ -3,6 +3,10 @@ package com.aicv.airesume.controller;
 import com.aicv.airesume.model.dto.InterviewResponseDTO;
 import com.aicv.airesume.model.dto.InterviewReportDTO;
 import com.aicv.airesume.model.dto.ResumeAnalysisDTO;
+import com.aicv.airesume.model.dto.SubmitAnswerRequestDTO;
+import com.aicv.airesume.model.dto.FinishInterviewRequestDTO;
+import com.aicv.airesume.model.dto.CalculateSalaryRequestDTO;
+import com.aicv.airesume.model.dto.AnalyzeResumeRequestDTO;
 import com.aicv.airesume.service.InterviewService;
 import com.aicv.airesume.service.ResumeAnalysisService;
 import com.aicv.airesume.service.config.DynamicConfigService;
@@ -129,15 +133,15 @@ public class InterviewController {
     
     /**
      * 分析简历并生成结构化面试问题清单
-     * @param request 请求参数（包含resumeId、jobType、analysisDepth）
+     * @param request 请求参数DTO
      * @return 简历分析结果和面试问题清单
      */
     @PostMapping("/analyze-resume")
-    public BaseResponseVO analyzeResume(@RequestBody Map<String, Object> request) {
+    public BaseResponseVO analyzeResume(@RequestBody AnalyzeResumeRequestDTO request) {
         try {
-            Long resumeId = Long.valueOf(request.get("resumeId").toString());
-            String jobType = (String) request.getOrDefault("jobType", "");
-            String analysisDepth = (String) request.getOrDefault("analysisDepth", "intermediate");
+            Long resumeId = request.getResumeId();
+            String jobType = request.getJobType();
+            String analysisDepth = request.getAnalysisDepth();
             
             log.info("开始分析简历，resumeId: {}, jobType: {}, analysisDepth: {}", resumeId, jobType, analysisDepth);
             
@@ -181,17 +185,17 @@ public class InterviewController {
   
   /**
      * 提交答案并获取下一个问题
-     * @param request 请求参数
+     * @param request 请求参数DTO
      * @return 下一个问题、评分和反馈
      */
     @PostMapping("/answer")
-    public BaseResponseVO submitAnswer(@RequestBody Map<String, Object> request) {
+    public BaseResponseVO submitAnswer(@RequestBody SubmitAnswerRequestDTO request) {
         try {
-            String sessionId = (String) request.get("sessionId");
-            String userAnswerText = (String) request.get("userAnswerText");
-            Integer answerDuration = Integer.valueOf(request.get("answerDuration").toString());
+            String sessionId = request.getSessionId();
+            String userAnswerText = request.getUserAnswerText();
+            Integer answerDuration = request.getAnswerDuration();
             // 支持动态更新面试官风格（可选参数）
-            String toneStyle = (String) request.getOrDefault("toneStyle", null);
+            String toneStyle = request.getToneStyle();
 
             InterviewResponseDTO result = interviewService.submitAnswer(sessionId, userAnswerText, answerDuration, toneStyle);
             
@@ -216,13 +220,13 @@ public class InterviewController {
 
     /**
      * 完成面试并生成报告
-     * @param request 请求参数
+     * @param request 请求参数DTO
      * @return 面试报告信息
      */
     @PostMapping("/finish")
-    public BaseResponseVO finishInterview(@RequestBody Map<String, Object> request) {
+    public BaseResponseVO finishInterview(@RequestBody FinishInterviewRequestDTO request) {
         try {
-            String sessionId = (String) request.get("sessionId");
+            String sessionId = request.getSessionId();
 
             InterviewReportDTO result = interviewService.finishInterview(sessionId);
             
@@ -264,9 +268,9 @@ public class InterviewController {
      * 基于AI面试评分、技术深度等多维度计算薪资
      */
     @PostMapping("/calculate-salary")
-    public BaseResponseVO calculateSalary(@RequestBody Map<String, Object> request) {
+    public BaseResponseVO calculateSalary(@RequestBody CalculateSalaryRequestDTO request) {
         try {
-            String sessionId = (String) request.get("sessionId");
+            String sessionId = request.getSessionId();
             SalaryRangeVO salaryRange = interviewService.calculateSalary(sessionId);
             
             // 转换为VO对象
