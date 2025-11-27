@@ -285,29 +285,23 @@ Page({
       return;
     }
 
-    wx.showLoading({ title: '正在准备面试...' });
+    wx.showLoading({ title: '正在初始化面试...' });
     
     try {
-      // 调用后端API生成第一个问题和会话，使用start接口
+      // 调用后端API初始化面试会话
       this.data.jobTypeId = app.globalData.latestResumeData?.jobTypeId || 1
-      const data = await this.generateFirstQuestion();
+      const sessionInfo = await this.initInterviewSession();
       
       // 隐藏加载提示
       wx.hideLoading();
       
-      // 确保有question对象和sessionId
-      if (!data.question || !data.sessionId) {
-        throw new Error('返回数据不完整');
-      }
-      
       console.log('准备跳转到面试页面，传递参数:', {
-        question: data.question,
-        sessionId: data.sessionId
+        sessionId: sessionInfo.sessionId
       });
       
-      // 跳转到面试页面，传递第一个问题、会话ID和行业职位标签
+      // 跳转到面试页面，传递会话ID和行业职位标签
       wx.navigateTo({
-        url: `/pages/interview/interview?firstQuestion=${encodeURIComponent(JSON.stringify(data.question))}&sessionId=${encodeURIComponent(data.sessionId)}&industryJobTag=${encodeURIComponent(data.industryJobTag || '')}`
+        url: `/pages/interview/interview?sessionId=${encodeURIComponent(sessionInfo.sessionId)}&industryJobTag=${encodeURIComponent(sessionInfo.industryJobTag || '')}`
       });
     } catch (error) {
       wx.hideLoading();
@@ -321,8 +315,10 @@ Page({
     }
   },
   
-  // 调用后端API生成面试会话并获取第一个问题
-  generateFirstQuestion: function() {
+  /**
+   * 初始化面试会话
+   */
+  initInterviewSession: function() {
     return new Promise((resolve, reject) => {
       // 添加超时处理，延长超时时间为15秒
       const timeoutId = setTimeout(() => {
@@ -343,9 +339,17 @@ Page({
           const data = resData.data || resData;
           console.log('start接口返回数据:', data);
           
-          resolve(data);
+          // 保存会话ID到全局，用于后续问答
+          if (app.globalData) {
+            app.globalData.currentInterviewSessionId = data.sessionId;
+          }
+          
+          resolve({
+            sessionId: data.sessionId,
+            industryJobTag: data.industryJobTag || ''
+          });
         } else {
-          reject(new Error(resData.message || '创建面试会话失败'));
+          reject(new Error(resData.message || '初始化面试会话失败'));
         }
       })
       .catch(error => {

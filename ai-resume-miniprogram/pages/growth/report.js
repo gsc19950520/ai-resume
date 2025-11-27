@@ -1,5 +1,6 @@
 // pages/growth/report.js
 const app = getApp()
+import { get, post } from '../../utils/request.js';
 
 Page({
   data: {
@@ -36,44 +37,37 @@ Page({
     this.setData({ loading: true })
     
     // 调用历史分析API
-    wx.request({
-      url: '/api/user/history/analyze',
-      method: 'GET',
-      success: (res) => {
-        if (res.data && res.data.code === 0) {
+    get('/api/user/history/analyze')
+      .then(res => {
+        if (res && res.code === 0) {
           // 调用成长规划API
-          this.getGrowthPlan(res.data.data)
+          this.getGrowthPlan(res.data)
         } else {
           // 使用模拟数据
           this.useMockData()
         }
-      },
-      fail: () => {
+      })
+      .catch(() => {
         // 使用模拟数据
         this.useMockData()
-      }
-    })
+      })
   },
 
   // 获取成长规划
   getGrowthPlan: function(historyData) {
-    wx.request({
-      url: '/api/user/growth/plan',
-      method: 'POST',
-      data: historyData,
-      success: (res) => {
-        if (res.data && res.data.code === 0) {
-          this.renderReport(res.data.data)
+    post('/api/user/growth/plan', historyData)
+      .then(res => {
+        if (res && res.code === 0) {
+          this.renderReport(res.data)
         } else {
           // 使用模拟数据
           this.useMockData()
         }
-      },
-      fail: () => {
+      })
+      .catch(() => {
         // 使用模拟数据
         this.useMockData()
-      }
-    })
+      })
   },
 
   // 渲染报告

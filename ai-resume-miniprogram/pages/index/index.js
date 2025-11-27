@@ -114,8 +114,8 @@ Page({
       return
     }
     
-    // 使用统一的cloudCall方法调用接口获取用户信息
-    app.cloudCall('/user/info', { openId: userInfo.openId }, 'GET')
+    // 使用统一的get方法调用接口获取用户信息
+    get('/api/user/info', { openId: userInfo.openId })
       .then(result => {
         // 处理响应数据
         let responseData;

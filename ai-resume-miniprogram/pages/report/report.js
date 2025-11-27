@@ -1,6 +1,6 @@
 // report.js
 const app = getApp();
-import { post } from '../../utils/request.js';
+import { post, get } from '../../utils/request.js';
 
 Page({
   data: {
@@ -44,61 +44,49 @@ Page({
   apiServices: {
     // 获取职业成长报告数据
     getCareerGrowthData: function(userId, jobType, domain) {
-      return new Promise((resolve, reject) => {
-        wx.request({
-          url: '/api/report/career-growth',
-          method: 'GET',
-          data: { userId, jobType, domain },
-          success: (res) => resolve(res.data),
-          fail: (err) => {
-            console.error('获取职业成长数据失败:', err);
-            // 返回默认数据作为备用
-            resolve({
-              growthRadar: {
-                '专业技能': 75,
-                '逻辑思维': 68,
-                '沟通表达': 80,
-                '创新潜力': 60
-              },
-              trendCurve: [65, 70, 73, 78],
-              recommendedSkills: ['前端框架优化', '性能调优', '架构设计'],
-              longTermPath: ['高级工程师', '技术架构师', '技术专家']
-            });
-          }
+      return get('/api/report/career-growth', { userId, jobType, domain })
+        .then(res => {
+          return res.data;
+        })
+        .catch(err => {
+          console.error('获取职业成长数据失败:', err);
+          // 返回默认数据作为备用
+          return {
+            growthRadar: {
+              '专业技能': 75,
+              '逻辑思维': 68,
+              '沟通表达': 80,
+              '创新潜力': 60
+            },
+            trendCurve: [65, 70, 73, 78],
+            recommendedSkills: ['前端框架优化', '性能调优', '架构设计'],
+            longTermPath: ['高级工程师', '技术架构师', '技术专家']
+          };
         });
-      });
     },
 
     // 获取薪资信息
     getSalaryInfo: function(jobType, city, scores) {
-      return new Promise((resolve, reject) => {
-        wx.request({
-          url: '/api/report/salary-info',
-          method: 'GET',
-          data: { jobType, city, scores: JSON.stringify(scores) },
-          success: (res) => resolve(res.data),
-          fail: (err) => {
-            console.error('获取薪资信息失败:', err);
-            reject(err);
-          }
+      return get('/api/report/salary-info', { jobType, city, scores: JSON.stringify(scores) })
+        .then(res => {
+          return res.data;
+        })
+        .catch(err => {
+          console.error('获取薪资信息失败:', err);
+          throw err;
         });
-      });
     },
 
     // 获取成长建议
     getGrowthAdvice: function(jobType, domain, scores) {
-      return new Promise((resolve, reject) => {
-        wx.request({
-          url: '/api/report/growth-advice',
-          method: 'GET',
-          data: { jobType, domain, scores: JSON.stringify(scores) },
-          success: (res) => resolve(res.data),
-          fail: (err) => {
-            console.error('获取成长建议失败:', err);
-            reject(err);
-          }
+      return get('/api/report/growth-advice', { jobType, domain, scores: JSON.stringify(scores) })
+        .then(res => {
+          return res.data;
+        })
+        .catch(err => {
+          console.error('获取成长建议失败:', err);
+          throw err;
         });
-      });
     }
   },
 

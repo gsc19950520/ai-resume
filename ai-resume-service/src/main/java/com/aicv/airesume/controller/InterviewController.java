@@ -130,6 +130,17 @@ public class InterviewController {
         }
     }
 
+    @GetMapping("/get-first-question/{sessionId}")
+    public BaseResponseVO getFirstQuestion(@PathVariable String sessionId) {
+        try {
+            String firstQuestion = interviewService.getFirstQuestion(sessionId);
+            return BaseResponseVO.success(firstQuestion);
+        } catch (Exception e) {
+            log.error("获取第一个面试问题失败", e);
+            return BaseResponseVO.error("获取第一个面试问题失败：" + e.getMessage());
+        }
+    }
+
     
     /**
      * 分析简历并生成结构化面试问题清单

@@ -26,6 +26,13 @@ public interface InterviewService {
     InterviewResponseVO startInterview(Long userId, Long resumeId, String persona, Integer sessionSeconds, Integer jobTypeId);
 
     /**
+     * 获取第一个面试问题
+     * @param sessionId 会话ID
+     * @return 第一个面试问题，如果尚未生成则返回null
+     */
+    String getFirstQuestion(String sessionId);
+
+    /**
      * 提交回答 - 支持回答时长
      * @param sessionId 会话ID
      * @param userAnswerText 用户回答文本

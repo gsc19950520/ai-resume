@@ -38,6 +38,57 @@ Page({
     // timer: null - 移到实例属性中
   },
 
+  // 从会话中获取第一个问题
+  async fetchFirstQuestion(sessionId) {
+    try {
+      // 使用云托管请求方式调用后端接口获取第一个问题
+      const response = await post(`/api/interview/get-first-question/${sessionId}`);
+      
+      if (response && response.data) {
+        return {
+          content: response.data,
+          depthLevel: 'usage'
+        };
+      }
+      return null;
+    } catch (error) {
+      console.error('获取第一个问题失败:', error);
+      return null;
+    }
+  },
+  
+  // 轮询获取第一个问题
+  async pollForFirstQuestion(sessionId) {
+    let attempts = 0;
+    const maxAttempts = 10;
+    const interval = 1500; // 1.5秒轮询一次
+    
+    while (attempts < maxAttempts) {
+      try {
+        console.log(`尝试获取第一个问题，第 ${attempts + 1} 次`);
+        // 这里需要实现一个实际的接口调用，暂时使用模拟数据
+        const question = await this.fetchFirstQuestion(sessionId);
+        
+        if (question && question.content) {
+          return question;
+        }
+      } catch (error) {
+        console.error('轮询获取问题失败:', error);
+      }
+      
+      attempts++;
+      // 等待下一次轮询
+      await new Promise(resolve => setTimeout(resolve, interval));
+    }
+    
+    // 如果超过最大尝试次数，返回默认问题
+    console.log('超过最大轮询次数，返回默认问题');
+    return {
+      content: '请简单介绍一下你自己，以及你为什么适合这个职位？',
+      depthLevel: 'usage'
+    };
+  },
+
   onLoad: async function(options) {
     try {
       console.log('interview页面接收到的options:', options);
@@ -48,47 +99,46 @@ Page({
       };
       
       // 处理URL参数，如果有参数则覆盖默认值
-      if (options.firstQuestion && options.sessionId) {
+      if (options.sessionId) {
         try {
-          // 尝试解析问题数据
-          let firstQuestion;
-          try {
-            firstQuestion = JSON.parse(decodeURIComponent(options.firstQuestion));
-          } catch (parseError) {
-            // 如果解析失败，将其作为问题文本
-            const questionText = decodeURIComponent(options.firstQuestion);
-            firstQuestion = { content: questionText };
-          }
-          
           const sessionId = decodeURIComponent(options.sessionId);
           
           // 更新核心数据
           initialData.sessionId = sessionId;
-          initialData.question = firstQuestion.content || 
-                               firstQuestion.question || 
-                               firstQuestion || 
-                               '请简单介绍一下你自己。';
-          
-          // 从firstQuestion中获取industryJobTag，如果存在的话
-          if (firstQuestion.industryJobTag) {
-            initialData.industryJobTag = firstQuestion.industryJobTag;
-          } else {
-            // 回退到全局数据或默认值
-            initialData.industryJobTag = app.globalData.latestResumeData?.jobType || 
-                                       app.globalData.latestResumeData?.occupation || 
-                                       '技术面试';
-          }
+          initialData.industryJobTag = options.industryJobTag ? 
+                                     decodeURIComponent(options.industryJobTag) : 
+                                     app.globalData.latestResumeData?.jobType || 
+                                     app.globalData.latestResumeData?.occupation || 
+                                     '技术面试';
           
           initialData.questionType = 'first_question';
           
-          console.log('更新后的面试数据:', {
+          console.log('从URL参数获取的面试数据:', {
             sessionId: initialData.sessionId,
-            question: initialData.question,
             industryJobTag: initialData.industryJobTag
           });
           
+          // 设置初始数据（此时问题还未获取）
+          this.setData(initialData);
+          
+          // 显示加载提示
+          wx.showLoading({ title: '正在生成面试问题...' });
+          
+          // 轮询获取第一个问题
+          const firstQuestion = await this.pollForFirstQuestion(sessionId);
+          
+          wx.hideLoading();
+          
+          // 更新问题数据
+          this.setData({
+            question: firstQuestion.content
+          });
+          
+          console.log('获取到第一个面试问题:', firstQuestion.content);
+          
         } catch (parseError) {
           console.error('处理参数失败:', parseError);
+          wx.hideLoading();
         }
       } else {
         // 如果没有URL参数，尝试从/start接口获取数据
@@ -107,26 +157,40 @@ Page({
             
             // 确保industryJobTag与question同级处理
             initialData.sessionId = responseData.sessionId;
-            initialData.question = responseData.question?.content || 
-                                 responseData.question || 
-                                 '请简单介绍一下你自己。';
             initialData.industryJobTag = responseData.industryJobTag || 
                                        app.globalData.latestResumeData?.jobType || 
                                        app.globalData.latestResumeData?.occupation || 
                                        '技术面试';
             initialData.questionType = 'first_question';
             
+            // 设置初始数据（此时问题可能为null，需要轮询获取）
+            this.setData(initialData);
+            
+            // 显示生成问题提示
+            wx.showLoading({ title: '正在生成面试问题...' });
+            
+            // 轮询获取第一个问题
+            const firstQuestion = await this.pollForFirstQuestion(initialData.sessionId);
+            
+            wx.hideLoading();
+            
+            // 更新问题数据
+            this.setData({
+              question: firstQuestion.content
+            });
+            
             console.log('从/start接口获取的面试数据:', {
               sessionId: initialData.sessionId,
-              question: initialData.question,
               industryJobTag: initialData.industryJobTag
             });
           } else {
+            wx.hideLoading();
             console.error('获取面试数据失败:', response.message);
             // 使用默认数据作为备选
             initialData.industryJobTag = app.globalData.latestResumeData?.jobType || 
                                        app.globalData.latestResumeData?.occupation || 
                                        '技术面试';
+            initialData.question = '请简单介绍一下你自己，以及你为什么适合这个职位？';
           }
         } catch (error) {
           wx.hideLoading();
@@ -135,11 +199,16 @@ Page({
           initialData.industryJobTag = app.globalData.latestResumeData?.jobType || 
                                      app.globalData.latestResumeData?.occupation || 
                                      '技术面试';
+          initialData.question = '请简单介绍一下你自己，以及你为什么适合这个职位？';
         }
       }
       
-      // 设置初始数据
-      this.setData(initialData);
+      // 确保question有值
+      if (!this.data.question) {
+        this.setData({
+          question: '请简单介绍一下你自己，以及你为什么适合这个职位？'
+        });
+      }
       
       // 初始化问答历史，添加当前问题
       const now = new Date();
@@ -170,6 +239,13 @@ Page({
         title: '页面初始化失败，请重试',
         icon: 'none'
       });
+      
+      // 确保有默认问题
+      if (!this.data.question) {
+        this.setData({
+          question: '请简单介绍一下你自己，以及你为什么适合这个职位？'
+        });
+      }
     }
   },
 

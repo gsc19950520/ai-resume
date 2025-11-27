@@ -1,2 +1,4 @@
 ai-resume-service/target/
 *.ttf
+node_modules/
+docs/
