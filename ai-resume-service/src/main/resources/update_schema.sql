@@ -40,6 +40,12 @@ ALTER TABLE interview_question ADD COLUMN usage_count INT DEFAULT 0 COMMENT '使
 ALTER TABLE interview_question ADD COLUMN avg_score FLOAT DEFAULT 0 COMMENT '平均得分';
 ALTER TABLE interview_question ADD COLUMN similarity_hash VARCHAR(64) COMMENT '相似度哈希值';
 
+-- 2024-01-01 添加问题库相关功能
+-- 创建索引以提高问题查找效率
+CREATE INDEX idx_interview_question_skill_depth ON interview_question(skill_tag, depth_level);
+CREATE INDEX idx_interview_question_usage_count ON interview_question(usage_count);
+CREATE INDEX idx_interview_question_similarity_hash ON interview_question(similarity_hash);
+
 -- 2025-11-22 新增InterviewLog表字段
 ALTER TABLE interview_log ADD COLUMN answer_duration INT COMMENT '回答时长（秒）';
 ALTER TABLE interview_log ADD COLUMN related_tech_items TEXT COMMENT '相关技术项';

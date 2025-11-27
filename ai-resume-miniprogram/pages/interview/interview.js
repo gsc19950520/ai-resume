@@ -1,6 +1,6 @@
 // pages/interview/interview.js
 const app = getApp();
-import { post } from '../../utils/request.js';
+import { get } from '../../utils/request.js';
 
 Page({
   data: {
@@ -11,6 +11,7 @@ Page({
     feedback: null,
     nextQuestion: null,
     isCompleted: false,
+    hasQuestion: false,
     
     // 页面状态数据（保留必要的界面相关数据）
     industryJobTag: '',
@@ -20,6 +21,7 @@ Page({
     isPaused: false,
     showFeedback: false,
     userAnswer: null,
+    isLoading: false, // 用于控制加载状态
     
     // 动画状态
     animationState: {
@@ -42,7 +44,7 @@ Page({
   async fetchFirstQuestion(sessionId) {
     try {
       // 使用云托管请求方式调用后端接口获取第一个问题
-      const response = await post(`/api/interview/get-first-question/${sessionId}`);
+      const response = await get(`/api/interview/get-first-question/${sessionId}`);
       
       if (response && response.data) {
         return {
@@ -57,19 +59,20 @@ Page({
     }
   },
   
-  // 轮询获取第一个问题
+  // 轮询获取第一个问题（带指数退避策略）
   async pollForFirstQuestion(sessionId) {
+    this.setData({ isLoading: true });
     let attempts = 0;
     const maxAttempts = 10;
-    const interval = 1500; // 1.5秒轮询一次
+    const baseDelay = 1000; // 初始延迟1秒
     
     while (attempts < maxAttempts) {
       try {
         console.log(`尝试获取第一个问题，第 ${attempts + 1} 次`);
-        // 这里需要实现一个实际的接口调用，暂时使用模拟数据
         const question = await this.fetchFirstQuestion(sessionId);
         
         if (question && question.content) {
+          this.setData({ isLoading: false });
           return question;
         }
       } catch (error) {
@@ -77,12 +80,15 @@ Page({
       }
       
       attempts++;
+      // 使用指数退避策略：每次失败后等待时间翻倍，最大等待时间10秒
+      const delay = Math.min(baseDelay * Math.pow(2, attempts - 1), 10000);
       // 等待下一次轮询
-      await new Promise(resolve => setTimeout(resolve, interval));
+      await new Promise(resolve => setTimeout(resolve, delay));
     }
     
     // 如果超过最大尝试次数，返回默认问题
     console.log('超过最大轮询次数，返回默认问题');
+    this.setData({ isLoading: false });
     return {
       content: '请简单介绍一下你自己，以及你为什么适合这个职位？',
       depthLevel: 'usage'

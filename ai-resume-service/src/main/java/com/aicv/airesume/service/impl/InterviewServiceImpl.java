@@ -328,6 +328,66 @@ public class InterviewServiceImpl implements InterviewService {
             session.setTechItems(objectMapper.writeValueAsString(techItems));
             session.setProjectPoints(objectMapper.writeValueAsString(projectPoints));
             
+            // 检查问题库中是否有足够的针对当前简历的第一道题（至少20个）
+            String firstSkillTag = techItems != null && !techItems.isEmpty() ? techItems.get(0) : "general";
+            List<InterviewQuestion> existingQuestions = questionRepository.findBySkillTagAndDepthLevel(firstSkillTag, "usage");
+            int requiredCount = 20;
+            int existingCount = existingQuestions.size();
+            
+            if (existingCount < requiredCount) {
+                // 批量生成缺少的问题
+                int questionsToGenerate = requiredCount - existingCount;
+                log.info("批量生成针对当前简历的第一道题，需要生成{}个", questionsToGenerate);
+                
+                // 使用完整的简历内容和技术项生成多个问题
+                for (int i = 0; i < questionsToGenerate; i++) {
+                    try {
+                        // 调用AI生成新问题
+                        Map<String, Object> questionData = generateNewQuestionWithAI(
+                                techItems, projectPoints, new ArrayList<>(), new ArrayList<>(),
+                                "usage", session.getSessionTimeRemaining(), session.getPersona(), "", resumeContent);
+                        
+                        if (questionData.containsKey("nextQuestion")) {
+                            String questionText = (String) questionData.get("nextQuestion");
+                            String similarityHash = aiServiceUtils.getSemanticHash(questionText);
+                            
+                            // 检查数据库中是否已存在相同哈希的问题
+                            if (questionRepository.findAllBySimilarityHash(similarityHash).isEmpty()) {
+                                // 保存新问题到数据库
+                                InterviewQuestion newQuestion = new InterviewQuestion();
+                                newQuestion.setQuestionText(questionText);
+                                newQuestion.setExpectedKeyPoints(String.join(",", (List<String>) questionData.getOrDefault("expectedKeyPoints", Collections.emptyList())));
+                                newQuestion.setSkillTag(firstSkillTag);
+                                newQuestion.setDepthLevel((String) questionData.getOrDefault("depthLevel", "usage"));
+                                newQuestion.setPersona(session.getPersona());
+                                newQuestion.setAiGenerated(true);
+                                newQuestion.setUsageCount(0); // 初始使用次数为0
+                                newQuestion.setSimilarityHash(similarityHash);
+                                newQuestion.setCreatedAt(LocalDateTime.now());
+                                newQuestion.setUpdatedAt(LocalDateTime.now());
+                                
+                                // 将jobTypeId从Integer转换为Long类型
+                                if (jobTypeId != null) {
+                                    try {
+                                        newQuestion.setJobTypeId(jobTypeId.longValue());
+                                    } catch (NumberFormatException e) {
+                                        log.warn("无效的jobTypeId格式: {}", jobTypeId);
+                                        newQuestion.setJobTypeId(1L);
+                                    }
+                                }
+                                
+                                questionRepository.save(newQuestion);
+                                log.info("成功生成并保存第{}个面试问题", i+1);
+                            } else {
+                                log.info("生成的问题已存在，跳过保存");
+                            }
+                        }
+                    } catch (Exception e) {
+                        log.error("批量生成问题失败: {}", e.getMessage());
+                    }
+                }
+            }
+            
             // 生成第一个问题
             Map<String, Object> firstQuestionData = generateNextQuestion(
                     techItems,
@@ -843,7 +903,7 @@ public class InterviewServiceImpl implements InterviewService {
             Map<String, Object> result = findMatchingQuestionInDatabase(techItems, jobType, currentDepthLevel, persona);
             
             // 2. 如果找到了匹配度高的问题，直接使用
-            if (result != null && (Double) result.getOrDefault("similarityScore", 0.0) >= 0.85) {
+            if (result != null && (Double) result.getOrDefault("similarityScore", 0.0) >= 0.8) {
                 log.info("从问题库中找到匹配问题，匹配度: {}", result.get("similarityScore"));
                 // 更新使用统计
                 Long questionId = (Long) result.get("questionId");
@@ -934,10 +994,10 @@ public class InterviewServiceImpl implements InterviewService {
                     // 这里简化处理，实际应该有更复杂的匹配算法
                     List<InterviewQuestion> questions = questionRepository.findBySkillTagAndDepthLevel(techTag, depthLevel);
                     if (!questions.isEmpty()) {
-                        // 选择一个使用次数较多的问题
-                        InterviewQuestion selected = questions.stream()
-                                .sorted((q1, q2) -> Integer.compare(q2.getUsageCount(), q1.getUsageCount()))
-                                .findFirst().orElse(null);
+                        // 随机选择一个问题，而不是总是选择使用次数最多的问题
+                        Random random = new Random();
+                        int randomIndex = random.nextInt(questions.size());
+                        InterviewQuestion selected = questions.get(randomIndex);
                         
                         if (selected != null) {
                             Map<String, Object> result = new HashMap<>();
@@ -955,9 +1015,9 @@ public class InterviewServiceImpl implements InterviewService {
             // 按深度级别查找通用问题
             List<InterviewQuestion> generalQuestions = questionRepository.findAllByDepthLevel(depthLevel);
             if (!generalQuestions.isEmpty()) {
-                InterviewQuestion selected = generalQuestions.stream()
-                        .sorted((q1, q2) -> Integer.compare(q2.getUsageCount(), q1.getUsageCount()))
-                        .findFirst().orElse(null);
+                // 随机选择一个通用问题，避免每次都返回相同的问题
+                Random random = new Random();
+                InterviewQuestion selected = generalQuestions.get(random.nextInt(generalQuestions.size()));
                 
                 if (selected != null) {
                     Map<String, Object> result = new HashMap<>();
