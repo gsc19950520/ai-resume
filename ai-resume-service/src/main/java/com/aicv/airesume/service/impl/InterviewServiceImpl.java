@@ -481,15 +481,119 @@ public class InterviewServiceImpl implements InterviewService {
             
             // 查询该会话的第一个面试日志
             List<InterviewLog> logs = logRepository.findBySessionIdOrderByRoundNumberAsc(sessionId);
-            if (logs.isEmpty()) {
-                return null; // 问题尚未生成
+            
+            // 如果日志不为空，直接返回第一个问题
+            if (!logs.isEmpty()) {
+                InterviewLog firstLog = logs.get(0);
+                return firstLog.getQuestionText(); // 返回第一个问题
             }
             
-            InterviewLog firstLog = logs.get(0);
-            return firstLog.getQuestionText(); // 返回第一个问题
+            // 如果日志为空，说明异步处理可能失败，直接生成第一个问题
+            log.info("第一个问题尚未生成，直接生成");
+            
+            // 从数据库获取会话信息
+            String resumeContent = "";
+            List<String> techItems = new ArrayList<>();
+            List<Map<String, Object>> projectPoints = new ArrayList<>();
+            Map<String, Object> interviewState = new HashMap<>();
+            
+            // 解析面试状态
+            if (StringUtils.hasText(session.getInterviewState())) {
+                try {
+                    interviewState = objectMapper.readValue(session.getInterviewState(), new TypeReference<Map<String, Object>>() {});
+                } catch (Exception e) {
+                    log.error("解析面试状态失败: {}", e.getMessage());
+                    interviewState.put("usedTechItems", new ArrayList<>());
+                    interviewState.put("usedProjectPoints", new ArrayList<>());
+                    interviewState.put("currentDepthLevel", "usage");
+                }
+            } else {
+                interviewState.put("usedTechItems", new ArrayList<>());
+                interviewState.put("usedProjectPoints", new ArrayList<>());
+                interviewState.put("currentDepthLevel", "usage");
+            }
+            
+            // 获取完整简历内容
+            if (interviewState.containsKey("fullResumeContent")) {
+                resumeContent = (String) interviewState.get("fullResumeContent");
+            } else {
+                // 如果简历内容不存在，从数据库获取
+                Map<String, Object> fullResumeData = resumeService.getResumeFullData(session.getResumeId());
+                resumeContent = convertFullDataToText(fullResumeData);
+                interviewState.put("fullResumeContent", resumeContent);
+            }
+            
+            // 获取技术项和项目点
+            if (StringUtils.hasText(session.getTechItems())) {
+                techItems = objectMapper.readValue(session.getTechItems(), new TypeReference<List<String>>() {});
+            } else {
+                // 如果技术项不存在，从简历内容中提取
+                Map<String, Object> extractedData = extractTechItemsAndProjectPoints(resumeContent);
+                if (extractedData != null) {
+                    if (extractedData.containsKey("techItems")) {
+                        techItems = (List<String>) extractedData.get("techItems");
+                    }
+                    if (extractedData.containsKey("projectPoints")) {
+                        projectPoints = (List<Map<String, Object>>) extractedData.get("projectPoints");
+                    }
+                    // 保存技术项和项目点到会话
+                    session.setTechItems(objectMapper.writeValueAsString(techItems));
+                    session.setProjectPoints(objectMapper.writeValueAsString(projectPoints));
+                    sessionRepository.save(session);
+                }
+            }
+            
+            // 生成第一个问题
+            Map<String, Object> firstQuestionData = generateNextQuestion(
+                    techItems,
+                    projectPoints,
+                    interviewState,
+                    session.getSessionTimeRemaining(),
+                    session.getPersona(),
+                    session.getJobTypeId()
+            );
+            
+            String firstQuestion = null;
+            if (firstQuestionData != null && firstQuestionData.get("nextQuestion") != null) {
+                firstQuestion = (String) firstQuestionData.get("nextQuestion");
+            } else {
+                // 如果生成问题失败，使用默认问题
+                firstQuestion = "请简单介绍一下你自己，以及你为什么适合这个职位？";
+            }
+            
+            // 保存AI生成问题的跟踪日志
+            saveAiTraceLog(session.getSessionId(), "generate_question", 
+                    "生成第一个问题的prompt内容", firstQuestion);
+            
+            // 更新会话问题计数
+            session.setQuestionCount(1);
+            session.setInterviewState(objectMapper.writeValueAsString(interviewState));
+            sessionRepository.save(session);
+            
+            // 创建第一个问题日志
+            InterviewLog firstLog = new InterviewLog();
+            firstLog.setQuestionId(UUID.randomUUID().toString());
+            firstLog.setSessionId(session.getSessionId());
+            firstLog.setQuestionText(firstQuestion);
+            firstLog.setDepthLevel((String) firstQuestionData.getOrDefault("depthLevel", "usage"));
+            firstLog.setRoundNumber(1);
+            // 保存期望的关键点
+            if (firstQuestionData != null && firstQuestionData.containsKey("expectedKeyPoints")) {
+                try {
+                    List<String> expectedKeyPoints = (List<String>) firstQuestionData.get("expectedKeyPoints");
+                    firstLog.setExpectedKeyPoints(objectMapper.writeValueAsString(expectedKeyPoints));
+                } catch (Exception e) {
+                    log.error("保存期望关键点失败: {}", e.getMessage());
+                }
+            }
+            logRepository.save(firstLog);
+            
+            log.info("直接生成第一个面试问题并保存，会话ID: {}", session.getSessionId());
+            return firstQuestion;
         } catch (Exception e) {
             log.error("获取第一个问题失败: {}", e.getMessage(), e);
-            return null;
+            // 即使出现异常，也返回一个默认问题
+            return "请简单介绍一下你自己，以及你为什么适合这个职位？";
         }
     }
 
