@@ -23,6 +23,13 @@ Page({
     userAnswer: null,
     isLoading: false, // 用于控制加载状态
     
+    // 回答时间计算
+    answerStartTime: 0, // 记录回答开始时间
+    answerDuration: 0, // 回答时长（秒）
+    
+    // 面试官语气风格
+    toneStyle: 'friendly', // 默认语气风格
+    
     // 动画状态
     animationState: {
       questionCard: 'idle'
@@ -35,6 +42,9 @@ Page({
     showTimeWarning: false,
     // 显示时间警告覆盖层
     showTimeWarningOverlay: false,
+    
+    // 滚动控制
+    scrollIntoView: '', // 用于scroll-view自动滚动
     
     // 倒计时定时器（非数据绑定字段，在onUnload中清除）
     // timer: null - 移到实例属性中
@@ -116,6 +126,9 @@ Page({
                                      app.globalData.latestResumeData?.jobType || 
                                      app.globalData.latestResumeData?.occupation || 
                                      '技术面试';
+          
+          // 设置面试官语气风格
+          initialData.toneStyle = options.persona ? decodeURIComponent(options.persona) : 'friendly';
           
           initialData.questionType = 'first_question';
           
@@ -340,14 +353,30 @@ Page({
   // 用户回答输入
   onUserAnswerInput: function(e) {
     const value = e.detail.value;
+    
+    // 如果是第一次输入，记录回答开始时间
+    if (!this.data.answerStartTime && value) {
+      this.setData({
+        answerStartTime: Date.now()
+      });
+    }
+    
     this.setData({
       userAnswer: value || null // 如果输入为空字符串，则设置为null
+    });
+  },
+  
+  // 重置回答时间
+  resetAnswerTime: function() {
+    this.setData({
+      answerStartTime: 0,
+      answerDuration: 0
     });
   },
 
   // 提交回答
   submitAnswer: async function() {
-    const { userAnswer, sessionId } = this.data;
+    const { userAnswer, sessionId, answerStartTime, toneStyle } = this.data;
     
     // 检查是否有会话ID
     if (!sessionId) {
@@ -368,14 +397,21 @@ Page({
       return;
     }
     
+    // 计算回答时长（秒）
+    let answerDuration = 0;
+    if (answerStartTime) {
+      answerDuration = Math.floor((Date.now() - answerStartTime) / 1000);
+    }
+    
     wx.showLoading({ title: '正在处理...' });
     
     try {
       // 调用API提交回答
       const response = await post('/api/interview/answer', {
         sessionId: sessionId,
-        answer: userAnswer
-        // 移除questionId参数，因为新的数据结构中没有这个字段
+        userAnswerText: userAnswer,
+        answerDuration: answerDuration,
+        toneStyle: toneStyle
       });
       
       wx.hideLoading();
@@ -425,7 +461,10 @@ Page({
             interviewHistory: updatedHistory,
             // 确保industryJobTag与question同级处理，保留现有值或从响应中更新
             industryJobTag: responseData.industryJobTag || this.data.industryJobTag,
-            animationState: { questionCard: 'fade-in' }
+            animationState: { questionCard: 'fade-in' },
+            // 重置回答时间
+            answerStartTime: 0,
+            answerDuration: 0
           });
           
           console.log('更新后的面试数据:', {
@@ -529,15 +568,17 @@ Page({
   // 滚动到历史记录底部
   scrollToBottom: function() {
     try {
-      // 简化的滚动逻辑
-      setTimeout(() => {
-        wx.createSelectorQuery().in(this)
-          .select('#history-list-content')
-          .scrollTo({
-            scrollTop: 99999,
-            animated: true
+      // 获取最新一条记录的id
+      const historyLength = this.data.interviewHistory.length;
+      if (historyLength > 0) {
+        const latestRecord = this.data.interviewHistory[historyLength - 1];
+        if (latestRecord && latestRecord.id) {
+          // 设置scrollIntoView为最新记录的id，scroll-view会自动滚动到该元素
+          this.setData({
+            scrollIntoView: latestRecord.id
           });
-      }, 100); // 添加小延迟以确保DOM已更新
+        }
+      }
     } catch (error) {
       console.error('滚动到底部失败:', error);
     }

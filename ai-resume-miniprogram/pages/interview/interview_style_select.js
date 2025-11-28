@@ -314,9 +314,9 @@ Page({
         sessionId: sessionInfo.sessionId
       });
       
-      // 跳转到面试页面，传递会话ID和行业职位标签
+      // 跳转到面试页面，传递会话ID、行业职位标签和面试官风格
       wx.navigateTo({
-        url: `/pages/interview/interview?sessionId=${encodeURIComponent(sessionInfo.sessionId)}&industryJobTag=${encodeURIComponent(sessionInfo.industryJobTag || '')}`
+        url: `/pages/interview/interview?sessionId=${encodeURIComponent(sessionInfo.sessionId)}&industryJobTag=${encodeURIComponent(sessionInfo.industryJobTag || '')}&persona=${encodeURIComponent(this.data.selectedPersona)}`
       });
     } catch (error) {
       wx.hideLoading();

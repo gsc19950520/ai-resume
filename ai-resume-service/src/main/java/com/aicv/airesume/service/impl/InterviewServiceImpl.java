@@ -335,8 +335,9 @@ public class InterviewServiceImpl implements InterviewService {
                 interviewState.put("currentDepthLevel", "usage");
             }
             
-            // 更新面试状态，包含完整简历内容
+            // 更新面试状态，包含完整简历内容和会话ID
             interviewState.put("fullResumeContent", resumeContent);
+            interviewState.put("sessionId", session.getSessionId());
             
             // 存储提取的数据到会话
             session.setTechItems(objectMapper.writeValueAsString(techItems));
@@ -443,18 +444,6 @@ public class InterviewServiceImpl implements InterviewService {
             // 查询会话是否存在
             InterviewSession session = sessionRepository.findBySessionId(sessionId)
                     .orElseThrow(() -> new RuntimeException("会话不存在"));
-            
-            // 查询该会话的第一个面试日志
-            List<InterviewLog> logs = logRepository.findBySessionIdOrderByRoundNumberAsc(sessionId);
-            
-            // 如果日志不为空，直接返回第一个问题
-            if (!logs.isEmpty()) {
-                InterviewLog firstLog = logs.get(0);
-                return firstLog.getQuestionText(); // 返回第一个问题
-            }
-            
-            // 如果日志为空，说明异步处理可能失败，直接生成第一个问题
-            log.info("第一个问题尚未生成，直接生成");
             
             // 从数据库获取会话信息
             String resumeContent = "";
@@ -648,6 +637,9 @@ public class InterviewServiceImpl implements InterviewService {
             List<String> techItems = objectMapper.readValue(session.getTechItems(), List.class);
             List<Map<String, Object>> projectPoints = objectMapper.readValue(session.getProjectPoints(), List.class);
             Map<String, Object> interviewState = objectMapper.readValue(session.getInterviewState(), Map.class);
+            
+            // 确保interviewState包含sessionId
+            interviewState.put("sessionId", session.getSessionId());
 
             // 7. 检查停止条件
             boolean shouldStop = false;
@@ -707,7 +699,7 @@ public class InterviewServiceImpl implements InterviewService {
                         projectPoints,
                         interviewState,
                         session.getSessionTimeRemaining(),
-                        session.getPersona(),
+                        toneStyle, // 使用传入的toneStyle参数
                         session.getJobTypeId()
                 );
                 
@@ -990,13 +982,17 @@ public class InterviewServiceImpl implements InterviewService {
             log.info("将使用完整简历内容生成问题，长度: {}字符", fullResumeContent != null ? fullResumeContent.length() : 0);
             
             // 获取最新的问题和回答日志，用于上下文生成
-            List<InterviewLog> logs = logRepository.findBySessionIdOrderByRoundNumberAsc(interviewState.get("sessionId").toString());
+            List<InterviewLog> logs = new ArrayList<>();
             String previousQuestion = "";
             String previousAnswer = "";
-            if (!logs.isEmpty()) {
-                InterviewLog lastLog = logs.get(logs.size() - 1);
-                previousQuestion = lastLog.getQuestionText();
-                previousAnswer = lastLog.getUserAnswerText();
+            String sessionId = (String) interviewState.get("sessionId");
+            if (sessionId != null) {
+                logs = logRepository.findBySessionIdOrderByRoundNumberAsc(sessionId);
+                if (!logs.isEmpty()) {
+                    InterviewLog lastLog = logs.get(logs.size() - 1);
+                    previousQuestion = lastLog.getQuestionText();
+                    previousAnswer = lastLog.getUserAnswerText();
+                }
             }
             
             // 直接调用AI生成下一个问题，基于上一题的题目和回答内容
@@ -1032,7 +1028,22 @@ public class InterviewServiceImpl implements InterviewService {
                                                         String previousQuestion, String previousAnswer) throws Exception {
         // 构建prompt调用dynamicInterviewer
         StringBuilder promptBuilder = new StringBuilder();
-        promptBuilder.append(String.format("你是%s风格的面试官。问题需自然、亲和、不死板。\n", persona));
+        
+        // 根据不同风格设置不同的提示词
+        switch (persona) {
+            case "friendly":
+                promptBuilder.append("你是友好型风格的面试官。问题需自然、亲和、不死板，营造轻松的面试氛围。\n");
+                break;
+            case "neutral":
+                promptBuilder.append("你是中立型风格的面试官。问题需专业、客观、直接，注重事实和技术细节。\n");
+                break;
+            case "pressure":
+            case "challenging":
+                promptBuilder.append("你是压力型风格的面试官。问题需有压迫感、深入追问、挑战性强，测试候选人在压力下的表现。\n");
+                break;
+            default:
+                promptBuilder.append(String.format("你是%s风格的面试官。问题需自然、专业、有针对性。\n", persona));
+        }
         
         // 优化：直接使用完整简历内容作为生成问题的基础，这样对用户更方便
         if (StringUtils.hasText(fullResumeContent)) {
