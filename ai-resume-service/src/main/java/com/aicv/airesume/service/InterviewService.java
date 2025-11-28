@@ -68,5 +68,12 @@ public interface InterviewService {
      * @return 面试详情
      */
     InterviewSessionVO getInterviewDetail(String sessionId);
+    
+    /**
+     * 生成并保存面试第一题
+     * @param resumeId 简历ID
+     * @param jobTypeId 职位类型ID
+     */
+    void generateFirstQuestions(Long resumeId, Long jobTypeId);
    
 }
