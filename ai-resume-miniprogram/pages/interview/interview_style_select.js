@@ -65,9 +65,6 @@ Page({
     
     // 加载面试官风格配置
     this.loadPersonaConfigs()
-    
-    // 进入页面时生成并保存第一题
-    this.generateAndSaveFirstQuestions()
   },
 
   // 处理单个简历数据（来自首页）
@@ -272,34 +269,6 @@ Page({
         clearTimeout(timeoutId);
       });
     });
-  },
-  
-  // 生成并保存第一题
-  generateAndSaveFirstQuestions: async function() {
-    // 如果没有简历ID，等待简历加载完成后再生成
-    if (!this.data.resumeId) {
-      return;
-    }
-    
-    wx.showLoading({ title: '正在准备面试问题...' });
-    
-    try {
-      // 调用后端API生成并保存第一题
-      const app = getApp();
-      const jobTypeId = app.globalData.latestResumeData?.jobTypeId || 1;
-      
-      await post('/api/interview/generate-first-questions', {
-        resumeId: this.data.resumeId,
-        jobTypeId: jobTypeId
-      });
-      
-      log.info('第一题生成成功');
-    } catch (error) {
-      console.error('生成第一题失败:', error);
-      // 生成失败不影响页面流程，继续执行
-    } finally {
-      wx.hideLoading();
-    }
   },
 
   // 获取动态配置的API调用

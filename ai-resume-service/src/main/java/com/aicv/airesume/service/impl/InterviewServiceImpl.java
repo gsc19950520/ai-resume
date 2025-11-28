@@ -120,7 +120,7 @@ public class InterviewServiceImpl implements InterviewService {
             }
             final Integer actualJobTypeId = actualJobTypeIdTemp;
             
-            // 3. 创建面试会话
+            // 3. 创建面试会话 - 优先完成，快速返回给前端
             InterviewSession session = new InterviewSession();
             session.setSessionId(UUID.randomUUID().toString());
             session.setUserId(userId);
@@ -137,39 +137,21 @@ public class InterviewServiceImpl implements InterviewService {
             session.setSessionSeconds(sessionSeconds != null ? sessionSeconds : dynamicConfigService.getDefaultSessionSeconds());
             session.setSessionTimeRemaining(session.getSessionSeconds());
             
-            // 4. 获取完整简历内容并提取结构化信息
-            Map<String, Object> fullResumeData = resumeService.getResumeFullData(resumeId);
-            String resumeContent = convertFullDataToText(fullResumeData);
-            log.info("成功获取完整简历内容，将用于生成面试问题");
-            
-            // 从简历内容中提取技术项和项目点
-            Map<String, Object> extractedData = extractTechItemsAndProjectPoints(resumeContent);
-            
-            if (extractedData != null) {
-                if (extractedData.containsKey("techItems")) {
-                    techItems = (List<String>) extractedData.get("techItems");
-                }
-                if (extractedData.containsKey("projectPoints")) {
-                    projectPoints = (List<Map<String, Object>>) extractedData.get("projectPoints");
-                }
-                log.info("从简历内容中提取数据: 技术项{}个，项目点{}个", techItems.size(), projectPoints.size());
-            }
-            
-            // 5. 初始化面试状态
+            // 初始化面试状态，先不进行耗时的简历分析
             interviewState.put("usedTechItems", new ArrayList<>());
             interviewState.put("usedProjectPoints", new ArrayList<>());
             interviewState.put("currentDepthLevel", initialDepthLevel);
-            interviewState.put("fullResumeContent", resumeContent);
             session.setInterviewState(objectMapper.writeValueAsString(interviewState));
             
-            // 存储提取的数据到会话
-            session.setTechItems(objectMapper.writeValueAsString(techItems));
-            session.setProjectPoints(objectMapper.writeValueAsString(projectPoints));
-            
-            // 保存会话
+            // 保存初始会话 - 这是快速返回的关键
             sessionRepository.save(session);
+            
+            // 4. 异步处理简历分析和第一个问题生成
+            CompletableFuture.runAsync(() -> {
+                processFirstQuestionAsync(session.getSessionId(), resumeId, actualJobTypeId);
+            });
 
-            // 6. 通过jobTypeId查询job_type表数据获取jobName
+            // 5. 通过jobTypeId查询job_type表数据获取jobName
             String industryJobTag = "";
             try {
                 JobType jobType = jobTypeRepository.findById(actualJobTypeId).orElse(null);
@@ -181,64 +163,11 @@ public class InterviewServiceImpl implements InterviewService {
                 // 查询失败不影响面试流程，使用空字符串作为默认值
             }
             
-            // 7. 直接从数据库获取已生成的第一题
-            InterviewQuestion firstQuestion = null;
-            String firstSkillTag = techItems != null && !techItems.isEmpty() ? techItems.get(0) : "general";
-            
-            // 优先使用与职位类型匹配的问题
-            List<InterviewQuestion> availableQuestions = questionRepository.findByJobTypeIdAndSkillTagOrderByUsageCountDesc(actualJobTypeId.longValue(), firstSkillTag);
-            
-            // 过滤深度级别
-            if (availableQuestions != null) {
-                availableQuestions = availableQuestions.stream()
-                        .filter(q -> "usage".equals(q.getDepthLevel()))
-                        .collect(Collectors.toList());
-            }
-            
-            // 如果没有匹配的职位类型问题，使用通用问题
-            if (availableQuestions == null || availableQuestions.isEmpty()) {
-                availableQuestions = questionRepository.findBySkillTagAndDepthLevel(firstSkillTag, "usage");
-            }
-            
-            // 随机选择一个问题
-            if (availableQuestions != null && !availableQuestions.isEmpty()) {
-                int randomIndex = new Random().nextInt(availableQuestions.size());
-                firstQuestion = availableQuestions.get(randomIndex);
-                log.info("成功获取第一题: {}", firstQuestion.getQuestionText());
-            } else {
-                log.warn("未找到可用的第一题，将生成新问题");
-                // 如果没有可用问题，生成一个新问题
-                Map<String, Object> questionData = generateNewQuestionWithAI(
-                        techItems, projectPoints, new ArrayList<>(), new ArrayList<>(),
-                        "usage", session.getSessionTimeRemaining(), session.getPersona(), industryJobTag, resumeContent, "", "");
-                
-                if (questionData.containsKey("nextQuestion")) {
-                    String questionText = (String) questionData.get("nextQuestion");
-                    String similarityHash = aiServiceUtils.getSemanticHash(questionText);
-                    
-                    // 保存新问题到数据库
-                    firstQuestion = new InterviewQuestion();
-                    firstQuestion.setQuestionText(questionText);
-                    firstQuestion.setExpectedKeyPoints(String.join(",", (List<String>) questionData.getOrDefault("expectedKeyPoints", Collections.emptyList())));
-                    firstQuestion.setSkillTag(firstSkillTag);
-                    firstQuestion.setDepthLevel((String) questionData.getOrDefault("depthLevel", "usage"));
-                    firstQuestion.setPersona(session.getPersona());
-                    firstQuestion.setAiGenerated(true);
-                    firstQuestion.setUsageCount(0); // 初始使用次数为0
-                    firstQuestion.setSimilarityHash(similarityHash);
-                    firstQuestion.setCreatedAt(LocalDateTime.now());
-                    firstQuestion.setUpdatedAt(LocalDateTime.now());
-                    firstQuestion.setJobTypeId(actualJobTypeId.longValue());
-                    
-                    questionRepository.save(firstQuestion);
-                    log.info("成功生成并保存第一题: {}", questionText);
-                }
-            }
-            
-            // 8. 构建返回对象，直接返回第一题
+            // 7. 构建返回对象 - 快速返回，不等待异步处理完成
             InterviewResponseVO response = new InterviewResponseVO();
             response.setSessionId(session.getSessionId());
-            response.setQuestion(firstQuestion != null ? firstQuestion.getQuestionText() : "");
+            // 这里暂时不返回具体问题，由前端异步获取
+            response.setQuestion(null);
             response.setQuestionType("first_question"); // 标记为第一个问题
             response.setFeedback(null); // 首次没有反馈
             response.setNextQuestion(null); // 第一个问题没有下一个问题
@@ -422,117 +351,7 @@ public class InterviewServiceImpl implements InterviewService {
                 }
             }
             
-            // 检查问题库中是否有足够的针对当前职位的第一道题（至少20个）
-            String firstSkillTag = techItems != null && !techItems.isEmpty() ? techItems.get(0) : "general";
-            List<InterviewQuestion> existingQuestions = questionRepository.findBySkillTagAndDepthLevel(firstSkillTag, "usage");
-            int requiredCount = 20;
-            int existingCount = existingQuestions.size();
-            
-            // 扩展：同时检查职位类型相关的问题
-            List<InterviewQuestion> jobTypeQuestions = new ArrayList<>();
-            if (jobTypeId != null) {
-                // 使用已有的方法查询职位类型相关的问题
-                jobTypeQuestions = questionRepository.findByJobTypeIdAndSkillTagOrderByUsageCountDesc(jobTypeId.longValue(), firstSkillTag);
-                existingCount += jobTypeQuestions.size();
-            }
-            
-            if (existingCount < requiredCount) {
-                // 批量生成缺少的问题
-                int questionsToGenerate = requiredCount - existingCount;
-                log.info("批量生成针对当前职位的第一道题，需要生成{}个", questionsToGenerate);
-                
-                // 存储本次批量生成的问题，用于检查相互之间的相似度
-                List<String> newlyGeneratedQuestions = new ArrayList<>();
-                
-                // 使用完整的简历内容和技术项生成多个问题
-                // 循环次数增加，以应对可能的相似问题被过滤
-                for (int i = 0; i < questionsToGenerate * 2; i++) {
-                    try {
-                        // 调用AI生成新问题，传入职位类型以生成更精准的问题
-                        Map<String, Object> questionData = generateNewQuestionWithAI(
-                                techItems, projectPoints, new ArrayList<>(), new ArrayList<>(),
-                                "usage", session.getSessionTimeRemaining(), session.getPersona(), jobType, resumeContent, "", "");
-                        
-                        if (questionData.containsKey("nextQuestion")) {
-                            String questionText = (String) questionData.get("nextQuestion");
-                            boolean isSimilar = false;
-                            
-                            // 1. 先检查完整问题库中是否有高度相似的问题
-                            // 获取所有相关问题
-                            List<InterviewQuestion> allQuestions = questionRepository.findBySkillTagAndDepthLevel(firstSkillTag, "usage");
-                            if (jobTypeId != null && jobTypeQuestions != null && !jobTypeQuestions.isEmpty()) {
-                                allQuestions.addAll(jobTypeQuestions);
-                            }
-                            
-                            // 2. 计算新生成问题与现有问题的相似度
-                            for (InterviewQuestion existingQuestion : allQuestions) {
-                                double similarity = calculateQuestionSimilarity(questionText, existingQuestion.getQuestionText());
-                                if (similarity > 0.90) { // 提高相似度阈值到90%
-                                    log.info("生成的问题与现有问题相似度较高({:.2f}%)，跳过保存", similarity * 100);
-                                    isSimilar = true;
-                                    break;
-                                }
-                            }
-                            
-                            // 3. 检查新生成问题与本次已生成问题的相似度
-                            if (!isSimilar) {
-                                for (String generatedQuestion : newlyGeneratedQuestions) {
-                                    double similarity = calculateQuestionSimilarity(questionText, generatedQuestion);
-                                    if (similarity > 0.85) { // 相似度阈值设为85%
-                                        log.info("生成的问题与本次已生成问题相似度较高({:.2f}%)，跳过保存", similarity * 100);
-                                        isSimilar = true;
-                                        break;
-                                    }
-                                }
-                            }
-                            
-                            // 4. 如果不相似，再检查哈希值是否完全相同（防止完全重复）
-                            if (!isSimilar) {
-                                String similarityHash = aiServiceUtils.getSemanticHash(questionText);
-                                if (questionRepository.findAllBySimilarityHash(similarityHash).isEmpty()) {
-                                    // 保存新问题到数据库
-                                    InterviewQuestion newQuestion = new InterviewQuestion();
-                                    newQuestion.setQuestionText(questionText);
-                                    newQuestion.setExpectedKeyPoints(String.join(",", (List<String>) questionData.getOrDefault("expectedKeyPoints", Collections.emptyList())));
-                                    newQuestion.setSkillTag(firstSkillTag);
-                                    newQuestion.setDepthLevel((String) questionData.getOrDefault("depthLevel", "usage"));
-                                    newQuestion.setPersona(session.getPersona());
-                                    newQuestion.setAiGenerated(true);
-                                    newQuestion.setUsageCount(0); // 初始使用次数为0
-                                    newQuestion.setSimilarityHash(similarityHash);
-                                    newQuestion.setCreatedAt(LocalDateTime.now());
-                                    newQuestion.setUpdatedAt(LocalDateTime.now());
-                                    
-                                    // 将jobTypeId从Integer转换为Long类型
-                                    if (jobTypeId != null) {
-                                        try {
-                                            newQuestion.setJobTypeId(jobTypeId.longValue());
-                                        } catch (NumberFormatException e) {
-                                            log.warn("无效的jobTypeId格式: {}", jobTypeId);
-                                            newQuestion.setJobTypeId(1L);
-                                        }
-                                    }
-                                    
-                                    questionRepository.save(newQuestion);
-                                    log.info("成功生成并保存第{}个面试问题", newlyGeneratedQuestions.size() + 1);
-                                    
-                                    // 将新生成的问题加入列表，用于后续相似度检查
-                                    newlyGeneratedQuestions.add(questionText);
-                                    
-                                    // 检查是否已生成足够数量的问题
-                                    if (newlyGeneratedQuestions.size() >= questionsToGenerate) {
-                                        break;
-                                    }
-                                } else {
-                                    log.info("生成的问题已存在，跳过保存");
-                                }
-                            }
-                        }
-                    } catch (Exception e) {
-                        log.error("批量生成问题失败: {}", e.getMessage());
-                    }
-                }
-            }
+            // 不再批量生成问题并保存到数据库，直接生成第一个问题
             
             // 生成第一个问题
             Map<String, Object> firstQuestionData = generateNextQuestion(
@@ -1704,139 +1523,6 @@ public class InterviewServiceImpl implements InterviewService {
         }
         
         return vo;
-    }
-    
-    @Override
-    public void generateFirstQuestions(Long resumeId, Long jobTypeId) {
-        try {
-            // 获取完整简历内容并提取结构化信息
-            Map<String, Object> fullResumeData = resumeService.getResumeFullData(resumeId);
-            String resumeContent = convertFullDataToText(fullResumeData);
-            
-            // 从简历内容中提取技术项和项目点
-            Map<String, Object> extractedData = extractTechItemsAndProjectPoints(resumeContent);
-            List<String> techItems = new ArrayList<>();
-            List<Map<String, Object>> projectPoints = new ArrayList<>();
-            
-            if (extractedData != null) {
-                if (extractedData.containsKey("techItems")) {
-                    techItems = (List<String>) extractedData.get("techItems");
-                }
-                if (extractedData.containsKey("projectPoints")) {
-                    projectPoints = (List<Map<String, Object>>) extractedData.get("projectPoints");
-                }
-            }
-            
-            // 获取职位类型名称
-            String jobType = "通用";
-            if (jobTypeId != null) {
-                Optional<JobType> jobTypeOptional = jobTypeRepository.findById(jobTypeId.intValue());
-                if (jobTypeOptional.isPresent()) {
-                    jobType = jobTypeOptional.get().getJobName();
-                }
-            }
-            
-            // 检查当前jobTypeId下的问题库中，第一道题的数量是否足够
-            List<InterviewQuestion> firstQuestions = questionRepository
-                    .findByJobTypeIdAndSkillTagAndDepthLevelOrderByUsageCountDesc(
-                            jobTypeId, "usage", "basic");
-            
-            // 如果第一道题的数量不足20个，批量生成
-            if (firstQuestions.size() < 20) {
-                // 批量生成缺少的问题
-                int questionsToGenerate = 20 - firstQuestions.size();
-                log.info("批量生成针对当前职位的第一道题，需要生成{}个", questionsToGenerate);
-                
-                // 存储本次批量生成的问题，用于检查相互之间的相似度
-                List<String> newlyGeneratedQuestions = new ArrayList<>();
-                
-                // 使用完整的简历内容和技术项生成多个问题
-                // 循环次数增加，以应对可能的相似问题被过滤
-                for (int i = 0; i < questionsToGenerate * 2; i++) {
-                    try {
-                        // 调用AI生成新问题，传入职位类型以生成更精准的问题
-                        Map<String, Object> questionData = generateNewQuestionWithAI(
-                                techItems, projectPoints, new ArrayList<>(), new ArrayList<>(),
-                                "usage", 3600, "通用", jobType, resumeContent, "", "");
-                        
-                        if (questionData.containsKey("nextQuestion")) {
-                            String questionText = (String) questionData.get("nextQuestion");
-                            boolean isSimilar = false;
-                            
-                            // 1. 先检查完整问题库中是否有高度相似的问题
-                            // 获取所有相关问题
-                            List<InterviewQuestion> allQuestions = questionRepository.findBySkillTagAndDepthLevel("usage", "basic");
-                            List<InterviewQuestion> jobTypeQuestions = questionRepository.findByJobTypeIdAndSkillTagOrderByUsageCountDesc(jobTypeId, "usage");
-                            allQuestions.addAll(jobTypeQuestions);
-                            
-                            // 计算当前生成的问题与现有问题的相似度
-                            for (InterviewQuestion existingQuestion : allQuestions) {
-                                double similarity = calculateQuestionSimilarity(questionText, existingQuestion.getQuestionText());
-                                if (similarity >= 0.90) {
-                                    isSimilar = true;
-                                    break;
-                                }
-                            }
-                            
-                            // 2. 检查本次批量生成的问题中是否有高度相似的
-                            if (!isSimilar) {
-                                for (String generatedQuestion : newlyGeneratedQuestions) {
-                                    double similarity = calculateQuestionSimilarity(questionText, generatedQuestion);
-                                    if (similarity >= 0.85) {
-                                        isSimilar = true;
-                                        break;
-                                    }
-                                }
-                            }
-                            
-                            // 如果问题不相似，则保存到数据库
-                            if (!isSimilar) {
-                                // 生成相似性哈希值
-                                String similarityHash = aiServiceUtils.getSemanticHash(questionText);
-                                
-                                // 检查是否已存在相同哈希值的问题
-                                Optional<InterviewQuestion> existingQuestionOpt = questionRepository
-                                        .findBySimilarityHash(similarityHash);
-                                
-                                if (!existingQuestionOpt.isPresent()) {
-                                    // 创建新的面试问题
-                                    InterviewQuestion newQuestion = new InterviewQuestion();
-                                    newQuestion.setQuestionText(questionText);
-                                    newQuestion.setSkillTag("usage"); // 第一道题通常是基本问题
-                                    newQuestion.setDepthLevel("basic");
-                                    newQuestion.setAiGenerated(true);
-                                    newQuestion.setUsageCount(0); // 初始使用次数为0
-                                    newQuestion.setSimilarityHash(similarityHash);
-                                    newQuestion.setCreatedAt(LocalDateTime.now());
-                                    newQuestion.setUpdatedAt(LocalDateTime.now());
-                                    newQuestion.setJobTypeId(jobTypeId);
-                                    
-                                    questionRepository.save(newQuestion);
-                                    log.info("成功生成并保存第{}个面试问题", newlyGeneratedQuestions.size() + 1);
-                                    
-                                    // 将新生成的问题加入列表，用于后续相似度检查
-                                    newlyGeneratedQuestions.add(questionText);
-                                    
-                                    // 检查是否已生成足够数量的问题
-                                    if (newlyGeneratedQuestions.size() >= questionsToGenerate) {
-                                        break;
-                                    }
-                                } else {
-                                    log.info("生成的问题已存在，跳过保存");
-                                }
-                            }
-                        }
-                    } catch (Exception e) {
-                        log.error("批量生成问题失败: {}", e.getMessage());
-                    }
-                }
-            }
-            
-            log.info("第一题生成完成");
-        } catch (Exception e) {
-            log.error("生成第一题失败: {}", e.getMessage());
-            // 生成失败不抛出异常，避免影响页面流程
-        }
     }
 
     // ----------- 功能模块实现 -----------

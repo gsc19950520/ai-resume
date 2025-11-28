@@ -28,7 +28,6 @@ import com.aicv.airesume.model.vo.InterviewSalaryVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-import org.apache.commons.lang3.StringUtils;
 import com.aicv.airesume.entity.AiTraceLog;
 import com.aicv.airesume.repository.AiTraceLogRepository;
 import java.util.List;
@@ -227,26 +226,6 @@ public class InterviewController {
         } catch (Exception e) {
             log.error("Submit answer failed:", e);
             return BaseResponseVO.error("提交答案失败：" + e.getMessage());
-        }
-    }
-    
-    @PostMapping("/generate-first-questions")
-    public BaseResponseVO generateFirstQuestions(@RequestBody Map<String, Object> request) {
-        try {
-            Long resumeId = Long.valueOf(request.get("resumeId").toString());
-            Long jobTypeId = request.get("jobTypeId") != null ? Long.valueOf(request.get("jobTypeId").toString()) : 1L;
-            
-            if (resumeId == null) {
-                return BaseResponseVO.error("简历ID不能为空");
-            }
-            
-            // 生成并保存第一题
-            interviewService.generateFirstQuestions(resumeId, jobTypeId);
-            return BaseResponseVO.success("第一题生成成功");
-        } catch (Exception e) {
-            log.error("生成第一题失败", e);
-            // 返回成功，避免影响前端流程
-            return BaseResponseVO.success("第一题生成中");
         }
     }
 
