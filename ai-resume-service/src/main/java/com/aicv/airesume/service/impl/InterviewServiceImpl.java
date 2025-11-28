@@ -104,13 +104,29 @@ public class InterviewServiceImpl implements InterviewService {
             String initialDepthLevel = "usage"; // 默认深度级别
             Map<String, Object> interviewState = new HashMap<>();
             
-            // 2. 创建面试会话 - 优先完成，快速返回给前端
+            // 2. 从简历表中获取jobTypeId
+            Integer actualJobTypeIdTemp = 1; // 默认职位类型为general
+            try {
+                Resume resume = resumeRepository.findById(resumeId).orElse(null);
+                if (resume != null && resume.getJobTypeId() != null) {
+                    actualJobTypeIdTemp = resume.getJobTypeId().intValue(); // 将Long转换为Integer
+                    log.info("从简历中获取到jobTypeId: {}", actualJobTypeIdTemp);
+                } else {
+                    log.warn("简历中未找到jobTypeId，使用默认值1");
+                }
+            } catch (Exception e) {
+                log.error("查询简历失败: {}", e.getMessage());
+                // 查询失败不影响面试流程，使用默认值
+            }
+            final Integer actualJobTypeId = actualJobTypeIdTemp;
+            
+            // 3. 创建面试会话 - 优先完成，快速返回给前端
             InterviewSession session = new InterviewSession();
             session.setSessionId(UUID.randomUUID().toString());
             session.setUserId(userId);
             session.setResumeId(resumeId);
             session.setStatus("IN_PROGRESS");
-            session.setJobTypeId(jobTypeId != null ? jobTypeId : 1); // 使用传入的jobTypeId，默认职位类型为general
+            session.setJobTypeId(actualJobTypeId); // 使用从简历中获取的jobTypeId
             session.setCity("未知城市");
             session.setQuestionCount(0);
             session.setAdaptiveLevel("auto");
@@ -130,23 +146,21 @@ public class InterviewServiceImpl implements InterviewService {
             // 保存初始会话 - 这是快速返回的关键
             sessionRepository.save(session);
             
-            // 3. 异步处理简历分析和第一个问题生成
+            // 4. 异步处理简历分析和第一个问题生成
             CompletableFuture.runAsync(() -> {
-                processFirstQuestionAsync(session.getSessionId(), resumeId, jobTypeId);
+                processFirstQuestionAsync(session.getSessionId(), resumeId, actualJobTypeId);
             });
 
-            // 6. 通过jobTypeId查询job_type表数据获取jobName
+            // 5. 通过jobTypeId查询job_type表数据获取jobName
             String industryJobTag = "";
-            if (jobTypeId != null) {
-                try {
-                    JobType jobType = jobTypeRepository.findById(jobTypeId).orElse(null);
-                    if (jobType != null && jobType.getJobName() != null) {
-                        industryJobTag = jobType.getJobName();
-                    }
-                } catch (Exception e) {
-                    log.error("查询职位类型失败: {}", e.getMessage());
-                    // 查询失败不影响面试流程，使用空字符串作为默认值
+            try {
+                JobType jobType = jobTypeRepository.findById(actualJobTypeId).orElse(null);
+                if (jobType != null && jobType.getJobName() != null) {
+                    industryJobTag = jobType.getJobName();
                 }
+            } catch (Exception e) {
+                log.error("查询职位类型失败: {}", e.getMessage());
+                // 查询失败不影响面试流程，使用空字符串作为默认值
             }
             
             // 7. 构建返回对象 - 快速返回，不等待异步处理完成
@@ -328,58 +342,95 @@ public class InterviewServiceImpl implements InterviewService {
             session.setTechItems(objectMapper.writeValueAsString(techItems));
             session.setProjectPoints(objectMapper.writeValueAsString(projectPoints));
             
-            // 检查问题库中是否有足够的针对当前简历的第一道题（至少20个）
+            // 获取职位类型名称，用于生成更精准的问题
+            String jobType = "";
+            if (jobTypeId != null) {
+                Optional<JobType> jobTypeOptional = jobTypeRepository.findById(jobTypeId);
+                if (jobTypeOptional.isPresent()) {
+                    jobType = jobTypeOptional.get().getJobName();
+                }
+            }
+            
+            // 检查问题库中是否有足够的针对当前职位的第一道题（至少20个）
             String firstSkillTag = techItems != null && !techItems.isEmpty() ? techItems.get(0) : "general";
             List<InterviewQuestion> existingQuestions = questionRepository.findBySkillTagAndDepthLevel(firstSkillTag, "usage");
             int requiredCount = 20;
             int existingCount = existingQuestions.size();
             
+            // 扩展：同时检查职位类型相关的问题
+            List<InterviewQuestion> jobTypeQuestions = new ArrayList<>();
+            if (jobTypeId != null) {
+                // 使用已有的方法查询职位类型相关的问题
+                jobTypeQuestions = questionRepository.findByJobTypeIdAndSkillTagOrderByUsageCountDesc(jobTypeId.longValue(), firstSkillTag);
+                existingCount += jobTypeQuestions.size();
+            }
+            
             if (existingCount < requiredCount) {
                 // 批量生成缺少的问题
                 int questionsToGenerate = requiredCount - existingCount;
-                log.info("批量生成针对当前简历的第一道题，需要生成{}个", questionsToGenerate);
+                log.info("批量生成针对当前职位的第一道题，需要生成{}个", questionsToGenerate);
                 
                 // 使用完整的简历内容和技术项生成多个问题
                 for (int i = 0; i < questionsToGenerate; i++) {
                     try {
-                        // 调用AI生成新问题
+                        // 调用AI生成新问题，传入职位类型以生成更精准的问题
                         Map<String, Object> questionData = generateNewQuestionWithAI(
                                 techItems, projectPoints, new ArrayList<>(), new ArrayList<>(),
-                                "usage", session.getSessionTimeRemaining(), session.getPersona(), "", resumeContent);
+                                "usage", session.getSessionTimeRemaining(), session.getPersona(), jobType, resumeContent, "", "");
                         
                         if (questionData.containsKey("nextQuestion")) {
                             String questionText = (String) questionData.get("nextQuestion");
-                            String similarityHash = aiServiceUtils.getSemanticHash(questionText);
+                            boolean isSimilar = false;
                             
-                            // 检查数据库中是否已存在相同哈希的问题
-                            if (questionRepository.findAllBySimilarityHash(similarityHash).isEmpty()) {
-                                // 保存新问题到数据库
-                                InterviewQuestion newQuestion = new InterviewQuestion();
-                                newQuestion.setQuestionText(questionText);
-                                newQuestion.setExpectedKeyPoints(String.join(",", (List<String>) questionData.getOrDefault("expectedKeyPoints", Collections.emptyList())));
-                                newQuestion.setSkillTag(firstSkillTag);
-                                newQuestion.setDepthLevel((String) questionData.getOrDefault("depthLevel", "usage"));
-                                newQuestion.setPersona(session.getPersona());
-                                newQuestion.setAiGenerated(true);
-                                newQuestion.setUsageCount(0); // 初始使用次数为0
-                                newQuestion.setSimilarityHash(similarityHash);
-                                newQuestion.setCreatedAt(LocalDateTime.now());
-                                newQuestion.setUpdatedAt(LocalDateTime.now());
-                                
-                                // 将jobTypeId从Integer转换为Long类型
-                                if (jobTypeId != null) {
-                                    try {
-                                        newQuestion.setJobTypeId(jobTypeId.longValue());
-                                    } catch (NumberFormatException e) {
-                                        log.warn("无效的jobTypeId格式: {}", jobTypeId);
-                                        newQuestion.setJobTypeId(1L);
-                                    }
+                            // 1. 先检查完整问题库中是否有高度相似的问题
+                            // 获取所有相关问题
+                            List<InterviewQuestion> allQuestions = questionRepository.findBySkillTagAndDepthLevel(firstSkillTag, "usage");
+                            if (jobTypeId != null && jobTypeQuestions != null && !jobTypeQuestions.isEmpty()) {
+                                allQuestions.addAll(jobTypeQuestions);
+                            }
+                            
+                            // 2. 计算新生成问题与现有问题的相似度
+                            for (InterviewQuestion existingQuestion : allQuestions) {
+                                double similarity = calculateQuestionSimilarity(questionText, existingQuestion.getQuestionText());
+                                if (similarity > 0.75) { // 相似度阈值设为75%
+                                    log.info("生成的问题与现有问题相似度较高({:.2f}%)，跳过保存", similarity * 100);
+                                    isSimilar = true;
+                                    break;
                                 }
-                                
-                                questionRepository.save(newQuestion);
-                                log.info("成功生成并保存第{}个面试问题", i+1);
-                            } else {
-                                log.info("生成的问题已存在，跳过保存");
+                            }
+                            
+                            // 3. 如果不相似，再检查哈希值是否完全相同（防止完全重复）
+                            if (!isSimilar) {
+                                String similarityHash = aiServiceUtils.getSemanticHash(questionText);
+                                if (questionRepository.findAllBySimilarityHash(similarityHash).isEmpty()) {
+                                    // 保存新问题到数据库
+                                    InterviewQuestion newQuestion = new InterviewQuestion();
+                                    newQuestion.setQuestionText(questionText);
+                                    newQuestion.setExpectedKeyPoints(String.join(",", (List<String>) questionData.getOrDefault("expectedKeyPoints", Collections.emptyList())));
+                                    newQuestion.setSkillTag(firstSkillTag);
+                                    newQuestion.setDepthLevel((String) questionData.getOrDefault("depthLevel", "usage"));
+                                    newQuestion.setPersona(session.getPersona());
+                                    newQuestion.setAiGenerated(true);
+                                    newQuestion.setUsageCount(0); // 初始使用次数为0
+                                    newQuestion.setSimilarityHash(similarityHash);
+                                    newQuestion.setCreatedAt(LocalDateTime.now());
+                                    newQuestion.setUpdatedAt(LocalDateTime.now());
+                                    
+                                    // 将jobTypeId从Integer转换为Long类型
+                                    if (jobTypeId != null) {
+                                        try {
+                                            newQuestion.setJobTypeId(jobTypeId.longValue());
+                                        } catch (NumberFormatException e) {
+                                            log.warn("无效的jobTypeId格式: {}", jobTypeId);
+                                            newQuestion.setJobTypeId(1L);
+                                        }
+                                    }
+                                    
+                                    questionRepository.save(newQuestion);
+                                    log.info("成功生成并保存第{}个面试问题", i+1);
+                                } else {
+                                    log.info("生成的问题已存在，跳过保存");
+                                }
                             }
                         }
                     } catch (Exception e) {
@@ -557,8 +608,17 @@ public class InterviewServiceImpl implements InterviewService {
             if (firstQuestionData != null && firstQuestionData.get("nextQuestion") != null) {
                 firstQuestion = (String) firstQuestionData.get("nextQuestion");
             } else {
-                // 如果生成问题失败，使用默认问题
-                firstQuestion = "请简单介绍一下你自己，以及你为什么适合这个职位？";
+                // 如果生成问题失败，从问题库中随机选择一个
+                List<InterviewQuestion> questions = questionRepository.findAllByDepthLevel("usage");
+                if (!questions.isEmpty()) {
+                    // 随机选择一个问题
+                    Random random = new Random();
+                    InterviewQuestion selectedQuestion = questions.get(random.nextInt(questions.size()));
+                    firstQuestion = selectedQuestion.getQuestionText();
+                } else {
+                    // 如果问题库中也没有，使用默认问题
+                    firstQuestion = "请简单介绍一下你自己，以及你为什么适合这个职位？";
+                }
             }
             
             // 保存AI生成问题的跟踪日志
@@ -592,7 +652,19 @@ public class InterviewServiceImpl implements InterviewService {
             return firstQuestion;
         } catch (Exception e) {
             log.error("获取第一个问题失败: {}", e.getMessage(), e);
-            // 即使出现异常，也返回一个默认问题
+            // 即使出现异常，也从问题库中随机返回一个问题
+            try {
+                List<InterviewQuestion> questions = questionRepository.findAllByDepthLevel("usage");
+                if (!questions.isEmpty()) {
+                    // 随机选择一个问题
+                    Random random = new Random();
+                    InterviewQuestion selectedQuestion = questions.get(random.nextInt(questions.size()));
+                    return selectedQuestion.getQuestionText();
+                }
+            } catch (Exception ex) {
+                log.error("从问题库获取默认问题失败: {}", ex.getMessage());
+            }
+            // 如果问题库也不可用，返回默认问题
             return "请简单介绍一下你自己，以及你为什么适合这个职位？";
         }
     }
@@ -999,74 +1071,27 @@ public class InterviewServiceImpl implements InterviewService {
             String currentDepthLevel = (String) interviewState.getOrDefault("currentDepthLevel", "usage");
             String jobType = (String) interviewState.getOrDefault("jobType", "");
             
-            // 获取完整简历内容（优化：直接使用存储的简历内容而不依赖分析结果）
+            // 获取完整简历内容
             String fullResumeContent = (String) interviewState.getOrDefault("fullResumeContent", "");
             log.info("将使用完整简历内容生成问题，长度: {}字符", fullResumeContent != null ? fullResumeContent.length() : 0);
             
-            // 1. 尝试从问题库中查找合适的问题
-            Map<String, Object> result = findMatchingQuestionInDatabase(techItems, jobType, currentDepthLevel, persona);
-            
-            // 2. 如果找到了匹配度高的问题，直接使用
-            if (result != null && (Double) result.getOrDefault("similarityScore", 0.0) >= 0.8) {
-                log.info("从问题库中找到匹配问题，匹配度: {}", result.get("similarityScore"));
-                // 更新使用统计
-                Long questionId = (Long) result.get("questionId");
-                if (questionId != null) {
-                    questionRepository.incrementUsageCount(questionId);
-                }
-                // 移除临时字段
-                result.remove("questionId");
-                result.remove("similarityScore");
-                
-                // 更新已使用的技术项和项目点
-                updateUsedItems(result, techItems, projectPoints, usedTechItems, usedProjectPoints);
-                return result;
+            // 获取最新的问题和回答日志，用于上下文生成
+            List<InterviewLog> logs = logRepository.findBySessionIdOrderByRoundNumberAsc(interviewState.get("sessionId").toString());
+            String previousQuestion = "";
+            String previousAnswer = "";
+            if (!logs.isEmpty()) {
+                InterviewLog lastLog = logs.get(logs.size() - 1);
+                previousQuestion = lastLog.getQuestionText();
+                previousAnswer = lastLog.getUserAnswerText();
             }
             
-            // 3. 未找到合适问题或匹配度不够，调用AI生成新问题
-            // 优化：传入完整简历内容，让AI能够直接基于简历生成更准确的问题
-            result = generateNewQuestionWithAI(techItems, projectPoints, usedTechItems, usedProjectPoints,
-                                             currentDepthLevel, sessionTimeRemaining, persona, jobType, fullResumeContent);
+            // 直接调用AI生成下一个问题，基于上一题的题目和回答内容
+            Map<String, Object> result = generateNewQuestionWithAI(techItems, projectPoints, usedTechItems, usedProjectPoints,
+                                             currentDepthLevel, sessionTimeRemaining, persona, jobType, fullResumeContent, 
+                                             previousQuestion, previousAnswer);
             
-            // 4. 计算问题的语义哈希并保存到数据库
-            if (result.containsKey("nextQuestion")) {
-                String questionText = (String) result.get("nextQuestion");
-                String similarityHash = aiServiceUtils.getSemanticHash(questionText);
-                
-                // 检查数据库中是否已存在相同哈希的问题
-                if (questionRepository.findAllBySimilarityHash(similarityHash).isEmpty()) {
-                    // 提取第一个技术标签作为技能标签
-                    String skillTag = techItems != null && !techItems.isEmpty() ? techItems.get(0) : "general";
-                    String depthLevel = (String) result.getOrDefault("depthLevel", "usage");
-                    
-                    // 保存新问题到数据库
-                    InterviewQuestion newQuestion = new InterviewQuestion();
-                    newQuestion.setQuestionText(questionText);
-                    newQuestion.setExpectedKeyPoints(String.join(",", (List<String>) result.getOrDefault("expectedKeyPoints", Collections.emptyList())));
-                    newQuestion.setSkillTag(skillTag);
-                    newQuestion.setDepthLevel(depthLevel);
-                    newQuestion.setPersona(persona);
-                    newQuestion.setAiGenerated(true);
-                    newQuestion.setUsageCount(1); // 首次使用
-                    newQuestion.setSimilarityHash(similarityHash);
-                    newQuestion.setCreatedAt(LocalDateTime.now());
-                    newQuestion.setUpdatedAt(LocalDateTime.now());
-                    // 将jobTypeId从Integer转换为Long类型
-                    if (jobTypeId != null) {
-                        try {
-                            newQuestion.setJobTypeId(jobTypeId.longValue());
-                        } catch (NumberFormatException e) {
-                            log.warn("无效的jobTypeId格式: {}", jobTypeId);
-                            newQuestion.setJobTypeId(1L);
-                        }
-                    }
-                    
-                    // 如果有jobType信息，可以尝试关联JobType
-                    // 这里简化处理，实际应该通过jobType名称查找对应的JobType实体
-                    
-                    questionRepository.save(newQuestion);
-                }
-            }
+            // 更新已使用的技术项和项目点
+            updateUsedItems(result, techItems, projectPoints, usedTechItems, usedProjectPoints);
             
             return result;
         } catch (Exception e) {
@@ -1081,64 +1106,7 @@ public class InterviewServiceImpl implements InterviewService {
         }
     }
     
-    /**
-     * 从数据库中查找匹配的问题
-     * @param techItems 技术项列表
-     * @param jobType 职位类型
-     * @param depthLevel 深度级别
-     * @param persona 面试官风格
-     * @return 匹配的问题信息，如果没有找到则返回null
-     */
-    private Map<String, Object> findMatchingQuestionInDatabase(List<String> techItems, String jobType, 
-                                                             String depthLevel, String persona) {
-        try {
-            // 优先按技术标签和深度级别查找
-            if (techItems != null && !techItems.isEmpty()) {
-                for (String techTag : techItems) {
-                    // 这里简化处理，实际应该有更复杂的匹配算法
-                    List<InterviewQuestion> questions = questionRepository.findBySkillTagAndDepthLevel(techTag, depthLevel);
-                    if (!questions.isEmpty()) {
-                        // 随机选择一个问题，而不是总是选择使用次数最多的问题
-                        Random random = new Random();
-                        int randomIndex = random.nextInt(questions.size());
-                        InterviewQuestion selected = questions.get(randomIndex);
-                        
-                        if (selected != null) {
-                            Map<String, Object> result = new HashMap<>();
-                            result.put("nextQuestion", selected.getQuestionText());
-                            result.put("expectedKeyPoints", Arrays.asList(selected.getExpectedKeyPoints().split(",")));
-                            result.put("depthLevel", selected.getDepthLevel());
-                            result.put("questionId", selected.getId());
-                            result.put("similarityScore", 0.9); // 简化处理，实际应计算相似度
-                            return result;
-                        }
-                    }
-                }
-            }
-            
-            // 按深度级别查找通用问题
-            List<InterviewQuestion> generalQuestions = questionRepository.findAllByDepthLevel(depthLevel);
-            if (!generalQuestions.isEmpty()) {
-                // 随机选择一个通用问题，避免每次都返回相同的问题
-                Random random = new Random();
-                InterviewQuestion selected = generalQuestions.get(random.nextInt(generalQuestions.size()));
-                
-                if (selected != null) {
-                    Map<String, Object> result = new HashMap<>();
-                    result.put("nextQuestion", selected.getQuestionText());
-                    result.put("expectedKeyPoints", Arrays.asList(selected.getExpectedKeyPoints().split(",")));
-                    result.put("depthLevel", selected.getDepthLevel());
-                    result.put("questionId", selected.getId());
-                    result.put("similarityScore", 0.8); // 简化处理，实际应计算相似度
-                    return result;
-                }
-            }
-        } catch (Exception e) {
-            log.error("查找匹配问题失败", e);
-        }
-        
-        return null;
-    }
+
     
     /**
      * 调用AI生成新问题
@@ -1146,7 +1114,8 @@ public class InterviewServiceImpl implements InterviewService {
     private Map<String, Object> generateNewQuestionWithAI(List<String> techItems, List<Map<String, Object>> projectPoints,
                                                         List<String> usedTechItems, List<String> usedProjectPoints,
                                                         String currentDepthLevel, Integer sessionTimeRemaining,
-                                                        String persona, String jobType, String fullResumeContent) throws Exception {
+                                                        String persona, String jobType, String fullResumeContent,
+                                                        String previousQuestion, String previousAnswer) throws Exception {
         // 构建prompt调用dynamicInterviewer
         StringBuilder promptBuilder = new StringBuilder();
         promptBuilder.append(String.format("你是%s风格的面试官。问题需自然、亲和、不死板。\n", persona));
@@ -1155,10 +1124,16 @@ public class InterviewServiceImpl implements InterviewService {
         if (StringUtils.hasText(fullResumeContent)) {
             promptBuilder.append("以下是候选人的完整简历内容：\n");
             promptBuilder.append(fullResumeContent).append("\n\n");
-            promptBuilder.append("请直接基于候选人的简历内容生成针对性的面试问题。\n");
+        }
+        
+        // 添加上一题的上下文信息
+        if (StringUtils.hasText(previousQuestion) && StringUtils.hasText(previousAnswer)) {
+            promptBuilder.append("上一轮面试问答：\n");
+            promptBuilder.append(String.format("问题：%s\n", previousQuestion));
+            promptBuilder.append(String.format("回答：%s\n\n", previousAnswer));
+            promptBuilder.append("请根据上一题的问答内容，结合候选人的简历，生成下一个相关的面试问题。\n");
         } else {
-            // 降级：如果没有完整简历内容，仍使用提取的技术项和项目点
-            promptBuilder.append(String.format("根据候选人技术项%s与项目%s生成下一个问题。\n", techItems, projectPoints));
+            promptBuilder.append("请直接基于候选人的简历内容生成针对性的面试问题。\n");
         }
         
         promptBuilder.append("规则：\n");
@@ -1218,6 +1193,57 @@ public class InterviewServiceImpl implements InterviewService {
         updateUsedItems(result, techItems, projectPoints, usedTechItems, usedProjectPoints);
         
         return result;
+    }
+    
+    /**
+     * 计算两个问题文本的相似度
+     * 使用基于关键词匹配的相似度算法
+     * 
+     * @param question1 第一个问题文本
+     * @param question2 第二个问题文本
+     * @return 相似度得分，范围0-1，值越大越相似
+     */
+    private double calculateQuestionSimilarity(String question1, String question2) {
+        // 预处理文本：去除标点符号，转换为小写
+        String processed1 = question1.toLowerCase()
+                .replaceAll("[\\p{Punct}]", "")
+                .trim();
+        String processed2 = question2.toLowerCase()
+                .replaceAll("[\\p{Punct}]", "")
+                .trim();
+        
+        // 分割为单词
+        Set<String> words1 = new HashSet<>(Arrays.asList(processed1.split("\\s+")));
+        Set<String> words2 = new HashSet<>(Arrays.asList(processed2.split("\\s+")));
+        
+        // 移除停用词
+        Set<String> stopWords = new HashSet<>(Arrays.asList(
+                "的", "了", "和", "是", "在", "有", "你", "我", "他", "她", "它",
+                "能", "能能", "可以", "会", "吗", "呢", "啊", "哦", "吧", "啦",
+                "请", "具体", "聊聊", "一下", "如何", "怎样", "什么", "哪些", "哪",
+                "个", "些", "这", "那", "这样", "那样", "为什么", "怎么", "多少",
+                "是否", "有没有", "是不是", "或者", "然后", "所以", "因为", "但是",
+                "如果", "比如", "例如", "比如", "等等", "诸如", "包括", "还有"
+        ));
+        
+        words1.removeAll(stopWords);
+        words2.removeAll(stopWords);
+        
+        // 如果两个问题都没有有效词汇，返回低相似度
+        if (words1.isEmpty() && words2.isEmpty()) {
+            return 0.0;
+        }
+        
+        // 计算交集大小
+        Set<String> intersection = new HashSet<>(words1);
+        intersection.retainAll(words2);
+        
+        // 计算并集大小
+        Set<String> union = new HashSet<>(words1);
+        union.addAll(words2);
+        
+        // 计算Jaccard相似度
+        return (double) intersection.size() / union.size();
     }
     
     /**

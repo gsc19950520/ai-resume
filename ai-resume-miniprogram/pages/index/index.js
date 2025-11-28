@@ -290,8 +290,13 @@ Page({
         wx.hideLoading()
         console.error('获取最新简历失败:', error)
         
-        // 如果获取失败，也提示用户创建简历
-        this.showNoResumePrompt()
+        // 如果是登录过期错误，不显示创建简历提示，因为request.js已经处理了登录过期逻辑
+        if (error.message && error.message.includes('登录已过期')) {
+          console.log('检测到登录过期错误，不显示创建简历提示')
+        } else {
+          // 其他错误，提示用户创建简历
+          this.showNoResumePrompt()
+        }
       })
   },
   

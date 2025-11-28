@@ -1,6 +1,6 @@
 // pages/interview/interview.js
 const app = getApp();
-import { get } from '../../utils/request.js';
+import { get, post } from '../../utils/request.js';
 
 Page({
   data: {

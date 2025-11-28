@@ -26,13 +26,28 @@ Page({
   onLoad: function(options) {
     const app = getApp()
     
+    // 检查登录状态
+    const userInfo = app.globalData.userInfo || wx.getStorageSync('userInfo')
+    if (!userInfo) {
+      wx.showModal({
+        title: '提示',
+        content: '请先登录，以使用完整功能',
+        showCancel: false,
+        confirmText: '去登录',
+        success: () => {
+          wx.navigateTo({ url: '/pages/login/login' })
+        }
+      })
+      return
+    }
+    
     // 获取全局中的最新简历数据
     const latestResumeData = app.globalData.latestResumeData
     
     // 获取简历ID和用户ID
     this.setData({
       resumeId: options.resumeId || latestResumeData?.id || '',
-      userId: app.globalData.userInfo?.id || wx.getStorageSync('userId') || '0',
+      userId: userInfo.id || wx.getStorageSync('userId') || '0',
       industryJobTag: options.industryJobTag || latestResumeData?.occupation || '',
       // 新增：标记是否直接来自首页的简历数据
       hasResumeFromHome: !!latestResumeData || !!options.resumeId
