@@ -27,7 +27,9 @@ import com.aicv.airesume.model.vo.SalaryRangeVO;
 import com.aicv.airesume.model.vo.InterviewSalaryVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import com.aicv.airesume.entity.AiTraceLog;
 import com.aicv.airesume.repository.AiTraceLogRepository;
 import java.util.List;
@@ -130,14 +132,37 @@ public class InterviewController {
         }
     }
 
-    @GetMapping("/get-first-question/{sessionId}")
-    public BaseResponseVO getFirstQuestion(@PathVariable String sessionId) {
+    @GetMapping(value = "/get-first-question/{sessionId}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter getFirstQuestion(@PathVariable String sessionId) {
         try {
-            String firstQuestion = interviewService.getFirstQuestion(sessionId);
-            return BaseResponseVO.success(firstQuestion);
+            return interviewService.getFirstQuestion(sessionId);
         } catch (Exception e) {
             log.error("获取第一个面试问题失败", e);
-            return BaseResponseVO.error("获取第一个面试问题失败：" + e.getMessage());
+            SseEmitter emitter = new SseEmitter();
+            try {
+                emitter.send(SseEmitter.event().name("error").data("获取第一个面试问题失败：" + e.getMessage()));
+            } catch (Exception sendEx) {
+                log.error("发送错误信息失败: {}", sendEx.getMessage());
+            }
+            emitter.completeWithError(e);
+            return emitter;
+        }
+    }
+    
+    /**
+     * 获取第一个面试问题（流式输出）
+     * @param sessionId 会话ID
+     * @return SSE响应流
+     */
+    @GetMapping(value = "/get-first-question-stream/{sessionId}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter getFirstQuestionStream(@PathVariable String sessionId) {
+        try {
+            return interviewService.getFirstQuestionStream(sessionId);
+        } catch (Exception e) {
+            log.error("获取第一个面试问题失败", e);
+            SseEmitter emitter = new SseEmitter();
+            emitter.completeWithError(e);
+            return emitter;
         }
     }
 
@@ -226,6 +251,29 @@ public class InterviewController {
         } catch (Exception e) {
             log.error("Submit answer failed:", e);
             return BaseResponseVO.error("提交答案失败：" + e.getMessage());
+        }
+    }
+    
+    /**
+     * 提交答案并获取下一个问题（流式输出）
+     * @param request 请求参数DTO
+     * @return SSE响应流
+     */
+    @PostMapping(value = "/answer-stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter submitAnswerStream(@RequestBody SubmitAnswerRequestDTO request) {
+        try {
+            String sessionId = request.getSessionId();
+            String userAnswerText = request.getUserAnswerText();
+            Integer answerDuration = request.getAnswerDuration();
+            // 支持动态更新面试官风格（可选参数）
+            String toneStyle = request.getToneStyle();
+
+            return interviewService.submitAnswerStream(sessionId, userAnswerText, answerDuration, toneStyle);
+        } catch (Exception e) {
+            log.error("Submit answer failed:", e);
+            SseEmitter emitter = new SseEmitter();
+            emitter.completeWithError(e);
+            return emitter;
         }
     }
 

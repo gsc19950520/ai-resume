@@ -99,6 +99,111 @@ const request = (url, data = {}, method = 'GET', header = {}) => {
     })
 }
 
+/**
+ * 流式请求方法（使用wx.request直接调用云托管服务，支持流式输出）
+ * 注意：云托管callContainer目前不支持流式响应，所以使用wx.request直接调用
+ * @param {string} url - 请求地址
+ * @param {object} options - 请求选项
+ * @returns {Promise} 返回Promise对象
+ */
+const requestStream = (url, options = {}) => {
+  const {
+    data = {},
+    method = 'POST',
+    header = {},
+    onChunk,
+    onError,
+    onComplete
+  } = options;
+  
+  return new Promise((resolve, reject) => {
+    // 用于存储未处理完的数据行
+    let buffer = '';
+    
+    // 使用全局配置的云托管服务地址
+    const cloudUrl = `https://${app.globalData.cloudServiceName}-${app.globalData.cloudEnvId}.service.tcloudbase.com`;
+    const fullUrl = `${cloudUrl}${url.startsWith('/api') ? url : `/api${url}`}`;
+    
+    wx.request({
+      url: fullUrl,
+      method: method,
+      data: data,
+      header: {
+        'content-type': 'application/json',
+        'Authorization': app.globalData.token ? `Bearer ${app.globalData.token}` : '',
+        ...header
+      },
+      responseType: 'stream',
+      onChunkReceived: (res) => {
+        try {
+          // 将ArrayBuffer转换为字符串
+          const chunk = String.fromCharCode.apply(null, new Uint8Array(res.data));
+          
+          // 处理SSE格式数据
+          buffer += chunk;
+          
+          // 按行分割数据
+          const lines = buffer.split('\n');
+          
+          // 处理除了最后一行的所有行（最后一行可能不完整）
+          for (let i = 0; i < lines.length - 1; i++) {
+            const line = lines[i].trim();
+            if (line) {
+              if (onChunk && typeof onChunk === 'function') {
+                onChunk(line);
+              }
+            }
+          }
+          
+          // 保存最后一行作为新的buffer
+          buffer = lines[lines.length - 1];
+          
+        } catch (error) {
+          console.error('处理数据块失败:', error);
+          if (onError && typeof onError === 'function') {
+            onError(error);
+          }
+        }
+      },
+      success: (res) => {
+        // 处理最后剩下的buffer
+        if (buffer.trim()) {
+          if (onChunk && typeof onChunk === 'function') {
+            onChunk(buffer.trim());
+          }
+        }
+        
+        // 检查是否有新的token（后端刷新token）
+        if (res && res.header) {
+          const newToken = res.header['X-New-Token'];
+          const tokenRefreshed = res.header['X-Token-Refreshed'];
+          
+          if (newToken && tokenRefreshed === 'true') {
+            console.log('检测到新的token，更新本地存储');
+            // 更新全局token
+            app.globalData.token = newToken;
+            // 更新本地存储
+            wx.setStorageSync('token', newToken);
+          }
+        }
+        
+        if (onComplete && typeof onComplete === 'function') {
+          onComplete();
+        }
+        
+        resolve(res);
+      },
+      fail: (err) => {
+        console.error('请求失败:', err);
+        if (onError && typeof onError === 'function') {
+          onError(err);
+        }
+        reject(err);
+      }
+    });
+  });
+}
+
 // 导出GET请求方法
 export const get = (url, data = {}, header = {}) => {
   return request(url, data, 'GET', header)
@@ -107,6 +212,15 @@ export const get = (url, data = {}, header = {}) => {
 // 导出POST请求方法
 export const post = (url, data = {}, header = {}) => {
   return request(url, data, 'POST', header)
+}
+
+// 导出流式请求方法
+export const postStream = (url, data = {}, options = {}) => {
+  return requestStream(url, {
+    ...options,
+    data,
+    method: 'POST'
+  })
 }
 
 // 导出PUT请求方法
@@ -123,6 +237,7 @@ export const del = (url, data = {}, header = {}) => {
 export default {
   get,
   post,
+  postStream,
   put,
   del,
   delete: del

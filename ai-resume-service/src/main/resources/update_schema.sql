@@ -53,3 +53,27 @@ ALTER TABLE interview_log ADD COLUMN related_project_points TEXT COMMENT '相关
 ALTER TABLE interview_log ADD COLUMN stop_reason VARCHAR(100) COMMENT '停止原因';
 ALTER TABLE interview_log ADD COLUMN persona VARCHAR(50) COMMENT '当前题目使用的面试官语气风格';
 ALTER TABLE interview_log ADD COLUMN ai_feedback_json LONGTEXT COMMENT 'AI原始评分和分析结果';
+ALTER TABLE interview_log ADD COLUMN depth_level VARCHAR(20) COMMENT '问题深度：usage/implementation/principle/optimization';
+
+-- 2025-11-25 优化AI问题生成逻辑：后续问题不再发送完整简历，基于上下文生成
+-- 修改文件：InterviewServiceImpl.java
+-- 修改内容：
+-- 1. 只有第一次生成问题时才发送完整简历给DeepSeek API
+-- 2. 后续问题基于上一题的问答上下文生成，不重复发送完整简历
+-- 3. 减少API请求数据量，提高响应速度
+
+-- 2025-11-26 实现流式问题生成功能
+-- 修改文件：InterviewServiceImpl.java
+-- 修改内容：
+-- 1. 实现generateNewQuestionWithAIStream方法，支持流式生成问题
+-- 2. 修改getFirstQuestionStream方法，使用流式生成问题
+-- 3. 修改submitAnswerStream方法，使用流式生成下一个问题
+-- 修改文件：interview.js（前端）
+-- 修改内容：
+-- 1. 导入requestStream和postStream方法
+-- 2. 实现fetchFirstQuestionStream方法，处理流式第一个问题
+-- 3. 修改onLoad方法，使用流式请求获取第一个问题
+-- 4. 修改submitAnswer方法，使用流式请求提交回答并处理流式响应
+
+-- 2025-11-27 新增InterviewLog表depth_level字段，用于存储问题深度级别
+ALTER TABLE interview_log ADD COLUMN depth_level VARCHAR(20) COMMENT '问题深度：usage/implementation/principle/optimization';

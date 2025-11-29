@@ -1,25 +1,40 @@
 package com.aicv.airesume.utils;
 
 import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.JSON;
+
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.type.TypeReference;
 
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.Base64;
 
 /**
  * AI服务工具类
  */
+@Slf4j
 @Component
 public class AiServiceUtils {
 
@@ -30,6 +45,8 @@ public class AiServiceUtils {
     private String deepseekApiUrl;
 
     private final RestTemplate restTemplate = new RestTemplate();
+    private final ExecutorService executorService = Executors.newFixedThreadPool(5);
+    private final WebClient webClient = WebClient.builder().build();
 
     /**
      * 使用OpenAI优化简历
@@ -109,22 +126,17 @@ public class AiServiceUtils {
     }
 
     /**
-     * 调用DeepSeek API
+     * 调用DeepSeek API（同步方式）
      * @param prompt 提示词
      * @return API响应内容
      */
     public String callDeepSeekApi(String prompt) {
         try {
-            // 设置请求头
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.set("Authorization", "Bearer " + deepseekApiKey);
-
             // 构建请求体
             Map<String, Object> requestBody = new HashMap<>();
-            requestBody.put("model", "deepseek-chat"); // 使用DeepSeek聊天模型
+            requestBody.put("model", "deepseek-chat");
+            requestBody.put("stream", false);
             
-            // 构建消息数组
             Map<String, String> message = new HashMap<>();
             message.put("role", "user");
             message.put("content", prompt);
@@ -133,18 +145,25 @@ public class AiServiceUtils {
             requestBody.put("temperature", 0.7);
             requestBody.put("max_tokens", 2000);
 
-            // 发送请求
-            HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(requestBody, headers);
-            ResponseEntity<JSONObject> response = restTemplate.exchange(
-                    deepseekApiUrl,
-                    HttpMethod.POST,
-                    requestEntity,
-                    JSONObject.class
-            );
+            // 构建HTTP头
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.set("Authorization", "Bearer " + deepseekApiKey);
 
+            // 创建HttpEntity
+            HttpEntity<String> requestEntity = new HttpEntity<>(
+                JSONObject.toJSONString(requestBody), headers);
+
+            log.info("Sending request to DeepSeek API: {}", JSONObject.toJSONString(requestBody));
+            
+            // 发送同步请求
+            ResponseEntity<String> response = restTemplate.exchange(
+                deepseekApiUrl, HttpMethod.POST, requestEntity, String.class);
+            log.info("Received response from DeepSeek API: {}", response.getBody());
+            
             // 解析响应
-            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                JSONObject body = response.getBody();
+            if (response.getStatusCodeValue() == 200) {
+                JSONObject body = JSONObject.parseObject(response.getBody());
                 if (body.containsKey("choices") && !body.getJSONArray("choices").isEmpty()) {
                     JSONObject choice = body.getJSONArray("choices").getJSONObject(0);
                     if (choice.containsKey("message")) {
@@ -152,14 +171,238 @@ public class AiServiceUtils {
                     }
                 }
             }
-
-            // 如果响应不符合预期，返回空字符串
             return "";
         } catch (Exception e) {
-            // 记录错误日志
-            System.err.println("Error calling DeepSeek API: " + e.getMessage());
-            // 返回空字符串，让调用方处理错误情况
+            log.error("Error calling DeepSeek API: {}", e.getMessage(), e);
             return "";
+        }
+    }
+
+    /**
+     * 调用DeepSeek API（流式输出方式）
+     * @param prompt 提示词
+     * @param emitter SSE发射器，用于流式输出
+     * @param onComplete 流结束回调函数
+     */
+    public void callDeepSeekApiStream(String prompt, SseEmitter emitter, Runnable onComplete) {
+        executorService.submit(() -> {
+            try {
+                // 构建请求体
+                Map<String, Object> requestBody = new HashMap<>();
+                requestBody.put("model", "deepseek-chat");
+                requestBody.put("stream", true); // 启用流式输出
+                
+                Map<String, String> message = new HashMap<>();
+                message.put("role", "user");
+                message.put("content", prompt);
+                
+                requestBody.put("messages", new Object[]{message});
+                requestBody.put("temperature", 0.7);
+                requestBody.put("max_tokens", 2000);
+
+                log.info("Sending streaming request to DeepSeek API: {}", JSONObject.toJSONString(requestBody));
+                
+                // 元数据提取相关变量 - 使用数组包装以便在lambda中修改
+                boolean[] isExtractingMetadata = {false};
+                StringBuilder[] metadataBuilder = {new StringBuilder()};
+                StringBuilder questionBuilder = new StringBuilder();
+                
+                // 使用WebClient发送流式请求
+                webClient.post()
+                        .uri(deepseekApiUrl)
+                        .header("Authorization", "Bearer " + deepseekApiKey)
+                        .header("Content-Type", MediaType.APPLICATION_JSON_VALUE)
+                        .bodyValue(JSONObject.toJSONString(requestBody))
+                        .accept(MediaType.TEXT_EVENT_STREAM)
+                        .retrieve()
+                        .bodyToFlux(String.class)
+                        .subscribe(
+                                // 处理每一行流数据
+                                line -> {
+                                    try {
+                                        log.debug("Received streaming line: {}", line);
+                                        // 跳过空行
+                                        if (line == null || line.isEmpty()) {
+                                            return;
+                                        }
+                                        // 跳过结束标记
+                                        if (line.equals("data: [DONE]") || line.equals("[DONE]")) {
+                                            return;
+                                        }
+                                        // 提取JSON部分
+                                        String jsonStr = line;
+                                        // 如果line以"data: "开头，提取后面的JSON部分
+                                        if (line.startsWith("data: ")) {
+                                            jsonStr = line.substring(6);
+                                        }
+                                        // 去除可能的引号（如果line是被引号包裹的完整JSON字符串）
+                                        if (jsonStr.startsWith("\"") && jsonStr.endsWith("\"") && jsonStr.length() > 1) {
+                                            jsonStr = jsonStr.substring(1, jsonStr.length() - 1);
+                                        }
+                                        
+                                        // 解析JSON获取content
+                                        JSONObject json = JSONObject.parseObject(jsonStr);
+                                        if (json.containsKey("choices") && !json.getJSONArray("choices").isEmpty()) {
+                                            JSONObject choice = json.getJSONArray("choices").getJSONObject(0);
+                                            if (choice.containsKey("delta")) {
+                                                JSONObject delta = choice.getJSONObject("delta");
+                                                if (delta.containsKey("content")) {
+                                                    String content = delta.getString("content");
+                                                    if (content != null && !content.isEmpty()) {
+                                                        // 检查是否开始提取元数据
+                                                        if (content.contains("# 元数据开始")) {
+                                                            isExtractingMetadata[0] = true;
+                                                            // 处理包含# 元数据开始的内容
+                                                            String[] parts = content.split("# 元数据开始");
+                                                            // 如果# 元数据开始前面有内容，可能是之前的残留，直接忽略
+                                                            if (parts.length > 1) {
+                                                                metadataBuilder[0].append(parts[1]);
+                                                            }
+                                                        } 
+                                                        // 检查是否结束提取元数据
+                                                        else if (content.contains("# 元数据结束")) {
+                                                            isExtractingMetadata[0] = false;
+                                                            // 处理包含# 元数据结束的内容
+                                                            String[] parts = content.split("# 元数据结束");
+                                                            if (parts.length > 0) {
+                                                                metadataBuilder[0].append(parts[0]);
+                                                            }
+                                                            // 解析元数据并发送
+                                                            String metadataJsonStr = metadataBuilder[0].toString().trim();
+                                                            if (!metadataJsonStr.isEmpty()) {
+                                                                log.info("Extracted metadata: {}", metadataJsonStr);
+                                                                // 发送元数据事件
+                                                                emitter.send(SseEmitter.event()
+                                                                        .name("metadata")
+                                                                        .data(metadataJsonStr));
+                                                            }
+                                                            // 如果# 元数据结束后面有内容，直接添加到问题文本
+                                                            if (parts.length > 1) {
+                                                                String questionPart = parts[1].trim();
+                                                                if (!questionPart.isEmpty()) {
+                                                                    emitter.send(SseEmitter.event()
+                                                                            .name("question")
+                                                                            .data(questionPart));
+                                                                }
+                                                            }
+                                                        }
+                                                        // 如果正在提取元数据，继续构建元数据
+                                                        else if (isExtractingMetadata[0]) {
+                                                            metadataBuilder[0].append(content);
+                                                        }
+                                                        // 否则直接发送问题文本
+                                                        else {
+                                                            emitter.send(SseEmitter.event()
+                                                                    .name("question")
+                                                                    .data(content));
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    } catch (Exception e) {
+                                        log.error("Error processing streaming line: {}", e.getMessage(), e);
+                                        emitter.completeWithError(e);
+                                    }
+                                },
+                                // 处理错误
+                                error -> {
+                                    log.error("Error in streaming response: {}", error.getMessage(), error);
+                                    emitter.completeWithError(error);
+                                },
+                                // 流结束
+                                () -> {
+                                    log.info("Streaming response completed");
+                                    // 调用回调函数通知流结束
+                                    if (onComplete != null) {
+                                        onComplete.run();
+                                    }
+                                }
+                        );
+            } catch (Exception e) {
+                log.error("Error setting up streaming request: {}", e.getMessage(), e);
+                emitter.completeWithError(e);
+            }
+        });
+    }
+    
+    /**
+     * 评估面试回答
+     * @param questionText 问题文本
+     * @param userAnswerText 用户回答文本
+     * @param expectedKeyPoints 期望的关键点
+     * @param depthLevel 当前问题的深度级别
+     * @param relatedTech 相关技术点
+     * @param persona 面试官风格
+     * @return 评分结果，包含技术分、逻辑分、清晰度分、深度分
+     */
+    public Map<String, Double> assessInterviewAnswer(String questionText, String userAnswerText, List<String> expectedKeyPoints, String depthLevel, String relatedTech, String persona) {
+        // 构建评分prompt，结合元数据进行更准确的评分
+        StringBuilder prompt = new StringBuilder();
+        prompt.append("作为一个专业的面试官，请根据以下信息对候选人的回答进行评分：\n");
+        prompt.append("\n1. 问题：");
+        prompt.append(questionText);
+        prompt.append("\n2. 问题深度级别：");
+        prompt.append(depthLevel);
+        prompt.append("\n3. 相关技术点：");
+        prompt.append(relatedTech);
+        prompt.append("\n4. 期望的关键点：");
+        prompt.append(expectedKeyPoints != null ? expectedKeyPoints.toString() : "无");
+        prompt.append("\n5. 候选人回答：");
+        prompt.append(userAnswerText);
+        prompt.append("\n6. 面试官风格：");
+        prompt.append(persona);
+        prompt.append("\n\n请按照以下格式返回评分结果，只返回JSON，不要添加任何其他说明：");
+        prompt.append("\n{");
+        prompt.append("\"tech\": 技术分（0-100）,");
+        prompt.append("\"logic\": 逻辑分（0-100）,");
+        prompt.append("\"clarity\": 清晰度分（0-100）,");
+        prompt.append("\"depth\": 深度分（0-100）");
+        prompt.append("}");
+        
+        try {
+            // 调用DeepSeek API进行评分
+            // 构建请求参数
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("model", "deepseek-chat");
+            
+            List<Map<String, String>> messages = new ArrayList<>();
+            
+            Map<String, String> systemMessage = new HashMap<>();
+            systemMessage.put("role", "system");
+            systemMessage.put("content", "你是一个专业的技术面试官，擅长对候选人的回答进行评分。");
+            messages.add(systemMessage);
+            
+            Map<String, String> userMessage = new HashMap<>();
+            userMessage.put("role", "user");
+            userMessage.put("content", prompt.toString());
+            messages.add(userMessage);
+            
+            requestBody.put("messages", messages);
+            requestBody.put("stream", false);
+            
+            String response = webClient.post()
+                    .uri(deepseekApiUrl)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(requestBody)
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .block();
+            
+            // 解析评分结果
+            ObjectMapper objectMapper = new ObjectMapper();
+            JsonNode rootNode = objectMapper.readTree(response);
+            String content = rootNode.path("choices").get(0).path("message").path("content").asText();
+            return objectMapper.readValue(content, new TypeReference<Map<String, Double>>() {});
+        } catch (Exception e) {
+            log.error("Error assessing interview answer: {}", e.getMessage(), e);
+            // 如果调用失败，返回默认评分
+            Map<String, Double> defaultScores = new HashMap<>();
+            defaultScores.put("tech", 75.0);
+            defaultScores.put("logic", 75.0);
+            defaultScores.put("clarity", 75.0);
+            defaultScores.put("depth", 75.0);
+            return defaultScores;
         }
     }
 }

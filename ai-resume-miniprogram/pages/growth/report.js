@@ -172,13 +172,10 @@ Page({
       title: '正在生成PDF...',
     })
     
-    wx.request({
-      url: '/api/report/growth/pdf',
-      method: 'POST',
-      data: { reportData: this.data.reportData },
-      success: (res) => {
-        if (res.data && res.data.code === 0) {
-          const pdfUrl = res.data.data.pdfUrl
+    post('/api/report/growth/pdf', { reportData: this.data.reportData })
+      .then(res => {
+        if (res && res.code === 0) {
+          const pdfUrl = res.data.pdfUrl
           wx.downloadFile({
             url: pdfUrl,
             success: (downloadRes) => {

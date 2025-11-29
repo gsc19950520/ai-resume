@@ -34,11 +34,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 /**
  * 面试服务实现类
@@ -80,6 +83,9 @@ public class InterviewServiceImpl implements InterviewService {
     @Autowired
     private ResumeService resumeService;
     
+    // 线程池，用于处理异步任务
+    private final ExecutorService executorService = java.util.concurrent.Executors.newFixedThreadPool(5);
+    
     // 保存AI调用的跟踪日志
      private void saveAiTraceLog(String sessionId, String actionType, String promptInput, String aiResponse) {
          try {
@@ -94,6 +100,240 @@ public class InterviewServiceImpl implements InterviewService {
              log.error("保存AI跟踪日志失败", e);
          }
      }
+
+    @Override
+    public SseEmitter getFirstQuestionStream(String sessionId) {
+        SseEmitter emitter = new SseEmitter(60000L); // 设置60秒超时
+        
+        new Thread(() -> {
+            try {
+                // 查询会话是否存在
+                InterviewSession session = sessionRepository.findBySessionId(sessionId)
+                        .orElseThrow(() -> new RuntimeException("会话不存在"));
+                
+                // 从数据库获取会话信息
+                String resumeContent = "";
+                List<String> techItems = new ArrayList<>();
+                List<Map<String, Object>> projectPoints = new ArrayList<>();
+                Map<String, Object> interviewState = new HashMap<>();
+                
+                // 解析面试状态
+                if (StringUtils.hasText(session.getInterviewState())) {
+                    try {
+                        interviewState = objectMapper.readValue(session.getInterviewState(), new TypeReference<Map<String, Object>>() {});
+                    } catch (Exception e) {
+                        log.error("解析面试状态失败: {}", e.getMessage());
+                        interviewState.put("usedTechItems", new ArrayList<>());
+                        interviewState.put("usedProjectPoints", new ArrayList<>());
+                        interviewState.put("currentDepthLevel", "usage");
+                    }
+                } else {
+                    interviewState.put("usedTechItems", new ArrayList<>());
+                    interviewState.put("usedProjectPoints", new ArrayList<>());
+                    interviewState.put("currentDepthLevel", "usage");
+                }
+                
+                // 获取完整简历内容
+                if (interviewState.containsKey("fullResumeContent")) {
+                    resumeContent = (String) interviewState.get("fullResumeContent");
+                } else {
+                    // 如果简历内容不存在，从数据库获取
+                    Map<String, Object> fullResumeData = resumeService.getResumeFullData(session.getResumeId());
+                    resumeContent = convertFullDataToText(fullResumeData);
+                    interviewState.put("fullResumeContent", resumeContent);
+                }
+                
+                // 获取技术项和项目点
+                if (StringUtils.hasText(session.getTechItems())) {
+                    techItems = objectMapper.readValue(session.getTechItems(), new TypeReference<List<String>>() {});
+                } else {
+                    // 如果技术项不存在，从简历内容中提取
+                    Map<String, Object> extractedData = extractTechItemsAndProjectPoints(resumeContent);
+                    if (extractedData != null) {
+                        if (extractedData.containsKey("techItems")) {
+                            techItems = (List<String>) extractedData.get("techItems");
+                        }
+                        if (extractedData.containsKey("projectPoints")) {
+                            projectPoints = (List<Map<String, Object>>) extractedData.get("projectPoints");
+                        }
+                        // 保存技术项和项目点到会话
+                        session.setTechItems(objectMapper.writeValueAsString(techItems));
+                        session.setProjectPoints(objectMapper.writeValueAsString(projectPoints));
+                        sessionRepository.save(session);
+                    }
+                }
+                
+                // 生成第一个问题（流式）
+                List<String> usedTechItems = (List<String>) interviewState.get("usedTechItems");
+                List<String> usedProjectPoints = (List<String>) interviewState.get("usedProjectPoints");
+                String currentDepthLevel = (String) interviewState.get("currentDepthLevel");
+                String jobType = String.valueOf(session.getJobTypeId());
+                
+                // 调用流式生成问题方法，并传递回调函数
+                generateNewQuestionWithAIStream(techItems, projectPoints, usedTechItems, usedProjectPoints, 
+                                               currentDepthLevel, session.getSessionTimeRemaining(), 
+                                               session.getPersona(), jobType, resumeContent, "", "", emitter, 
+                                               () -> {
+                                                   // 流结束回调：发送结束信号并完成emitter
+                                                   try {
+                                                       emitter.send(SseEmitter.event().data("end").name("end").id("2"));
+                                                       emitter.complete();
+                                                   } catch (IOException e) {
+                                                       log.error("发送结束信号失败：{}", e.getMessage(), e);
+                                                       emitter.completeWithError(e);
+                                                   }
+                                               });
+                
+                // 获取生成的问题（需要从AI响应中解析，这里简化处理）
+                String firstQuestion = "";
+                
+                // 保存AI生成问题的跟踪日志
+                saveAiTraceLog(session.getSessionId(), "generate_question", 
+                        "生成第一个问题的prompt内容", firstQuestion);
+                
+                // 更新会话问题计数
+                session.setQuestionCount(1);
+                session.setInterviewState(objectMapper.writeValueAsString(interviewState));
+                sessionRepository.save(session);
+                
+                log.info("直接生成第一个面试问题并保存，会话ID: {}", session.getSessionId());
+                
+                // 注意：问题已经通过generateNewQuestionWithAIStream方法流式发送给客户端了
+            } catch (Exception e) {
+                log.error("获取第一个问题失败: {}", e.getMessage(), e);
+                emitter.completeWithError(e);
+            }
+        }).start();
+        
+        return emitter;
+    }
+
+    @Override
+    public SseEmitter submitAnswerStream(String sessionId, String userAnswerText, Integer answerDuration, String toneStyle) {
+        SseEmitter emitter = new SseEmitter(60000L); // 设置60秒超时
+        
+        new Thread(() -> {
+            try {
+                // 1. 获取会话信息
+                InterviewSession session = sessionRepository.findBySessionId(sessionId)
+                        .orElseThrow(() -> new RuntimeException("会话不存在"));
+                
+                // 获取最新的问题日志
+                List<InterviewLog> logs = logRepository.findBySessionIdOrderByRoundNumberAsc(sessionId);
+                if (logs.isEmpty()) {
+                    throw new RuntimeException("问题不存在");
+                }
+                InterviewLog currentLog = logs.get(logs.size() - 1);
+
+                // 2. 更新当前问题日志
+                currentLog.setUserAnswerText(userAnswerText);
+                currentLog.setAnswerDuration(answerDuration);
+                
+                // 3. 计算剩余时间
+                session.setSessionTimeRemaining(session.getSessionTimeRemaining() - answerDuration);
+                
+                // 4. 调用aiAssessmentPerQuestion模块评分
+                List<String> expectedKeyPoints = new ArrayList<>(); 
+                // 从当前日志中获取期望的关键点
+                if (StringUtils.hasText(currentLog.getExpectedKeyPoints())) {
+                    try {
+                        expectedKeyPoints = objectMapper.readValue(currentLog.getExpectedKeyPoints(), new TypeReference<List<String>>() {});
+                    } catch (Exception e) {
+                        log.error("解析期望关键点失败: {}", e.getMessage());
+                    }
+                }
+                
+                // 调用AI评分
+                Map<String, Double> scores = aiServiceUtils.assessInterviewAnswer(
+                        currentLog.getQuestionText(),
+                        userAnswerText,
+                        expectedKeyPoints,
+                        currentLog.getDepthLevel(),
+                        currentLog.getRelatedTechItems(),
+                        session.getPersona()
+                );
+                
+                // 5. 更新当前日志的评分信息
+                currentLog.setTechScore(scores.get("tech"));
+                currentLog.setLogicScore(scores.get("logic"));
+                currentLog.setClarityScore(scores.get("clarity"));
+                currentLog.setDepthScore(scores.get("depth"));
+                logRepository.save(currentLog);
+                
+                // 6. 生成下一个问题
+                // 获取技术项和项目点
+                List<String> techItems = new ArrayList<>();
+                List<Map<String, Object>> projectPoints = new ArrayList<>();
+                Map<String, Object> interviewState = new HashMap<>();
+                
+                // 解析面试状态
+                if (StringUtils.hasText(session.getInterviewState())) {
+                    interviewState = objectMapper.readValue(session.getInterviewState(), new TypeReference<Map<String, Object>>() {});
+                }
+                
+                // 获取简历内容
+                String resumeContent = "";
+                if (interviewState.containsKey("fullResumeContent")) {
+                    resumeContent = (String) interviewState.get("fullResumeContent");
+                } else {
+                    // 如果面试状态中没有完整简历内容，尝试从简历表获取
+                    Long resumeId = session.getResumeId();
+                    Map<String, Object> fullResumeData = resumeService.getResumeFullData(resumeId);
+                    resumeContent = convertFullDataToText(fullResumeData);
+                    interviewState.put("fullResumeContent", resumeContent);
+                }
+                
+                if (StringUtils.hasText(session.getTechItems())) {
+                    techItems = objectMapper.readValue(session.getTechItems(), new TypeReference<List<String>>() {});
+                }
+                
+                if (StringUtils.hasText(session.getProjectPoints())) {
+                    projectPoints = objectMapper.readValue(session.getProjectPoints(), new TypeReference<List<Map<String, Object>>>() {});
+                }
+                
+                // 获取当前深度级别
+                String currentDepthLevel = (String) interviewState.getOrDefault("currentDepthLevel", "usage");
+                List<String> usedTechItems = (List<String>) interviewState.getOrDefault("usedTechItems", new ArrayList<>());
+                List<String> usedProjectPoints = (List<String>) interviewState.getOrDefault("usedProjectPoints", new ArrayList<>());
+                
+                // 构建响应，包含评分
+                Map<String, Object> response = new HashMap<>();
+                response.put("techScore", scores.get("tech"));
+                response.put("logicScore", scores.get("logic"));
+                response.put("clarityScore", scores.get("clarity"));
+                response.put("depthScore", scores.get("depth"));
+                
+                // 流式发送评分
+                emitter.send(SseEmitter.event().data(response).name("score").id("1"));
+                
+                // 生成下一个问题（流式）
+                generateNewQuestionWithAIStream(techItems, projectPoints, usedTechItems, usedProjectPoints, 
+                                               currentDepthLevel, session.getSessionTimeRemaining(), 
+                                               session.getPersona(), String.valueOf(session.getJobTypeId()), resumeContent, 
+                                               currentLog.getQuestionText(), userAnswerText, emitter, 
+                                               () -> {
+                                                   // 流结束回调：发送结束信号并完成emitter
+                                                   try {
+                                                       emitter.send(SseEmitter.event().data("end").name("end").id("3"));
+                                                       emitter.complete();
+                                                   } catch (IOException e) {
+                                                       log.error("发送结束信号失败：{}", e.getMessage(), e);
+                                                       emitter.completeWithError(e);
+                                                   }
+                                               });
+                
+                // 7. 更新会话状态（需要从AI响应中获取nextQuestion和stopReason，这里简化处理）
+                session.setQuestionCount(session.getQuestionCount() + 1);
+                session.setInterviewState(objectMapper.writeValueAsString(interviewState));
+                sessionRepository.save(session);
+            } catch (Exception e) {
+                log.error("提交回答失败: {}", e.getMessage(), e);
+                emitter.completeWithError(e);
+            }
+        }).start();
+        
+        return emitter;
+    }
 
     @Override
     public InterviewResponseVO startInterview(Long userId, Long resumeId, String persona, Integer sessionSeconds, Integer jobTypeId) {
@@ -439,33 +679,36 @@ public class InterviewServiceImpl implements InterviewService {
     }
 
     @Override
-    public String getFirstQuestion(String sessionId) {
-        try {
-            // 查询会话是否存在
-            InterviewSession session = sessionRepository.findBySessionId(sessionId)
-                    .orElseThrow(() -> new RuntimeException("会话不存在"));
-            
-            // 从数据库获取会话信息
-            String resumeContent = "";
-            List<String> techItems = new ArrayList<>();
-            List<Map<String, Object>> projectPoints = new ArrayList<>();
-            Map<String, Object> interviewState = new HashMap<>();
-            
-            // 解析面试状态
-            if (StringUtils.hasText(session.getInterviewState())) {
-                try {
-                    interviewState = objectMapper.readValue(session.getInterviewState(), new TypeReference<Map<String, Object>>() {});
-                } catch (Exception e) {
-                    log.error("解析面试状态失败: {}", e.getMessage());
+    public SseEmitter getFirstQuestion(String sessionId) {
+        SseEmitter emitter = new SseEmitter(60000L); // 设置60秒超时
+        
+        new Thread(() -> {
+            try {
+                // 查询会话是否存在
+                InterviewSession session = sessionRepository.findBySessionId(sessionId)
+                        .orElseThrow(() -> new RuntimeException("会话不存在"));
+                
+                // 从数据库获取会话信息
+                String resumeContent = "";
+                List<String> techItems = new ArrayList<>();
+                List<Map<String, Object>> projectPoints = new ArrayList<>();
+                Map<String, Object> interviewState = new HashMap<>();
+                
+                // 解析面试状态
+                if (StringUtils.hasText(session.getInterviewState())) {
+                    try {
+                        interviewState = objectMapper.readValue(session.getInterviewState(), new TypeReference<Map<String, Object>>() {});
+                    } catch (Exception e) {
+                        log.error("解析面试状态失败: {}", e.getMessage());
+                        interviewState.put("usedTechItems", new ArrayList<>());
+                        interviewState.put("usedProjectPoints", new ArrayList<>());
+                        interviewState.put("currentDepthLevel", "usage");
+                    }
+                } else {
                     interviewState.put("usedTechItems", new ArrayList<>());
                     interviewState.put("usedProjectPoints", new ArrayList<>());
                     interviewState.put("currentDepthLevel", "usage");
                 }
-            } else {
-                interviewState.put("usedTechItems", new ArrayList<>());
-                interviewState.put("usedProjectPoints", new ArrayList<>());
-                interviewState.put("currentDepthLevel", "usage");
-            }
             
             // 获取完整简历内容
             if (interviewState.containsKey("fullResumeContent")) {
@@ -552,24 +795,23 @@ public class InterviewServiceImpl implements InterviewService {
             logRepository.save(firstLog);
             
             log.info("直接生成第一个面试问题并保存，会话ID: {}", session.getSessionId());
-            return firstQuestion;
+            
+            // 发送问题并结束流
+            emitter.send(SseEmitter.event().data(firstQuestion));
+            emitter.complete();
         } catch (Exception e) {
             log.error("获取第一个问题失败: {}", e.getMessage(), e);
-            // 即使出现异常，也从问题库中随机返回一个问题
+            // 发送错误信息并结束流
             try {
-                List<InterviewQuestion> questions = questionRepository.findAllByDepthLevel("usage");
-                if (!questions.isEmpty()) {
-                    // 随机选择一个问题
-                    Random random = new Random();
-                    InterviewQuestion selectedQuestion = questions.get(random.nextInt(questions.size()));
-                    return selectedQuestion.getQuestionText();
-                }
-            } catch (Exception ex) {
-                log.error("从问题库获取默认问题失败: {}", ex.getMessage());
+                emitter.send(SseEmitter.event().name("error").data("获取第一个面试问题失败：" + e.getMessage()));
+            } catch (Exception sendEx) {
+                log.error("发送错误信息失败: {}", sendEx.getMessage());
             }
-            // 如果问题库也不可用，返回默认问题
-            return "请简单介绍一下你自己，以及你为什么适合这个职位？";
+            emitter.completeWithError(e);
         }
+        }).start();
+        
+        return emitter;
     }
 
     @Override
@@ -1016,6 +1258,119 @@ public class InterviewServiceImpl implements InterviewService {
         }
     }
     
+    @Override
+    public SseEmitter generateNextQuestionStream(List<String> techItems, List<Map<String, Object>> projectPoints,
+                                            Map<String, Object> interviewState, Integer sessionTimeRemaining,
+                                            String persona, Integer jobTypeId) {
+        // 创建SSE发射器，设置超时时间为30秒
+        SseEmitter emitter = new SseEmitter(30000L);
+        
+        // 使用线程池处理请求，避免阻塞主线程
+        executorService.submit(() -> {
+            try {
+                log.info("generateNextQuestionStream start");
+                
+                // 获取已使用的技术项和项目点
+                List<String> usedTechItems = (List<String>) interviewState.getOrDefault("usedTechItems", new ArrayList<>());
+                List<String> usedProjectPoints = (List<String>) interviewState.getOrDefault("usedProjectPoints", new ArrayList<>());
+                String currentDepthLevel = (String) interviewState.getOrDefault("currentDepthLevel", "usage");
+                String jobType = (String) interviewState.getOrDefault("jobType", "");
+                
+                // 获取完整简历内容
+                String fullResumeContent = (String) interviewState.getOrDefault("fullResumeContent", "");
+                log.info("将使用完整简历内容生成问题，长度: {}字符", fullResumeContent != null ? fullResumeContent.length() : 0);
+                
+                // 获取最新的问题和回答日志，用于上下文生成
+                List<InterviewLog> logs = new ArrayList<>();
+                String previousQuestion = "";
+                String previousAnswer = "";
+                String sessionId = (String) interviewState.get("sessionId");
+                if (sessionId != null) {
+                    logs = logRepository.findBySessionIdOrderByRoundNumberAsc(sessionId);
+                    if (!logs.isEmpty()) {
+                        InterviewLog lastLog = logs.get(logs.size() - 1);
+                        previousQuestion = lastLog.getQuestionText();
+                        previousAnswer = lastLog.getUserAnswerText();
+                    }
+                }
+                
+                // 构建prompt
+                StringBuilder promptBuilder = new StringBuilder();
+                
+                // 根据不同风格设置不同的提示词
+                switch (persona) {
+                    case "friendly":
+                        promptBuilder.append("你是友好型风格的面试官。问题需自然、亲和、不死板，营造轻松的面试氛围。\n");
+                        break;
+                    case "neutral":
+                        promptBuilder.append("你是中立型风格的面试官。问题需专业、客观、直接，注重事实和技术细节。\n");
+                        break;
+                    case "pressure":
+                    case "challenging":
+                        promptBuilder.append("你是压力型风格的面试官。问题需有压迫感、深入追问、挑战性强，测试候选人在压力下的表现。\n");
+                        break;
+                    default:
+                        promptBuilder.append(String.format("你是%s风格的面试官。问题需自然、专业、有针对性。\n", persona));
+                }
+                
+                // 只有第一次生成问题时（没有上下文）才发送完整简历，后续问题基于上下文生成
+                if (StringUtils.hasText(previousQuestion) && StringUtils.hasText(previousAnswer)) {
+                    // 后续问题：基于上一题的问答上下文生成，不发送完整简历
+                    promptBuilder.append("上一轮面试问答：\n");
+                    promptBuilder.append(String.format("问题：%s\n", previousQuestion));
+                    promptBuilder.append(String.format("回答：%s\n\n", previousAnswer));
+                    promptBuilder.append("请根据上一题的问答内容，结合候选人的简历，生成下一个相关的面试问题。\n");
+                } else {
+                    // 第一次生成问题：发送完整简历
+                    if (StringUtils.hasText(fullResumeContent)) {
+                        promptBuilder.append("以下是候选人的完整简历内容：\n");
+                        promptBuilder.append(fullResumeContent).append("\n\n");
+                    }
+                    promptBuilder.append("请直接基于候选人的简历内容生成针对性的面试问题。\n");
+                }
+                
+                promptBuilder.append("规则：\n");
+                promptBuilder.append("- 从用法或项目实践切入，逐步深入原理/优化。\n");
+                promptBuilder.append("- 只生成单个问题，不要生成多个问题或列表形式的问题。\n");
+                promptBuilder.append(String.format("- 已使用技术项：%s\n", String.join(", ", usedTechItems)));
+                promptBuilder.append(String.format("- 已使用项目点：%s\n", String.join(", ", usedProjectPoints)));
+                promptBuilder.append(String.format("- 当前深度级别：%s\n", currentDepthLevel));
+                promptBuilder.append(String.format("- 剩余时间：%d秒\n", sessionTimeRemaining));
+                promptBuilder.append("- 若时间<60s或连续两次回答偏离主题，则进入总结问题。\n");
+                promptBuilder.append("请只返回问题内容，不要添加任何其他说明、格式或JSON结构。");
+                
+                String prompt = promptBuilder.toString();
+                
+                // 调用AI服务的流式API
+                aiServiceUtils.callDeepSeekApiStream(prompt, emitter, () -> {
+                    // 流结束回调：发送结束信号并完成emitter
+                    try {
+                        emitter.send(SseEmitter.event().data("end").name("end").id("2"));
+                        emitter.complete();
+                    } catch (IOException e) {
+                        log.error("发送结束信号失败：{}", e.getMessage(), e);
+                        emitter.completeWithError(e);
+                    }
+                });
+                
+                log.info("generateNextQuestionStream end");
+            } catch (Exception e) {
+                log.error("生成下一个问题失败", e);
+                try {
+                    // 发送错误信息
+                    emitter.send(SseEmitter.event()
+                            .name("error")
+                            .data("生成问题失败：" + e.getMessage()));
+                    emitter.completeWithError(e);
+                } catch (Exception sendError) {
+                    log.error("发送错误信息失败", sendError);
+                }
+            }
+        });
+        
+        return emitter;
+    }
+    
 
     
     /**
@@ -1045,36 +1400,32 @@ public class InterviewServiceImpl implements InterviewService {
                 promptBuilder.append(String.format("你是%s风格的面试官。问题需自然、专业、有针对性。\n", persona));
         }
         
-        // 优化：直接使用完整简历内容作为生成问题的基础，这样对用户更方便
-        if (StringUtils.hasText(fullResumeContent)) {
-            promptBuilder.append("以下是候选人的完整简历内容：\n");
-            promptBuilder.append(fullResumeContent).append("\n\n");
-        }
-        
-        // 添加上一题的上下文信息
+            // 只有第一次生成问题时（没有上下文）才发送完整简历，后续问题基于上下文生成
         if (StringUtils.hasText(previousQuestion) && StringUtils.hasText(previousAnswer)) {
+            // 后续问题：基于上一题的问答上下文生成，不发送完整简历
             promptBuilder.append("上一轮面试问答：\n");
             promptBuilder.append(String.format("问题：%s\n", previousQuestion));
             promptBuilder.append(String.format("回答：%s\n\n", previousAnswer));
             promptBuilder.append("请根据上一题的问答内容，结合候选人的简历，生成下一个相关的面试问题。\n");
         } else {
+            // 第一次生成问题：发送完整简历
+            if (StringUtils.hasText(fullResumeContent)) {
+                promptBuilder.append("以下是候选人的完整简历内容：\n");
+                promptBuilder.append(fullResumeContent).append("\n\n");
+            }
             promptBuilder.append("请直接基于候选人的简历内容生成针对性的面试问题。\n");
         }
         
         promptBuilder.append("规则：\n");
         promptBuilder.append("- 从用法或项目实践切入，逐步深入原理/优化。\n");
+        promptBuilder.append("- 只生成单个问题，不要生成多个问题或列表形式的问题。\n");
         promptBuilder.append(String.format("- 已使用技术项：%s\n", usedTechItems));
         promptBuilder.append(String.format("- 已使用项目点：%s\n", usedProjectPoints));
         promptBuilder.append(String.format("- 当前深度级别：%s\n", currentDepthLevel));
         promptBuilder.append(String.format("- 剩余时间：%d秒\n", sessionTimeRemaining));
         promptBuilder.append("- 若时间<60s或连续两次回答偏离主题，则进入总结问题。\n");
         promptBuilder.append("输出：\n");
-        promptBuilder.append("{\n");
-        promptBuilder.append("\"nextQuestion\": \"你的项目中Redis主要解决了什么问题？\",\n");
-        promptBuilder.append("\"expectedKeyPoints\":[\"缓存策略\",\"并发控制\"],\n");
-        promptBuilder.append("\"depthLevel\":\"实现\",\n");
-        promptBuilder.append("\"stopReason\":\"\"\n");
-        promptBuilder.append("}\n");
+        promptBuilder.append("请只返回问题内容，不要添加任何其他说明、格式或JSON结构。");
         
         String prompt = promptBuilder.toString();
         
@@ -1118,6 +1469,87 @@ public class InterviewServiceImpl implements InterviewService {
         updateUsedItems(result, techItems, projectPoints, usedTechItems, usedProjectPoints);
         
         return result;
+    }
+    
+    /**
+     * 调用AI生成新问题（流式方式）
+     */
+    private void generateNewQuestionWithAIStream(List<String> techItems, List<Map<String, Object>> projectPoints,
+                                                List<String> usedTechItems, List<String> usedProjectPoints,
+                                                String currentDepthLevel, Integer sessionTimeRemaining,
+                                                String persona, String jobType, String fullResumeContent, 
+                                                String previousQuestion, String previousAnswer, SseEmitter emitter, 
+                                                Runnable onComplete) {
+        // 构建prompt调用dynamicInterviewer
+        StringBuilder promptBuilder = new StringBuilder();
+        
+        // 根据不同风格设置不同的提示词
+        switch (persona) {
+            case "friendly":
+                promptBuilder.append("你是友好型风格的面试官。问题需自然、亲和、不死板，营造轻松的面试氛围。\n");
+                break;
+            case "neutral":
+                promptBuilder.append("你是中立型风格的面试官。问题需专业、客观、直接，注重事实和技术细节。\n");
+                break;
+            case "pressure":
+            case "challenging":
+                promptBuilder.append("你是压力型风格的面试官。问题需有压迫感、深入追问、挑战性强，测试候选人在压力下的表现。\n");
+                break;
+            default:
+                promptBuilder.append(String.format("你是%s风格的面试官。问题需自然、专业、有针对性。\n", persona));
+        }
+        
+        // 只有第一次生成问题时（没有上下文）才发送完整简历，后续问题基于上下文生成
+        if (StringUtils.hasText(previousQuestion) && StringUtils.hasText(previousAnswer)) {
+            // 后续问题：基于上一题的问答上下文生成，不发送完整简历
+            promptBuilder.append("上一轮面试问答：\n");
+            promptBuilder.append(String.format("问题：%s\n", previousQuestion));
+            promptBuilder.append(String.format("回答：%s\n\n", previousAnswer));
+            promptBuilder.append("请根据上一题的问答内容，结合候选人的简历，生成下一个相关的面试问题。\n");
+        } else {
+            // 第一次生成问题：发送完整简历
+            if (StringUtils.hasText(fullResumeContent)) {
+                promptBuilder.append("以下是候选人的完整简历内容：\n");
+                promptBuilder.append(fullResumeContent).append("\n\n");
+            }
+            promptBuilder.append("请直接基于候选人的简历内容生成针对性的面试问题。\n");
+        }
+        
+        promptBuilder.append("规则：\n");
+        promptBuilder.append("- 从用法或项目实践切入，逐步深入原理/优化。\n");
+        promptBuilder.append("- 只生成单个问题，不要生成多个问题或列表形式的问题。\n");
+        promptBuilder.append(String.format("- 已使用技术项：%s\n", usedTechItems));
+        promptBuilder.append(String.format("- 已使用项目点：%s\n", usedProjectPoints));
+        promptBuilder.append(String.format("- 当前深度级别：%s\n", currentDepthLevel));
+        promptBuilder.append(String.format("- 剩余时间：%d秒\n", sessionTimeRemaining));
+        promptBuilder.append("- 若时间<60s或连续两次回答偏离主题，则进入总结问题。\n");
+        promptBuilder.append("输出：\n");
+        promptBuilder.append("请严格按照以下格式返回内容：\n");
+        promptBuilder.append("# 元数据开始\n");
+        promptBuilder.append("{");
+        promptBuilder.append("\"depthLevel\": 整数, ");
+        promptBuilder.append("\"expectedKeyPoints\": [\"关键点1\", \"关键点2\"], ");
+        promptBuilder.append("\"relatedTech\": \"相关技术项\"}");
+        promptBuilder.append("\n# 元数据结束\n");
+        promptBuilder.append("问题内容（仅纯文本，不要任何其他格式）\n");
+        promptBuilder.append("注意：元数据必须是有效的JSON格式，包含depthLevel、expectedKeyPoints和relatedTech三个字段，问题内容必须紧跟在元数据结束标记之后，且只能包含纯文本问题。\n");
+        
+        String prompt = promptBuilder.toString();
+        
+        try {
+            // 调用AI服务（流式）
+            log.info("使用完整简历内容调用Deepseek API生成问题prompt: {}", prompt);
+            aiServiceUtils.callDeepSeekApiStream(prompt, emitter, onComplete);
+            log.info("使用完整简历内容调用Deepseek API生成问题完成（流式）");
+        } catch (Exception e) {
+            log.error("生成问题失败：{}", e.getMessage(), e);
+            try {
+                emitter.send(SseEmitter.event().data("生成问题失败，请稍后重试").name("error").id("error"));
+                emitter.complete();
+            } catch (IOException ex) {
+                log.error("发送错误信息失败：{}", ex.getMessage(), ex);
+            }
+        }
     }
     
     /**

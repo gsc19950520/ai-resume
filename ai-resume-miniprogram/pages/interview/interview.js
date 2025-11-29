@@ -1,6 +1,6 @@
 // pages/interview/interview.js
 const app = getApp();
-import { get, post } from '../../utils/request.js';
+import { get, post, requestStream, postStream } from '../../utils/request.js';
 
 Page({
   data: {
@@ -50,59 +50,86 @@ Page({
     // timer: null - 移到实例属性中
   },
 
-  // 从会话中获取第一个问题
-  async fetchFirstQuestion(sessionId) {
-    try {
-      // 使用云托管请求方式调用后端接口获取第一个问题
-      const response = await get(`/api/interview/get-first-question/${sessionId}`);
-      
-      if (response && response.data) {
-        return {
-          content: response.data,
-          depthLevel: 'usage'
-        };
-      }
-      return null;
-    } catch (error) {
-      console.error('获取第一个问题失败:', error);
-      return null;
-    }
-  },
-  
-  // 轮询获取第一个问题（带指数退避策略）
-  async pollForFirstQuestion(sessionId) {
-    this.setData({ isLoading: true });
-    let attempts = 0;
-    const maxAttempts = 10;
-    const baseDelay = 1000; // 初始延迟1秒
-    
-    while (attempts < maxAttempts) {
+  // 从会话中获取第一个问题（流式）
+  fetchFirstQuestionStream(sessionId) {
+    return new Promise((resolve, reject) => {
       try {
-        console.log(`尝试获取第一个问题，第 ${attempts + 1} 次`);
-        const question = await this.fetchFirstQuestion(sessionId);
+        this.setData({ isLoading: true });
         
-        if (question && question.content) {
-          this.setData({ isLoading: false });
-          return question;
-        }
+        // 使用流式请求获取第一个问题
+        requestStream(`/api/interview/get-first-question-stream/${sessionId}`, {
+          onChunk: (chunk) => {
+            // 处理流式数据
+            console.log('收到问题流数据:', chunk);
+            
+            // 解析数据，支持多种格式
+            try {
+              if (typeof chunk === 'string' && chunk.startsWith('data:')) {
+                // 处理SSE格式数据
+                const data = chunk.substring(5).trim();
+                if (data) {
+                  const parsedData = JSON.parse(data);
+                  if (parsedData.event === 'question') {
+                    // 问题内容
+                    this.setData({
+                      question: parsedData.data
+                    });
+                  } else if (parsedData.event === 'metadata') {
+                    // 元数据
+                    console.log('收到元数据:', parsedData.data);
+                    // 这里可以存储元数据，用于后续评分
+                    this.setData({
+                      currentQuestionMetadata: parsedData.data
+                    });
+                  } else if (parsedData.event === 'end') {
+                    // 结束信号
+                    this.setData({ isLoading: false });
+                    resolve({
+                      content: this.data.question,
+                      depthLevel: this.data.currentQuestionMetadata?.depthLevel || 'usage'
+                    });
+                  }
+                }
+              } else if (typeof chunk === 'object') {
+                // 直接处理对象格式
+                if (chunk.event === 'question') {
+                  this.setData({
+                    question: chunk.data
+                  });
+                } else if (chunk.event === 'metadata') {
+                  // 元数据
+                  console.log('收到元数据:', chunk.data);
+                  // 这里可以存储元数据，用于后续评分
+                  this.setData({
+                    currentQuestionMetadata: chunk.data
+                  });
+                } else if (chunk.event === 'end') {
+                  this.setData({ isLoading: false });
+                  resolve({
+                    content: this.data.question,
+                    depthLevel: this.data.currentQuestionMetadata?.depthLevel || 'usage'
+                  });
+                }
+              }
+            } catch (parseError) {
+              console.error('解析流式数据失败:', parseError);
+            }
+          },
+          onError: (error) => {
+            console.error('获取第一个问题流式请求失败:', error);
+            this.setData({ isLoading: false });
+            reject(error);
+          },
+          onComplete: () => {
+            console.log('第一个问题流式请求完成');
+          }
+        });
       } catch (error) {
-        console.error('轮询获取问题失败:', error);
+        console.error('获取第一个问题失败:', error);
+        this.setData({ isLoading: false });
+        reject(error);
       }
-      
-      attempts++;
-      // 使用指数退避策略：每次失败后等待时间翻倍，最大等待时间10秒
-      const delay = Math.min(baseDelay * Math.pow(2, attempts - 1), 10000);
-      // 等待下一次轮询
-      await new Promise(resolve => setTimeout(resolve, delay));
-    }
-    
-    // 如果超过最大尝试次数，返回默认问题
-    console.log('超过最大轮询次数，返回默认问题');
-    this.setData({ isLoading: false });
-    return {
-      content: '请简单介绍一下你自己，以及你为什么适合这个职位？',
-      depthLevel: 'usage'
-    };
+    });
   },
 
   onLoad: async function(options) {
@@ -143,17 +170,21 @@ Page({
           // 显示加载提示
           wx.showLoading({ title: '正在生成面试问题...' });
           
-          // 轮询获取第一个问题
-          const firstQuestion = await this.pollForFirstQuestion(sessionId);
-          
-          wx.hideLoading();
-          
-          // 更新问题数据
-          this.setData({
-            question: firstQuestion.content
-          });
-          
-          console.log('获取到第一个面试问题:', firstQuestion.content);
+          // 使用流式请求获取第一个问题
+          try {
+            const firstQuestion = await this.fetchFirstQuestionStream(sessionId);
+            
+            wx.hideLoading();
+            
+            console.log('获取到第一个面试问题:', firstQuestion.content);
+          } catch (error) {
+            wx.hideLoading();
+            console.error('获取第一个问题失败:', error);
+            // 使用默认问题
+            this.setData({
+              question: '请简单介绍一下你自己，以及你为什么适合这个职位？'
+            });
+          }
           
         } catch (parseError) {
           console.error('处理参数失败:', parseError);
@@ -188,20 +219,24 @@ Page({
             // 显示生成问题提示
             wx.showLoading({ title: '正在生成面试问题...' });
             
-            // 轮询获取第一个问题
-            const firstQuestion = await this.pollForFirstQuestion(initialData.sessionId);
+            // 使用流式请求获取第一个问题
+          try {
+            await this.fetchFirstQuestionStream(initialData.sessionId);
             
             wx.hideLoading();
-            
-            // 更新问题数据
-            this.setData({
-              question: firstQuestion.content
-            });
             
             console.log('从/start接口获取的面试数据:', {
               sessionId: initialData.sessionId,
               industryJobTag: initialData.industryJobTag
             });
+          } catch (error) {
+            wx.hideLoading();
+            console.error('获取第一个问题失败:', error);
+            // 使用默认问题
+            this.setData({
+              question: '请简单介绍一下你自己，以及你为什么适合这个职位？'
+            });
+          }
           } else {
             wx.hideLoading();
             console.error('获取面试数据失败:', response.message);
@@ -374,7 +409,7 @@ Page({
     });
   },
 
-  // 提交回答
+  // 提交回答（流式）
   submitAnswer: async function() {
     const { userAnswer, sessionId, answerStartTime, toneStyle } = this.data;
     
@@ -406,104 +441,129 @@ Page({
     wx.showLoading({ title: '正在处理...' });
     
     try {
-      // 调用API提交回答
-      const response = await post('/api/interview/answer', {
+      // 更新问答历史，添加用户回答
+      const now = new Date();
+      const formattedTime = this.formatTime(now);
+      
+      const newHistoryItem = {
+        id: 'a_' + Date.now(),
+        type: 'answer',
+        content: isSkip ? '跳过此问题' : userAnswer,
+        timestamp: now.getTime(),
+        formattedTime: formattedTime
+      };
+      
+      const updatedHistory = [...this.data.interviewHistory, newHistoryItem];
+      
+      this.setData({
+        interviewHistory: updatedHistory,
+        userAnswer: null,
+        // 重置回答时间
+        answerStartTime: 0,
+        answerDuration: 0
+      });
+      
+      // 使用流式请求提交回答
+      postStream('/api/interview/answer-stream', {
         sessionId: sessionId,
         userAnswerText: userAnswer,
         answerDuration: answerDuration,
         toneStyle: toneStyle
-      });
-      
-      wx.hideLoading();
-      
-      if (response.code === 0 || response.code === 200 || (response.message && response.message.toLowerCase() === 'success')) {
-        // 更新问答历史，添加用户回答
-        const now = new Date();
-        const formattedTime = this.formatTime(now);
-        
-        const newHistoryItem = {
-          id: 'a_' + Date.now(),
-          type: 'answer',
-          content: isSkip ? '跳过此问题' : userAnswer,
-          timestamp: now.getTime(),
-          formattedTime: formattedTime
-        };
-        
-        const updatedHistory = [...this.data.interviewHistory, newHistoryItem];
-        
-        // 获取下一个问题，处理可能的不同数据结构
-        const responseData = response.data || response;
-        const nextQuestion = responseData.nextQuestion || responseData.question;
-        
-        if (nextQuestion) {
-          // 处理下一个问题，支持多种格式
-          const nextQuestionContent = typeof nextQuestion === 'string' ? nextQuestion : 
-                                     nextQuestion.content || nextQuestion.question || '';
+      }, {
+        onChunk: (chunk) => {
+          // 处理流式数据
+          console.log('收到回答流数据:', chunk);
           
-          // 更新问题历史
-          const questionHistoryItem = {
-            id: 'q_' + Date.now(),
-            type: 'question',
-            content: nextQuestionContent,
-            timestamp: now.getTime(),
-            formattedTime: formattedTime
-          };
-          
-          updatedHistory.push(questionHistoryItem);
-          
-          // 更新当前问题数据（使用新的数据结构）
-          this.setData({
-            question: nextQuestionContent,
-            questionType: 'follow_up',
-            feedback: responseData.feedback || null,
-            nextQuestion: null, // 将在下一轮回答后设置
-            userAnswer: null,
-            interviewHistory: updatedHistory,
-            // 确保industryJobTag与question同级处理，保留现有值或从响应中更新
-            industryJobTag: responseData.industryJobTag || this.data.industryJobTag,
-            animationState: { questionCard: 'fade-in' },
-            // 重置回答时间
-            answerStartTime: 0,
-            answerDuration: 0
-          });
-          
-          console.log('更新后的面试数据:', {
-            question: this.data.question,
-            feedback: this.data.feedback
-          });
-          
-          // 重置动画状态
-          setTimeout(() => {
-            this.setData({
-              animationState: { questionCard: 'idle' }
-            });
-          }, 1000);
-        } else {
-          // 没有更多问题，结束面试
-          this.setData({
-            userAnswer: '',
-            interviewHistory: updatedHistory,
-            isCompleted: true
-          });
-          
+          // 解析数据
+          try {
+            if (typeof chunk === 'string' && chunk.startsWith('data:')) {
+              // 处理SSE格式数据
+              const data = chunk.substring(5).trim();
+              if (data) {
+                const parsedData = JSON.parse(data);
+                if (parsedData.event === 'score') {
+                  // 评分反馈
+                  this.setData({
+                    feedback: parsedData.data
+                  });
+                } else if (parsedData.event === 'metadata') {
+                  // 元数据
+                  console.log('收到元数据:', parsedData.data);
+                  // 这里可以存储元数据，用于后续评分
+                  this.setData({
+                    currentQuestionMetadata: parsedData.data
+                  });
+                } else if (parsedData.event === 'question') {
+                  // 下一个问题
+                  this.setData({
+                    question: parsedData.data
+                  });
+                } else if (parsedData.event === 'end') {
+                  // 结束信号
+                  wx.hideLoading();
+                  
+                  // 更新问题历史
+                  const questionHistoryItem = {
+                    id: 'q_' + Date.now(),
+                    type: 'question',
+                    content: this.data.question,
+                    metadata: this.data.currentQuestionMetadata,
+                    timestamp: now.getTime(),
+                    formattedTime: formattedTime
+                  };
+                  
+                  updatedHistory.push(questionHistoryItem);
+                  
+                  // 更新当前问题数据
+                  this.setData({
+                    questionType: 'follow_up',
+                    interviewHistory: updatedHistory,
+                    animationState: { questionCard: 'fade-in' }
+                  });
+                  
+                  // 重置动画状态
+                  setTimeout(() => {
+                    this.setData({
+                      animationState: { questionCard: 'idle' }
+                    });
+                  }, 1000);
+                  
+                  // 滚动到最新记录
+                  this.scrollToBottom();
+                } else if (parsedData.event === 'interview_end') {
+                  // 面试结束
+                  wx.hideLoading();
+                  this.setData({
+                    isCompleted: true
+                  });
+                  
+                  wx.showToast({
+                    title: '面试已结束',
+                    icon: 'success'
+                  });
+                  
+                  setTimeout(() => {
+                    this.finishInterview();
+                  }, 1500);
+                }
+              }
+            }
+          } catch (parseError) {
+            console.error('解析流式数据失败:', parseError);
+          }
+        },
+        onError: (error) => {
+          console.error('提交回答流式请求失败:', error);
+          wx.hideLoading();
           wx.showToast({
-            title: '面试已结束',
-            icon: 'success'
+            title: '网络错误，请重试',
+            icon: 'none'
           });
-          
-          setTimeout(() => {
-            this.finishInterview();
-          }, 1500);
+        },
+        onComplete: () => {
+          console.log('提交回答流式请求完成');
         }
-        
-        // 滚动到最新记录
-        this.scrollToBottom();
-      } else {
-        wx.showToast({
-          title: response.message || '提交失败，请重试',
-          icon: 'none'
-        });
-      }
+      });
     } catch (error) {
       wx.hideLoading();
       console.error('提交回答失败:', error);
