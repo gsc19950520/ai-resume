@@ -182,7 +182,7 @@ public class InterviewServiceImpl implements InterviewService {
                                                        log.error("发送结束信号失败：{}", e.getMessage(), e);
                                                        emitter.completeWithError(e);
                                                    }
-                                               });
+                                               }, sessionId);
                 
                 // 获取生成的问题（需要从AI响应中解析，这里简化处理）
                 String firstQuestion = "";
@@ -320,7 +320,7 @@ public class InterviewServiceImpl implements InterviewService {
                                                        log.error("发送结束信号失败：{}", e.getMessage(), e);
                                                        emitter.completeWithError(e);
                                                    }
-                                               });
+                                               }, sessionId);
                 
                 // 7. 更新会话状态（需要从AI响应中获取nextQuestion和stopReason，这里简化处理）
                 session.setQuestionCount(session.getQuestionCount() + 1);
@@ -1351,7 +1351,7 @@ public class InterviewServiceImpl implements InterviewService {
                         log.error("发送结束信号失败：{}", e.getMessage(), e);
                         emitter.completeWithError(e);
                     }
-                });
+                }, sessionId);
                 
                 log.info("generateNextQuestionStream end");
             } catch (Exception e) {
@@ -1479,7 +1479,7 @@ public class InterviewServiceImpl implements InterviewService {
                                                 String currentDepthLevel, Integer sessionTimeRemaining,
                                                 String persona, String jobType, String fullResumeContent, 
                                                 String previousQuestion, String previousAnswer, SseEmitter emitter, 
-                                                Runnable onComplete) {
+                                                Runnable onComplete, String sessionId) {
         // 构建prompt调用dynamicInterviewer
         StringBuilder promptBuilder = new StringBuilder();
         
@@ -1532,14 +1532,18 @@ public class InterviewServiceImpl implements InterviewService {
         promptBuilder.append("\"relatedTech\": \"相关技术项\"}");
         promptBuilder.append("\n# 元数据结束\n");
         promptBuilder.append("问题内容（仅纯文本，不要任何其他格式）\n");
-        promptBuilder.append("注意：元数据必须是有效的JSON格式，包含depthLevel、expectedKeyPoints和relatedTech三个字段，问题内容必须紧跟在元数据结束标记之后，且只能包含纯文本问题。\n");
+        promptBuilder.append("注意事项：\n");
+        promptBuilder.append("1. 元数据必须是有效的JSON格式，包含depthLevel、expectedKeyPoints和relatedTech三个字段。\n");
+        promptBuilder.append("2. 问题内容必须紧跟在元数据结束标记之后，且只能包含纯文本问题。\n");
+        promptBuilder.append("3. 在流式返回时，请确保完整输出\"# 元数据开始\"和\"# 元数据结束\"标识符，不要将其拆分成多个部分返回。\n");
+        promptBuilder.append("4. 请将\"# 元数据开始\"、元数据JSON内容、\"# 元数据结束\"作为一个完整的块内容返回，不要拆分成流式返回，不要在它们之间插入其他内容。\n");
         
         String prompt = promptBuilder.toString();
         
         try {
             // 调用AI服务（流式）
             log.info("使用完整简历内容调用Deepseek API生成问题prompt: {}", prompt);
-            aiServiceUtils.callDeepSeekApiStream(prompt, emitter, onComplete);
+            aiServiceUtils.callDeepSeekApiStream(prompt, emitter, onComplete, sessionId);
             log.info("使用完整简历内容调用Deepseek API生成问题完成（流式）");
         } catch (Exception e) {
             log.error("生成问题失败：{}", e.getMessage(), e);

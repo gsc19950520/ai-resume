@@ -2,9 +2,11 @@ package com.aicv.airesume.utils;
 
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
 
 import lombok.extern.slf4j.Slf4j;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -19,6 +21,9 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.core.type.TypeReference;
+
+import com.aicv.airesume.entity.InterviewLog;
+import com.aicv.airesume.repository.InterviewLogRepository;
 
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
@@ -43,6 +48,9 @@ public class AiServiceUtils {
 
     @Value("${deepseek.api-url:https://api.deepseek.com/v1/chat/completions}")
     private String deepseekApiUrl;
+
+    @Autowired
+    private InterviewLogRepository interviewLogRepository;
 
     private final RestTemplate restTemplate = new RestTemplate();
     private final ExecutorService executorService = Executors.newFixedThreadPool(5);
@@ -183,8 +191,9 @@ public class AiServiceUtils {
      * @param prompt 提示词
      * @param emitter SSE发射器，用于流式输出
      * @param onComplete 流结束回调函数
+     * @param sessionId 会话ID，用于保存元数据
      */
-    public void callDeepSeekApiStream(String prompt, SseEmitter emitter, Runnable onComplete) {
+    public void callDeepSeekApiStream(String prompt, SseEmitter emitter, Runnable onComplete, String sessionId) {
         executorService.submit(() -> {
             try {
                 // 构建请求体
@@ -205,7 +214,9 @@ public class AiServiceUtils {
                 // 元数据提取相关变量 - 使用数组包装以便在lambda中修改
                 boolean[] isExtractingMetadata = {false};
                 StringBuilder[] metadataBuilder = {new StringBuilder()};
-                StringBuilder questionBuilder = new StringBuilder();
+                StringBuilder[] currentContentBuffer = {new StringBuilder()}; // 用于缓冲当前内容，处理标记被拆分的情况
+                // 用于标记元数据是否已处理完成
+                boolean[] metadataProcessed = {false};
                 
                 // 使用WebClient发送流式请求
                 webClient.post()
@@ -249,52 +260,54 @@ public class AiServiceUtils {
                                                 if (delta.containsKey("content")) {
                                                     String content = delta.getString("content");
                                                     if (content != null && !content.isEmpty()) {
-                                                        // 检查是否开始提取元数据
-                                                        if (content.contains("# 元数据开始")) {
-                                                            isExtractingMetadata[0] = true;
-                                                            // 处理包含# 元数据开始的内容
-                                                            String[] parts = content.split("# 元数据开始");
-                                                            // 如果# 元数据开始前面有内容，可能是之前的残留，直接忽略
-                                                            if (parts.length > 1) {
-                                                                metadataBuilder[0].append(parts[1]);
-                                                            }
-                                                        } 
-                                                        // 检查是否结束提取元数据
-                                                        else if (content.contains("# 元数据结束")) {
-                                                            isExtractingMetadata[0] = false;
-                                                            // 处理包含# 元数据结束的内容
-                                                            String[] parts = content.split("# 元数据结束");
-                                                            if (parts.length > 0) {
-                                                                metadataBuilder[0].append(parts[0]);
-                                                            }
-                                                            // 解析元数据并发送
-                                                            String metadataJsonStr = metadataBuilder[0].toString().trim();
-                                                            if (!metadataJsonStr.isEmpty()) {
-                                                                log.info("Extracted metadata: {}", metadataJsonStr);
-                                                                // 发送元数据事件
-                                                                emitter.send(SseEmitter.event()
-                                                                        .name("metadata")
-                                                                        .data(metadataJsonStr));
-                                                            }
-                                                            // 如果# 元数据结束后面有内容，直接添加到问题文本
-                                                            if (parts.length > 1) {
-                                                                String questionPart = parts[1].trim();
-                                                                if (!questionPart.isEmpty()) {
-                                                                    emitter.send(SseEmitter.event()
-                                                                            .name("question")
-                                                                            .data(questionPart));
-                                                                }
-                                                            }
-                                                        }
-                                                        // 如果正在提取元数据，继续构建元数据
-                                                        else if (isExtractingMetadata[0]) {
-                                                            metadataBuilder[0].append(content);
-                                                        }
-                                                        // 否则直接发送问题文本
-                                                        else {
+                                                        // 如果元数据已经处理完成，直接流式输出内容
+                                                        if (metadataProcessed[0]) {
                                                             emitter.send(SseEmitter.event()
                                                                     .name("question")
                                                                     .data(content));
+                                                        }
+                                                        // 否则继续累积内容，等待完整的元数据块
+                                                        else {
+                                                            // 将当前内容添加到缓冲区
+                                                            currentContentBuffer[0].append(content);
+                                                            String buffer = currentContentBuffer[0].toString();
+                                                               
+                                                            // 检查缓冲区中是否包含完整的元数据块（包括开始和结束标记）
+                                                            int startIndex = buffer.indexOf("# 元数据开始");
+                                                            int endIndex = buffer.indexOf("# 元数据结束");
+                                                               
+                                                            // 只有当缓冲区包含完整的元数据块时，才处理元数据
+                                                            if (startIndex != -1 && endIndex != -1) {
+                                                                // 提取完整的元数据内容（包括开始和结束标记之间的所有内容）
+                                                                String metadataContent = buffer.substring(startIndex, endIndex + "# 元数据结束".length());
+                                                                log.info("Extracted complete metadata block: {}", metadataContent);
+                                                                
+                                                                // 提取元数据JSON部分（只保留开始和结束标记之间的内容）
+                                                                String metadataJsonStr = buffer.substring(startIndex + "# 元数据开始".length(), endIndex).trim();
+                                                                if (!metadataJsonStr.isEmpty()) {
+                                                                    // 异步保存元数据到数据库
+                                                                    saveMetadataAsync(metadataJsonStr, sessionId);
+                                                                }
+                                                                
+                                                                // 如果元数据块后面有内容，开始流式输出问题
+                                                                if (endIndex + "# 元数据结束".length() < buffer.length()) {
+                                                                    String questionPart = buffer.substring(endIndex + "# 元数据结束".length());
+                                                                    if (!questionPart.isEmpty()) {
+                                                                        emitter.send(SseEmitter.event()
+                                                                                .name("question")
+                                                                                .data(questionPart));
+                                                                    }
+                                                                }
+                                                                
+                                                                // 元数据已处理完成，设置标志
+                                                                metadataProcessed[0] = true;
+                                                                // 清空缓冲区，准备接收后续内容
+                                                                currentContentBuffer[0].setLength(0);
+                                                            }
+                                                            // 如果缓冲区还没有完整的元数据块，继续累积内容
+                                                            else {
+                                                                // 不发送任何内容，继续在缓冲区累积
+                                                            }
                                                         }
                                                     }
                                                 }
@@ -322,6 +335,47 @@ public class AiServiceUtils {
             } catch (Exception e) {
                 log.error("Error setting up streaming request: {}", e.getMessage(), e);
                 emitter.completeWithError(e);
+            }
+        });
+    }
+    
+    /**
+     * 异步保存元数据到数据库
+     *
+     * @param metadataJsonStr 元数据JSON字符串
+     * @param sessionId 会话ID
+     */
+    private void saveMetadataAsync(String metadataJsonStr, String sessionId) {
+        executorService.submit(() -> {
+            try {
+                // 解析元数据
+                JSONObject metadata = JSONObject.parseObject(metadataJsonStr);
+                String depthLevel = metadata.getString("depthLevel");
+                JSONArray expectedKeyPointsJson = metadata.getJSONArray("expectedKeyPoints");
+                String relatedTech = metadata.getString("relatedTech");
+                String relatedProjectPoint = metadata.getString("relatedProjectPoint");
+                
+                // 将JSONArray转换为List
+                List<String> expectedKeyPoints = new ArrayList<>();
+                for (int i = 0; i < expectedKeyPointsJson.size(); i++) {
+                    expectedKeyPoints.add(expectedKeyPointsJson.getString(i));
+                }
+                
+                // 获取最新的面试日志，更新元数据
+                List<InterviewLog> logs = interviewLogRepository.findBySessionIdOrderByRoundNumberDesc(sessionId);
+                if (!logs.isEmpty()) {
+                    InterviewLog latestLog = logs.get(0);
+                    latestLog.setDepthLevel(depthLevel);
+                    latestLog.setExpectedKeyPoints(JSON.toJSONString(expectedKeyPoints));
+                    latestLog.setRelatedTechItems(relatedTech);
+                    latestLog.setRelatedProjectPoints(relatedProjectPoint);
+                    
+                    // 保存到数据库
+                    interviewLogRepository.save(latestLog);
+                    log.info("元数据保存成功，会话ID：{}", sessionId);
+                }
+            } catch (Exception e) {
+                log.error("解析并保存元数据失败：{}", e.getMessage(), e);
             }
         });
     }

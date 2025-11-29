@@ -77,3 +77,12 @@ ALTER TABLE interview_log ADD COLUMN depth_level VARCHAR(20) COMMENT '问题深�
 
 -- 2025-11-27 新增InterviewLog表depth_level字段，用于存储问题深度级别
 ALTER TABLE interview_log ADD COLUMN depth_level VARCHAR(20) COMMENT '问题深度：usage/implementation/principle/optimization';
+
+-- 2025-11-28 优化AI流式响应处理：只返回问题内容，元数据异步保存
+-- 修改文件：AiServiceUtils.java
+-- 修改内容：
+-- 1. 修改callDeepSeekApiStream方法，移除元数据SSE事件发送，改为异步保存
+-- 2. 新增saveMetadataAsync方法，用于异步保存元数据到数据库
+-- 修改文件：InterviewServiceImpl.java
+-- 修改内容：
+-- 1. 更新getFirstQuestionStream和generateNextQuestionStream方法中对callDeepSeekApiStream的调用，添加sessionId参数

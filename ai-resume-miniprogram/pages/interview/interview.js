@@ -1,6 +1,6 @@
 // pages/interview/interview.js
 const app = getApp();
-import { get, post, requestStream, postStream } from '../../utils/request.js';
+import { get, post, postStream, getStream } from '../../utils/request';
 
 Page({
   data: {
@@ -57,7 +57,7 @@ Page({
         this.setData({ isLoading: true });
         
         // 使用流式请求获取第一个问题
-        requestStream(`/api/interview/get-first-question-stream/${sessionId}`, {
+        getStream(`/api/interview/get-first-question-stream/${sessionId}`, {}, {
           onChunk: (chunk) => {
             // 处理流式数据
             console.log('收到问题流数据:', chunk);
@@ -70,23 +70,15 @@ Page({
                 if (data) {
                   const parsedData = JSON.parse(data);
                   if (parsedData.event === 'question') {
-                    // 问题内容
+                    // 问题内容 - 直接流式展示
                     this.setData({
                       question: parsedData.data
-                    });
-                  } else if (parsedData.event === 'metadata') {
-                    // 元数据
-                    console.log('收到元数据:', parsedData.data);
-                    // 这里可以存储元数据，用于后续评分
-                    this.setData({
-                      currentQuestionMetadata: parsedData.data
                     });
                   } else if (parsedData.event === 'end') {
                     // 结束信号
                     this.setData({ isLoading: false });
                     resolve({
-                      content: this.data.question,
-                      depthLevel: this.data.currentQuestionMetadata?.depthLevel || 'usage'
+                      content: this.data.question
                     });
                   }
                 }
@@ -96,18 +88,10 @@ Page({
                   this.setData({
                     question: chunk.data
                   });
-                } else if (chunk.event === 'metadata') {
-                  // 元数据
-                  console.log('收到元数据:', chunk.data);
-                  // 这里可以存储元数据，用于后续评分
-                  this.setData({
-                    currentQuestionMetadata: chunk.data
-                  });
                 } else if (chunk.event === 'end') {
                   this.setData({ isLoading: false });
                   resolve({
-                    content: this.data.question,
-                    depthLevel: this.data.currentQuestionMetadata?.depthLevel || 'usage'
+                    content: this.data.question
                   });
                 }
               }
@@ -486,13 +470,6 @@ Page({
                   this.setData({
                     feedback: parsedData.data
                   });
-                } else if (parsedData.event === 'metadata') {
-                  // 元数据
-                  console.log('收到元数据:', parsedData.data);
-                  // 这里可以存储元数据，用于后续评分
-                  this.setData({
-                    currentQuestionMetadata: parsedData.data
-                  });
                 } else if (parsedData.event === 'question') {
                   // 下一个问题
                   this.setData({
@@ -507,7 +484,6 @@ Page({
                     id: 'q_' + Date.now(),
                     type: 'question',
                     content: this.data.question,
-                    metadata: this.data.currentQuestionMetadata,
                     timestamp: now.getTime(),
                     formattedTime: formattedTime
                   };

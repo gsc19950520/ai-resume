@@ -185,14 +185,19 @@ Page({
                   showMenu: true
                 })
               }
+            },
+            complete: () => {
+              wx.hideLoading()
             }
           })
+        } else {
+          wx.hideLoading()
         }
-      },
-      complete: () => {
+      })
+      .catch(err => {
+        console.error('生成PDF失败:', err)
         wx.hideLoading()
-      }
-    })
+      })
   },
 
   // 分享报告
