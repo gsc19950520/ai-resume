@@ -27,7 +27,7 @@ public class InterviewLog {
     
     // private InterviewSession session; // 暂时注释掉关联对象
 
-    @Column(name = "question_text", nullable = false, columnDefinition = "TEXT")
+    @Column(name = "question_text", nullable = true, columnDefinition = "TEXT")
     private String questionText;
 
     @Column(name = "user_answer_text", columnDefinition = "TEXT")

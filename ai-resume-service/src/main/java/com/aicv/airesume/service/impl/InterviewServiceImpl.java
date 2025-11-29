@@ -753,6 +753,7 @@ public class InterviewServiceImpl implements InterviewService {
         // 根据不同风格设置不同的提示词
         String personaStyle = enhancePersonaWithStyle(persona);
         promptBuilder.append(String.format("你是%s风格的面试官。%s\n", persona, personaStyle));
+        promptBuilder.append("请确保你生成的问题是单一的、独立的，只关注一个具体的知识点或技术点。\n");
         
         // 只有第一次生成问题时（没有上下文）才发送完整简历，后续问题基于上下文生成
         if (StringUtils.hasText(previousQuestion) && StringUtils.hasText(previousAnswer)) {
@@ -760,19 +761,21 @@ public class InterviewServiceImpl implements InterviewService {
             promptBuilder.append("上一轮面试问答：\n");
             promptBuilder.append(String.format("问题：%s\n", previousQuestion));
             promptBuilder.append(String.format("回答：%s\n\n", previousAnswer));
-            promptBuilder.append("请根据上一题的问答内容，结合候选人的简历，生成下一个相关的面试问题。\n");
+            promptBuilder.append("请根据上一题的问答内容，结合候选人的简历，生成下一个相关的面试问题。每个问题只能关注一个具体的知识点或技术点，不要生成复合问题。\n");
         } else {
             // 第一次生成问题：发送完整简历
             if (StringUtils.hasText(fullResumeContent)) {
                 promptBuilder.append("以下是候选人的完整简历内容：\n");
                 promptBuilder.append(fullResumeContent).append("\n\n");
             }
-            promptBuilder.append("请直接基于候选人的简历内容生成针对性的面试问题。\n");
+            promptBuilder.append("请直接基于候选人的简历内容生成针对性的面试问题。每个问题只能关注一个具体的知识点或技术点，不要生成复合问题。\n");
         }
         
         promptBuilder.append("规则：\n");
         promptBuilder.append("- 从用法或项目实践切入，逐步深入原理/优化。\n");
-        promptBuilder.append("- 只生成单个问题，不要生成多个问题或列表形式的问题。\n");
+        promptBuilder.append("- 只生成单个、独立的问题，绝对不要生成复合问题。\n");
+        promptBuilder.append("- 禁止使用'以及'、'还有'、'同时'等连接词将多个问题合并为一个。\n");
+        promptBuilder.append("- 每个问题只关注一个具体的知识点或技术点。\n");
         promptBuilder.append(String.format("- 已使用技术项：%s\n", usedTechItems));
         promptBuilder.append(String.format("- 已使用项目点：%s\n", usedProjectPoints));
         promptBuilder.append(String.format("- 当前深度级别：%s\n", currentDepthLevel));
@@ -786,12 +789,11 @@ public class InterviewServiceImpl implements InterviewService {
         promptBuilder.append("\"expectedKeyPoints\": [\"关键点1\", \"关键点2\"], ");
         promptBuilder.append("\"relatedTech\": \"相关技术项\"}");
         promptBuilder.append("\n# 元数据结束\n");
-        promptBuilder.append("问题内容（仅纯文本，不要任何其他格式）\n");
+        promptBuilder.append("问题内容（仅纯文本，不要任何其他格式，必须是单一问题）\n");
         promptBuilder.append("注意事项：\n");
         promptBuilder.append("1. 元数据必须是有效的JSON格式，包含depthLevel、expectedKeyPoints和relatedTech三个字段。\n");
         promptBuilder.append("2. 问题内容必须紧跟在元数据结束标记之后，且只能包含纯文本问题。\n");
-        promptBuilder.append("3. 在流式返回时，请确保完整输出\"# 元数据开始\"和\"# 元数据结束\"标识符，不要将其拆分成多个部分返回。\n");
-        promptBuilder.append("4. 请将\"# 元数据开始\"、元数据JSON内容、\"# 元数据结束\"作为一个完整的块内容返回，不要拆分成流式返回，不要在它们之间插入其他内容。\n");
+        promptBuilder.append("3. 请确保问题是单一的、独立的，不包含多个问题。\n");
         
         String prompt = promptBuilder.toString();
         

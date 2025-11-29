@@ -97,6 +97,14 @@ ALTER TABLE resume ADD COLUMN tech_items TEXT COMMENT '技术项，JSON格式存
 ALTER TABLE resume ADD COLUMN project_points TEXT COMMENT '项目点，JSON格式存储';
 ALTER TABLE resume ADD COLUMN last_extracted_time DATETIME COMMENT '最后提取时间';
 
+-- 2025-11-30 修复获取第一个问题失败：question_text不能为空
+-- 修改文件：InterviewLog.java
+-- 修改内容：
+-- 1. 将question_text字段的nullable属性改为true，允许为空
+-- 修改数据库：
+-- 1. 将interview_log表的question_text字段改为允许为空
+ALTER TABLE interview_log MODIFY COLUMN question_text TEXT NULL;
+
 -- 2025-11-30 重构面试问题生成逻辑，合并冗余方法
 -- 修改文件：InterviewServiceImpl.java
 -- 修改内容：
