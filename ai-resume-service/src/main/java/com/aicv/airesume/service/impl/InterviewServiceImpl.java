@@ -181,6 +181,16 @@ public class InterviewServiceImpl implements InterviewService {
                 String currentDepthLevel = (String) interviewState.get("currentDepthLevel");
                 String jobType = String.valueOf(session.getJobTypeId());
                 
+                // 创建第一个问题的日志记录
+                InterviewLog firstQuestionLog = new InterviewLog();
+                firstQuestionLog.setQuestionId(UUID.randomUUID().toString());
+                firstQuestionLog.setSessionId(sessionId);
+                firstQuestionLog.setRoundNumber(1);
+                firstQuestionLog.setPersona(session.getPersona());
+                
+                // 保存初始日志记录
+                logRepository.save(firstQuestionLog);
+                
                 // 调用统一的流式生成问题方法，并传递回调函数
                 generateQuestionStream(techItems, projectPoints, usedTechItems, usedProjectPoints,
                                      currentDepthLevel, session.getSessionTimeRemaining(),

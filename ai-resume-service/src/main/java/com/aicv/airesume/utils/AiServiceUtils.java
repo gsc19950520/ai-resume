@@ -217,6 +217,8 @@ public class AiServiceUtils {
                 StringBuilder[] currentContentBuffer = {new StringBuilder()}; // 用于缓冲当前内容，处理标记被拆分的情况
                 // 用于标记元数据是否已处理完成
                 boolean[] metadataProcessed = {false};
+                // 用于累积完整的问题文本
+                StringBuilder[] fullQuestionBuffer = {new StringBuilder()};
                 
                 // 使用WebClient发送流式请求
                 webClient.post()
@@ -265,6 +267,8 @@ public class AiServiceUtils {
                                                             emitter.send(SseEmitter.event()
                                                                     .name("question")
                                                                     .data(content));
+                                                            // 同时将内容添加到完整问题缓冲区
+                                                            fullQuestionBuffer[0].append(content);
                                                         }
                                                         // 否则继续累积内容，等待完整的元数据块
                                                         else {
@@ -296,6 +300,8 @@ public class AiServiceUtils {
                                                                         emitter.send(SseEmitter.event()
                                                                                 .name("question")
                                                                                 .data(questionPart));
+                                                                        // 同时将内容添加到完整问题缓冲区
+                                                                        fullQuestionBuffer[0].append(questionPart);
                                                                     }
                                                                 }
                                                                 
@@ -326,6 +332,14 @@ public class AiServiceUtils {
                                 // 流结束
                                 () -> {
                                     log.info("Streaming response completed");
+                                    
+                                    // 保存完整的问题文本到数据库
+                                    String fullQuestion = fullQuestionBuffer[0].toString().trim();
+                                    if (!fullQuestion.isEmpty()) {
+                                        // 异步保存完整问题到数据库
+                                        saveQuestionAsync(fullQuestion, sessionId);
+                                    }
+                                    
                                     // 调用回调函数通知流结束
                                     if (onComplete != null) {
                                         onComplete.run();
@@ -376,6 +390,31 @@ public class AiServiceUtils {
                 }
             } catch (Exception e) {
                 log.error("解析并保存元数据失败：{}", e.getMessage(), e);
+            }
+        });
+    }
+    
+    /**
+     * 异步保存完整问题文本到数据库
+     *
+     * @param questionText 完整的问题文本
+     * @param sessionId 会话ID
+     */
+    private void saveQuestionAsync(String questionText, String sessionId) {
+        executorService.submit(() -> {
+            try {
+                // 获取最新的面试日志，更新问题文本
+                List<InterviewLog> logs = interviewLogRepository.findBySessionIdOrderByRoundNumberDesc(sessionId);
+                if (!logs.isEmpty()) {
+                    InterviewLog latestLog = logs.get(0);
+                    latestLog.setQuestionText(questionText);
+                    
+                    // 保存到数据库
+                    interviewLogRepository.save(latestLog);
+                    log.info("完整问题保存成功，会话ID：{}，问题文本：{}", sessionId, questionText);
+                }
+            } catch (Exception e) {
+                log.error("保存完整问题失败：{}", e.getMessage(), e);
             }
         });
     }

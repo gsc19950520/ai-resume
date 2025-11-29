@@ -56,9 +56,13 @@ Page({
     // 从URL参数获取sessionId
     let sessionId = options.sessionId || this.data.sessionId;
     
-    // 更新sessionId
+    // 从URL参数获取toneStyle，如果有则更新
+    let toneStyle = options.toneStyle || this.data.toneStyle;
+    
+    // 更新sessionId和toneStyle
     this.setData({
-      sessionId: sessionId
+      sessionId: sessionId,
+      toneStyle: toneStyle
     });
     
     // 启动倒计时
@@ -364,8 +368,9 @@ Page({
     // 准备请求数据
     const requestData = {
       sessionId: sessionId,
-      answer: userAnswer,
-      answerDuration: answerDuration
+      userAnswerText: userAnswer,
+      answerDuration: answerDuration,
+      toneStyle: this.data.toneStyle
     };
     
     // 添加实例变量用于累积SSE数据
