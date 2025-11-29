@@ -473,15 +473,16 @@ public class AiServiceUtils {
             
             requestBody.put("messages", messages);
             requestBody.put("stream", false);
-            
+            log.info("调用deepseek计算评分请求参数：{}", JSONObject.toJSONString(requestBody));
             String response = webClient.post()
                     .uri(deepseekApiUrl)
+                    .header("Authorization", "Bearer " + deepseekApiKey)
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(requestBody)
                     .retrieve()
                     .bodyToMono(String.class)
                     .block();
-            
+            log.info("调用deepseek计算评分响应结果：{}", JSONObject.toJSONString(response));
             // 解析评分结果
             ObjectMapper objectMapper = new ObjectMapper();
             JsonNode rootNode = objectMapper.readTree(response);

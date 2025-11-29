@@ -8,8 +8,8 @@ Page({
     sessionId: "9eee6aff-5d56-4a59-9472-d7461f81db05",
     question: "请简单总结一下你在项目中的主要职责和贡献。",
     questionType: "first_question",
-    feedback: null,
-    nextQuestion: null,
+    feedback: '', // 初始化为空字符串以便流式拼接
+    nextQuestion: '', // 初始化为空字符串以便流式拼接
     isCompleted: false,
     hasQuestion: false,
     
@@ -88,8 +88,8 @@ Page({
     
     return new Promise((resolve, reject) => {
       try {
-        // 开始流式请求前清空question字段
-        this.setData({ isLoading: true, question: '' });
+      // 开始流式请求前清空question字段，设置isLoading为true
+      this.setData({ isLoading: true, question: '' });
         
         // 使用流式请求获取第一个问题
         getStream(`/api/interview/get-first-question-stream/${sessionId}`, {}, {
@@ -381,7 +381,7 @@ Page({
     this.setData({
       isLoading: true,
       nextQuestion: '', // 清空下一个问题
-      feedback: null // 清空反馈
+      feedback: '' // 清空反馈，初始化为空字符串以便流式拼接
     });
     
     try {
@@ -398,59 +398,59 @@ Page({
               const trimmedChunk = chunk.trim();
               
               if (trimmedChunk.startsWith('event:')) {
-                // 新的event，先处理之前的event和data（如果有）
-                if (this.currentEvent === 'feedback' && this.currentData) {
-                  // 累积反馈内容
-                  this.setData({
-                    feedback: this.data.feedback + this.currentData
-                  });
-                  // 重置当前data
-                  this.currentData = '';
-                } else if (this.currentEvent === 'next_question' && this.currentData) {
-                  // 累积下一个问题内容（流式展示，逐字/逐词添加）
-                  this.setData({
-                    nextQuestion: this.data.nextQuestion + this.currentData
-                  });
-                  // 重置当前data
-                  this.currentData = '';
+                  // 新的event，先处理之前的event和data（如果有）
+                  if (this.currentEvent === 'feedback' && this.currentData) {
+                    // 累积反馈内容
+                    this.setData({
+                      feedback: this.data.feedback + this.currentData
+                    });
+                    // 重置当前data
+                    this.currentData = '';
+                  } else if (this.currentEvent === 'question' && this.currentData) {
+                    // 累积下一个问题内容（流式展示，逐字/逐词添加）
+                    this.setData({
+                      nextQuestion: this.data.nextQuestion + this.currentData
+                    });
+                    // 重置当前data
+                    this.currentData = '';
+                  }
+                  // 更新当前event
+                  this.currentEvent = trimmedChunk.substring(6).trim();
+                } else if (trimmedChunk.startsWith('data:')) {
+                  // 提取data内容，去除前面的'data:'前缀
+                  const dataContent = trimmedChunk.substring(5).trim();
+                  // 检查是否是结束标记
+                  if (dataContent === 'end') {
+                    // 处理完所有数据，等待event:end
+                    return;
+                  }
+                  // 累积data内容
+                  this.currentData = dataContent;
+                } else if (trimmedChunk === '') {
+                  // 空行表示当前SSE消息结束，处理累积的event和data
+                  if (this.currentEvent === 'feedback' && this.currentData) {
+                    // 累积反馈内容
+                    this.setData({
+                      feedback: this.data.feedback + this.currentData
+                    });
+                    // 重置当前data
+                    this.currentData = '';
+                  } else if (this.currentEvent === 'question' && this.currentData) {
+                    // 累积下一个问题内容（流式展示，逐字/逐词添加）
+                    this.setData({
+                      nextQuestion: this.data.nextQuestion + this.currentData
+                    });
+                    // 重置当前data
+                    this.currentData = '';
+                  }
                 }
-                // 更新当前event
-                this.currentEvent = trimmedChunk.substring(6).trim();
-              } else if (trimmedChunk.startsWith('data:')) {
-                // 提取data内容，去除前面的'data:'前缀
-                const dataContent = trimmedChunk.substring(5).trim();
-                // 检查是否是结束标记
-                if (dataContent === 'end') {
-                  // 处理完所有数据，等待event:end
-                  return;
-                }
-                // 累积data内容
-                this.currentData = dataContent;
-              } else if (trimmedChunk === '') {
-                // 空行表示当前SSE消息结束，处理累积的event和data
-                if (this.currentEvent === 'feedback' && this.currentData) {
-                  // 累积反馈内容
-                  this.setData({
-                    feedback: this.data.feedback + this.currentData
-                  });
-                  // 重置当前data
-                  this.currentData = '';
-                } else if (this.currentEvent === 'next_question' && this.currentData) {
-                  // 累积下一个问题内容（流式展示，逐字/逐词添加）
-                  this.setData({
-                    nextQuestion: this.data.nextQuestion + this.currentData
-                  });
-                  // 重置当前data
-                  this.currentData = '';
-                }
-              }
             } else if (typeof chunk === 'object') {
               // 如果是对象格式，直接处理
               if (chunk.event === 'feedback' && chunk.data) {
                 this.setData({
                   feedback: this.data.feedback + chunk.data
                 });
-              } else if (chunk.event === 'next_question' && chunk.data) {
+              } else if (chunk.event === 'question' && chunk.data) {
                 this.setData({
                   nextQuestion: this.data.nextQuestion + chunk.data
                 });

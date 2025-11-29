@@ -28,8 +28,14 @@
     <!-- 左侧：AI问题卡片 -->
     <view class="left-column">
       <view class="question-card-wrapper" wx:if="{{!showFeedback}}">
-        <view class="question-card {{animationState.questionCard !== 'idle' ? 'fade-in-bottom' : ''}}">
-          <view class="question-content">{{question}}</view>
+        <!-- 加载中提示：仅当isLoading为true且question和nextQuestion都为空时显示 -->
+        <view class="loading-container" wx:if="{{isLoading && question === '' && nextQuestion === ''}}">
+          <view class="loading-spinner"></view>
+          <view class="loading-text">题目正在生成中...</view>
+        </view>
+        <!-- 问题卡片：当question不为空或nextQuestion不为空时显示 -->
+        <view class="question-card {{animationState.questionCard !== 'idle' ? 'fade-in-bottom' : ''}}" wx:if="{{question !== '' || nextQuestion !== ''}}">
+          <view class="question-content">{{isLoading ? nextQuestion : question}}</view>
           <!-- 提示信息已移除，根据新的数据结构 -->
         </view>
       </view>

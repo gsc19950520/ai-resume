@@ -318,6 +318,44 @@ public class InterviewServiceImpl implements InterviewService {
                 List<String> usedTechItems = (List<String>) interviewState.getOrDefault("usedTechItems", new ArrayList<>());
                 List<String> usedProjectPoints = (List<String>) interviewState.getOrDefault("usedProjectPoints", new ArrayList<>());
                 
+                // 根据用户回答评分调整深度级别
+                // 计算四个维度的平均分
+                double avgScore = (scores.get("tech") + scores.get("logic") + scores.get("clarity") + scores.get("depth")) / 4;
+                
+                // 如果平均分低于60分，降低深度级别
+                if (avgScore < 60) {
+                    log.info("用户回答平均分{:.2f}低于60分，准备降低深度级别，当前级别：{}", avgScore, currentDepthLevel);
+                    
+                    // 定义深度级别降级规则：optimization -> principle -> implementation -> usage
+                    switch (currentDepthLevel) {
+                        case "optimization":
+                            currentDepthLevel = "principle";
+                            break;
+                        case "principle":
+                            currentDepthLevel = "implementation";
+                            break;
+                        case "implementation":
+                            currentDepthLevel = "usage";
+                            break;
+                        case "usage":
+                            // 已经是最低级别，保持不变，但可以考虑换一个技术点提问
+                            log.info("已经是最低深度级别(usage)，保持不变");
+                            // 如果已经使用了所有技术点，则清空已使用列表，重新开始
+                            if (usedTechItems.size() >= techItems.size()) {
+                                log.info("已使用所有技术点，清空已使用列表，重新开始");
+                                usedTechItems.clear();
+                            }
+                            break;
+                        default:
+                            currentDepthLevel = "usage";
+                            break;
+                    }
+                    
+                    log.info("调整后深度级别：{}", currentDepthLevel);
+                    // 更新面试状态中的深度级别
+                    interviewState.put("currentDepthLevel", currentDepthLevel);
+                }
+                
                 // 构建响应，包含评分
                 Map<String, Object> response = new HashMap<>();
                 response.put("techScore", scores.get("tech"));
@@ -327,6 +365,16 @@ public class InterviewServiceImpl implements InterviewService {
                 
                 // 流式发送评分
                 emitter.send(SseEmitter.event().data(response).name("score").id("1"));
+                
+                // 创建下一个问题的日志记录
+                InterviewLog nextQuestionLog = new InterviewLog();
+                nextQuestionLog.setQuestionId(UUID.randomUUID().toString());
+                nextQuestionLog.setSessionId(sessionId);
+                nextQuestionLog.setRoundNumber(session.getQuestionCount() + 1);
+                nextQuestionLog.setPersona(session.getPersona());
+                
+                // 保存新的日志记录
+                logRepository.save(nextQuestionLog);
                 
                 // 生成下一个问题（流式）
                 generateQuestionStream(techItems, projectPoints, usedTechItems, usedProjectPoints,
