@@ -144,24 +144,36 @@ public class InterviewServiceImpl implements InterviewService {
                 }
                 
                 // 获取技术项和项目点
-                if (StringUtils.hasText(session.getTechItems())) {
-                    techItems = objectMapper.readValue(session.getTechItems(), new TypeReference<List<String>>() {});
-                } else {
-                    // 如果技术项不存在，从简历内容中提取
-                Map<String, Object> extractedData = extractTechItemsAndProjectPoints(session.getResumeId(), resumeContent);
-                    if (extractedData != null) {
-                        if (extractedData.containsKey("techItems")) {
-                            techItems = (List<String>) extractedData.get("techItems");
+            if (StringUtils.hasText(session.getTechItems())) {
+                techItems = objectMapper.readValue(session.getTechItems(), new TypeReference<List<String>>() {});
+            } else {
+                // 先检查Resume表中是否有提取结果
+                Optional<Resume> resumeOpt = resumeRepository.findById(session.getResumeId());
+                if (resumeOpt.isPresent()) {
+                    Resume resume = resumeOpt.get();
+                    if (StringUtils.hasText(resume.getTechItems()) && StringUtils.hasText(resume.getProjectPoints())) {
+                        // 从Resume表中获取提取结果
+                        techItems = objectMapper.readValue(resume.getTechItems(), new TypeReference<List<String>>() {});
+                        projectPoints = objectMapper.readValue(resume.getProjectPoints(), new TypeReference<List<Map<String, Object>>>() {});
+                        log.info("getFirstQuestionStream - 从Resume表获取提取结果，简历ID: {}", session.getResumeId());
+                    } else {
+                        // 如果Resume表中也没有，再从简历内容中提取
+                        Map<String, Object> extractedData = extractTechItemsAndProjectPoints(session.getResumeId(), resumeContent);
+                        if (extractedData != null) {
+                            if (extractedData.containsKey("techItems")) {
+                                techItems = (List<String>) extractedData.get("techItems");
+                            }
+                            if (extractedData.containsKey("projectPoints")) {
+                                projectPoints = (List<Map<String, Object>>) extractedData.get("projectPoints");
+                            }
                         }
-                        if (extractedData.containsKey("projectPoints")) {
-                            projectPoints = (List<Map<String, Object>>) extractedData.get("projectPoints");
-                        }
-                        // 保存技术项和项目点到会话
-                        session.setTechItems(objectMapper.writeValueAsString(techItems));
-                        session.setProjectPoints(objectMapper.writeValueAsString(projectPoints));
-                        sessionRepository.save(session);
                     }
+                    // 保存技术项和项目点到会话
+                    session.setTechItems(objectMapper.writeValueAsString(techItems));
+                    session.setProjectPoints(objectMapper.writeValueAsString(projectPoints));
+                    sessionRepository.save(session);
                 }
+            }
                 
                 // 生成第一个问题（流式）
                 List<String> usedTechItems = (List<String>) interviewState.get("usedTechItems");
@@ -724,14 +736,26 @@ public class InterviewServiceImpl implements InterviewService {
             if (StringUtils.hasText(session.getTechItems())) {
                 techItems = objectMapper.readValue(session.getTechItems(), new TypeReference<List<String>>() {});
             } else {
-                // 如果技术项不存在，从简历内容中提取
-                Map<String, Object> extractedData = extractTechItemsAndProjectPoints(session.getResumeId(), resumeContent);
-                if (extractedData != null) {
-                    if (extractedData.containsKey("techItems")) {
-                        techItems = (List<String>) extractedData.get("techItems");
-                    }
-                    if (extractedData.containsKey("projectPoints")) {
-                        projectPoints = (List<Map<String, Object>>) extractedData.get("projectPoints");
+                // 先检查Resume表中是否有提取结果
+                Optional<Resume> resumeOpt = resumeRepository.findById(session.getResumeId());
+                if (resumeOpt.isPresent()) {
+                    Resume resume = resumeOpt.get();
+                    if (StringUtils.hasText(resume.getTechItems()) && StringUtils.hasText(resume.getProjectPoints())) {
+                        // 从Resume表中获取提取结果
+                        techItems = objectMapper.readValue(resume.getTechItems(), new TypeReference<List<String>>() {});
+                        projectPoints = objectMapper.readValue(resume.getProjectPoints(), new TypeReference<List<Map<String, Object>>>() {});
+                        log.info("processFirstQuestionAsync - 从Resume表获取提取结果，简历ID: {}", session.getResumeId());
+                    } else {
+                        // 如果Resume表中也没有，再从简历内容中提取
+                        Map<String, Object> extractedData = extractTechItemsAndProjectPoints(session.getResumeId(), resumeContent);
+                        if (extractedData != null) {
+                            if (extractedData.containsKey("techItems")) {
+                                techItems = (List<String>) extractedData.get("techItems");
+                            }
+                            if (extractedData.containsKey("projectPoints")) {
+                                projectPoints = (List<Map<String, Object>>) extractedData.get("projectPoints");
+                            }
+                        }
                     }
                     // 保存技术项和项目点到会话
                     session.setTechItems(objectMapper.writeValueAsString(techItems));
@@ -1081,10 +1105,10 @@ public class InterviewServiceImpl implements InterviewService {
             if (resumeOpt.isPresent()) {
                 Resume resume = resumeOpt.get();
                 if (StringUtils.hasText(resume.getTechItems()) && StringUtils.hasText(resume.getProjectPoints()) && resume.getLastExtractedTime() != null) {
-                    // 检查简历是否有修改
+                    // 检查简历是否有修改，lastExtractedTime >= resumeUpdateTime表示简历未修改
                     Date resumeUpdateTime = resume.getUpdateTime();
                     Date lastExtractedTime = resume.getLastExtractedTime();
-                    if (lastExtractedTime.after(resumeUpdateTime)) {
+                    if (lastExtractedTime.after(resumeUpdateTime) || lastExtractedTime.equals(resumeUpdateTime)) {
                         // 简历未修改，使用缓存结果
                         log.info("extractTechItemsAndProjectPoints - 使用缓存结果，简历ID: {}", resumeId);
                         Map<String, Object> result = new HashMap<>();
