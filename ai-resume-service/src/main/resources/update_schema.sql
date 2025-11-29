@@ -86,3 +86,13 @@ ALTER TABLE interview_log ADD COLUMN depth_level VARCHAR(20) COMMENT '问题深�
 -- 修改文件：InterviewServiceImpl.java
 -- 修改内容：
 -- 1. 更新getFirstQuestionStream和generateNextQuestionStream方法中对callDeepSeekApiStream的调用，添加sessionId参数
+
+-- 2025-11-29 优化简历技术项和项目点提取逻辑：添加缓存机制
+-- 修改文件：Resume.java
+-- 修改内容：
+-- 1. 新增tech_items字段，存储技术项JSON
+-- 2. 新增project_points字段，存储项目点JSON
+-- 3. 新增last_extracted_time字段，存储最后提取时间
+ALTER TABLE resume ADD COLUMN tech_items TEXT COMMENT '技术项，JSON格式存储';
+ALTER TABLE resume ADD COLUMN project_points TEXT COMMENT '项目点，JSON格式存储';
+ALTER TABLE resume ADD COLUMN last_extracted_time DATETIME COMMENT '最后提取时间';

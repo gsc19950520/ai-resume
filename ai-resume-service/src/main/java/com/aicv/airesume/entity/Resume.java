@@ -56,6 +56,18 @@ public class Resume {
     @Column(name = "update_time", nullable = false)
     private Date updateTime;
     
+    // 技术项，存储JSON格式
+    @Column(name = "tech_items", columnDefinition = "text")
+    private String techItems;
+    
+    // 项目点，存储JSON格式
+    @Column(name = "project_points", columnDefinition = "text")
+    private String projectPoints;
+    
+    // 最后提取时间
+    @Column(name = "last_extracted_time")
+    private Date lastExtractedTime;
+    
     // 手动添加getter方法以解决编译问题
     public Long getId() {
         return id;

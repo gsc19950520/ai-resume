@@ -64,31 +64,53 @@ Page({
             
             // 解析数据，支持多种格式
             try {
-              if (typeof chunk === 'string' && chunk.startsWith('data:')) {
-                // 处理SSE格式数据
-                const data = chunk.substring(5).trim();
-                if (data) {
-                  const parsedData = JSON.parse(data);
-                  if (parsedData.event === 'question') {
-                    // 问题内容 - 直接流式展示
+              if (typeof chunk === 'string') {
+                // 处理字符串格式数据
+                if (chunk.startsWith('event:') || chunk.startsWith('data:')) {
+                  // 处理事件流格式数据
+                  const lines = chunk.split('\n');
+                  let event = '';
+                  let data = '';
+                  
+                  // 逐行解析事件和数据
+                  for (const line of lines) {
+                    const trimmedLine = line.trim();
+                    if (trimmedLine.startsWith('event:')) {
+                      event = trimmedLine.substring(6).trim();
+                    } else if (trimmedLine.startsWith('data:')) {
+                      data = trimmedLine.substring(5).trim();
+                    }
+                  }
+                  
+                  // 根据事件类型处理
+                  if (event === 'question' && data) {
+                    // 累积问题内容（流式展示，逐字/逐词添加）
                     this.setData({
-                      question: parsedData.data
+                      question: this.data.question + data
                     });
-                  } else if (parsedData.event === 'end') {
+                  } else if (event === 'end') {
                     // 结束信号
                     this.setData({ isLoading: false });
                     resolve({
                       content: this.data.question
                     });
                   }
+                } else if (chunk === 'end') {
+                  // 直接处理结束信号
+                  this.setData({ isLoading: false });
+                  resolve({
+                    content: this.data.question
+                  });
                 }
               } else if (typeof chunk === 'object') {
                 // 直接处理对象格式
-                if (chunk.event === 'question') {
+                if (chunk.event === 'question' && chunk.data) {
+                  // 累积问题内容
                   this.setData({
-                    question: chunk.data
+                    question: this.data.question + chunk.data
                   });
                 } else if (chunk.event === 'end') {
+                  // 结束信号
                   this.setData({ isLoading: false });
                   resolve({
                     content: this.data.question

@@ -148,7 +148,7 @@ public class InterviewServiceImpl implements InterviewService {
                     techItems = objectMapper.readValue(session.getTechItems(), new TypeReference<List<String>>() {});
                 } else {
                     // 如果技术项不存在，从简历内容中提取
-                    Map<String, Object> extractedData = extractTechItemsAndProjectPoints(resumeContent);
+                Map<String, Object> extractedData = extractTechItemsAndProjectPoints(session.getResumeId(), resumeContent);
                     if (extractedData != null) {
                         if (extractedData.containsKey("techItems")) {
                             techItems = (List<String>) extractedData.get("techItems");
@@ -544,7 +544,7 @@ public class InterviewServiceImpl implements InterviewService {
             log.info("异步处理: 成功获取完整简历内容，将用于生成面试问题");
             
             // 从简历内容中提取技术项和项目点
-            Map<String, Object> extractedData = extractTechItemsAndProjectPoints(resumeContent);
+            Map<String, Object> extractedData = extractTechItemsAndProjectPoints(resumeId, resumeContent);
             List<String> techItems = new ArrayList<>();
             List<Map<String, Object>> projectPoints = new ArrayList<>();
             
@@ -725,7 +725,7 @@ public class InterviewServiceImpl implements InterviewService {
                 techItems = objectMapper.readValue(session.getTechItems(), new TypeReference<List<String>>() {});
             } else {
                 // 如果技术项不存在，从简历内容中提取
-                Map<String, Object> extractedData = extractTechItemsAndProjectPoints(resumeContent);
+                Map<String, Object> extractedData = extractTechItemsAndProjectPoints(session.getResumeId(), resumeContent);
                 if (extractedData != null) {
                     if (extractedData.containsKey("techItems")) {
                         techItems = (List<String>) extractedData.get("techItems");
@@ -1069,13 +1069,32 @@ public class InterviewServiceImpl implements InterviewService {
         }
     }
 
-    public Map<String, Object> extractTechItemsAndProjectPoints(String resumeText) {
+    public Map<String, Object> extractTechItemsAndProjectPoints(Long resumeId, String resumeText) {
         try {
             // 记录简历文本的长度和部分内容，确保不为空
-            log.info("extractTechItemsAndProjectPoints - 简历文本长度: {}, 开始部分: {}", 
-                     resumeText.length(), 
+            log.info("extractTechItemsAndProjectPoints - 简历ID: {}, 简历文本长度: {}, 开始部分: {}", 
+                     resumeId, resumeText.length(), 
                      resumeText.length() > 50 ? resumeText.substring(0, 50) + "..." : resumeText);
-                      
+                       
+            // 检查是否已有提取结果且简历未修改
+            Optional<Resume> resumeOpt = resumeRepository.findById(resumeId);
+            if (resumeOpt.isPresent()) {
+                Resume resume = resumeOpt.get();
+                if (StringUtils.hasText(resume.getTechItems()) && StringUtils.hasText(resume.getProjectPoints()) && resume.getLastExtractedTime() != null) {
+                    // 检查简历是否有修改
+                    Date resumeUpdateTime = resume.getUpdateTime();
+                    Date lastExtractedTime = resume.getLastExtractedTime();
+                    if (lastExtractedTime.after(resumeUpdateTime)) {
+                        // 简历未修改，使用缓存结果
+                        log.info("extractTechItemsAndProjectPoints - 使用缓存结果，简历ID: {}", resumeId);
+                        Map<String, Object> result = new HashMap<>();
+                        result.put("techItems", objectMapper.readValue(resume.getTechItems(), new TypeReference<List<String>>() {}));
+                        result.put("projectPoints", objectMapper.readValue(resume.getProjectPoints(), new TypeReference<List<Map<String, Object>>>() {}));
+                        return result;
+                    }
+                }
+            }
+            
             // 构建prompt调用projectAnalyzer，优化prompt以更好地提取技术项和项目点
             String prompt = String.format("请仔细分析以下简历内容，提取候选人掌握的核心技术项（编程语言、框架、工具等）以及可追问的项目点。\n请确保即使简历格式不规范也尝试提取信息。\n简历内容：%s\n请严格按照以下JSON格式输出，不要包含任何其他文字：\n{\"techItems\":[\"技术1\",\"技术2\",\"技术3\"],\"projectPoints\":[{\"title\":\"项目点描述\",\"difficulty\":\"easy|intermediate|advanced\"}]}", resumeText);
             
@@ -1149,6 +1168,18 @@ public class InterviewServiceImpl implements InterviewService {
             result.put("techItems", techItems);
             result.put("projectPoints", projectPoints);
             log.info("最终提取结果 - 技术项数量: {}, 项目点数量: {}", techItems.size(), projectPoints.size());
+            
+            // 保存提取结果到简历
+            Optional<Resume> resumeOptSave = resumeRepository.findById(resumeId);
+            if (resumeOptSave.isPresent()) {
+                Resume resume = resumeOptSave.get();
+                resume.setTechItems(objectMapper.writeValueAsString(techItems));
+                resume.setProjectPoints(objectMapper.writeValueAsString(projectPoints));
+                resume.setLastExtractedTime(new Date());
+                resumeRepository.save(resume);
+                log.info("提取结果已保存到简历，简历ID: {}", resumeId);
+            }
+            
             return result;
         } catch (Exception e) {
             log.error("提取技术项和项目点失败", e);

@@ -122,53 +122,36 @@ const requestStream = (url, options = {}) => {
         console.log('callContainer返回结果', res);
         // 处理响应数据
         if (res && typeof res === 'string') {
-          // 假设返回的是完整的SSE格式数据
+          // 逐行处理数据流，不等待空行
           const lines = res.split('\n');
-          let currentEvent = '';
+          let eventBuffer = '';
+          let dataBuffer = '';
+          
           for (const line of lines) {
             const trimmedLine = line.trim();
             if (trimmedLine) {
-              currentEvent += line + '\n';
-              // 如果遇到空行，表示一个完整的SSE事件结束
-              if (line.trim() === '') {
-                if (onChunk && typeof onChunk === 'function') {
-                  onChunk(currentEvent);
-                }
-                currentEvent = '';
-              }
-            } else {
-              // 处理单独的空行
-              if (currentEvent) {
-                currentEvent += '\n';
-                if (onChunk && typeof onChunk === 'function') {
-                  onChunk(currentEvent);
-                }
-                currentEvent = '';
+              // 直接将每一行传递给onChunk，让上层处理
+              if (onChunk && typeof onChunk === 'function') {
+                onChunk(line);
               }
             }
           }
-          // 处理最后一个可能没有空行结束的事件
-          if (currentEvent) {
-            if (onChunk && typeof onChunk === 'function') {
-              onChunk(currentEvent);
+          
+          // 检查是否有结束标志
+          if (res.includes('event:end')) {
+            if (onComplete && typeof onComplete === 'function') {
+              onComplete();
             }
           }
         } else if (res && typeof res === 'object') {
-          // 如果是对象格式，模拟流式处理
+          // 如果是对象格式，直接处理
           if (onChunk && typeof onChunk === 'function') {
-            // 处理不同类型的事件
-          if (res.event === 'question' || res.event === 'end') {
-            // 直接传递对象，让调用者处理
             onChunk(res);
-          } else {
-              // 否则按照SSE格式处理
-              onChunk(`data: ${JSON.stringify(res)}\n\n`);
-            }
           }
-        }
-        
-        if (onComplete && typeof onComplete === 'function') {
-          onComplete();
+          
+          if (onComplete && typeof onComplete === 'function') {
+            onComplete();
+          }
         }
         
         resolve(res);
