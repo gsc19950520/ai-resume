@@ -100,7 +100,7 @@ const request = (url, data = {}, method = 'GET', header = {}) => {
 }
 
 /**
- * 流式请求方法（使用云托管callContainer调用）
+ * 流式请求方法（使用云托管callContainer调用，模拟流式处理）
  * @param {string} url - 请求地址
  * @param {object} options - 请求选项
  * @returns {Promise} 返回Promise对象
@@ -119,34 +119,46 @@ const requestStream = (url, options = {}) => {
     // 使用云托管callContainer调用
     app.cloudCall(url, data, method, header)
       .then(res => {
-        console.log('callContainer返回结果', res);
         // 处理响应数据
         if (res && typeof res === 'string') {
-          // 逐行处理数据流，不等待空行
-          const lines = res.split('\n');
-          let eventBuffer = '';
-          let dataBuffer = '';
-          
-          for (const line of lines) {
-            const trimmedLine = line.trim();
-            if (trimmedLine) {
-              // 直接将每一行传递给onChunk，让上层处理
-              if (onChunk && typeof onChunk === 'function') {
-                onChunk(line);
+          // 模拟流式处理：逐字符发送数据
+          let index = 0;
+          const sendNextChar = () => {
+            if (index < res.length) {
+              // 从当前位置查找是否有完整的事件行
+              const endIndex = res.indexOf('\n', index);
+              if (endIndex !== -1) {
+                // 有完整的行，发送整行
+                const chunk = res.substring(index, endIndex + 1);
+                index = endIndex + 1;
+                if (onChunk && typeof onChunk === 'function') {
+                  onChunk(chunk);
+                }
+                // 递归发送下一行
+                setTimeout(sendNextChar, 50); // 50ms的延迟，模拟流式传输
+              } else {
+                // 没有完整的行，发送剩余部分
+                const chunk = res.substring(index);
+                index = res.length;
+                if (onChunk && typeof onChunk === 'function') {
+                  onChunk(chunk);
+                }
+                // 递归发送结束
+                setTimeout(sendNextChar, 50);
+              }
+            } else {
+              // 所有数据发送完毕
+              if (onComplete && typeof onComplete === 'function') {
+                onComplete();
               }
             }
-          }
-          
-          // 检查是否有结束标志
-          if (res.includes('event:end')) {
-            if (onComplete && typeof onComplete === 'function') {
-              onComplete();
-            }
-          }
+          };
+          // 开始发送数据
+          sendNextChar();
         } else if (res && typeof res === 'object') {
           // 如果是对象格式，直接处理
           if (onChunk && typeof onChunk === 'function') {
-            onChunk(res);
+            onChunk(JSON.stringify(res));
           }
           
           if (onComplete && typeof onComplete === 'function') {

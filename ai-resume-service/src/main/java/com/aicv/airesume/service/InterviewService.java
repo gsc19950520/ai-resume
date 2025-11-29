@@ -27,22 +27,6 @@ public interface InterviewService {
     InterviewResponseVO startInterview(Long userId, Long resumeId, String persona, Integer sessionSeconds, Integer jobTypeId);
 
     /**
-     * 获取第一个面试问题（流式输出）
-     * @param sessionId 会话ID
-     * @return SseEmitter 对象，用于流式输出
-     */
-    SseEmitter getFirstQuestion(String sessionId);
-
-    /**
-     * 提交回答 - 支持回答时长
-     * @param sessionId 会话ID
-     * @param userAnswerText 用户回答文本
-     * @param answerDuration 回答时长（秒）
-     * @return 评分和下一个问题
-     */
-    InterviewResponseDTO submitAnswer(String sessionId, String userAnswerText, Integer answerDuration, String toneStyle);
-
-    /**
      * 完成面试
      * @param sessionId 会话ID
      * @return 面试报告
@@ -86,17 +70,4 @@ public interface InterviewService {
      */
     SseEmitter submitAnswerStream(String sessionId, String userAnswerText, Integer answerDuration, String toneStyle);
     
-    /**
-     * 生成下一个问题（流式输出）
-     * @param techItems 技术项列表
-     * @param projectPoints 项目要点列表
-     * @param interviewState 面试状态
-     * @param sessionTimeRemaining 会话剩余时间（秒）
-     * @param persona 面试官风格
-     * @param jobTypeId 职位类型ID
-     * @return SseEmitter 对象，用于流式输出
-     */
-    SseEmitter generateNextQuestionStream(List<String> techItems, List<Map<String, Object>> projectPoints,
-                                            Map<String, Object> interviewState, Integer sessionTimeRemaining,
-                                            String persona, Integer jobTypeId);
 }

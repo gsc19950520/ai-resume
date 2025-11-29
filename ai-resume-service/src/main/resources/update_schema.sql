@@ -96,3 +96,12 @@ ALTER TABLE interview_log ADD COLUMN depth_level VARCHAR(20) COMMENT '问题深�
 ALTER TABLE resume ADD COLUMN tech_items TEXT COMMENT '技术项，JSON格式存储';
 ALTER TABLE resume ADD COLUMN project_points TEXT COMMENT '项目点，JSON格式存储';
 ALTER TABLE resume ADD COLUMN last_extracted_time DATETIME COMMENT '最后提取时间';
+
+-- 2025-11-30 重构面试问题生成逻辑，合并冗余方法
+-- 修改文件：InterviewServiceImpl.java
+-- 修改内容：
+-- 1. 重构generateNextQuestion方法，直接构建prompt调用AI服务
+-- 2. 删除冗余的generateNewQuestionWithAI方法
+-- 3. 删除冗余的generateNewQuestionWithAIStream方法
+-- 4. 优化代码结构，减少重复代码
+-- 5. 提高方法调用效率

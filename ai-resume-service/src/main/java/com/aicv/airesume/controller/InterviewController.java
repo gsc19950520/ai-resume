@@ -132,22 +132,7 @@ public class InterviewController {
         }
     }
 
-    @GetMapping(value = "/get-first-question/{sessionId}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter getFirstQuestion(@PathVariable String sessionId) {
-        try {
-            return interviewService.getFirstQuestion(sessionId);
-        } catch (Exception e) {
-            log.error("获取第一个面试问题失败", e);
-            SseEmitter emitter = new SseEmitter();
-            try {
-                emitter.send(SseEmitter.event().name("error").data("获取第一个面试问题失败：" + e.getMessage()));
-            } catch (Exception sendEx) {
-                log.error("发送错误信息失败: {}", sendEx.getMessage());
-            }
-            emitter.completeWithError(e);
-            return emitter;
-        }
-    }
+
     
     /**
      * 获取第一个面试问题（流式输出）
@@ -218,41 +203,6 @@ public class InterviewController {
             return BaseResponseVO.error("获取AI跟踪日志失败：" + e.getMessage());
         }
   }
-  
-  /**
-     * 提交答案并获取下一个问题
-     * @param request 请求参数DTO
-     * @return 下一个问题、评分和反馈
-     */
-    @PostMapping("/answer")
-    public BaseResponseVO submitAnswer(@RequestBody SubmitAnswerRequestDTO request) {
-        try {
-            String sessionId = request.getSessionId();
-            String userAnswerText = request.getUserAnswerText();
-            Integer answerDuration = request.getAnswerDuration();
-            // 支持动态更新面试官风格（可选参数）
-            String toneStyle = request.getToneStyle();
-
-            InterviewResponseDTO result = interviewService.submitAnswer(sessionId, userAnswerText, answerDuration, toneStyle);
-            
-            // 转换为VO对象
-            InterviewAnswerVO vo = new InterviewAnswerVO();
-            vo.setSessionId(result.getSessionId());
-            vo.setQuestion(result.getQuestion());
-            vo.setQuestionType(result.getQuestionType());
-            vo.setScore(result.getScore());
-            vo.setFeedback(result.getFeedback());
-            vo.setNextQuestion(result.getNextQuestion());
-            vo.setNextQuestionType(result.getNextQuestionType());
-            vo.setIsCompleted(result.getIsCompleted());
-            
-            // 如果需要根据toneStyle调整，这里可以扩展逻辑
-            return BaseResponseVO.success(vo);
-        } catch (Exception e) {
-            log.error("Submit answer failed:", e);
-            return BaseResponseVO.error("提交答案失败：" + e.getMessage());
-        }
-    }
     
     /**
      * 提交答案并获取下一个问题（流式输出）
