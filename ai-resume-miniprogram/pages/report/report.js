@@ -90,42 +90,77 @@ Page({
     }
   },
 
+  // 生命周期函数--监听页面加载
   onLoad: function(options) {
     const { sessionId, jobType, domain } = options || {};
-    this.setData({ 
-      sessionId, 
+    this.setData({
+      loading: true,
+      sessionId: sessionId || '',
       jobType: jobType || '',
-      domain: domain || ''
+      domain: domain || '',
+      // 初始化报告数据
+      strengths: '',
+      improvements: '',
+      overallFeedback: '',
+      totalScore: 0,
+      techScore: 0,
+      logicScore: 0,
+      clarityScore: 0,
+      depthScore: 0,
+      growthRadar: {
+        '专业技能': 75,
+        '逻辑思维': 68,
+        '沟通表达': 80,
+        '创新潜力': 60
+      },
+      trendCurve: [65, 70, 73, 78],
+      recommendedSkills: ['前端框架优化', '性能调优', '架构设计'],
+      longTermPath: ['高级工程师', '技术架构师', '技术专家'],
+      salaryInfo: {},
+      growthAdvice: {
+        shortTerm: '',
+        midTerm: '',
+        longTerm: ''
+      }
     });
     
     // 尝试从全局获取数据
     if (app.globalData.interviewResult) {
       this.renderReport(app.globalData.interviewResult);
+    } else if (sessionId) {
+      // 从后端获取报告数据（云托管请求方式）
+      this.loadReport(sessionId);
     } else {
-      // 从后端获取报告数据
-      this.loadReport();
+      this.setData({ loading: false });
     }
   },
 
-  // 加载报告数据
-  loadReport: function() {
+  // 加载报告数据（云托管请求方式）
+  loadReport: function(sessionId) {
     this.setData({ loading: true });
     
-    // 调用后端API获取报告
-    post('/api/interview/finish', { sessionId: this.data.sessionId })
-      .then(res => {
-        if (res && res.code === 0 && res.data) {
-          this.renderReport(res.data);
+    // 使用云托管请求获取报告数据
+    wx.cloud.callContainer({
+      config: {
+        env: 'your-cloud-env-id' // 替换为你的云环境ID
+      },
+      path: '/api/interview/finish',
+      method: 'POST',
+      data: { sessionId: sessionId },
+      success: (res) => {
+        if (res.statusCode === 200 && res.data && res.data.code === 0 && res.data.data) {
+          this.renderReport(res.data.data);
         } else {
           // 使用模拟数据
           this.useMockData();
         }
-      })
-      .catch(err => {
-        console.error('加载报告失败:', err);
+      },
+      fail: (err) => {
+        console.error('获取报告失败:', err);
         // 使用模拟数据
         this.useMockData();
-      });
+      }
+    });
   },
   
   // 生成职业成长报告（从数据库获取）
@@ -184,39 +219,43 @@ Page({
 
   // 渲染报告
   renderReport: function(data) {
-    const { aggregatedScores, total_score, sessionLog, city, growthAdvice, jobType, domain } = data;
+    const { totalScore, strengths, improvements, overallFeedback, 
+            techScore, logicScore, clarityScore, depthScore, 
+            jobType, domain, growthRadar, trendCurve, 
+            recommendedSkills, longTermPath, salaryInfo, growthAdvice } = data;
     
     this.setData({
-      totalScore: Math.round(total_score),
-      techScore: aggregatedScores.tech,
-      logicScore: aggregatedScores.logic,
-      clarityScore: aggregatedScores.clarity,
-      depthScore: aggregatedScores.depth,
-      sessionLog: sessionLog || [],
+      totalScore: Math.round(totalScore),
+      strengths: strengths || '',
+      improvements: improvements || '',
+      overallFeedback: overallFeedback || '',
+      techScore: techScore,
+      logicScore: logicScore,
+      clarityScore: clarityScore,
+      depthScore: depthScore,
       loading: false,
       jobType: jobType || this.data.jobType,
       domain: domain || this.data.domain,
-      growthAdvice: {
-        shortTerm: growthAdvice?.shortTerm || '',
-        midTerm: growthAdvice?.mediumTerm || '',
-        longTerm: growthAdvice?.longTerm || ''
+      growthRadar: growthRadar || {
+        '专业技能': 75,
+        '逻辑思维': 68,
+        '沟通表达': 80,
+        '创新潜力': 60
+      },
+      trendCurve: trendCurve || [65, 70, 73, 78],
+      recommendedSkills: recommendedSkills || ['前端框架优化', '性能调优', '架构设计'],
+      longTermPath: longTermPath || ['高级工程师', '技术架构师', '技术专家'],
+      salaryInfo: salaryInfo || {},
+      growthAdvice: growthAdvice || {
+        shortTerm: '',
+        midTerm: '',
+        longTerm: ''
       }
     });
-    
-    // 调用薪资匹配API
-    this.getSalaryMatchData(aggregatedScores, city || '北京');
-    
-    // 如果没有成长建议，生成建议
-    if (!growthAdvice?.shortTerm && !growthAdvice?.mediumTerm && !growthAdvice?.longTerm) {
-      this.generateGrowthAdvice(aggregatedScores);
-    }
     
     // 绘制雷达图
     this.drawRadarChart();
     this.drawTrendChart();
-    
-    // 新增：生成职业成长报告
-    this.generateCareerGrowthReport();
   },
 
   // 调用薪资匹配API（从数据库获取）

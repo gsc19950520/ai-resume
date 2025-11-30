@@ -433,7 +433,7 @@ public class InterviewServiceImpl implements InterviewService {
             session.setSessionId(UUID.randomUUID().toString());
             session.setUserId(userId);
             session.setResumeId(resumeId);
-            session.setStatus("IN_PROGRESS");
+            session.setStatus("in_progress");
             session.setJobTypeId(actualJobTypeId); // 使用从简历中获取的jobTypeId
             session.setCity("未知城市");
             session.setQuestionCount(0);
@@ -578,27 +578,94 @@ public class InterviewServiceImpl implements InterviewService {
 
             // 3. 更新会话评分和状态
             session.setTotalScore(totalScore);
-            session.setStatus("FINISHED");
+            session.setStatus("completed");
             session.setEndTime(LocalDateTime.now());
             
             // 4. 保存会话更新
             sessionRepository.save(session);
 
-            // 5. 生成面试报告
+            // 5. 构建完整的面试会话记录
+            StringBuilder sessionContent = new StringBuilder();
+            sessionContent.append("面试职位ID: " + session.getJobTypeId() + "\n");
+            sessionContent.append("面试城市: " + session.getCity() + "\n\n");
+            sessionContent.append("面试会话记录:\n");
+            
+            for (InterviewLog log : logs) {
+                sessionContent.append("问题 " + log.getRoundNumber() + ": " + log.getQuestionText() + "\n");
+                sessionContent.append("回答: " + log.getUserAnswerText() + "\n");
+                sessionContent.append("AI反馈: " + log.getFeedback() + "\n");
+                sessionContent.append("技术评分: " + log.getTechScore() + "\n");
+                sessionContent.append("逻辑评分: " + log.getLogicScore() + "\n");
+                sessionContent.append("表达清晰度评分: " + log.getClarityScore() + "\n");
+                sessionContent.append("深度评分: " + log.getDepthScore() + "\n\n");
+            }
+            
+            // 6. 构建prompt让DeepSeek全面分析面试情况
+            String prompt = String.format("请作为资深技术面试官，全面分析以下面试会话记录，生成一份详细的面试报告。\n" +
+                    "报告需要包含以下内容：\n" +
+                    "1. 总体评价和总分\n" +
+                    "2. 优势分析\n" +
+                    "3. 改进点\n" +
+                    "4. 技术深度评价\n" +
+                    "5. 逻辑表达评价\n" +
+                    "6. 沟通表达评价\n" +
+                    "7. 回答深度评价\n" +
+                    "8. 针对候选人的详细改进建议\n" +
+                    "请确保报告内容具体、针对性强，基于面试中的实际表现。\n\n" +
+                    "面试会话记录：\n%s", sessionContent.toString());
+            
+            // 7. 调用DeepSeek API获取详细报告
+            String aiResponse = aiServiceUtils.callDeepSeekApi(prompt);
+            
+            // 8. 解析AI返回的报告
+            // 简化处理：将AI返回的完整报告作为整体反馈
+            // 实际项目中可以进一步解析AI返回的结构化数据
+            
+            // 9. 生成面试报告
             InterviewReportDTO reportDTO = new InterviewReportDTO();
             reportDTO.setSessionId(sessionId);
             reportDTO.setFinalScore(totalScore);
+            reportDTO.setTotalScore(totalScore);
             reportDTO.setScores(aggregatedScores);
-            // 设置整体反馈（简化处理）
-            reportDTO.setOverallFeedback("面试完成，整体表现良好。");
-            reportDTO.setStrengths("技术能力扎实，表达清晰。");
-            reportDTO.setAreasForImprovement("可以在项目细节和深度方面进一步提升。");
+            
+            // 使用AI生成的报告内容
+            reportDTO.setOverallFeedback(aiResponse);
+            reportDTO.setStrengths(extractSectionFromReport(aiResponse, "2. 优势分析", "3. 改进点"));
+            reportDTO.setImprovements(extractSectionFromReport(aiResponse, "3. 改进点", "4. 技术深度评价"));
+            reportDTO.setCreatedAt(LocalDateTime.now());
             
             return reportDTO;
         } catch (Exception e) {
             log.error("结束面试失败", e);
             throw new RuntimeException("生成面试报告失败: " + e.getMessage());
         }
+    }
+    
+    /**
+     * 从AI生成的报告中提取指定章节的内容
+     * @param report 完整的报告内容
+     * @param startSection 开始章节标题
+     * @param endSection 结束章节标题
+     * @return 提取的章节内容
+     */
+    private String extractSectionFromReport(String report, String startSection, String endSection) {
+        if (report == null || report.isEmpty()) {
+            return "";
+        }
+        
+        int startIndex = report.indexOf(startSection);
+        if (startIndex == -1) {
+            return "";
+        }
+        
+        startIndex += startSection.length();
+        
+        int endIndex = report.indexOf(endSection);
+        if (endIndex == -1) {
+            return report.substring(startIndex).trim();
+        }
+        
+        return report.substring(startIndex, endIndex).trim();
     }
 
     public Map<String, Object> extractTechItemsAndProjectPoints(Long resumeId, String resumeText) {

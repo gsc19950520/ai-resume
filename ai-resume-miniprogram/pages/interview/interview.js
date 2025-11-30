@@ -37,6 +37,8 @@ Page({
     
     // 问答历史记录
     interviewHistory: [],
+    isHistoryExpanded: false, // 问答记录展开状态，默认为收起
+    hasFetchedHistory: false, // 是否已获取历史记录
     
     // 显示时间警告
     showTimeWarning: false,
@@ -59,10 +61,14 @@ Page({
     // 从URL参数获取toneStyle，如果有则更新
     let toneStyle = options.toneStyle || this.data.toneStyle;
     
-    // 更新sessionId和toneStyle
+    // 从URL参数获取industryJobTag，如果有则更新，并解码
+    let industryJobTag = options.industryJobTag ? decodeURIComponent(options.industryJobTag) : this.data.industryJobTag;
+    
+    // 更新sessionId、toneStyle和industryJobTag
     this.setData({
       sessionId: sessionId,
-      toneStyle: toneStyle
+      toneStyle: toneStyle,
+      industryJobTag: industryJobTag
     });
     
     // 启动倒计时
@@ -108,7 +114,8 @@ Page({
                   if (this.currentEvent === 'question' && this.currentData) {
                     // 累积问题内容（流式展示，逐字/逐词添加）
                     this.setData({
-                      question: this.data.question + this.currentData
+                      // 当isLoading为true时，wxml显示的是nextQuestion，所以需要更新nextQuestion
+                      nextQuestion: this.data.nextQuestion + this.currentData
                     });
                     // 重置当前data
                     this.currentData = '';
@@ -130,13 +137,18 @@ Page({
                   if (this.currentEvent === 'question' && this.currentData) {
                     // 累积问题内容（流式展示，逐字/逐词添加）
                     this.setData({
-                      question: this.data.question + this.currentData
+                      // 当isLoading为true时，wxml显示的是nextQuestion，所以需要更新nextQuestion
+                      nextQuestion: this.data.nextQuestion + this.currentData
                     });
                     // 重置当前data
                     this.currentData = '';
                   } else if (this.currentEvent === 'end') {
-                    // 结束信号
-                    this.setData({ isLoading: false });
+                    // 结束信号，将nextQuestion的值赋给question，然后清空nextQuestion
+                    this.setData({ 
+                      isLoading: false,
+                      question: this.data.nextQuestion,
+                      nextQuestion: ''
+                    });
                     resolve({
                       content: this.data.question
                     });
@@ -214,6 +226,12 @@ Page({
       if (!this.data.isPaused) {
         let remaining = this.data.sessionTimeRemaining - 1;
         
+        // 先更新剩余时间数据
+        this.setData({
+          sessionTimeRemaining: remaining,
+          formattedTimeRemaining: this.formatRemainingTime(remaining)
+        });
+        
         if (remaining <= 0) {
           // 面试时间结束
           clearInterval(this.timer);
@@ -224,8 +242,8 @@ Page({
           });
         }
         
-        // 当剩余时间少于60秒时，显示警告覆盖层1秒后自动隐藏
-        if (remaining <= 60 && !this.data.showTimeWarningOverlay) {
+        // 当剩余时间恰好等于60秒时，显示警告覆盖层1秒后自动隐藏，只显示一次
+        if (remaining === 60) {
           this.setData({
             showTimeWarningOverlay: true
           });
@@ -236,11 +254,6 @@ Page({
             });
           }, 1000);
         }
-        
-        this.setData({
-          sessionTimeRemaining: remaining,
-          formattedTimeRemaining: this.formatRemainingTime(remaining)
-        });
       }
     }, 1000);
   },
@@ -310,14 +323,25 @@ Page({
 
   // 结束面试
   finishInterview: function() {
-    const { sessionId } = this.data;
-    
-    wx.showLoading({ title: '正在生成报告...' });
+    const { sessionId, interviewHistory } = this.data;
     
     // 清除定时器
-    if (this.data.timer) {
-      clearInterval(this.data.timer);
+    if (this.timer) {
+      clearInterval(this.timer);
+      this.timer = null;
     }
+    
+    // 检查是否有问答记录
+    if (interviewHistory.length === 0) {
+      // 没有问答记录，直接返回首页
+      wx.redirectTo({
+        url: '/pages/index/index'
+      });
+      return;
+    }
+    
+    // 有问答记录，生成报告
+    wx.showLoading({ title: '正在生成报告...' });
     
     // 调用API结束面试并生成报告
     post('/api/interview/finish', { sessionId: sessionId })
@@ -327,7 +351,7 @@ Page({
         if (response.code === 0 || response.code === 200 || (response.message && response.message.toLowerCase() === 'success')) {
           // 跳转到面试报告页面
           wx.redirectTo({
-            url: `/pages/interview/report?sessionId=${encodeURIComponent(sessionId)}`
+            url: `/pages/report/report?sessionId=${encodeURIComponent(sessionId)}`
           });
         } else {
           wx.showToast({
@@ -498,18 +522,34 @@ Page({
   // 将当前问答添加到历史记录
   addToInterviewHistory: function() {
     const { question, userAnswer, feedback } = this.data;
+    const now = new Date().toISOString();
+    const formattedTime = this.formatHistoryTime(now);
     
-    // 创建历史记录项
-    const historyItem = {
-      id: `history-${Date.now()}`,
-      question: question,
-      userAnswer: userAnswer,
-      feedback: feedback,
-      timestamp: new Date().toISOString()
-    };
+    // 创建历史记录数组，包含问题和回答
+    const newHistoryItems = [];
+    
+    // 添加问题记录
+    newHistoryItems.push({
+      id: `history-${Date.now()}-question`,
+      type: 'question',
+      content: question,
+      formattedTime: formattedTime,
+      timestamp: now
+    });
+    
+    // 添加回答记录
+    if (userAnswer) {
+      newHistoryItems.push({
+        id: `history-${Date.now()}-answer`,
+        type: 'answer',
+        content: userAnswer,
+        formattedTime: formattedTime,
+        timestamp: now
+      });
+    }
     
     // 更新历史记录
-    const updatedHistory = [...this.data.interviewHistory, historyItem];
+    const updatedHistory = [...this.data.interviewHistory, ...newHistoryItems];
     this.setData({
       interviewHistory: updatedHistory,
       // 更新当前问题为下一个问题
@@ -522,6 +562,59 @@ Page({
     
     // 滚动到历史记录底部
     this.scrollToBottom();
+  },
+  
+  // 切换问答记录展开/收起状态
+  toggleHistory: function() {
+    const isExpanded = this.data.isHistoryExpanded;
+    
+    // 切换展开状态
+    this.setData({
+      isHistoryExpanded: !isExpanded
+    });
+  },
+  
+  
+  // 格式化面试记录
+  formatInterviewHistory: function(historyData) {
+    // 这里根据实际返回的数据结构进行格式化
+    // 假设返回的数据是包含question和answer的数组
+    const formatted = [];
+    let idCounter = 0;
+    
+    // 遍历历史记录，转换为需要的格式
+    historyData.forEach(item => {
+      // 添加问题记录
+      formatted.push({
+        id: `history-${idCounter++}`,
+        type: 'question',
+        content: item.question,
+        formattedTime: this.formatHistoryTime(item.timestamp)
+      });
+      
+      // 添加回答记录
+      if (item.userAnswer) {
+        formatted.push({
+          id: `history-${idCounter++}`,
+          type: 'answer',
+          content: item.userAnswer,
+          formattedTime: this.formatHistoryTime(item.answerTimestamp)
+        });
+      }
+    });
+    
+    return formatted;
+  },
+  
+  // 格式化历史记录时间
+  formatHistoryTime: function(timestamp) {
+    if (!timestamp) return '';
+    
+    const date = new Date(timestamp);
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    
+    return `${hours}:${minutes}`;
   },
   
   // 滚动到历史记录底部

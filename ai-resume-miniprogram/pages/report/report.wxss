@@ -900,6 +900,79 @@
   border-radius: 10rpx;
 }
 
+/* 面试反馈样式 */
+.feedback-item {
+  margin-bottom: 20rpx;
+  padding: 15rpx;
+  border-radius: 8rpx;
+  background-color: #f9f9f9;
+}
+
+.feedback-title {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 10rpx;
+  display: block;
+}
+
+.feedback-content {
+  font-size: 26rpx;
+  color: #666;
+  line-height: 1.5;
+}
+
+/* 技能标签样式 */
+.skills-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+}
+
+.skill-tag {
+  padding: 10rpx 20rpx;
+  background-color: #e6f7ff;
+  color: #1890ff;
+  border-radius: 20rpx;
+  font-size: 24rpx;
+}
+
+/* 职业发展路径样式 */
+.path-container {
+  position: relative;
+  padding-left: 20rpx;
+}
+
+.path-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20rpx;
+}
+
+.path-dot {
+  width: 16rpx;
+  height: 16rpx;
+  background-color: #1aad19;
+  border-radius: 50%;
+  margin-right: 15rpx;
+  z-index: 1;
+}
+
+.path-text {
+  font-size: 28rpx;
+  color: #333;
+  z-index: 1;
+}
+
+.path-line {
+  position: absolute;
+  left: 7rpx;
+  width: 2rpx;
+  height: 40rpx;
+  background-color: #d9d9d9;
+  margin-top: 16rpx;
+}
+
 /* 加载提示 */
 .loading-mask {
   position: fixed;

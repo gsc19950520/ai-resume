@@ -120,8 +120,8 @@ page {
 .main-content {
   display: flex;
   flex: 1;
-  padding: 30rpx;
-  gap: 30rpx;
+  padding: 20rpx;
+  gap: 20rpx;
   min-height: calc(100vh - 280rpx);
   align-items: flex-start;
 }
@@ -130,8 +130,8 @@ page {
 @media screen and (max-width: 768px) {
   .main-content {
     flex-direction: column;
-    padding: 20rpx;
-    gap: 20rpx;
+    padding: 16rpx;
+    gap: 16rpx;
   }
   
   .left-column,
@@ -172,24 +172,21 @@ page {
 
 /* 左侧列 */
 .left-column {
-  flex: 0 0 58%;
+  flex: 1;
   display: flex;
   flex-direction: column;
 }
 
 /* 右侧列 */
 .right-column {
-  flex: 0 0 42%;
-  display: flex;
-  flex-direction: column;
-  gap: 30rpx;
+  display: none;
 }
 
 /* 问题卡片样式 */
 .question-card-wrapper {
-  flex: 1;
   display: flex;
   flex-direction: column;
+  margin-bottom: 10rpx;
 }
 
 /* 加载中样式 */
@@ -302,6 +299,7 @@ page {
   box-shadow: 0 8rpx 30rpx rgba(0, 0, 0, 0.08);
   animation: fade-in-up 0.5s ease;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
+  margin-bottom: 10rpx;
 }
 
 .user-answer-panel:focus-within {
@@ -401,35 +399,67 @@ page {
 
 /* 问答记录列表 */
 .interview-history-list {
-  flex: 1;
   background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
   border: 2rpx solid #e8eaf6;
   border-radius: 30rpx;
-  padding: 30rpx;
   box-shadow: 0 8rpx 30rpx rgba(0, 0, 0, 0.08);
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  transition: all 0.3s ease;
 }
 
 .history-list-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 20rpx;
-  padding-bottom: 20rpx;
-  border-bottom: 2rpx solid #e0e0e0;
+  justify-content: space-between;
+  padding: 20rpx 24rpx;
+  background-color: #f8f9fa;
+  border-radius: 16rpx 16rpx 0 0;
+  border-bottom: 2rpx solid #e9ecef;
+  color: #495057;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: background-color 0.3s ease;
+  margin: 0;
+}
+
+/* 标题栏点击效果 */
+.history-list-header:active {
+  background-color: #e9ecef;
 }
 
 .history-list-title {
-  font-size: 32rpx;
-  font-weight: bold;
-  color: #333;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #495057;
+  flex: 1;
 }
 
 .history-list-count {
-  font-size: 26rpx;
-  color: #757575;
+  font-size: 24rpx;
+  color: #868e96;
+  margin-right: 16rpx;
+}
+
+/* 箭头图标样式 */
+.history-toggle-icon {
+  font-size: 20rpx;
+  color: #868e96;
+  transition: transform 0.3s ease;
+  margin-left: 8rpx;
+}
+
+/* 展开状态下的箭头旋转 */
+.history-toggle-icon.expanded {
+  transform: rotate(90deg);
+}
+
+/* 展开状态下的箭头旋转 */
+.history-list-header:active .history-toggle-icon {
+  transform: rotate(0deg);
 }
 
 .history-list-content {

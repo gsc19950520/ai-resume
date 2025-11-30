@@ -25,9 +25,12 @@ import com.aicv.airesume.model.vo.InterviewHistoryVO;
 import com.aicv.airesume.model.vo.InterviewSessionVO;
 import com.aicv.airesume.model.vo.SalaryRangeVO;
 import com.aicv.airesume.model.vo.InterviewSalaryVO;
+import com.aicv.airesume.model.vo.SalaryInfoVO;
+import com.aicv.airesume.model.vo.GrowthAdviceVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import java.util.Arrays;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import com.aicv.airesume.entity.AiTraceLog;
@@ -247,6 +250,50 @@ public class InterviewController {
             vo.setStrengths(result.getStrengths());
             vo.setImprovements(result.getImprovements());
             vo.setCreatedAt(result.getCreatedAt() != null ? result.getCreatedAt().toString() : null);
+            
+            // 设置职位类型和领域（示例数据）
+            vo.setJobType("前端工程师");
+            vo.setDomain("软件工程");
+            
+            // 设置评分数据
+            Map<String, Double> scores = result.getScores();
+            vo.setTechScore(scores.getOrDefault("tech", 0.0));
+            vo.setLogicScore(scores.getOrDefault("logic", 0.0));
+            vo.setClarityScore(scores.getOrDefault("clarity", 0.0));
+            vo.setDepthScore(scores.getOrDefault("depth", 0.0));
+            
+            // 设置成长报告数据（示例数据）
+            Map<String, Integer> growthRadar = new HashMap<>();
+            growthRadar.put("专业技能", 75);
+            growthRadar.put("逻辑思维", 68);
+            growthRadar.put("沟通表达", 80);
+            growthRadar.put("创新潜力", 60);
+            vo.setGrowthRadar(growthRadar);
+            
+            List<Integer> trendCurve = Arrays.asList(65, 70, 73, 78);
+            vo.setTrendCurve(trendCurve);
+            
+            List<String> recommendedSkills = Arrays.asList("前端框架优化", "性能调优", "架构设计");
+            vo.setRecommendedSkills(recommendedSkills);
+            
+            List<String> longTermPath = Arrays.asList("高级工程师", "技术架构师", "技术专家");
+            vo.setLongTermPath(longTermPath);
+            
+            // 设置薪资数据（示例数据）
+            SalaryInfoVO salaryInfo = new SalaryInfoVO();
+            salaryInfo.setMinSalary(15000.0);
+            salaryInfo.setMaxSalary(25000.0);
+            salaryInfo.setCurrency("CNY");
+            salaryInfo.setLevel("中级");
+            salaryInfo.setReason("基于您的技术能力和面试表现，我们给出的薪资范围是15k-25k");
+            vo.setSalaryInfo(salaryInfo);
+            
+            // 设置成长建议（示例数据）
+            GrowthAdviceVO growthAdvice = new GrowthAdviceVO();
+            growthAdvice.setShortTerm("短期建议：加强前端框架源码学习，提升性能优化能力");
+            growthAdvice.setMidTerm("中期建议：学习架构设计，参与大型项目开发");
+            growthAdvice.setLongTerm("长期建议：培养技术领导力，成为领域专家");
+            vo.setGrowthAdvice(growthAdvice);
             
             return BaseResponseVO.success(vo);
         } catch (Exception e) {

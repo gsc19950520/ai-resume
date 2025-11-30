@@ -14,42 +14,71 @@ Page({
   },
 
   // 加载面试历史记录
-  loadInterviewHistory: function() {
-    wx.showLoading({ title: '加载中' })
-    
-    // 获取用户ID
-    const userId = app.globalData.userInfo?.id || wx.getStorageSync('userId') || 'test_user'
-    
-    get('/api/interview/history', { userId: userId })
-      .then(res => {
-        wx.hideLoading()
-        this.setData({ loading: false })
-        
-        // 优先使用success字段判断，同时兼容旧版code字段
-        if (res && (res.success === true || res.code === 0 || res.code === 200) && res.data) {
-          // 适配后端返回的数据结构
-          const listData = Array.isArray(res.data) ? res.data : (res.data.list || [])
-          this.setData({
-            interviewList: listData,
-            hasMore: res.data.hasMore || false
-          })
-        } else {
-          console.error('获取面试历史失败:', res)
-          wx.showToast({
-            title: '获取面试历史失败',
-            icon: 'none'
-          })
-        }
-      })
-      .catch(error => {
-        wx.hideLoading()
-        this.setData({ loading: false })
-        console.error('请求面试历史失败:', error)
+  loadInterviewHistory() {
+    // 从全局数据或本地缓存获取用户ID，适配不同的存储方式
+    const userId = app.globalData.userInfo?.id || app.globalData.userId || wx.getStorageSync('userId') || '53';
+    if (!userId) {
+      wx.showToast({
+        title: '请先登录',
+        icon: 'none'
+      });
+      return;
+    }
+
+    this.setData({
+      loading: true
+    });
+
+    get('/api/interview/history', {
+      userId
+    }).then(res => {
+      if (res && (res.success === true || res.code === 0 || res.code === 200) && res.data) {
+        const interviewData = res.data.histories || [];
+        const formattedList = interviewData.map(item => ({
+          id: item.uniqueSessionId,
+          title: item.title || 'AI模拟面试',
+          createTime: item.endTime ? this.formatDate(item.endTime) : '',
+          score: item.finalScore || 0,
+          status: item.status,
+          sessionId: item.uniqueSessionId
+        }));
+
+        this.setData({
+          interviewList: formattedList,
+          hasMore: false,
+          loading: false
+        });
+      } else {
+        this.setData({
+          loading: false
+        });
         wx.showToast({
-          title: '网络请求失败',
+          title: '获取面试历史失败',
           icon: 'none'
-        })
-      })
+        });
+      }
+    }).catch(error => {
+      this.setData({
+        loading: false
+      });
+      console.error('获取面试历史失败', error);
+      wx.showToast({
+        title: '获取面试历史失败',
+        icon: 'none'
+      });
+    });
+  },
+
+  // 格式化日期
+  formatDate: function(timestamp) {
+    if (!timestamp) return ''
+    const date = new Date(timestamp)
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    const hours = String(date.getHours()).padStart(2, '0')
+    const minutes = String(date.getMinutes()).padStart(2, '0')
+    return `${year}-${month}-${day} ${hours}:${minutes}`
   },
 
   // 查看面试报告

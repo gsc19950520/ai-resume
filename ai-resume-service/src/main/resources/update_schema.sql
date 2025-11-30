@@ -113,3 +113,36 @@ ALTER TABLE interview_log MODIFY COLUMN question_text TEXT NULL;
 -- 3. 删除冗余的generateNewQuestionWithAIStream方法
 -- 4. 优化代码结构，减少重复代码
 -- 5. 提高方法调用效率
+
+-- 2025-11-30 完善面试报告功能
+-- 修改内容：
+-- 1. 创建新的VO类：SalaryInfoVO、SessionLogVO、GrowthAdviceVO
+-- 2. 修改InterviewReportVO，添加更多字段以支持完整的面试报告
+-- 3. 修改InterviewController的finishInterview方法，返回完整的面试报告数据
+-- 4. 修改InterviewServiceImpl的finishInterview方法，设置totalScore和createdAt字段
+-- 5. 前端调整：修改interview.js中finishInterview方法的跳转路径为正确的report页面
+
+-- 2025-01-17 添加AI面试报告功能
+-- 修改表结构，添加report_id字段
+ALTER TABLE interview_log ADD COLUMN report_id BIGINT NULL COMMENT '关联的报告ID';
+
+-- 创建面试报告表
+CREATE TABLE interview_report (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '报告ID',
+    session_id VARCHAR(64) NOT NULL COMMENT '会话ID',
+    total_score DOUBLE NOT NULL COMMENT '总分',
+    overall_feedback TEXT NULL COMMENT '总体反馈',
+    strengths TEXT NULL COMMENT '优势',
+    improvements TEXT NULL COMMENT '改进点',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    UNIQUE KEY uk_session_id (session_id),
+    FOREIGN KEY (session_id) REFERENCES interview_session(session_id) ON DELETE CASCADE
+) COMMENT '面试报告表';
+
+-- 2025-01-18 完善面试报告功能
+-- 1. 前端与后端交互函数使用云托管请求方式
+-- 2. 调整InterviewReportVO和InterviewReportDTO，添加strengths、improvements、overallFeedback等字段
+-- 3. 修改InterviewServiceImpl.finishInterview方法，使用DeepSeek API全面分析面试会话
+-- 4. 修改InterviewController.finishInterview方法，确保返回的VO对象包含前端所需的所有字段
+-- 5. 更新前端report页面，增加面试反馈、推荐技能、职业发展路径等新模块

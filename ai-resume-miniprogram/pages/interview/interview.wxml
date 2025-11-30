@@ -25,13 +25,16 @@
 
   <!-- 主内容区域 -->
   <view class="main-content">
-    <!-- 左侧：AI问题卡片 -->
+    <!-- 左侧：AI问题卡片、用户回答面板和问答记录列表 -->
     <view class="left-column">
       <view class="question-card-wrapper" wx:if="{{!showFeedback}}">
-        <!-- 加载中提示：仅当isLoading为true且question和nextQuestion都为空时显示 -->
-        <view class="loading-container" wx:if="{{isLoading && question === '' && nextQuestion === ''}}">
+        <!-- 加载中提示：当isLoading为true且nextQuestion为空时显示 -->
+        <view class="loading-container" wx:if="{{isLoading && nextQuestion === ''}}">
           <view class="loading-spinner"></view>
-          <view class="loading-text">题目正在生成中...</view>
+          <view class="loading-text">
+            <!-- 根据状态显示不同的提示信息 -->
+            {{question === '' && nextQuestion === '' ? '题目正在生成中...' : '正在根据您的回答生成问题...'}}
+          </view>
         </view>
         <!-- 问题卡片：当question不为空或nextQuestion不为空时显示 -->
         <view class="question-card {{animationState.questionCard !== 'idle' ? 'fade-in-bottom' : ''}}" wx:if="{{question !== '' || nextQuestion !== ''}}">
@@ -39,11 +42,8 @@
           <!-- 提示信息已移除，根据新的数据结构 -->
         </view>
       </view>
-    </view>
 
-    <!-- 右侧：用户回答面板和AI反馈卡片 -->
-    <view class="right-column">
-      <!-- 答题面板 - AnswerPanel -->
+      <!-- 答题面板 - AnswerPanel，移动到问题卡片下方 -->
       <view class="user-answer-panel">
         <view class="panel-header">
           <view class="panel-title">请回答</view>
@@ -73,14 +73,22 @@
         </view>
       </view>
 
-      <!-- 问答记录列表 - InterviewHistoryList -->
+      <!-- 问答记录列表 - InterviewHistoryList，移动到请回答框下方 -->
       <view class="interview-history-list fade-in" wx:if="true">
-        <view class="history-list-header">
+        <view class="history-list-header" bindtap="toggleHistory">
           <view class="history-list-title">问答记录</view>
           <view class="history-list-count">共 {{interviewHistory.length}} 条</view>
+          <view class="history-toggle-icon {{isHistoryExpanded ? 'expanded' : ''}}">{{isHistoryExpanded ? '▼' : '▶'}}</view>
         </view>
         
-        <scroll-view class="history-list-content" id="history-list-content" scroll-y="true" scroll-into-view="{{scrollIntoView}}">
+        <!-- 问答记录内容，初始隐藏，点击展开 -->
+        <scroll-view 
+          class="history-list-content" 
+          id="history-list-content" 
+          scroll-y="true" 
+          scroll-into-view="{{scrollIntoView}}"
+          wx:if="{{isHistoryExpanded}}"
+        >
           <view wx:for="{{interviewHistory}}" wx:key="id" class="history-list-item" id="{{item.id}}">
             <!-- 问题记录 -->
             <view class="question-block" wx:if="{{item.type === 'question'}}">

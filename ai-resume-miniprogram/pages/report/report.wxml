@@ -32,6 +32,36 @@
     </view>
   </view>
   
+  <!-- 面试反馈 -->
+  <view class="report-section">
+    <view class="section-title">面试反馈</view>
+    <view class="feedback-card">
+      <view class="feedback-item">
+        <view class="feedback-header">
+          <view class="feedback-icon">📋</view>
+          <view class="feedback-title">总体评价</view>
+        </view>
+        <view class="feedback-content">{{overallFeedback || '暂无评价'}}</view>
+      </view>
+      
+      <view class="feedback-item">
+        <view class="feedback-header">
+          <view class="feedback-icon">👍</view>
+          <view class="feedback-title">优势分析</view>
+        </view>
+        <view class="feedback-content">{{strengths || '暂无优势分析'}}</view>
+      </view>
+      
+      <view class="feedback-item">
+        <view class="feedback-header">
+          <view class="feedback-icon">📝</view>
+          <view class="feedback-title">改进点</view>
+        </view>
+        <view class="feedback-content">{{improvements || '暂无改进点分析'}}</view>
+      </view>
+    </view>
+  </view>
+  
   <!-- 城市薪资匹配 -->
   <view class="report-section">
     <view class="section-title">城市薪资匹配</view>
@@ -211,28 +241,28 @@
   <view class="report-section">
     <view class="section-title">AI成长建议</view>
     <view class="advice-card">
-      <view class="advice-section short-term">
+      <view class="advice-section short-term" wx:if="{{growthAdvice.shortTerm}}">
         <view class="advice-header">
           <view class="advice-icon">🎯</view>
           <view class="advice-title">短期提升方向（1-3个月）</view>
         </view>
-        <view class="advice-content">{{growthAdvice.shortTerm || '建议重点提升技术面试中的算法能力，特别是动态规划和数据结构相关内容。'}}</view>
+        <view class="advice-content">{{growthAdvice.shortTerm}}</view>
       </view>
       
-      <view class="advice-section mid-term">
+      <view class="advice-section mid-term" wx:if="{{growthAdvice.midTerm}}">
         <view class="advice-header">
           <view class="advice-icon">📈</view>
           <view class="advice-title">中期规划（3-6个月）</view>
         </view>
-        <view class="advice-content">{{growthAdvice.midTerm || '在团队协作和项目管理方面进行提升，参与更多跨团队项目以扩展业务视野。'}}</view>
+        <view class="advice-content">{{growthAdvice.midTerm}}</view>
       </view>
       
-      <view class="advice-section long-term">
+      <view class="advice-section long-term" wx:if="{{growthAdvice.longTerm}}">
         <view class="advice-header">
           <view class="advice-icon">🌟</view>
           <view class="advice-title">长期发展（6-12个月）</view>
         </view>
-        <view class="advice-content">{{growthAdvice.longTerm || '考虑向技术专家或架构师方向发展，深入研究系统设计和性能优化相关知识。'}}</view>
+        <view class="advice-content">{{growthAdvice.longTerm}}</view>
       </view>
     </view>
   </view>
