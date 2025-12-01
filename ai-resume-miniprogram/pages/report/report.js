@@ -75,12 +75,9 @@ Page({
                 // 新的event，先处理之前的event和data（如果有）
                 if (this.currentEvent === 'report' && this.currentData) {
                   // 累积报告内容（流式展示，逐字/逐词添加）
-                  const newNextContent = this.data.nextContent + this.currentData;
-                  // 转换为HTML
-                  const htmlContent = this.markdownToHtml(newNextContent);
                   this.setData({
-                    nextContent: newNextContent,
-                    renderedContent: htmlContent
+                    // 当isLoading为true时，wxml显示的是nextContent，所以需要更新nextContent
+                    nextContent: this.data.nextContent + this.currentData
                   });
                   // 重置当前data
                   this.currentData = '';
@@ -92,7 +89,7 @@ Page({
                 const dataContent = trimmedChunk.substring(5).trim();
                 // 检查是否是结束标记
                 if (dataContent === 'end' && this.currentEvent === 'end') {
-                  // 处理完所有数据
+                  // 处理完所有数据，等待event:end
                   return;
                 }
                 // 累积data内容
@@ -102,6 +99,7 @@ Page({
                 if (this.currentEvent === 'report' && this.currentData) {
                   // 累积报告内容（流式展示，逐字/逐词添加）
                   this.setData({
+                    // 当isLoading为true时，wxml显示的是nextContent，所以需要更新nextContent
                     nextContent: this.data.nextContent + this.currentData
                   });
                   // 重置当前data
@@ -160,12 +158,7 @@ Page({
         onComplete: () => {
           console.log('获取报告流式请求完成');
           // 确保即使没有收到end事件，也能正确处理
-          this.setData({ 
-            isLoading: false,
-            isComplete: true,
-            reportContent: this.data.nextContent,
-            nextContent: ''
-          });
+          this.setData({ isLoading: false, isComplete: true });
           // 转换为HTML
           const htmlContent = this.markdownToHtml(this.data.reportContent);
           this.setData({
@@ -193,18 +186,14 @@ Page({
    * @returns {string} HTML文本
    */
   markdownToHtml(markdown) {
+    if (!markdown) return '';
+    
     let html = markdown;
     
     // 处理标题
     html = html.replace(/^# (.*$)/gm, '<h1>$1</h1>');
     html = html.replace(/^## (.*$)/gm, '<h2>$1</h2>');
     html = html.replace(/^### (.*$)/gm, '<h3>$1</h3>');
-    html = html.replace(/^#### (.*$)/gm, '<h4>$1</h4>');
-    html = html.replace(/^##### (.*$)/gm, '<h5>$1</h5>');
-    html = html.replace(/^###### (.*$)/gm, '<h6>$1</h6>');
-    
-    // 处理段落
-    html = html.replace(/^(?!<h|<ul|<ol|<li|<pre|<blockquote|<p)(.*$)/gm, '<p>$1</p>');
     
     // 处理换行
     html = html.replace(/\n/g, '<br>');
