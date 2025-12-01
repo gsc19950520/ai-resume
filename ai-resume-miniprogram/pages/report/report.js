@@ -139,27 +139,20 @@ Page({
   loadReport: function(sessionId) {
     this.setData({ loading: true });
     
-    // 使用云托管请求获取报告数据
-    wx.cloud.callContainer({
-      config: {
-        env: 'your-cloud-env-id' // 替换为你的云环境ID
-      },
-      path: '/api/interview/finish',
-      method: 'POST',
-      data: { sessionId: sessionId },
-      success: (res) => {
-        if (res.statusCode === 200 && res.data && res.data.code === 0 && res.data.data) {
-          this.renderReport(res.data.data);
-        } else {
-          // 使用模拟数据
-          this.useMockData();
-        }
-      },
-      fail: (err) => {
-        console.error('获取报告失败:', err);
+    // 使用云托管请求获取报告数据，调用非流式接口
+    app.cloudCall('/api/interview/finish/non-stream', { sessionId: sessionId }, 'POST')
+    .then(res => {
+      if (res && res.code === 0 && res.data) {
+        this.renderReport(res.data);
+      } else {
         // 使用模拟数据
         this.useMockData();
       }
+    })
+    .catch(err => {
+      console.error('获取报告失败:', err);
+      // 使用模拟数据
+      this.useMockData();
     });
   },
   
@@ -224,11 +217,9 @@ Page({
             jobType, domain, growthRadar, trendCurve, 
             recommendedSkills, longTermPath, salaryInfo, growthAdvice } = data;
     
+    // 首先设置非文本类数据和基础UI
     this.setData({
       totalScore: Math.round(totalScore),
-      strengths: strengths || '',
-      improvements: improvements || '',
-      overallFeedback: overallFeedback || '',
       techScore: techScore,
       logicScore: logicScore,
       clarityScore: clarityScore,
@@ -255,6 +246,13 @@ Page({
     
     // 绘制雷达图
     this.drawRadarChart();
+    
+    // 实现文本内容的伪流式展示
+    this.animateTextContent({
+      strengths: strengths || '',
+      improvements: improvements || '',
+      overallFeedback: overallFeedback || ''
+    });
     this.drawTrendChart();
   },
 
@@ -449,6 +447,63 @@ Page({
     };
   },
 
+  // 实现文本内容的伪流式展示
+  animateTextContent: function(textData) {
+    const { strengths, improvements, overallFeedback } = textData;
+    let currentIndex = 0;
+    
+    // 合并所有文本内容，按顺序展示
+    const allText = {
+      overallFeedback: overallFeedback,
+      strengths: strengths,
+      improvements: improvements
+    };
+    
+    // 初始化文本内容为空
+    this.setData({
+      overallFeedback: '',
+      strengths: '',
+      improvements: ''
+    });
+    
+    // 定义需要展示的文本字段顺序
+    const textFields = ['overallFeedback', 'strengths', 'improvements'];
+    let currentFieldIndex = 0;
+    let currentTextIndex = 0;
+    
+    // 定义打字机效果的时间间隔（毫秒）
+    const typingSpeed = 20;
+    
+    // 启动打字机效果
+    const typingInterval = setInterval(() => {
+      if (currentFieldIndex >= textFields.length) {
+        // 所有文本都展示完毕，清除定时器
+        clearInterval(typingInterval);
+        return;
+      }
+      
+      const currentField = textFields[currentFieldIndex];
+      const currentText = allText[currentField];
+      
+      if (currentTextIndex < currentText.length) {
+        // 截取当前文本的一部分
+        const partialText = currentText.substring(0, currentTextIndex + 1);
+        
+        // 更新对应字段的数据
+        this.setData({
+          [currentField]: partialText
+        });
+        
+        // 增加当前文本索引
+        currentTextIndex++;
+      } else {
+        // 当前字段的文本展示完毕，切换到下一个字段
+        currentFieldIndex++;
+        currentTextIndex = 0;
+      }
+    }, typingSpeed);
+  },
+  
   // 绘制雷达图
   drawRadarChart: function() {
     try {

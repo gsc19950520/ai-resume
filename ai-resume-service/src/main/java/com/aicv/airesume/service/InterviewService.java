@@ -27,11 +27,18 @@ public interface InterviewService {
     InterviewResponseVO startInterview(Long userId, Long resumeId, String persona, Integer sessionSeconds, Integer jobTypeId);
 
     /**
-     * 完成面试
+     * 完成面试并生成报告
      * @param sessionId 会话ID
-     * @return 面试报告
+     * @return 面试报告DTO
      */
     InterviewReportDTO finishInterview(String sessionId);
+    
+    /**
+     * 完成面试并流式输出DeepSeek结果
+     * @param sessionId 会话ID
+     * @param emitter SSE发射器，用于流式输出
+     */
+    void finishInterviewStream(String sessionId, SseEmitter emitter);
 
     /**
      * 获取用户的面试历史

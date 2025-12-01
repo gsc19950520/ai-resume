@@ -20,7 +20,7 @@
           <text class="interview-time">{{item.createTime || ''}}</text>
         </view>
         <view class="interview-info">
-          <text class="interview-result">{{item.score ? '得分: ' + item.score : '未完成'}}</text>
+          <text class="interview-result">{{item.status === 'completed' ? (item.score ? '得分: ' + item.score : '已完成') : '未完成'}}</text>
         </view>
         <view class="interview-arrow">
           <image src="/images/arrow.png" mode="aspectFit"></image>

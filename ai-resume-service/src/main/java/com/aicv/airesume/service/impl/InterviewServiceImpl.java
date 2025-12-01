@@ -641,6 +641,73 @@ public class InterviewServiceImpl implements InterviewService {
         }
     }
     
+    @Override
+    public void finishInterviewStream(String sessionId, SseEmitter emitter) {
+        try {
+            // 1. 获取会话信息和所有日志
+            InterviewSession session = sessionRepository.findBySessionId(sessionId)
+                    .orElseThrow(() -> new RuntimeException("会话不存在"));
+            List<InterviewLog> logs = logRepository.findBySessionIdOrderByRoundNumberAsc(sessionId);
+
+            // 2. 计算聚合评分
+            Map<String, Double> aggregatedScores = calculateAggregatedScores(logs);
+            double totalScore = aggregatedScores.get("total");
+
+            // 3. 更新会话评分和状态
+            session.setTotalScore(totalScore);
+            session.setStatus("completed");
+            session.setEndTime(LocalDateTime.now());
+            
+            // 4. 保存会话更新
+            sessionRepository.save(session);
+
+            // 5. 构建完整的面试会话记录
+            StringBuilder sessionContent = new StringBuilder();
+            sessionContent.append("面试职位ID: " + session.getJobTypeId() + "\n");
+            sessionContent.append("面试城市: " + session.getCity() + "\n\n");
+            sessionContent.append("面试会话记录:\n");
+            
+            for (InterviewLog log : logs) {
+                sessionContent.append("问题 " + log.getRoundNumber() + ": " + log.getQuestionText() + "\n");
+                sessionContent.append("回答: " + log.getUserAnswerText() + "\n");
+                sessionContent.append("AI反馈: " + log.getFeedback() + "\n");
+                sessionContent.append("技术评分: " + log.getTechScore() + "\n");
+                sessionContent.append("逻辑评分: " + log.getLogicScore() + "\n");
+                sessionContent.append("表达清晰度评分: " + log.getClarityScore() + "\n");
+                sessionContent.append("深度评分: " + log.getDepthScore() + "\n\n");
+            }
+            
+            // 6. 构建prompt让DeepSeek全面分析面试情况
+            String prompt = String.format("请作为资深技术面试官，全面分析以下面试会话记录，生成一份详细的面试报告。\n" +
+                    "报告需要包含以下内容：\n" +
+                    "1. 总体评价和总分\n" +
+                    "2. 优势分析\n" +
+                    "3. 改进点\n" +
+                    "4. 技术深度评价\n" +
+                    "5. 逻辑表达评价\n" +
+                    "6. 沟通表达评价\n" +
+                    "7. 回答深度评价\n" +
+                    "8. 针对候选人的详细改进建议\n" +
+                    "请确保报告内容具体、针对性强，基于面试中的实际表现。\n\n" +
+                    "面试会话记录：\n%s", sessionContent.toString());
+            
+            // 7. 使用流式方式调用DeepSeek API，只返回DeepSeek的结果
+            aiServiceUtils.callDeepSeekApiStream(prompt, emitter, () -> {
+                // 流结束后关闭SSE连接
+                emitter.complete();
+            }, sessionId);
+            
+        } catch (Exception e) {
+            log.error("流式结束面试失败", e);
+            try {
+                emitter.send(SseEmitter.event().name("error").data("生成面试报告失败: " + e.getMessage()));
+                emitter.completeWithError(e);
+            } catch (IOException ex) {
+                log.error("发送错误信息失败", ex);
+            }
+        }
+    }
+    
     /**
      * 从AI生成的报告中提取指定章节的内容
      * @param report 完整的报告内容

@@ -344,11 +344,12 @@ Page({
     wx.showLoading({ title: '正在生成报告...' });
     
     // 调用API结束面试并生成报告
-    post('/api/interview/finish', { sessionId: sessionId })
+    // 使用app.cloudCall方法，与其他接口保持一致，调用非流式接口
+    app.cloudCall('/api/interview/finish/non-stream', { sessionId: sessionId }, 'POST')
       .then(response => {
         wx.hideLoading();
         
-        if (response.code === 0 || response.code === 200 || (response.message && response.message.toLowerCase() === 'success')) {
+        if (response.code === 0 || response.code === 200 || response.success === true || (response.message && response.message.toLowerCase() === 'success')) {
           // 跳转到面试报告页面
           wx.redirectTo({
             url: `/pages/report/report?sessionId=${encodeURIComponent(sessionId)}`

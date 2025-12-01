@@ -28,6 +28,8 @@ import com.aicv.airesume.model.vo.InterviewSalaryVO;
 import com.aicv.airesume.model.vo.SalaryInfoVO;
 import com.aicv.airesume.model.vo.GrowthAdviceVO;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import java.io.IOException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import java.util.Arrays;
@@ -236,7 +238,37 @@ public class InterviewController {
      * @return 面试报告信息
      */
     @PostMapping("/finish")
-    public BaseResponseVO finishInterview(@RequestBody FinishInterviewRequestDTO request) {
+    public SseEmitter finishInterview(@RequestBody FinishInterviewRequestDTO request) {
+        try {
+            String sessionId = request.getSessionId();
+            
+            // 创建SSE发射器，设置超时时间为30分钟
+            SseEmitter emitter = new SseEmitter(30 * 60 * 1000L);
+            
+            // 使用流式方式调用服务，只返回DeepSeek的结果
+            interviewService.finishInterviewStream(sessionId, emitter);
+            
+            return emitter;
+        } catch (Exception e) {
+            log.error("完成面试失败", e);
+            SseEmitter errorEmitter = new SseEmitter();
+            try {
+                errorEmitter.send(SseEmitter.event().name("error").data("生成面试报告失败: " + e.getMessage()));
+                errorEmitter.completeWithError(e);
+            } catch (IOException ex) {
+                log.error("发送错误信息失败", ex);
+            }
+            return errorEmitter;
+        }
+    }
+    
+    /**
+     * 完成面试并生成报告（旧版非流式接口，保留兼容性）
+     * @param request 请求参数DTO
+     * @return 面试报告信息
+     */
+    @PostMapping("/finish/non-stream")
+    public BaseResponseVO finishInterviewNonStream(@RequestBody FinishInterviewRequestDTO request) {
         try {
             String sessionId = request.getSessionId();
 
