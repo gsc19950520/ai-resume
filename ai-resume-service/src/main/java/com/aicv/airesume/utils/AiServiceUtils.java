@@ -25,6 +25,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.aicv.airesume.entity.InterviewLog;
 import com.aicv.airesume.repository.InterviewLogRepository;
 
+import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -194,6 +195,19 @@ public class AiServiceUtils {
      * @param sessionId 会话ID，用于保存元数据
      */
     public void callDeepSeekApiStream(String prompt, SseEmitter emitter, Runnable onComplete, String sessionId) {
+        // 默认使用"question"作为事件名称
+        callDeepSeekApiStream(prompt, emitter, onComplete, sessionId, "question");
+    }
+    
+    /**
+     * 调用DeepSeek API（流式输出方式，支持自定义事件名称）
+     * @param prompt 提示词
+     * @param emitter SSE发射器，用于流式输出
+     * @param onComplete 流结束回调函数
+     * @param sessionId 会话ID，用于保存元数据
+     * @param eventName 事件名称
+     */
+    public void callDeepSeekApiStream(String prompt, SseEmitter emitter, Runnable onComplete, String sessionId, String eventName) {
         executorService.submit(() -> {
             try {
                 // 构建请求体
@@ -262,59 +276,67 @@ public class AiServiceUtils {
                                                 if (delta.containsKey("content")) {
                                                     String content = delta.getString("content");
                                                     if (content != null && !content.isEmpty()) {
-                                                        // 如果元数据已经处理完成，直接流式输出内容
-                                                        if (metadataProcessed[0]) {
-                                                            emitter.send(SseEmitter.event()
-                                                                    .name("question")
-                                                                    .data(content));
-                                                            // 同时将内容添加到完整问题缓冲区
-                                                            fullQuestionBuffer[0].append(content);
-                                                        }
-                                                        // 否则继续累积内容，等待完整的元数据块
-                                                        else {
-                                                            // 将当前内容添加到缓冲区
-                                                            currentContentBuffer[0].append(content);
-                                                            String buffer = currentContentBuffer[0].toString();
-                                                               
-                                                            // 检查缓冲区中是否包含完整的元数据块（包括开始和结束标记）
-                                                            int startIndex = buffer.indexOf("# 元数据开始");
-                                                            int endIndex = buffer.indexOf("# 元数据结束");
-                                                               
-                                                            // 只有当缓冲区包含完整的元数据块时，才处理元数据
-                                                            if (startIndex != -1 && endIndex != -1) {
-                                                                // 提取完整的元数据内容（包括开始和结束标记之间的所有内容）
-                                                                String metadataContent = buffer.substring(startIndex, endIndex + "# 元数据结束".length());
-                                                                log.info("Extracted complete metadata block: {}", metadataContent);
-                                                                
-                                                                // 提取元数据JSON部分（只保留开始和结束标记之间的内容）
-                                                                String metadataJsonStr = buffer.substring(startIndex + "# 元数据开始".length(), endIndex).trim();
-                                                                if (!metadataJsonStr.isEmpty()) {
-                                                                    // 异步保存元数据到数据库
-                                                                    saveMetadataAsync(metadataJsonStr, sessionId);
-                                                                }
-                                                                
-                                                                // 如果元数据块后面有内容，开始流式输出问题
-                                                                if (endIndex + "# 元数据结束".length() < buffer.length()) {
-                                                                    String questionPart = buffer.substring(endIndex + "# 元数据结束".length());
-                                                                    if (!questionPart.isEmpty()) {
-                                                                        emitter.send(SseEmitter.event()
-                                                                                .name("question")
-                                                                                .data(questionPart));
-                                                                        // 同时将内容添加到完整问题缓冲区
-                                                                        fullQuestionBuffer[0].append(questionPart);
-                                                                    }
-                                                                }
-                                                                
-                                                                // 元数据已处理完成，设置标志
-                                                                metadataProcessed[0] = true;
-                                                                // 清空缓冲区，准备接收后续内容
-                                                                currentContentBuffer[0].setLength(0);
-                                                            }
-                                                            // 如果缓冲区还没有完整的元数据块，继续累积内容
-                                                            else {
-                                                                // 不发送任何内容，继续在缓冲区累积
-                                                            }
-                                                        }
+                                                        // 对于面试报告（eventName为"report"），直接流式输出内容，不需要等待元数据
+                                        if ("report".equals(eventName)) {
+                                            emitter.send(SseEmitter.event()
+                                                    .name(eventName)
+                                                    .data(content));
+                                            // 同时将内容添加到完整问题缓冲区
+                                            fullQuestionBuffer[0].append(content);
+                                        }
+                                        // 如果元数据已经处理完成，直接流式输出内容
+                                        else if (metadataProcessed[0]) {
+                                            emitter.send(SseEmitter.event()
+                                                    .name(eventName)
+                                                    .data(content));
+                                            // 同时将内容添加到完整问题缓冲区
+                                            fullQuestionBuffer[0].append(content);
+                                        }
+                                        // 否则继续累积内容，等待完整的元数据块
+                                        else {
+                                            // 将当前内容添加到缓冲区
+                                            currentContentBuffer[0].append(content);
+                                            String buffer = currentContentBuffer[0].toString();
+                                                
+                                            // 检查缓冲区中是否包含完整的元数据块（包括开始和结束标记）
+                                            int startIndex = buffer.indexOf("# 元数据开始");
+                                            int endIndex = buffer.indexOf("# 元数据结束");
+                                                
+                                            // 只有当缓冲区包含完整的元数据块时，才处理元数据
+                                            if (startIndex != -1 && endIndex != -1) {
+                                                // 提取完整的元数据内容（包括开始和结束标记之间的所有内容）
+                                                String metadataContent = buffer.substring(startIndex, endIndex + "# 元数据结束".length());
+                                                log.info("Extracted complete metadata block: {}", metadataContent);
+                                                
+                                                // 提取元数据JSON部分（只保留开始和结束标记之间的内容）
+                                                String metadataJsonStr = buffer.substring(startIndex + "# 元数据开始".length(), endIndex).trim();
+                                                if (!metadataJsonStr.isEmpty()) {
+                                                    // 异步保存元数据到数据库
+                                                    saveMetadataAsync(metadataJsonStr, sessionId);
+                                                }
+                                                
+                                                // 如果元数据块后面有内容，开始流式输出问题
+                                                if (endIndex + "# 元数据结束".length() < buffer.length()) {
+                                                    String questionPart = buffer.substring(endIndex + "# 元数据结束".length());
+                                                    if (!questionPart.isEmpty()) {
+                                                        emitter.send(SseEmitter.event()
+                                                                .name(eventName)
+                                                                .data(questionPart));
+                                                        // 同时将内容添加到完整问题缓冲区
+                                                        fullQuestionBuffer[0].append(questionPart);
+                                                    }
+                                                }
+                                                
+                                                // 元数据已处理完成，设置标志
+                                                metadataProcessed[0] = true;
+                                                // 清空缓冲区，准备接收后续内容
+                                                currentContentBuffer[0].setLength(0);
+                                            }
+                                            // 如果缓冲区还没有完整的元数据块，继续累积内容
+                                            else {
+                                                // 不发送任何内容，继续在缓冲区累积
+                                            }
+                                        }
                                                     }
                                                 }
                                             }
@@ -327,6 +349,13 @@ public class AiServiceUtils {
                                 // 处理错误
                                 error -> {
                                     log.error("Error in streaming response: {}", error.getMessage(), error);
+                                    try {
+                                        emitter.send(SseEmitter.event()
+                                                .name("error")
+                                                .data("流式响应错误: " + error.getMessage()));
+                                    } catch (IOException ioException) {
+                                        log.error("Failed to send error event: {}", ioException.getMessage(), ioException);
+                                    }
                                     emitter.completeWithError(error);
                                 },
                                 // 流结束
@@ -348,6 +377,13 @@ public class AiServiceUtils {
                         );
             } catch (Exception e) {
                 log.error("Error setting up streaming request: {}", e.getMessage(), e);
+                try {
+                    emitter.send(SseEmitter.event()
+                            .name("error")
+                            .data("设置流式请求错误: " + e.getMessage()));
+                } catch (IOException ioException) {
+                    log.error("Failed to send error event: {}", ioException.getMessage(), ioException);
+                }
                 emitter.completeWithError(e);
             }
         });

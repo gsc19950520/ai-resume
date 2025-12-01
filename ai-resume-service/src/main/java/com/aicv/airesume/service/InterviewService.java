@@ -38,7 +38,7 @@ public interface InterviewService {
      * @param sessionId 会话ID
      * @param emitter SSE发射器，用于流式输出
      */
-    void finishInterviewStream(String sessionId, SseEmitter emitter);
+    SseEmitter finishInterviewStream(String sessionId);
 
     /**
      * 获取用户的面试历史

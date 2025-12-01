@@ -237,18 +237,12 @@ public class InterviewController {
      * @param request 请求参数DTO
      * @return 面试报告信息
      */
-    @PostMapping("/finish")
+    @PostMapping(value = "/finish", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter finishInterview(@RequestBody FinishInterviewRequestDTO request) {
         try {
             String sessionId = request.getSessionId();
-            
-            // 创建SSE发射器，设置超时时间为30分钟
-            SseEmitter emitter = new SseEmitter(30 * 60 * 1000L);
-            
             // 使用流式方式调用服务，只返回DeepSeek的结果
-            interviewService.finishInterviewStream(sessionId, emitter);
-            
-            return emitter;
+            return interviewService.finishInterviewStream(sessionId);
         } catch (Exception e) {
             log.error("完成面试失败", e);
             SseEmitter errorEmitter = new SseEmitter();
