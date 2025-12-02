@@ -25,13 +25,6 @@ public interface InterviewService {
      * @return 面试响应VO
      */
     InterviewResponseVO startInterview(Long userId, Long resumeId, String persona, Integer sessionSeconds, Integer jobTypeId);
-
-    /**
-     * 完成面试并生成报告
-     * @param sessionId 会话ID
-     * @return 面试报告DTO
-     */
-    InterviewReportDTO finishInterview(String sessionId);
     
     /**
      * 完成面试并流式输出DeepSeek结果
