@@ -624,8 +624,8 @@ public class InterviewServiceImpl implements InterviewService {
                         "7. 回答深度评价\n" +
                         "8. 针对候选人的详细改进建议\n" +
                         "请确保报告内容具体、针对性强，基于面试中的实际表现。\n" +
-                        "请将报告总字数控制在2000字左右，确保内容精炼且全面。\n" +
-                        "重要要求：请使用纯文本格式，不要使用Markdown格式（如标题、列表、粗体等），直接输出文字内容即可。\n\n" +
+                        "请将报告总字数控制在1000字左右，确保内容精炼且全面。\n" +
+                        "重要要求：请使用使用Markdown格式（如标题、列表、粗体等）。\n\n" +
                         "面试会话记录：\n%s", sessionContent.toString());
 
                 // 7. 使用流式方式调用DeepSeek API，将结果按块存储到reportGenerationService

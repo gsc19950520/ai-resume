@@ -10,10 +10,8 @@
 
   <!-- 报告内容区域 -->
   <view class="report-content">
-    <!-- 流式输出过程中显示原始内容 -->
-    <view class="raw-content" wx:if="{{isLoading}}">{{nextContent}}</view>
-    <!-- 加载完成后显示转换后的HTML内容 -->
-    <rich-text nodes="{{renderedContent}}" class="markdown-content" wx:else></rich-text>
+    <!-- 使用rich-text组件渲染markdown内容 -->
+    <rich-text nodes="{{renderedContent}}" class="markdown-content"></rich-text>
   </view>
 
   <!-- 加载完成提示 -->

@@ -46,15 +46,6 @@
   min-height: 600rpx;
 }
 
-/* 原始内容样式（流式输出过程中） */
-.raw-content {
-  font-size: 30rpx;
-  line-height: 1.8;
-  color: #333;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-}
-
 /* Markdown内容样式 */
 .markdown-content {
   font-size: 30rpx;

@@ -150,7 +150,7 @@ public class ReportGenerationService {
     }
 
     /**
-     * 获取报告块，从指定索引开始
+     * 获取报告块，从指定索引的下一个位置开始
      */
     public List<ReportChunk> getReportChunks(String reportId, int lastIndex) {
         ReportGenerationRecord record = getReportRecord(reportId);
@@ -160,10 +160,12 @@ public class ReportGenerationService {
 
         synchronized (record) {
             List<ReportChunk> chunks = record.getChunks();
-            if (lastIndex >= chunks.size()) {
+            // 计算下一个要获取的起始索引，确保只返回新增的报告块
+            int startIndex = lastIndex + 1;
+            if (startIndex >= chunks.size()) {
                 return new ArrayList<>();
             }
-            return new ArrayList<>(chunks.subList(lastIndex, chunks.size()));
+            return new ArrayList<>(chunks.subList(startIndex, chunks.size()));
         }
     }
 
