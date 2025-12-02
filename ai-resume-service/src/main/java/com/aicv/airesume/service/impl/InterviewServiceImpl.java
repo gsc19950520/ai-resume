@@ -626,16 +626,12 @@ public class InterviewServiceImpl implements InterviewService {
 
                 // 7. 使用流式方式调用DeepSeek API，为面试报告设置特定的事件名称"report"
                 aiServiceUtils.callDeepSeekApiStream(prompt, emitter, () -> {
-                        // 流结束回调：发送结束信号并完成emitter
                         try {
-                            emitter.send(SseEmitter.event().data("end").name("end").id("3"));
-                            emitter.complete();
-                        } catch (IOException e) {
-                            log.error("发送结束信号失败：{}", e.getMessage(), e);
-                            emitter.completeWithError(e);
+                            emitter.send(SseEmitter.event().name("end").data("end"));
+                        } catch (IOException ignored) {
                         }
                     }, sessionId, "report");
-                
+
             } catch (Exception e) {
                 log.error("流式结束面试失败", e);
                 try {

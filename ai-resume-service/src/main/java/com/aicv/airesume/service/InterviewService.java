@@ -1,14 +1,11 @@
 package com.aicv.airesume.service;
 
-import com.aicv.airesume.model.dto.InterviewReportDTO;
-import com.aicv.airesume.model.dto.InterviewResponseDTO;
 import com.aicv.airesume.model.vo.InterviewHistoryVO;
 import com.aicv.airesume.model.vo.InterviewResponseVO;
 import com.aicv.airesume.model.vo.InterviewSessionVO;
 import com.aicv.airesume.model.vo.SalaryRangeVO;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import java.util.List;
-import java.util.Map;
 
 /**
  * 面试服务接口

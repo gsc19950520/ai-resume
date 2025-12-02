@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.Base64;
 
 /**
@@ -208,33 +209,35 @@ public class AiServiceUtils {
      * @param eventName 事件名称
      */
     public void callDeepSeekApiStream(String prompt, SseEmitter emitter, Runnable onComplete, String sessionId, String eventName) {
+
+        // 新增：标记 emitter 是否已经关闭
+        AtomicBoolean emitterClosed = new AtomicBoolean(false);
+
         executorService.submit(() -> {
             try {
-                // 构建请求体
+                // ------ 原样保留你的请求体构建逻辑 ------
                 Map<String, Object> requestBody = new HashMap<>();
                 requestBody.put("model", "deepseek-chat");
-                requestBody.put("stream", true); // 启用流式输出
-                
+                requestBody.put("stream", true);
+
                 Map<String, String> message = new HashMap<>();
                 message.put("role", "user");
                 message.put("content", prompt);
-                
                 requestBody.put("messages", new Object[]{message});
+
                 requestBody.put("temperature", 0.7);
                 requestBody.put("max_tokens", 5000);
 
                 log.info("Sending streaming request to DeepSeek API: {}", JSONObject.toJSONString(requestBody));
-                
-                // 元数据提取相关变量 - 使用数组包装以便在lambda中修改
+
+                // ------ 原逻辑变量保持不变 ------
                 boolean[] isExtractingMetadata = {false};
                 StringBuilder[] metadataBuilder = {new StringBuilder()};
-                StringBuilder[] currentContentBuffer = {new StringBuilder()}; // 用于缓冲当前内容，处理标记被拆分的情况
-                // 用于标记元数据是否已处理完成
+                StringBuilder[] currentContentBuffer = {new StringBuilder()};
                 boolean[] metadataProcessed = {false};
-                // 用于累积完整的问题文本
                 StringBuilder[] fullQuestionBuffer = {new StringBuilder()};
-                
-                // 使用WebClient发送流式请求
+
+                // ------ WebClient 流式请求 ------
                 webClient.post()
                         .uri(deepseekApiUrl)
                         .header("Authorization", "Bearer " + deepseekApiKey)
@@ -244,150 +247,132 @@ public class AiServiceUtils {
                         .retrieve()
                         .bodyToFlux(String.class)
                         .subscribe(
-                                // 处理每一行流数据
+                                // ---- onNext 每一行数据 ----
                                 line -> {
                                     try {
-                                        log.debug("Received streaming line: {}", line);
-                                        // 跳过空行
-                                        if (line == null || line.isEmpty()) {
-                                            return;
-                                        }
-                                        // 跳过结束标记
-                                        if (line.equals("data: [DONE]") || line.equals("[DONE]")) {
-                                            return;
-                                        }
-                                        // 提取JSON部分
+                                        if (emitterClosed.get()) return; // ⭐新增保护
+
+                                        if (line == null || line.isEmpty()) return;
+                                        if ("data: [DONE]".equals(line) || "[DONE]".equals(line)) return;
+
                                         String jsonStr = line;
-                                        // 如果line以"data: "开头，提取后面的JSON部分
-                                        if (line.startsWith("data: ")) {
-                                            jsonStr = line.substring(6);
+                                        if (jsonStr.startsWith("data: ")) {
+                                            jsonStr = jsonStr.substring(6);
                                         }
-                                        // 去除可能的引号（如果line是被引号包裹的完整JSON字符串）
                                         if (jsonStr.startsWith("\"") && jsonStr.endsWith("\"") && jsonStr.length() > 1) {
                                             jsonStr = jsonStr.substring(1, jsonStr.length() - 1);
                                         }
-                                        
-                                        // 解析JSON获取content
+
                                         JSONObject json = JSONObject.parseObject(jsonStr);
-                                        if (json.containsKey("choices") && !json.getJSONArray("choices").isEmpty()) {
-                                            JSONObject choice = json.getJSONArray("choices").getJSONObject(0);
-                                            if (choice.containsKey("delta")) {
-                                                JSONObject delta = choice.getJSONObject("delta");
-                                                if (delta.containsKey("content")) {
-                                                    String content = delta.getString("content");
-                                                    if (content != null && !content.isEmpty()) {
-                                                        // 对于面试报告（eventName为"report"），直接流式输出内容，不需要等待元数据
+                                        if (!json.containsKey("choices")) return;
+                                        JSONObject choice = json.getJSONArray("choices").getJSONObject(0);
+                                        if (!choice.containsKey("delta")) return;
+
+                                        JSONObject delta = choice.getJSONObject("delta");
+                                        if (!delta.containsKey("content")) return;
+
+                                        String content = delta.getString("content");
+                                        if (content == null || content.isEmpty()) return;
+
+                                        // ---------- 保留你的业务逻辑不变 ----------
                                         if ("report".equals(eventName)) {
-                                            emitter.send(SseEmitter.event()
-                                                    .name(eventName)
-                                                    .data(content));
-                                            // 同时将内容添加到完整问题缓冲区
+                                            if (!emitterClosed.get()) {
+                                                emitter.send(SseEmitter.event().name(eventName).data(content));
+                                            }
                                             fullQuestionBuffer[0].append(content);
-                                        }
-                                        // 如果元数据已经处理完成，直接流式输出内容
-                                        else if (metadataProcessed[0]) {
-                                            emitter.send(SseEmitter.event()
-                                                    .name(eventName)
-                                                    .data(content));
-                                            // 同时将内容添加到完整问题缓冲区
+                                        } else if (metadataProcessed[0]) {
+                                            if (!emitterClosed.get()) {
+                                                emitter.send(SseEmitter.event().name(eventName).data(content));
+                                            }
                                             fullQuestionBuffer[0].append(content);
-                                        }
-                                        // 否则继续累积内容，等待完整的元数据块
-                                        else {
-                                            // 将当前内容添加到缓冲区
+                                        } else {
                                             currentContentBuffer[0].append(content);
                                             String buffer = currentContentBuffer[0].toString();
-                                                
-                                            // 检查缓冲区中是否包含完整的元数据块（包括开始和结束标记）
+
                                             int startIndex = buffer.indexOf("# 元数据开始");
                                             int endIndex = buffer.indexOf("# 元数据结束");
-                                                
-                                            // 只有当缓冲区包含完整的元数据块时，才处理元数据
+
                                             if (startIndex != -1 && endIndex != -1) {
-                                                // 提取完整的元数据内容（包括开始和结束标记之间的所有内容）
                                                 String metadataContent = buffer.substring(startIndex, endIndex + "# 元数据结束".length());
                                                 log.info("Extracted complete metadata block: {}", metadataContent);
-                                                
-                                                // 提取元数据JSON部分（只保留开始和结束标记之间的内容）
+
                                                 String metadataJsonStr = buffer.substring(startIndex + "# 元数据开始".length(), endIndex).trim();
                                                 if (!metadataJsonStr.isEmpty()) {
-                                                    // 异步保存元数据到数据库
                                                     saveMetadataAsync(metadataJsonStr, sessionId);
                                                 }
-                                                
-                                                // 如果元数据块后面有内容，开始流式输出问题
+
                                                 if (endIndex + "# 元数据结束".length() < buffer.length()) {
                                                     String questionPart = buffer.substring(endIndex + "# 元数据结束".length());
-                                                    if (!questionPart.isEmpty()) {
-                                                        emitter.send(SseEmitter.event()
-                                                                .name(eventName)
-                                                                .data(questionPart));
-                                                        // 同时将内容添加到完整问题缓冲区
-                                                        fullQuestionBuffer[0].append(questionPart);
+                                                    if (!questionPart.isEmpty() && !emitterClosed.get()) {
+                                                        emitter.send(SseEmitter.event().name(eventName).data(questionPart));
                                                     }
+                                                    fullQuestionBuffer[0].append(questionPart);
                                                 }
-                                                
-                                                // 元数据已处理完成，设置标志
+
                                                 metadataProcessed[0] = true;
-                                                // 清空缓冲区，准备接收后续内容
                                                 currentContentBuffer[0].setLength(0);
-                                            }
-                                            // 如果缓冲区还没有完整的元数据块，继续累积内容
-                                            else {
-                                                // 不发送任何内容，继续在缓冲区累积
-                                            }
-                                        }
-                                                    }
-                                                }
                                             }
                                         }
                                     } catch (Exception e) {
                                         log.error("Error processing streaming line: {}", e.getMessage(), e);
-                                        emitter.completeWithError(e);
+                                        safeCompleteWithError(emitter, emitterClosed, e);
                                     }
                                 },
-                                // 处理错误
+
+                                // ---- onError ----
                                 error -> {
                                     log.error("Error in streaming response: {}", error.getMessage(), error);
-                                    try {
-                                        emitter.send(SseEmitter.event()
-                                                .name("error")
-                                                .data("流式响应错误: " + error.getMessage()));
-                                    } catch (IOException ioException) {
-                                        log.error("Failed to send error event: {}", ioException.getMessage(), ioException);
+
+                                    if (!emitterClosed.get()) {
+                                        try {
+                                            emitter.send(SseEmitter.event().name("error").data("流式响应错误: " + error.getMessage()));
+                                        } catch (IOException ignored) {}
                                     }
-                                    emitter.completeWithError(error);
+
+                                    safeCompleteWithError(emitter, emitterClosed, error);
                                 },
-                                // 流结束
+
+                                // ---- onComplete ----
                                 () -> {
                                     log.info("Streaming response completed");
-                                    
-                                    // 保存完整的问题文本到数据库
+
                                     String fullQuestion = fullQuestionBuffer[0].toString().trim();
                                     if (!fullQuestion.isEmpty()) {
-                                        // 异步保存完整问题到数据库
                                         saveQuestionAsync(fullQuestion, sessionId);
                                     }
-                                    
-                                    // 调用回调函数通知流结束
-                                    if (onComplete != null) {
-                                        onComplete.run();
-                                    }
+
+                                    if (onComplete != null) onComplete.run();
+
+                                    safeComplete(emitter, emitterClosed);
                                 }
                         );
+
             } catch (Exception e) {
                 log.error("Error setting up streaming request: {}", e.getMessage(), e);
-                try {
-                    emitter.send(SseEmitter.event()
-                            .name("error")
-                            .data("设置流式请求错误: " + e.getMessage()));
-                } catch (IOException ioException) {
-                    log.error("Failed to send error event: {}", ioException.getMessage(), ioException);
+
+                if (!emitterClosed.get()) {
+                    try {
+                        emitter.send(SseEmitter.event().name("error").data("设置流式请求错误: " + e.getMessage()));
+                    } catch (IOException ignored) {}
                 }
-                emitter.completeWithError(e);
+
+                safeCompleteWithError(emitter, emitterClosed, e);
             }
         });
     }
+
+    private void safeComplete(SseEmitter emitter, AtomicBoolean closedFlag) {
+        if (closedFlag.compareAndSet(false, true)) {
+            emitter.complete();
+        }
+    }
+
+    private void safeCompleteWithError(SseEmitter emitter, AtomicBoolean closedFlag, Throwable e) {
+        if (closedFlag.compareAndSet(false, true)) {
+            emitter.completeWithError(e);
+        }
+    }
+
     
     /**
      * 异步保存元数据到数据库
