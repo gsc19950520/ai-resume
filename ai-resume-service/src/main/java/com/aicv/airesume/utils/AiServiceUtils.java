@@ -217,12 +217,11 @@ public class AiServiceUtils {
         // 心跳线程，保持 SSE 连接活跃，防止云托管环境断开
         ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
         scheduler.scheduleAtFixedRate(() -> {
-            if (emitterClosed.get()) {
-                return; // 已关闭，立即退出
+            if (!emitterClosed.get()) {
+                try {
+                    emitter.send(SseEmitter.event().name("heartbeat").data(" "));
+                } catch (IOException ignored) {}
             }
-            try {
-                emitter.send(SseEmitter.event().name("heartbeat").data(" "));
-            } catch (IOException ignored) {}
         }, 0, 5, TimeUnit.SECONDS);
 
         executorService.submit(() -> {
@@ -241,6 +240,11 @@ public class AiServiceUtils {
                 requestBody.put("max_tokens", 5000);
 
                 log.info("Sending streaming request to DeepSeek API: {}", JSONObject.toJSONString(requestBody));
+
+                // ======= 首条占位输出，保证 15 秒内有数据 =======
+                if (!emitterClosed.get()) {
+                    emitter.send(SseEmitter.event().name(eventName).data("正在生成..."));
+                }
 
                 // ======= 保留原逻辑变量 =======
                 boolean[] isExtractingMetadata = {false};
@@ -266,7 +270,10 @@ public class AiServiceUtils {
                                         if (line == null || line.isEmpty()) return;
                                         if ("data: [DONE]".equals(line) || "[DONE]".equals(line)) return;
 
-                                        String jsonStr = line.startsWith("data: ") ? line.substring(6) : line;
+                                        String jsonStr = line;
+                                        if (jsonStr.startsWith("data: ")) {
+                                            jsonStr = jsonStr.substring(6);
+                                        }
                                         if (jsonStr.startsWith("\"") && jsonStr.endsWith("\"") && jsonStr.length() > 1) {
                                             jsonStr = jsonStr.substring(1, jsonStr.length() - 1);
                                         }
@@ -282,12 +289,16 @@ public class AiServiceUtils {
                                         String content = delta.getString("content");
                                         if (content == null || content.isEmpty()) return;
 
-                                        // ======= 保留原业务逻辑，只加 flush =========
+                                        // ======= 保留原业务逻辑，只加 flush =======
                                         if ("report".equals(eventName)) {
-                                            sendSseSafe(emitter, emitterClosed, eventName, content);
+                                            if (!emitterClosed.get()) {
+                                                emitter.send(SseEmitter.event().name(eventName).data(content));
+                                            }
                                             fullQuestionBuffer[0].append(content);
                                         } else if (metadataProcessed[0]) {
-                                            sendSseSafe(emitter, emitterClosed, eventName, content);
+                                            if (!emitterClosed.get()) {
+                                                emitter.send(SseEmitter.event().name(eventName).data(content));
+                                            }
                                             fullQuestionBuffer[0].append(content);
                                         } else {
                                             currentContentBuffer[0].append(content);
@@ -307,8 +318,8 @@ public class AiServiceUtils {
 
                                                 if (endIndex + "# 元数据结束".length() < buffer.length()) {
                                                     String questionPart = buffer.substring(endIndex + "# 元数据结束".length());
-                                                    if (!questionPart.isEmpty()) {
-                                                        sendSseSafe(emitter, emitterClosed, eventName, questionPart);
+                                                    if (!questionPart.isEmpty() && !emitterClosed.get()) {
+                                                        emitter.send(SseEmitter.event().name(eventName).data(questionPart));
                                                     }
                                                     fullQuestionBuffer[0].append(questionPart);
                                                 }
@@ -330,7 +341,6 @@ public class AiServiceUtils {
                                         } catch (IOException ignored) {}
                                     }
                                     safeCompleteWithError(emitter, emitterClosed, error);
-                                    scheduler.shutdown();
                                 },
                                 () -> {
                                     log.info("Streaming response completed");
@@ -360,15 +370,6 @@ public class AiServiceUtils {
         });
     }
 
-    // 安全发送 SSE，避免 emitter 已关闭
-    private void sendSseSafe(SseEmitter emitter, AtomicBoolean emitterClosed, String eventName, String data) {
-        if (!emitterClosed.get()) {
-            try {
-                emitter.send(SseEmitter.event().name(eventName).data(data));
-            } catch (IOException ignored) {}
-        }
-    }
-
     private void safeComplete(SseEmitter emitter, AtomicBoolean closedFlag) {
         if (closedFlag.compareAndSet(false, true)) {
             emitter.complete();
@@ -380,6 +381,7 @@ public class AiServiceUtils {
             emitter.completeWithError(e);
         }
     }
+
 
 
     
