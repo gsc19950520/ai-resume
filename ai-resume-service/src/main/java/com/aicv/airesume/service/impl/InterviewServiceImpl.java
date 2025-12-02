@@ -575,7 +575,7 @@ public class InterviewServiceImpl implements InterviewService {
         
         // 创建报告生成记录
         ReportGenerationService.ReportGenerationRecord record = reportGenerationService.createReportRecord(reportId);
-        
+        SseEmitter emitter = new SseEmitter(60000L);
         // 启动异步线程生成报告
         executorService.submit(() -> {
             try {
@@ -630,14 +630,15 @@ public class InterviewServiceImpl implements InterviewService {
 
                 // 7. 使用流式方式调用DeepSeek API，将结果按块存储到reportGenerationService
                 StringBuilder currentChunk = new StringBuilder();
-                aiServiceUtils.callDeepSeekApiStream(prompt, null, content -> {
+                aiServiceUtils.callDeepSeekApiStream(prompt, emitter, content -> {
                     if (content != null && !content.isEmpty()) {
                         currentChunk.append(content);
-                        // 当当前块超过100字时，存储并清空
-                        if (currentChunk.length() >= 100) {
+                        // 当当前块超过20字时，存储并清空
+                        if (currentChunk.length() >= 20) {
                             record.addChunk(currentChunk.toString());
                             currentChunk.setLength(0);
                         }
+                        log.debug("当前内容块为：{}", currentChunk.toString());
                     }
                 }, () -> {
                     try {

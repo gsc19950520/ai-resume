@@ -26,6 +26,28 @@ const cloudCall = (path, data = {}, method = 'GET', header = {}) => {
 }
 
 /**
+ * 将对象转换为URL查询字符串
+ * @param {object} params - 参数对象
+ * @returns {string} 查询字符串
+ */
+const objToQueryString = (params) => {
+  if (!params || typeof params !== 'object' || Object.keys(params).length === 0) {
+    return ''
+  }
+  
+  return '?' + Object.entries(params)
+    .map(([key, value]) => {
+      // 跳过值为undefined或null的参数
+      if (value === undefined || value === null) {
+        return ''
+      }
+      return `${encodeURIComponent(key)}=${encodeURIComponent(value)}`
+    })
+    .filter(Boolean)
+    .join('&')
+}
+
+/**
  * 封装请求方法（主要使用云托管callContainer）
  * @param {string} url - 请求地址
  * @param {object} data - 请求参数
@@ -34,8 +56,20 @@ const cloudCall = (path, data = {}, method = 'GET', header = {}) => {
  * @returns {Promise} 返回Promise对象
  */
 const request = (url, data = {}, method = 'GET', header = {}) => {
+  // 处理GET请求的查询参数
+  let requestUrl = url
+  let requestData = data
+  
+  if (method === 'GET') {
+    // 对于GET请求，将参数拼接到URL上
+    const queryString = objToQueryString(requestData)
+    requestUrl = url + queryString
+    // GET请求不发送请求体数据
+    requestData = {}
+  }
+  
   // 强制使用云托管调用（callContainer方式）
-  return cloudCall(url, data, method, header)
+  return cloudCall(requestUrl, requestData, method, header)
     .then(res => {
       // 业务状态码处理
       // 检查是否是标准的响应格式（包含code字段或success字段）

@@ -238,7 +238,7 @@ public class InterviewController {
      * @param sessionId 会话ID
      * @return 报告ID
      */
-    @PostMapping("/start-report")
+    @GetMapping("/start-report")
     public BaseResponseVO startReportGeneration(@RequestParam String sessionId) {
         String reportId = interviewService.startReportGeneration(sessionId);
         return BaseResponseVO.success(reportId);

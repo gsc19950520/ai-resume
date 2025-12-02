@@ -55,14 +55,16 @@ Page({
     });
 
     try {
-      // 调用开始生成报告接口
-      post('/api/interview/start-report', { sessionId })
+      // 调用开始生成报告接口，使用查询参数传递sessionId（后端接口已改为GET）
+      get(`/api/interview/start-report?sessionId=${sessionId}`)
         .then(res => {
           if (res && res.success && res.data) {
             this.reportId = res.data;
             console.log('报告生成已开始，reportId:', this.reportId);
-            // 开始轮询获取报告内容
-            this.startPolling();
+            // 延迟3秒后开始轮询，确保报告分片有完整的数据
+            setTimeout(() => {
+              this.startPolling();
+            }, 3000);
           } else {
             throw new Error('获取reportId失败');
           }
@@ -150,15 +152,45 @@ Page({
               // 停止轮询
               this.stopPolling();
             }
+          } else {
+            // 接口返回数据格式不正确，停止轮询
+            console.error('获取报告内容块返回数据格式错误:', res);
+            this.setData({
+              isLoading: false,
+              isComplete: true
+            });
+            wx.showToast({ 
+              title: '获取报告内容失败', 
+              icon: 'none' 
+            });
+            this.stopPolling();
           }
         })
         .catch(error => {
           console.error('获取报告内容块失败:', error);
-          // 继续轮询，直到报告生成完成或超时
+          // 接口调用失败，停止轮询
+          this.setData({
+            isLoading: false,
+            isComplete: true
+          });
+          wx.showToast({ 
+            title: '获取报告内容失败', 
+            icon: 'none' 
+          });
+          this.stopPolling();
         });
     } catch (error) {
       console.error('发起获取报告内容块请求失败:', error);
-      // 继续轮询，直到报告生成完成或超时
+      // 请求发起失败，停止轮询
+      this.setData({
+        isLoading: false,
+        isComplete: true
+      });
+      wx.showToast({ 
+        title: '获取报告内容失败', 
+        icon: 'none' 
+      });
+      this.stopPolling();
     }
   },
 
