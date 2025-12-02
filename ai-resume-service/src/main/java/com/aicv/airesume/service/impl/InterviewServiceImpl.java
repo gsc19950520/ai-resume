@@ -647,6 +647,12 @@ public class InterviewServiceImpl implements InterviewService {
         
         new Thread(() -> {
             try {
+                // 立即发送一个初始化事件，防止前端连接超时
+                emitter.send(SseEmitter.event()
+                        .name("report")
+                        .data("报告生成中...")
+                        .id("0"));
+                
                 // 1. 获取会话信息和所有日志
                 InterviewSession session = sessionRepository.findBySessionId(sessionId)
                         .orElseThrow(() -> new RuntimeException("会话不存在"));

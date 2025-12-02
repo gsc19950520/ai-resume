@@ -40,6 +40,7 @@ App({
           ...header
         },
         data,
+        timeout: 15000, // 设置最大超时时间为15秒（微信云托管callContainer的最大允许值）
         success: res => {
           // 检查是否有新的token（后端刷新token）
           if (res && res.header) {
@@ -77,6 +78,7 @@ App({
           ...header
         },
         data,
+        timeout: 60000, // 二进制数据下载可以设置更长的超时时间
         responseType: 'arraybuffer', // 设置响应类型为arraybuffer以处理二进制数据
         success: res => {
           console.log('云托管二进制调用成功，响应类型:', typeof res.data, '数据长度:', res.data ? res.data.byteLength : 0);
