@@ -217,11 +217,12 @@ public class AiServiceUtils {
         // 心跳线程，保持 SSE 连接活跃，防止云托管环境断开
         ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
         scheduler.scheduleAtFixedRate(() -> {
-            if (!emitterClosed.get()) {
-                try {
-                    emitter.send(SseEmitter.event().name("heartbeat").data(" "));
-                } catch (IOException ignored) {}
+            if (emitterClosed.get()) {
+                return; // 已关闭，立即退出
             }
+            try {
+                emitter.send(SseEmitter.event().name("heartbeat").data(" "));
+            } catch (IOException ignored) {}
         }, 0, 5, TimeUnit.SECONDS);
 
         executorService.submit(() -> {
@@ -265,10 +266,7 @@ public class AiServiceUtils {
                                         if (line == null || line.isEmpty()) return;
                                         if ("data: [DONE]".equals(line) || "[DONE]".equals(line)) return;
 
-                                        String jsonStr = line;
-                                        if (jsonStr.startsWith("data: ")) {
-                                            jsonStr = jsonStr.substring(6);
-                                        }
+                                        String jsonStr = line.startsWith("data: ") ? line.substring(6) : line;
                                         if (jsonStr.startsWith("\"") && jsonStr.endsWith("\"") && jsonStr.length() > 1) {
                                             jsonStr = jsonStr.substring(1, jsonStr.length() - 1);
                                         }
@@ -284,19 +282,12 @@ public class AiServiceUtils {
                                         String content = delta.getString("content");
                                         if (content == null || content.isEmpty()) return;
 
-                                        // ======= 保留原业务逻辑，只加 flush =======
+                                        // ======= 保留原业务逻辑，只加 flush =========
                                         if ("report".equals(eventName)) {
-                                            if (!emitterClosed.get()) {
-                                                emitter.send(SseEmitter.event().name(eventName).data(content));
-                                                // flush 立即推送
-                                                emitter.send(SseEmitter.event().name(eventName).data(" "));
-                                            }
+                                            sendSseSafe(emitter, emitterClosed, eventName, content);
                                             fullQuestionBuffer[0].append(content);
                                         } else if (metadataProcessed[0]) {
-                                            if (!emitterClosed.get()) {
-                                                emitter.send(SseEmitter.event().name(eventName).data(content));
-                                                emitter.send(SseEmitter.event().name(eventName).data(" "));
-                                            }
+                                            sendSseSafe(emitter, emitterClosed, eventName, content);
                                             fullQuestionBuffer[0].append(content);
                                         } else {
                                             currentContentBuffer[0].append(content);
@@ -316,9 +307,8 @@ public class AiServiceUtils {
 
                                                 if (endIndex + "# 元数据结束".length() < buffer.length()) {
                                                     String questionPart = buffer.substring(endIndex + "# 元数据结束".length());
-                                                    if (!questionPart.isEmpty() && !emitterClosed.get()) {
-                                                        emitter.send(SseEmitter.event().name(eventName).data(questionPart));
-                                                        emitter.send(SseEmitter.event().name(eventName).data(" "));
+                                                    if (!questionPart.isEmpty()) {
+                                                        sendSseSafe(emitter, emitterClosed, eventName, questionPart);
                                                     }
                                                     fullQuestionBuffer[0].append(questionPart);
                                                 }
@@ -340,6 +330,7 @@ public class AiServiceUtils {
                                         } catch (IOException ignored) {}
                                     }
                                     safeCompleteWithError(emitter, emitterClosed, error);
+                                    scheduler.shutdown();
                                 },
                                 () -> {
                                     log.info("Streaming response completed");
@@ -352,7 +343,6 @@ public class AiServiceUtils {
                                     if (onComplete != null) onComplete.run();
 
                                     safeComplete(emitter, emitterClosed);
-                                    // 关闭心跳线程
                                     scheduler.shutdown();
                                 }
                         );
@@ -370,6 +360,14 @@ public class AiServiceUtils {
         });
     }
 
+    // 安全发送 SSE，避免 emitter 已关闭
+    private void sendSseSafe(SseEmitter emitter, AtomicBoolean emitterClosed, String eventName, String data) {
+        if (!emitterClosed.get()) {
+            try {
+                emitter.send(SseEmitter.event().name(eventName).data(data));
+            } catch (IOException ignored) {}
+        }
+    }
 
     private void safeComplete(SseEmitter emitter, AtomicBoolean closedFlag) {
         if (closedFlag.compareAndSet(false, true)) {
@@ -382,6 +380,7 @@ public class AiServiceUtils {
             emitter.completeWithError(e);
         }
     }
+
 
     
     /**
