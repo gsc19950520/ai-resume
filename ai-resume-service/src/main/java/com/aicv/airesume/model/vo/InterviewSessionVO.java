@@ -25,6 +25,9 @@ public class InterviewSessionVO {
     private List<InterviewLog> logs;
     private String persona;
     private Integer sessionSeconds;
+    private Integer sessionTimeRemaining;
     private Double totalScore;
     private Integer interviewDuration;
+    private Boolean hasQuestion;
+    private String currentQuestion;
 }

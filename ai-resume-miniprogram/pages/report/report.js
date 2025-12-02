@@ -12,7 +12,8 @@ Page({
     renderedContent: '',
     isLoading: true,
     isComplete: false,
-    nextContent: '' // 用于流式展示，逐字/逐词添加
+    nextContent: '', // 用于流式展示，逐字/逐词添加
+    isSaved: false // 报告是否已保存
   },
 
   /**
@@ -238,6 +239,116 @@ Page({
     html = html.replace(/TEMP_ESCAPED_ASTERISK/g, '&#42;');
     
     return html;
+  },
+  
+  /**
+   * 保存报告
+   */
+  saveReport: function() {
+    const { sessionId, reportContent } = this.data;
+    
+    wx.showLoading({ title: '正在保存报告...' });
+    
+    // 解析报告内容，提取各个部分
+    const reportData = this.parseReportContent(reportContent);
+    
+    // 调用后端API保存报告
+    post('/api/interview/save-report', {
+      sessionId: sessionId,
+      reportData: reportData
+    })
+      .then(res => {
+        wx.hideLoading();
+        if (res && res.success) {
+          // 保存成功
+          this.setData({ isSaved: true });
+          wx.showToast({ title: '报告保存成功', icon: 'success' });
+          
+          // 清空缓存数据
+          this.clearReportCache();
+        } else {
+          // 保存失败
+          wx.showToast({ title: res.message || '报告保存失败', icon: 'none' });
+        }
+      })
+      .catch(error => {
+        wx.hideLoading();
+        console.error('保存报告失败:', error);
+        wx.showToast({ title: '报告保存失败', icon: 'none' });
+      });
+  },
+  
+  /**
+   * 解析报告内容
+   * @param {string} content - 报告内容
+   * @returns {object} 解析后的报告数据
+   */
+  parseReportContent: function(content) {
+    // 解析报告内容，提取各个部分
+    const reportData = {
+      totalScore: 0,
+      overallFeedback: '',
+      strengths: [],
+      improvements: []
+    };
+    
+    // 根据DeepSeek prompt的规范，报告结构为：
+    // ## 总体评价和总分
+    // 内容
+    // ## 优势分析
+    // - 优势1
+    // - 优势2
+    // ## 改进点
+    // - 改进点1
+    // - 改进点2
+    
+    // 提取总分
+    const scoreMatch = content.match(/总分：(\d+\.\d+)/);
+    if (scoreMatch) {
+      reportData.totalScore = parseFloat(scoreMatch[1]);
+    }
+    
+    // 提取总体评价
+    const overallMatch = content.match(/## 总体评价和总分[\s\S]*?(?=## 优势分析)/);
+    if (overallMatch) {
+      reportData.overallFeedback = overallMatch[0].replace(/## 总体评价和总分/, '').trim();
+    }
+    
+    // 提取优势
+    const strengthsMatch = content.match(/## 优势分析[\s\S]*?(?=## 改进点|$)/);
+    if (strengthsMatch) {
+      const strengthsContent = strengthsMatch[0].replace(/## 优势分析/, '').trim();
+      reportData.strengths = strengthsContent.split(/^- /gm)
+        .filter(line => line.trim())
+        .map(line => line.trim());
+    }
+    
+    // 提取改进点
+    const improvementsMatch = content.match(/## 改进点[\s\S]*/);
+    if (improvementsMatch) {
+      const improvementsContent = improvementsMatch[0].replace(/## 改进点/, '').trim();
+      reportData.improvements = improvementsContent.split(/^- /gm)
+        .filter(line => line.trim())
+        .map(line => line.trim());
+    }
+    
+    return reportData;
+  },
+  
+  /**
+   * 清空报告缓存
+   */
+  clearReportCache: function() {
+    // 清空页面数据
+    this.setData({
+      reportContent: '',
+      nextContent: ''
+    });
+    
+    // 清空全局缓存（如果有）
+    if (getApp().globalData.reportCache) {
+      delete getApp().globalData.reportCache;
+    }
   },
 
   /**

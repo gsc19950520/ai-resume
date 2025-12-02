@@ -7,6 +7,7 @@ import com.aicv.airesume.model.vo.ReportChunksVO;
 import com.aicv.airesume.model.vo.SalaryRangeVO;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 面试服务接口
@@ -45,6 +46,20 @@ public interface InterviewService {
      * @return 面试历史列表
      */
     List<InterviewHistoryVO> getInterviewHistory(Long userId);
+    
+    /**
+     * 获取面试历史记录
+     * @param sessionId 会话ID
+     * @return 面试历史记录
+     */
+    List<com.aicv.airesume.entity.InterviewLog> getInterviewHistory(String sessionId);
+    
+    /**
+     * 保存面试报告
+     * @param sessionId 会话ID
+     * @param reportData 报告数据
+     */
+    void saveReport(String sessionId, Map<String, Object> reportData);
 
     /**
      * 计算薪资范围

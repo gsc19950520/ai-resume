@@ -11,4 +11,16 @@
   <view class="complete-tip" wx:if="{{isComplete && !isLoading}}">
     <text class="complete-text">报告生成完成</text>
   </view>
+  
+  <!-- 保存报告按钮 -->
+  <view class="report-actions" wx:if="{{isComplete && !isLoading && !isSaved}}">
+    <button class="save-btn" bindtap="saveReport">
+      保存报告
+    </button>
+  </view>
+  
+  <!-- 保存成功提示 -->
+  <view class="save-success-tip" wx:if="{{isSaved}}">
+    <text class="save-success-text">报告已保存</text>
+  </view>
 </view>

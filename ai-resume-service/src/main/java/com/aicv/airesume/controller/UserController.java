@@ -4,6 +4,7 @@ import com.aicv.airesume.entity.User;
 import com.aicv.airesume.model.dto.WechatLoginDTO;
 import com.aicv.airesume.model.vo.WechatLoginVO;
 import com.aicv.airesume.model.vo.BaseResponseVO;
+import com.aicv.airesume.service.InterviewService;
 import com.aicv.airesume.service.StatisticsService;
 import com.aicv.airesume.service.UserService;
 
@@ -13,14 +14,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import javax.servlet.http.HttpServletRequest;
 
 /**
  * 用户控制器
@@ -35,6 +34,9 @@ public class UserController {
     
     @Autowired
     private StatisticsService statisticsService;
+    
+    @Autowired
+    private InterviewService interviewService;
     
     @Autowired
     private RestTemplate restTemplate;
@@ -321,8 +323,9 @@ public class UserController {
                 data.put("vipExpireTime", user.getVipExpireTime().toString());
             }
             
-            // 默认的面试统计数据
-            data.put("interviewCount", 0); // 面试数量，后续可以从其他服务获取
+            // 获取用户的面试数量
+            long interviewCount = interviewService.getInterviewHistory(user.getId()).size();
+            data.put("interviewCount", interviewCount);
             
             response.put("success", true);
             response.put("data", data);

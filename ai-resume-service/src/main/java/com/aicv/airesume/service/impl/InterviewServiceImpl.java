@@ -4,6 +4,7 @@ import com.aicv.airesume.entity.InterviewSession;
 import com.aicv.airesume.entity.JobType;
 import com.aicv.airesume.entity.InterviewLog;
 import com.aicv.airesume.entity.Resume;
+import com.aicv.airesume.entity.InterviewReport;
 import com.aicv.airesume.model.dto.InterviewQuestionDTO;
 import com.aicv.airesume.model.dto.InterviewReportDTO;
 import com.aicv.airesume.model.dto.InterviewResponseDTO;
@@ -17,6 +18,7 @@ import com.aicv.airesume.repository.InterviewLogRepository;
 import com.aicv.airesume.repository.ResumeRepository;
 import com.aicv.airesume.repository.InterviewQuestionRepository;
 import com.aicv.airesume.repository.JobTypeRepository;
+import com.aicv.airesume.repository.InterviewReportRepository;
 import com.aicv.airesume.entity.InterviewQuestion;
 import com.aicv.airesume.service.InterviewService;
 import com.aicv.airesume.service.AIGenerateService;
@@ -87,6 +89,9 @@ public class InterviewServiceImpl implements InterviewService {
     
     @Autowired
     private ReportGenerationService reportGenerationService;
+    
+    @Autowired
+    private InterviewReportRepository interviewReportRepository;
     
     // 线程池，用于处理异步任务
     private final ExecutorService executorService = java.util.concurrent.Executors.newFixedThreadPool(5);
@@ -413,7 +418,39 @@ public class InterviewServiceImpl implements InterviewService {
     @Override
     public InterviewResponseVO startInterview(Long userId, Long resumeId, String persona, Integer sessionSeconds, Integer jobTypeId) {
         try {
-            // 1. 初始化变量
+            // 1. 检查用户是否有未完成的面试会话
+            List<InterviewSession> ongoingSessions = sessionRepository.findByUserIdAndStatusOrderByCreatedAtDesc(userId, "in_progress");
+            if (!ongoingSessions.isEmpty()) {
+                // 有未完成的面试会话，直接返回最近的一个
+                InterviewSession existingSession = ongoingSessions.get(0);
+                log.info("用户 {} 有未完成的面试会话，直接返回: {}", userId, existingSession.getSessionId());
+                
+                // 通过jobTypeId查询job_type表数据获取jobName
+                String industryJobTag = "";
+                try {
+                    JobType jobType = jobTypeRepository.findById(existingSession.getJobTypeId()).orElse(null);
+                    if (jobType != null && jobType.getJobName() != null) {
+                        industryJobTag = jobType.getJobName();
+                    }
+                } catch (Exception e) {
+                    log.error("查询职位类型失败: {}", e.getMessage());
+                    // 查询失败不影响面试流程，使用空字符串作为默认值
+                }
+                
+                // 构建返回对象
+                InterviewResponseVO response = new InterviewResponseVO();
+                response.setSessionId(existingSession.getSessionId());
+                response.setQuestion(null);
+                response.setQuestionType("continue_question"); // 标记为继续面试
+                response.setFeedback(null);
+                response.setNextQuestion(null);
+                response.setIsCompleted(false); // 面试未完成
+                response.setIndustryJobTag(industryJobTag); // 设置行业职位标签
+                
+                return response;
+            }
+            
+            // 2. 初始化变量
             String initialDepthLevel = "usage"; // 默认深度级别
             Map<String, Object> interviewState = new HashMap<>();
             
@@ -1169,6 +1206,7 @@ public class InterviewServiceImpl implements InterviewService {
         vo.setStatus(session.getStatus());
         vo.setPersona(session.getPersona());
         vo.setSessionSeconds(session.getSessionSeconds());
+        vo.setSessionTimeRemaining(session.getSessionTimeRemaining());
         vo.setTotalScore(session.getTotalScore());
         vo.setInterviewDuration(session.getSessionSeconds() - session.getSessionTimeRemaining());
         vo.setCreatedAt(session.getCreatedAt());
@@ -1181,6 +1219,24 @@ public class InterviewServiceImpl implements InterviewService {
         vo.setTotalQuestions(logs.size());
         vo.setAnsweredQuestions(logs.size()); // 假设所有问题都已回答
         
+        // 检查是否有当前问题
+        boolean hasQuestion = false;
+        String currentQuestion = "";
+        if (!logs.isEmpty()) {
+            // 查找最新的问题
+            for (int i = logs.size() - 1; i >= 0; i--) {
+                InterviewLog log = logs.get(i);
+                if (log.getQuestionText() != null && !log.getQuestionText().isEmpty()) {
+                    currentQuestion = log.getQuestionText();
+                    hasQuestion = true;
+                    break;
+                }
+            }
+        }
+        
+        vo.setHasQuestion(hasQuestion);
+        vo.setCurrentQuestion(currentQuestion);
+        
         if (session.getStartTime() != null) {
             vo.setStartTime(session.getStartTime().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli());
         }
@@ -1191,6 +1247,80 @@ public class InterviewServiceImpl implements InterviewService {
         return vo;
     }
 
+    /**
+     * 根据会话ID获取面试历史记录
+     */
+    @Override
+    public List<InterviewLog> getInterviewHistory(String sessionId) {
+        // 获取指定会话的面试日志，按轮次排序
+        return logRepository.findBySessionIdOrderByRoundNumberAsc(sessionId);
+    }
+    
+    @Override
+    public void saveReport(String sessionId, Map<String, Object> reportData) {
+        try {
+            // 1. 根据sessionId获取面试会话
+            InterviewSession session = sessionRepository.findBySessionId(sessionId)
+                    .orElseThrow(() -> new RuntimeException("面试会话不存在: " + sessionId));
+            
+            // 2. 解析报告数据
+            Double totalScore = reportData.get("totalScore") != null ? Double.parseDouble(reportData.get("totalScore").toString()) : 0.0;
+            String overallFeedback = reportData.get("overallFeedback") != null ? reportData.get("overallFeedback").toString() : "";
+            
+            // 处理优势列表
+            List<String> strengths = new ArrayList<>();
+            if (reportData.get("strengths") instanceof List) {
+                strengths = (List<String>) reportData.get("strengths");
+            } else if (reportData.get("strengths") != null) {
+                strengths.add(reportData.get("strengths").toString());
+            }
+            String strengthsJson = objectMapper.writeValueAsString(strengths);
+            
+            // 处理改进点列表
+            List<String> improvements = new ArrayList<>();
+            if (reportData.get("improvements") instanceof List) {
+                improvements = (List<String>) reportData.get("improvements");
+            } else if (reportData.get("improvements") != null) {
+                improvements.add(reportData.get("improvements").toString());
+            }
+            String improvementsJson = objectMapper.writeValueAsString(improvements);
+            
+            // 3. 保存报告到interview_report表
+            // 检查是否已存在报告
+            Optional<InterviewReport> existingReport = interviewReportRepository.findBySessionId(sessionId);
+            if (existingReport.isPresent()) {
+                // 更新现有报告
+                InterviewReport report = existingReport.get();
+                report.setTotalScore(totalScore);
+                report.setOverallFeedback(overallFeedback);
+                report.setStrengths(strengthsJson);
+                report.setImprovements(improvementsJson);
+                interviewReportRepository.save(report);
+            } else {
+                // 创建新报告
+                InterviewReport report = new InterviewReport();
+                report.setSessionId(sessionId);
+                report.setTotalScore(totalScore);
+                report.setOverallFeedback(overallFeedback);
+                report.setStrengths(strengthsJson);
+                report.setImprovements(improvementsJson);
+                interviewReportRepository.save(report);
+            }
+            
+            // 4. 更新interview_session表中的总分
+            session.setTotalScore(totalScore);
+            sessionRepository.save(session);
+            
+            // 5. 清空报告缓存
+            // 如果使用了缓存机制，可以在这里清空缓存
+            
+            log.info("保存报告成功，sessionId: {}", sessionId);
+        } catch (Exception e) {
+            log.error("保存报告失败: {}", e.getMessage(), e);
+            throw new RuntimeException("保存报告失败: " + e.getMessage());
+        }
+    }
+    
     /**
      * dynamicInterviewer模块：生成下一个问题
      */

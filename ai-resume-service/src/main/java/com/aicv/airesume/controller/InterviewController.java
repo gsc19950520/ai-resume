@@ -37,6 +37,7 @@ import java.util.Arrays;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import com.aicv.airesume.entity.AiTraceLog;
+import com.aicv.airesume.entity.InterviewLog;
 import com.aicv.airesume.repository.AiTraceLogRepository;
 import java.util.List;
 import java.util.HashMap;
@@ -311,6 +312,41 @@ public class InterviewController {
         } catch (Exception e) {
             log.error("Get interview detail failed:", e);
             return BaseResponseVO.error("获取面试详情失败：" + e.getMessage());
+        }
+    }
+    
+    /**
+     * 获取面试历史记录
+     * @param sessionId 会话ID
+     * @return 面试历史记录
+     */
+    @GetMapping("/history/{sessionId}")
+    public BaseResponseVO getInterviewHistory(@PathVariable String sessionId) {
+        try {
+            List<InterviewLog> logs = interviewService.getInterviewHistory(sessionId);
+            return BaseResponseVO.success(logs);
+        } catch (Exception e) {
+            log.error("Get interview history failed:", e);
+            return BaseResponseVO.error("获取面试历史失败：" + e.getMessage());
+        }
+    }
+    
+    /**
+     * 保存面试报告
+     * @param request 请求数据
+     * @return 保存结果
+     */
+    @PostMapping("/save-report")
+    public BaseResponseVO saveReport(@RequestBody Map<String, Object> request) {
+        try {
+            String sessionId = (String) request.get("sessionId");
+            Map<String, Object> reportData = (Map<String, Object>) request.get("reportData");
+            
+            interviewService.saveReport(sessionId, reportData);
+            return BaseResponseVO.success(null);
+        } catch (Exception e) {
+            log.error("Save report failed:", e);
+            return BaseResponseVO.error("保存报告失败：" + e.getMessage());
         }
     }
 

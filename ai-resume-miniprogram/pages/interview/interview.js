@@ -71,11 +71,87 @@ Page({
       industryJobTag: industryJobTag
     });
     
-    // 启动倒计时
-    this.startCountdown();
+    // 获取面试会话详情，包括剩余时间和历史记录
+    this.fetchSessionDetail(sessionId);
+  },
+  
+  /**
+   * 获取面试会话详情
+   * @param {string} sessionId - 会话ID
+   */
+  fetchSessionDetail: function(sessionId) {
+    this.setData({ isLoading: true });
     
-    // 调用方法获取第一个问题（流式）
-    this.fetchFirstQuestionStream(sessionId);
+    get(`/api/interview/detail/${sessionId}`)
+      .then(res => {
+        if (res && res.success && res.data) {
+          const sessionDetail = res.data;
+          console.log('获取到会话详情:', sessionDetail);
+          
+          // 更新剩余时间
+          const timeRemaining = sessionDetail.sessionTimeRemaining || 600;
+          this.setData({
+            sessionTimeRemaining: timeRemaining,
+            sessionSeconds: sessionDetail.sessionSeconds || 600,
+            formattedTimeRemaining: this.formatRemainingTime(timeRemaining)
+          });
+          
+          // 启动倒计时
+          this.startCountdown();
+          
+          // 检查是否已经有问题
+          if (sessionDetail.hasQuestion) {
+            // 已经有问题，获取当前问题和历史记录
+            this.setData({
+              question: sessionDetail.currentQuestion || '',
+              questionType: 'continue_question',
+              hasQuestion: true
+            });
+            
+            // 获取面试历史记录
+            this.fetchInterviewHistory(sessionId);
+          } else {
+            // 没有问题，获取第一个问题
+            this.fetchFirstQuestionStream(sessionId);
+          }
+        } else {
+          // 获取会话详情失败，使用默认值并获取第一个问题
+          this.startCountdown();
+          this.fetchFirstQuestionStream(sessionId);
+        }
+      })
+      .catch(error => {
+        console.error('获取会话详情失败:', error);
+        // 失败时使用默认值并获取第一个问题
+        this.startCountdown();
+        this.fetchFirstQuestionStream(sessionId);
+      })
+      .finally(() => {
+        this.setData({ isLoading: false });
+      });
+  },
+  
+  /**
+   * 获取面试历史记录
+   * @param {string} sessionId - 会话ID
+   */
+  fetchInterviewHistory: function(sessionId) {
+    get(`/api/interview/history/${sessionId}`)
+      .then(res => {
+        if (res && res.success && res.data) {
+          const history = res.data;
+          console.log('获取到面试历史记录:', history);
+          
+          // 更新面试历史记录
+          this.setData({
+            interviewHistory: history,
+            hasFetchedHistory: true
+          });
+        }
+      })
+      .catch(error => {
+        console.error('获取面试历史记录失败:', error);
+      });
   },
   
   onUnload: function() {
