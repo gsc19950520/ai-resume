@@ -221,7 +221,7 @@ public class AiServiceUtils {
                 
                 requestBody.put("messages", new Object[]{message});
                 requestBody.put("temperature", 0.7);
-                requestBody.put("max_tokens", 20000);
+                requestBody.put("max_tokens", 5000);
 
                 log.info("Sending streaming request to DeepSeek API: {}", JSONObject.toJSONString(requestBody));
                 
