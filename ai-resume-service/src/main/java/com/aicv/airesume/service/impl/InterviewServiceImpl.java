@@ -624,6 +624,7 @@ public class InterviewServiceImpl implements InterviewService {
                         "面试会话记录：\n%s", sessionContent.toString());
 
                 prompt = "请作为资深技术面试官，全面分析以下面试会话记录，生成一份详细的面试报告。面试会话记录：" + sessionContent.toString();
+                prompt = "描述下福州这个城市，100字以内";
                 
                 // 7. 使用流式方式调用DeepSeek API，为面试报告设置特定的事件名称"report"
                 aiServiceUtils.callDeepSeekApiStream(prompt, emitter, () -> {
