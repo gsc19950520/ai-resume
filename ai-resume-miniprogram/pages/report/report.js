@@ -1,6 +1,6 @@
 // pages/report/report.js
 const app = getApp();
-import { getStream } from '../../utils/request';
+import { post, get } from '../../utils/request';
 
 Page({
   /**
@@ -33,137 +33,142 @@ Page({
       sessionId: sessionId
     });
 
-    // 添加实例变量用于累积SSE数据
-    if (!this.currentEvent) this.currentEvent = '';
-    if (!this.currentData) this.currentData = '';
+    // 初始化轮询相关变量
+    this.lastIndex = -1;
+    this.reportId = null;
+    this.pollingInterval = null;
 
-    // 调用流式接口获取报告内容
-    this.loadReportStream(sessionId);
+    // 开始生成报告
+    this.startReportGeneration(sessionId);
   },
 
   /**
-   * 加载报告数据（流式方式）
+   * 开始生成报告
    * @param {string} sessionId - 会话ID
    */
-  loadReportStream(sessionId) {
-    const url = '/api/interview/finish';
-    const data = { sessionId };
-
+  startReportGeneration(sessionId) {
     // 初始化状态
     this.setData({
       isLoading: true,
       nextContent: '',
       reportContent: ''
     });
-    this.chunkBuffer = ''; // 临时缓存流数据
-    this.flushTimer = null;
 
     try {
-      getStream(url, data, {
-        onChunk: (chunk) => {
-          try {
-            if (typeof chunk === 'string') {
-              const trimmedChunk = chunk.trim();
-
-              if (trimmedChunk.startsWith('event:')) {
-                // 处理之前累积的 report 内容
-                if (this.currentEvent === 'report' && this.currentData) {
-                  this.chunkBuffer += this.currentData;
-                  this.currentData = '';
-                }
-                this.currentEvent = trimmedChunk.substring(6).trim();
-
-              } else if (trimmedChunk.startsWith('data:')) {
-                const dataContent = trimmedChunk.substring(5).trim();
-                if (dataContent === 'end' && this.currentEvent === 'end') {
-                  return;
-                }
-                this.currentData = (this.currentData || '') + dataContent;
-
-              } else if (trimmedChunk === '') {
-                // SSE 消息结束
-                if (this.currentEvent === 'report' && this.currentData) {
-                  this.chunkBuffer += this.currentData;
-                  this.currentData = '';
-                } else if (this.currentEvent === 'end') {
-                  // 完成
-                  this.setData({ 
-                    isLoading: false,
-                    isComplete: true,
-                    reportContent: this.data.nextContent + this.chunkBuffer,
-                    nextContent: ''
-                  });
-                  const htmlContent = this.markdownToHtml(this.data.reportContent);
-                  this.setData({ renderedContent: htmlContent });
-
-                  this.currentEvent = '';
-                  this.currentData = '';
-                  this.chunkBuffer = '';
-                }
-              }
-
-            } else if (typeof chunk === 'object') {
-              if (chunk.event === 'report' && chunk.data) {
-                this.chunkBuffer += chunk.data;
-              } else if (chunk.event === 'end') {
-                this.setData({ 
-                  isLoading: false,
-                  isComplete: true,
-                  reportContent: this.data.nextContent + this.chunkBuffer,
-                  nextContent: ''
-                });
-                const htmlContent = this.markdownToHtml(this.data.reportContent);
-                this.setData({ renderedContent: htmlContent });
-
-                this.currentEvent = '';
-                this.currentData = '';
-                this.chunkBuffer = '';
-              }
-            }
-
-            // 定时 flush chunkBuffer 到 nextContent，减少 setData 次数
-            if (!this.flushTimer && this.chunkBuffer) {
-              this.flushTimer = setTimeout(() => {
-                this.setData({ nextContent: this.data.nextContent + this.chunkBuffer });
-                this.chunkBuffer = '';
-                this.flushTimer = null;
-              }, 50);
-            }
-
-          } catch (parseError) {
-            console.error('解析流式数据失败:', parseError);
+      // 调用开始生成报告接口
+      post('/api/interview/start-report', { sessionId })
+        .then(res => {
+          if (res && res.success && res.data) {
+            this.reportId = res.data;
+            console.log('报告生成已开始，reportId:', this.reportId);
+            // 开始轮询获取报告内容
+            this.startPolling();
+          } else {
+            throw new Error('获取reportId失败');
           }
-        },
-
-        onError: (error) => {
-          console.error('获取报告失败:', error);
+        })
+        .catch(error => {
+          console.error('开始生成报告失败:', error);
           this.setData({ isLoading: false, isComplete: true });
-          wx.showToast({ title: '获取报告失败', icon: 'none' });
-        },
-
-        onComplete: () => {
-          console.log('获取报告流式请求完成');
-          if (!this.data.isComplete) {
-            this.setData({ 
-              isLoading: false,
-              isComplete: true,
-              reportContent: this.data.nextContent + this.chunkBuffer,
-              nextContent: ''
-            });
-            const htmlContent = this.markdownToHtml(this.data.reportContent);
-            this.setData({ renderedContent: htmlContent });
-
-            this.currentEvent = '';
-            this.currentData = '';
-            this.chunkBuffer = '';
-          }
-        }
-      });
-
+          wx.showToast({ title: '生成报告失败', icon: 'none' });
+        });
     } catch (error) {
-      console.error('发起获取报告请求失败:', error);
+      console.error('发起生成报告请求失败:', error);
       this.setData({ isLoading: false, isComplete: true });
-      wx.showToast({ title: '获取报告失败', icon: 'none' });
+      wx.showToast({ title: '生成报告失败', icon: 'none' });
+    }
+  },
+
+  /**
+   * 开始轮询获取报告内容
+   */
+  startPolling() {
+    // 每秒轮询一次
+    this.pollingInterval = setInterval(() => {
+      this.fetchReportChunks();
+    }, 1000);
+  },
+
+  /**
+   * 获取报告内容块
+   */
+  fetchReportChunks() {
+    if (!this.reportId) return;
+
+    try {
+      get('/api/interview/get-report-chunks', {
+        reportId: this.reportId,
+        lastIndex: this.lastIndex
+      })
+        .then(res => {
+          if (res && res.success && res.data) {
+            const data = res.data;
+            const chunks = data.chunks || [];
+            
+            console.log('获取到报告块:', chunks);
+            
+            // 如果有新的内容块，添加到报告中
+            if (chunks.length > 0) {
+              // 将新的内容块拼接起来
+              const newContent = chunks.map(chunk => chunk.content).join('');
+              
+              // 更新报告内容
+              this.setData({
+                nextContent: this.data.nextContent + newContent
+              });
+              
+              // 更新lastIndex
+              this.lastIndex = data.lastIndex || 0;
+            }
+            
+            // 检查报告是否完成
+            if (data.completed) {
+              this.setData({
+                isLoading: false,
+                isComplete: true,
+                reportContent: this.data.nextContent,
+                nextContent: ''
+              });
+              const htmlContent = this.markdownToHtml(this.data.reportContent);
+              this.setData({ renderedContent: htmlContent });
+              
+              // 停止轮询
+              this.stopPolling();
+            }
+            
+            // 检查报告生成是否失败
+            if (data.status === 'FAILED') {
+              this.setData({
+                isLoading: false,
+                isComplete: true
+              });
+              wx.showToast({ 
+                title: data.errorMessage || '生成报告失败', 
+                icon: 'none' 
+              });
+              
+              // 停止轮询
+              this.stopPolling();
+            }
+          }
+        })
+        .catch(error => {
+          console.error('获取报告内容块失败:', error);
+          // 继续轮询，直到报告生成完成或超时
+        });
+    } catch (error) {
+      console.error('发起获取报告内容块请求失败:', error);
+      // 继续轮询，直到报告生成完成或超时
+    }
+  },
+
+  /**
+   * 停止轮询
+   */
+  stopPolling() {
+    if (this.pollingInterval) {
+      clearInterval(this.pollingInterval);
+      this.pollingInterval = null;
     }
   },
 

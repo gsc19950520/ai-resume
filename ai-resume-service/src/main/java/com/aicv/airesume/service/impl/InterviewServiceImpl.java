@@ -11,6 +11,7 @@ import com.aicv.airesume.model.vo.InterviewResponseVO;
 import com.aicv.airesume.model.vo.InterviewHistoryVO;
 import com.aicv.airesume.model.vo.InterviewSessionVO;
 import com.aicv.airesume.model.vo.SalaryRangeVO;
+import com.aicv.airesume.model.vo.ReportChunksVO;
 import com.aicv.airesume.repository.InterviewSessionRepository;
 import com.aicv.airesume.repository.InterviewLogRepository;
 import com.aicv.airesume.repository.ResumeRepository;
@@ -23,6 +24,7 @@ import com.aicv.airesume.service.ResumeAnalysisService;
 import com.aicv.airesume.service.ResumeService;
 import com.aicv.airesume.model.dto.ResumeAnalysisDTO;
 import com.aicv.airesume.utils.AiServiceUtils;
+import com.aicv.airesume.service.ReportGenerationService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -82,6 +84,9 @@ public class InterviewServiceImpl implements InterviewService {
     
     @Autowired
     private ResumeService resumeService;
+    
+    @Autowired
+    private ReportGenerationService reportGenerationService;
     
     // 线程池，用于处理异步任务
     private final ExecutorService executorService = java.util.concurrent.Executors.newFixedThreadPool(5);
@@ -564,17 +569,16 @@ public class InterviewServiceImpl implements InterviewService {
     }
 
     @Override
-    public SseEmitter finishInterviewStream(String sessionId) {
-        SseEmitter emitter = new SseEmitter(60000L); // 设置60秒超时
+    public String startReportGeneration(String sessionId) {
+        // 生成唯一的reportId
+        String reportId = "report_" + UUID.randomUUID().toString().replace("-", "");
         
-        new Thread(() -> {
+        // 创建报告生成记录
+        ReportGenerationService.ReportGenerationRecord record = reportGenerationService.createReportRecord(reportId);
+        
+        // 启动异步线程生成报告
+        executorService.submit(() -> {
             try {
-                // 立即发送一个初始化事件，防止前端连接超时
-                emitter.send(SseEmitter.event()
-                        .name("report")
-                        .data("报告生成中...")
-                        .id("0"));
-                
                 // 1. 获取会话信息和所有日志
                 InterviewSession session = sessionRepository.findBySessionId(sessionId)
                         .orElseThrow(() -> new RuntimeException("会话不存在"));
@@ -624,25 +628,61 @@ public class InterviewServiceImpl implements InterviewService {
                         "重要要求：请使用纯文本格式，不要使用Markdown格式（如标题、列表、粗体等），直接输出文字内容即可。\n\n" +
                         "面试会话记录：\n%s", sessionContent.toString());
 
-                // 7. 使用流式方式调用DeepSeek API，为面试报告设置特定的事件名称"report"
-                aiServiceUtils.callDeepSeekApiStream(prompt, emitter, () -> {
-                        try {
-                            emitter.send(SseEmitter.event().name("end").data("end"));
-                        } catch (IOException ignored) {
+                // 7. 使用流式方式调用DeepSeek API，将结果按块存储到reportGenerationService
+                StringBuilder currentChunk = new StringBuilder();
+                aiServiceUtils.callDeepSeekApiStream(prompt, null, content -> {
+                    if (content != null && !content.isEmpty()) {
+                        currentChunk.append(content);
+                        // 当当前块超过100字时，存储并清空
+                        if (currentChunk.length() >= 100) {
+                            record.addChunk(currentChunk.toString());
+                            currentChunk.setLength(0);
                         }
-                    }, sessionId, "report");
+                    }
+                }, () -> {
+                    try {
+                        // 保存剩余的内容
+                        if (currentChunk.length() > 0) {
+                            record.addChunk(currentChunk.toString());
+                        }
+                        // 标记报告生成完成
+                        record.setStatus(ReportGenerationService.ReportStatus.COMPLETED);
+                    } catch (Exception ignored) {
+                    }
+                }, sessionId, "report");
 
             } catch (Exception e) {
-                log.error("流式结束面试失败", e);
-                try {
-                    emitter.send(SseEmitter.event().name("error").data("生成面试报告失败: " + e.getMessage()));
-                    emitter.completeWithError(e);
-                } catch (IOException ex) {
-                    log.error("发送错误信息失败", ex);
-                }
+                log.error("生成报告失败", e);
+                record.setStatus(ReportGenerationService.ReportStatus.FAILED);
+                record.setErrorMessage("生成面试报告失败: " + e.getMessage());
             }
-        }).start();
-        return emitter;
+        });
+        
+        return reportId;
+    }
+
+    @Override
+    public ReportChunksVO getReportChunks(String reportId, int lastIndex) {
+        ReportGenerationService.ReportGenerationRecord record = reportGenerationService.getReportRecord(reportId);
+        ReportChunksVO result = new ReportChunksVO();
+        
+        if (record == null) {
+            result.setStatus("not_found");
+            return result;
+        }
+        
+        List<ReportGenerationService.ReportChunk> chunks = reportGenerationService.getReportChunks(reportId, lastIndex);
+        
+        result.setStatus(record.getStatus().name());
+        result.setChunks(chunks);
+        result.setLastIndex(record.getChunks().size() - 1);
+        result.setCompleted(record.getStatus() == ReportGenerationService.ReportStatus.COMPLETED);
+        
+        if (record.getStatus() == ReportGenerationService.ReportStatus.FAILED) {
+            result.setErrorMessage(record.getErrorMessage());
+        }
+        
+        return result;
     }
     
     /**

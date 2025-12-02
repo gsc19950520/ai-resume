@@ -39,6 +39,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.Base64;
+import java.util.function.Consumer;
 
 /**
  * AI服务工具类
@@ -211,6 +212,19 @@ public class AiServiceUtils {
      * @param eventName 事件名称
      */
     public void callDeepSeekApiStream(String prompt, SseEmitter emitter, Runnable onComplete, String sessionId, String eventName) {
+        callDeepSeekApiStream(prompt, emitter, null, onComplete, sessionId, eventName);
+    }
+    
+    /**
+     * 调用DeepSeek API（流式输出方式，支持自定义事件名称和内容回调）
+     * @param prompt 提示词
+     * @param emitter SSE发射器，用于流式输出（可为null）
+     * @param contentCallback 内容回调函数，用于直接获取流内容
+     * @param onComplete 流结束回调函数
+     * @param sessionId 会话ID，用于保存元数据
+     * @param eventName 事件名称
+     */
+    public void callDeepSeekApiStream(String prompt, SseEmitter emitter, Consumer<String> contentCallback, Runnable onComplete, String sessionId, String eventName) {
         // 标记 emitter 是否已经关闭
         AtomicBoolean emitterClosed = new AtomicBoolean(false);
 
@@ -240,11 +254,6 @@ public class AiServiceUtils {
                 requestBody.put("max_tokens", 5000);
 
                 log.info("Sending streaming request to DeepSeek API: {}", JSONObject.toJSONString(requestBody));
-
-                // ======= 首条占位输出，保证 15 秒内有数据 =======
-                if (!emitterClosed.get()) {
-                    emitter.send(SseEmitter.event().name(eventName).data("正在生成..."));
-                }
 
                 // ======= 保留原逻辑变量 =======
                 boolean[] isExtractingMetadata = {false};
@@ -290,42 +299,49 @@ public class AiServiceUtils {
                                         if (content == null || content.isEmpty()) return;
 
                                         // ======= 保留原业务逻辑，只加 flush =======
-                                        if ("report".equals(eventName)) {
-                                            if (!emitterClosed.get()) {
-                                                emitter.send(SseEmitter.event().name(eventName).data(content));
-                                            }
-                                            fullQuestionBuffer[0].append(content);
-                                        } else if (metadataProcessed[0]) {
-                                            if (!emitterClosed.get()) {
-                                                emitter.send(SseEmitter.event().name(eventName).data(content));
-                                            }
-                                            fullQuestionBuffer[0].append(content);
-                                        } else {
-                                            currentContentBuffer[0].append(content);
-                                            String buffer = currentContentBuffer[0].toString();
-
-                                            int startIndex = buffer.indexOf("# 元数据开始");
-                                            int endIndex = buffer.indexOf("# 元数据结束");
-
-                                            if (startIndex != -1 && endIndex != -1) {
-                                                String metadataContent = buffer.substring(startIndex, endIndex + "# 元数据结束".length());
-                                                log.info("Extracted complete metadata block: {}", metadataContent);
-
-                                                String metadataJsonStr = buffer.substring(startIndex + "# 元数据开始".length(), endIndex).trim();
-                                                if (!metadataJsonStr.isEmpty()) {
-                                                    saveMetadataAsync(metadataJsonStr, sessionId);
+                                        // 调用内容回调函数（如果不为null）
+                                        if (contentCallback != null) {
+                                            contentCallback.accept(content);
+                                        }
+                                        
+                                        if (emitter != null) {
+                                            if ("report".equals(eventName)) {
+                                                if (!emitterClosed.get()) {
+                                                    emitter.send(SseEmitter.event().name(eventName).data(content));
                                                 }
+                                                fullQuestionBuffer[0].append(content);
+                                            } else if (metadataProcessed[0]) {
+                                                if (!emitterClosed.get()) {
+                                                    emitter.send(SseEmitter.event().name(eventName).data(content));
+                                                }
+                                                fullQuestionBuffer[0].append(content);
+                                            } else {
+                                                currentContentBuffer[0].append(content);
+                                                String buffer = currentContentBuffer[0].toString();
 
-                                                if (endIndex + "# 元数据结束".length() < buffer.length()) {
-                                                    String questionPart = buffer.substring(endIndex + "# 元数据结束".length());
-                                                    if (!questionPart.isEmpty() && !emitterClosed.get()) {
-                                                        emitter.send(SseEmitter.event().name(eventName).data(questionPart));
+                                                int startIndex = buffer.indexOf("# 元数据开始");
+                                                int endIndex = buffer.indexOf("# 元数据结束");
+
+                                                if (startIndex != -1 && endIndex != -1) {
+                                                    String metadataContent = buffer.substring(startIndex, endIndex + "# 元数据结束".length());
+                                                    log.info("Extracted complete metadata block: {}", metadataContent);
+
+                                                    String metadataJsonStr = buffer.substring(startIndex + "# 元数据开始".length(), endIndex).trim();
+                                                    if (!metadataJsonStr.isEmpty()) {
+                                                        saveMetadataAsync(metadataJsonStr, sessionId);
                                                     }
-                                                    fullQuestionBuffer[0].append(questionPart);
-                                                }
 
-                                                metadataProcessed[0] = true;
-                                                currentContentBuffer[0].setLength(0);
+                                                    if (endIndex + "# 元数据结束".length() < buffer.length()) {
+                                                        String questionPart = buffer.substring(endIndex + "# 元数据结束".length());
+                                                        if (!questionPart.isEmpty() && !emitterClosed.get()) {
+                                                            emitter.send(SseEmitter.event().name(eventName).data(questionPart));
+                                                        }
+                                                        fullQuestionBuffer[0].append(questionPart);
+                                                    }
+
+                                                    metadataProcessed[0] = true;
+                                                    currentContentBuffer[0].setLength(0);
+                                                }
                                             }
                                         }
                                     } catch (Exception e) {

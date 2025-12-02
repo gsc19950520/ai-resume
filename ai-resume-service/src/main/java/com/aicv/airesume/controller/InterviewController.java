@@ -27,6 +27,7 @@ import com.aicv.airesume.model.vo.SalaryRangeVO;
 import com.aicv.airesume.model.vo.InterviewSalaryVO;
 import com.aicv.airesume.model.vo.SalaryInfoVO;
 import com.aicv.airesume.model.vo.GrowthAdviceVO;
+import com.aicv.airesume.model.vo.ReportChunksVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import java.io.IOException;
@@ -233,26 +234,26 @@ public class InterviewController {
     }
 
     /**
-     * 完成面试并生成报告
+     * 开始生成面试报告
      * @param sessionId 会话ID
-     * @return 面试报告信息
+     * @return 报告ID
      */
-    @GetMapping(value = "/finish", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter finishInterview(@RequestParam String sessionId) {
-        try {
-            // 使用流式方式调用服务，只返回DeepSeek的结果
-            return interviewService.finishInterviewStream(sessionId);
-        } catch (Exception e) {
-            log.error("完成面试失败", e);
-            SseEmitter errorEmitter = new SseEmitter();
-            try {
-                errorEmitter.send(SseEmitter.event().name("error").data("生成面试报告失败: " + e.getMessage()));
-                errorEmitter.completeWithError(e);
-            } catch (IOException ex) {
-                log.error("发送错误信息失败", ex);
-            }
-            return errorEmitter;
-        }
+    @PostMapping("/start-report")
+    public BaseResponseVO startReportGeneration(@RequestParam String sessionId) {
+        String reportId = interviewService.startReportGeneration(sessionId);
+        return BaseResponseVO.success(reportId);
+    }
+
+    /**
+     * 获取报告分片
+     * @param reportId 报告ID
+     * @param lastIndex 最后接收的分片索引
+     * @return 报告分片信息
+     */
+    @GetMapping("/get-report-chunks")
+    public BaseResponseVO getReportChunks(@RequestParam String reportId, @RequestParam int lastIndex) {
+        ReportChunksVO result = interviewService.getReportChunks(reportId, lastIndex);
+        return BaseResponseVO.success(result);
     }
 
     /**

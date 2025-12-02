@@ -3,6 +3,7 @@ package com.aicv.airesume.service;
 import com.aicv.airesume.model.vo.InterviewHistoryVO;
 import com.aicv.airesume.model.vo.InterviewResponseVO;
 import com.aicv.airesume.model.vo.InterviewSessionVO;
+import com.aicv.airesume.model.vo.ReportChunksVO;
 import com.aicv.airesume.model.vo.SalaryRangeVO;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import java.util.List;
@@ -24,11 +25,19 @@ public interface InterviewService {
     InterviewResponseVO startInterview(Long userId, Long resumeId, String persona, Integer sessionSeconds, Integer jobTypeId);
     
     /**
-     * 完成面试并流式输出DeepSeek结果
+     * 完成面试并异步生成报告，返回reportId
      * @param sessionId 会话ID
-     * @param emitter SSE发射器，用于流式输出
+     * @return reportId和状态
      */
-    SseEmitter finishInterviewStream(String sessionId);
+    String startReportGeneration(String sessionId);
+
+    /**
+     * 获取报告块
+     * @param reportId 报告ID
+     * @param lastIndex 上一次获取的最后一个块的索引
+     * @return 报告块列表和状态
+     */
+    ReportChunksVO getReportChunks(String reportId, int lastIndex);
 
     /**
      * 获取用户的面试历史
