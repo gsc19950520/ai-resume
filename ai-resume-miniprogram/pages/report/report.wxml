@@ -1,12 +1,5 @@
 <!--pages/report/report.wxml-->
 <view class="report-container">
-  <!-- 页面标题 -->
-  <view class="report-header">
-    <text class="report-title">面试报告</text>
-    <view class="loading-indicator" wx:if="{{isLoading}}">
-      <text class="loading-text">生成中...</text>
-    </view>
-  </view>
 
   <!-- 报告内容区域 -->
   <view class="report-content">

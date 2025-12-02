@@ -115,9 +115,15 @@ Page({
               const newContent = chunks.map(chunk => chunk.content).join('');
               
               // 更新报告内容
+              const updatedReportContent = this.data.reportContent + newContent;
               this.setData({
-                nextContent: this.data.nextContent + newContent
+                nextContent: this.data.nextContent + newContent,
+                reportContent: updatedReportContent
               });
+              
+              // 实时转换为HTML并更新渲染内容
+              const htmlContent = this.markdownToHtml(updatedReportContent);
+              this.setData({ renderedContent: htmlContent });
               
               // 更新lastIndex
               this.lastIndex = data.lastIndex || 0;
@@ -128,11 +134,8 @@ Page({
               this.setData({
                 isLoading: false,
                 isComplete: true,
-                reportContent: this.data.nextContent,
                 nextContent: ''
               });
-              const htmlContent = this.markdownToHtml(this.data.reportContent);
-              this.setData({ renderedContent: htmlContent });
               
               // 停止轮询
               this.stopPolling();
@@ -207,6 +210,7 @@ Page({
 
   /**
    * 将Markdown转换为HTML
+   * 针对后端返回的简洁Markdown格式进行优化，确保页面展示美观
    * @param {string} markdown - Markdown文本
    * @returns {string} HTML文本
    */
@@ -215,13 +219,23 @@ Page({
     
     let html = markdown;
     
-    // 处理标题
-    html = html.replace(/^# (.*$)/gm, '<h1>$1</h1>');
-    html = html.replace(/^## (.*$)/gm, '<h2>$1</h2>');
-    html = html.replace(/^### (.*$)/gm, '<h3>$1</h3>');
+    // 先处理转义的*，替换为临时标记
+    html = html.replace(/\\\*/g, 'TEMP_ESCAPED_ASTERISK');
+    
+    // 处理二级标题（后端规定仅使用##）
+    html = html.replace(/^## (.*$)/gm, '<h2 class="section-title">$1</h2>');
+    
+    // 处理粗体（仅支持**）
+    html = html.replace(/\*\*(.*?)\*\*/g, '<strong class="highlight">$1</strong>');
+    
+    // 处理无序列表（仅支持-）
+    html = html.replace(/^- (.*$)/gm, '<ul class="content-list"><li class="list-item">$1</li></ul>');
     
     // 处理换行
     html = html.replace(/\n/g, '<br>');
+    
+    // 恢复转义的*，转换为HTML实体
+    html = html.replace(/TEMP_ESCAPED_ASTERISK/g, '&#42;');
     
     return html;
   },
