@@ -116,8 +116,8 @@ const requestStream = (url, options = {}) => {
   } = options;
   
   return new Promise((resolve, reject) => {
-    // 使用云托管callContainer调用
-    app.cloudCall(url, data, method, header)
+    // 使用云托管callContainer调用，设置60秒超时以适应长prompt
+    app.cloudCall(url, data, method, header, 60000) // 使用60秒超时
       .then(res => {
         // 处理响应数据
         if (res && typeof res === 'string') {
@@ -134,8 +134,8 @@ const requestStream = (url, options = {}) => {
                 if (onChunk && typeof onChunk === 'function') {
                   onChunk(chunk);
                 }
-                // 递归发送下一行
-                setTimeout(sendNextChar, 50); // 50ms的延迟，模拟流式传输
+                // 递归发送下一行，减少延迟以提高响应速度
+                setTimeout(sendNextChar, 10); // 10ms的延迟，提高流式传输速度
               } else {
                 // 没有完整的行，发送剩余部分
                 const chunk = res.substring(index);
@@ -144,7 +144,7 @@ const requestStream = (url, options = {}) => {
                   onChunk(chunk);
                 }
                 // 递归发送结束
-                setTimeout(sendNextChar, 50);
+                setTimeout(sendNextChar, 10);
               }
             } else {
               // 所有数据发送完毕

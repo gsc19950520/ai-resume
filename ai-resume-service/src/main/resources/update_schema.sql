@@ -53,7 +53,6 @@ ALTER TABLE interview_log ADD COLUMN related_project_points TEXT COMMENT '相关
 ALTER TABLE interview_log ADD COLUMN stop_reason VARCHAR(100) COMMENT '停止原因';
 ALTER TABLE interview_log ADD COLUMN persona VARCHAR(50) COMMENT '当前题目使用的面试官语气风格';
 ALTER TABLE interview_log ADD COLUMN ai_feedback_json LONGTEXT COMMENT 'AI原始评分和分析结果';
-ALTER TABLE interview_log ADD COLUMN depth_level VARCHAR(20) COMMENT '问题深度：usage/implementation/principle/optimization';
 
 -- 2025-11-25 优化AI问题生成逻辑：后续问题不再发送完整简历，基于上下文生成
 -- 修改文件：InterviewServiceImpl.java
@@ -146,3 +145,10 @@ CREATE TABLE interview_report (
 -- 3. 修改InterviewServiceImpl.finishInterview方法，使用DeepSeek API全面分析面试会话
 -- 4. 修改InterviewController.finishInterview方法，确保返回的VO对象包含前端所需的所有字段
 -- 5. 更新前端report页面，增加面试反馈、推荐技能、职业发展路径等新模块
+
+-- 2025-12-02 优化AI面试系统
+-- 1. 确认前端所有API请求均使用云托管callContainer方式
+-- 2. 修复实体类与数据库表字段的一致性
+-- 3. 确保所有实体类的变更都已同步到前后端代码
+-- 4. 优化SQL更新脚本，移除重复的ALTER TABLE语句
+-- 5. 确认所有API接口都支持云托管请求方式

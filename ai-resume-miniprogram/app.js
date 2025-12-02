@@ -25,7 +25,7 @@ App({
   },
   
   // 云托管调用方法
-  cloudCall: function(path, data = {}, method = 'GET', header = {}) {
+  cloudCall: function(path, data = {}, method = 'GET', header = {}, timeout = 15000) {
     return new Promise((resolve, reject) => {
       wx.cloud.callContainer({
         config: {
@@ -40,7 +40,7 @@ App({
           ...header
         },
         data,
-        timeout: 15000, // 设置最大超时时间为15秒（微信云托管callContainer的最大允许值）
+        timeout: timeout, // 允许自定义超时时间
         success: res => {
           // 检查是否有新的token（后端刷新token）
           if (res && res.header) {

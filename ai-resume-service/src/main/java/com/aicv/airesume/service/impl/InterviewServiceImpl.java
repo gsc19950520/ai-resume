@@ -611,7 +611,8 @@ public class InterviewServiceImpl implements InterviewService {
                     "6. 沟通表达评价\n" +
                     "7. 回答深度评价\n" +
                     "8. 针对候选人的详细改进建议\n" +
-                    "请确保报告内容具体、针对性强，基于面试中的实际表现。\n\n" +
+                    "请确保报告内容具体、针对性强，基于面试中的实际表现。\n" +
+                    "重要要求：请使用纯文本格式，不要使用Markdown格式（如标题、列表、粗体等），直接输出文字内容即可。\n\n" +
                     "面试会话记录：\n%s", sessionContent.toString());
             
             // 7. 调用DeepSeek API获取详细报告
@@ -697,7 +698,8 @@ public class InterviewServiceImpl implements InterviewService {
                         "6. 沟通表达评价\n" +
                         "7. 回答深度评价\n" +
                         "8. 针对候选人的详细改进建议\n" +
-                        "请确保报告内容具体、针对性强，基于面试中的实际表现。\n\n" +
+                        "请确保报告内容具体、针对性强，基于面试中的实际表现。\n" +
+                        "重要要求：请使用纯文本格式，不要使用Markdown格式（如标题、列表、粗体等），直接输出文字内容即可。\n\n" +
                         "面试会话记录：\n%s", sessionContent.toString());
                 
                 // 7. 使用流式方式调用DeepSeek API，为面试报告设置特定的事件名称"report"
