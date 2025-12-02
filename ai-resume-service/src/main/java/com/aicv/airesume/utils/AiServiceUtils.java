@@ -35,6 +35,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.Base64;
 
@@ -209,13 +211,22 @@ public class AiServiceUtils {
      * @param eventName 事件名称
      */
     public void callDeepSeekApiStream(String prompt, SseEmitter emitter, Runnable onComplete, String sessionId, String eventName) {
-
-        // 新增：标记 emitter 是否已经关闭
+        // 标记 emitter 是否已经关闭
         AtomicBoolean emitterClosed = new AtomicBoolean(false);
+
+        // 心跳线程，保持 SSE 连接活跃，防止云托管环境断开
+        ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+        scheduler.scheduleAtFixedRate(() -> {
+            if (!emitterClosed.get()) {
+                try {
+                    emitter.send(SseEmitter.event().name("heartbeat").data(" "));
+                } catch (IOException ignored) {}
+            }
+        }, 0, 5, TimeUnit.SECONDS);
 
         executorService.submit(() -> {
             try {
-                // ------ 原样保留你的请求体构建逻辑 ------
+                // ======= 原有请求体逻辑 =======
                 Map<String, Object> requestBody = new HashMap<>();
                 requestBody.put("model", "deepseek-chat");
                 requestBody.put("stream", true);
@@ -230,14 +241,14 @@ public class AiServiceUtils {
 
                 log.info("Sending streaming request to DeepSeek API: {}", JSONObject.toJSONString(requestBody));
 
-                // ------ 原逻辑变量保持不变 ------
+                // ======= 保留原逻辑变量 =======
                 boolean[] isExtractingMetadata = {false};
                 StringBuilder[] metadataBuilder = {new StringBuilder()};
                 StringBuilder[] currentContentBuffer = {new StringBuilder()};
                 boolean[] metadataProcessed = {false};
                 StringBuilder[] fullQuestionBuffer = {new StringBuilder()};
 
-                // ------ WebClient 流式请求 ------
+                // ======= WebClient 流式请求 =======
                 webClient.post()
                         .uri(deepseekApiUrl)
                         .header("Authorization", "Bearer " + deepseekApiKey)
@@ -247,10 +258,9 @@ public class AiServiceUtils {
                         .retrieve()
                         .bodyToFlux(String.class)
                         .subscribe(
-                                // ---- onNext 每一行数据 ----
                                 line -> {
                                     try {
-                                        if (emitterClosed.get()) return; // ⭐新增保护
+                                        if (emitterClosed.get()) return;
 
                                         if (line == null || line.isEmpty()) return;
                                         if ("data: [DONE]".equals(line) || "[DONE]".equals(line)) return;
@@ -274,15 +284,18 @@ public class AiServiceUtils {
                                         String content = delta.getString("content");
                                         if (content == null || content.isEmpty()) return;
 
-                                        // ---------- 保留你的业务逻辑不变 ----------
+                                        // ======= 保留原业务逻辑，只加 flush =======
                                         if ("report".equals(eventName)) {
                                             if (!emitterClosed.get()) {
                                                 emitter.send(SseEmitter.event().name(eventName).data(content));
+                                                // flush 立即推送
+                                                emitter.send(SseEmitter.event().name(eventName).data(" "));
                                             }
                                             fullQuestionBuffer[0].append(content);
                                         } else if (metadataProcessed[0]) {
                                             if (!emitterClosed.get()) {
                                                 emitter.send(SseEmitter.event().name(eventName).data(content));
+                                                emitter.send(SseEmitter.event().name(eventName).data(" "));
                                             }
                                             fullQuestionBuffer[0].append(content);
                                         } else {
@@ -305,6 +318,7 @@ public class AiServiceUtils {
                                                     String questionPart = buffer.substring(endIndex + "# 元数据结束".length());
                                                     if (!questionPart.isEmpty() && !emitterClosed.get()) {
                                                         emitter.send(SseEmitter.event().name(eventName).data(questionPart));
+                                                        emitter.send(SseEmitter.event().name(eventName).data(" "));
                                                     }
                                                     fullQuestionBuffer[0].append(questionPart);
                                                 }
@@ -318,21 +332,15 @@ public class AiServiceUtils {
                                         safeCompleteWithError(emitter, emitterClosed, e);
                                     }
                                 },
-
-                                // ---- onError ----
                                 error -> {
                                     log.error("Error in streaming response: {}", error.getMessage(), error);
-
                                     if (!emitterClosed.get()) {
                                         try {
                                             emitter.send(SseEmitter.event().name("error").data("流式响应错误: " + error.getMessage()));
                                         } catch (IOException ignored) {}
                                     }
-
                                     safeCompleteWithError(emitter, emitterClosed, error);
                                 },
-
-                                // ---- onComplete ----
                                 () -> {
                                     log.info("Streaming response completed");
 
@@ -344,22 +352,24 @@ public class AiServiceUtils {
                                     if (onComplete != null) onComplete.run();
 
                                     safeComplete(emitter, emitterClosed);
+                                    // 关闭心跳线程
+                                    scheduler.shutdown();
                                 }
                         );
 
             } catch (Exception e) {
                 log.error("Error setting up streaming request: {}", e.getMessage(), e);
-
                 if (!emitterClosed.get()) {
                     try {
                         emitter.send(SseEmitter.event().name("error").data("设置流式请求错误: " + e.getMessage()));
                     } catch (IOException ignored) {}
                 }
-
                 safeCompleteWithError(emitter, emitterClosed, e);
+                scheduler.shutdown();
             }
         });
     }
+
 
     private void safeComplete(SseEmitter emitter, AtomicBoolean closedFlag) {
         if (closedFlag.compareAndSet(false, true)) {

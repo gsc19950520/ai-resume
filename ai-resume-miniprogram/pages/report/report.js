@@ -47,138 +47,126 @@ Page({
    */
   loadReportStream(sessionId) {
     const url = '/api/interview/finish';
-    const data = {
-      sessionId: sessionId
-    };
+    const data = { sessionId };
 
-    // 开始请求前的状态设置
+    // 初始化状态
     this.setData({
       isLoading: true,
-      nextContent: '', // 清空下一个内容
-      reportContent: '' // 清空报告内容，初始化为空字符串以便流式拼接
+      nextContent: '',
+      reportContent: ''
     });
+    this.chunkBuffer = ''; // 临时缓存流数据
+    this.flushTimer = null;
 
     try {
-      // 使用流式请求获取报告内容
       getStream(url, data, {
         onChunk: (chunk) => {
-          // 处理流式数据
-          console.log('收到报告流数据:', chunk);
-          
-          // 解析数据，支持多种格式
           try {
             if (typeof chunk === 'string') {
-              // 处理字符串格式数据，每条chunk是SSE的一行
               const trimmedChunk = chunk.trim();
-              
+
               if (trimmedChunk.startsWith('event:')) {
-                // 新的event，先处理之前的event和data（如果有）
+                // 处理之前累积的 report 内容
                 if (this.currentEvent === 'report' && this.currentData) {
-                  // 累积报告内容（流式展示，逐字/逐词添加）
-                  this.setData({
-                    // 当isLoading为true时，wxml显示的是nextContent，所以需要更新nextContent
-                    nextContent: this.data.nextContent + this.currentData
-                  });
-                  // 重置当前data
+                  this.chunkBuffer += this.currentData;
                   this.currentData = '';
                 }
-                // 更新当前event
                 this.currentEvent = trimmedChunk.substring(6).trim();
+
               } else if (trimmedChunk.startsWith('data:')) {
-                // 提取data内容，去除前面的'data:'前缀
                 const dataContent = trimmedChunk.substring(5).trim();
-                // 检查是否是结束标记
                 if (dataContent === 'end' && this.currentEvent === 'end') {
-                  // 处理完所有数据，等待event:end
                   return;
                 }
-                // 累积data内容
-                this.currentData = dataContent;
+                this.currentData = (this.currentData || '') + dataContent;
+
               } else if (trimmedChunk === '') {
-                // 空行表示当前SSE消息结束，处理累积的event和data
+                // SSE 消息结束
                 if (this.currentEvent === 'report' && this.currentData) {
-                  // 累积报告内容（流式展示，逐字/逐词添加）
-                  this.setData({
-                    // 当isLoading为true时，wxml显示的是nextContent，所以需要更新nextContent
-                    nextContent: this.data.nextContent + this.currentData
-                  });
-                  // 重置当前data
+                  this.chunkBuffer += this.currentData;
                   this.currentData = '';
                 } else if (this.currentEvent === 'end') {
-                  // 结束信号，将nextContent的值赋给reportContent，然后清空nextContent
+                  // 完成
                   this.setData({ 
                     isLoading: false,
                     isComplete: true,
-                    reportContent: this.data.nextContent,
+                    reportContent: this.data.nextContent + this.chunkBuffer,
                     nextContent: ''
                   });
-                  // 转换为HTML
                   const htmlContent = this.markdownToHtml(this.data.reportContent);
-                  this.setData({
-                    renderedContent: htmlContent
-                  });
-                  // 重置状态
+                  this.setData({ renderedContent: htmlContent });
+
                   this.currentEvent = '';
                   this.currentData = '';
+                  this.chunkBuffer = '';
                 }
               }
+
             } else if (typeof chunk === 'object') {
-              // 如果是对象格式，直接处理
               if (chunk.event === 'report' && chunk.data) {
-                this.setData({
-                  nextContent: this.data.nextContent + chunk.data
-                });
+                this.chunkBuffer += chunk.data;
               } else if (chunk.event === 'end') {
                 this.setData({ 
                   isLoading: false,
                   isComplete: true,
-                  reportContent: this.data.nextContent,
+                  reportContent: this.data.nextContent + this.chunkBuffer,
                   nextContent: ''
                 });
-                // 转换为HTML
                 const htmlContent = this.markdownToHtml(this.data.reportContent);
-                this.setData({
-                  renderedContent: htmlContent
-                });
+                this.setData({ renderedContent: htmlContent });
+
+                this.currentEvent = '';
+                this.currentData = '';
+                this.chunkBuffer = '';
               }
             }
+
+            // 定时 flush chunkBuffer 到 nextContent，减少 setData 次数
+            if (!this.flushTimer && this.chunkBuffer) {
+              this.flushTimer = setTimeout(() => {
+                this.setData({ nextContent: this.data.nextContent + this.chunkBuffer });
+                this.chunkBuffer = '';
+                this.flushTimer = null;
+              }, 50);
+            }
+
           } catch (parseError) {
             console.error('解析流式数据失败:', parseError);
           }
         },
+
         onError: (error) => {
           console.error('获取报告失败:', error);
           this.setData({ isLoading: false, isComplete: true });
-          // 显示错误提示
-          wx.showToast({
-            title: '获取报告失败',
-            icon: 'none'
-          });
+          wx.showToast({ title: '获取报告失败', icon: 'none' });
         },
+
         onComplete: () => {
           console.log('获取报告流式请求完成');
-          // 确保即使没有收到end事件，也能正确处理
-          this.setData({ isLoading: false, isComplete: true });
-          // 转换为HTML
-          const htmlContent = this.markdownToHtml(this.data.reportContent);
-          this.setData({
-            renderedContent: htmlContent
-          });
-          // 重置状态
-          this.currentEvent = '';
-          this.currentData = '';
+          if (!this.data.isComplete) {
+            this.setData({ 
+              isLoading: false,
+              isComplete: true,
+              reportContent: this.data.nextContent + this.chunkBuffer,
+              nextContent: ''
+            });
+            const htmlContent = this.markdownToHtml(this.data.reportContent);
+            this.setData({ renderedContent: htmlContent });
+
+            this.currentEvent = '';
+            this.currentData = '';
+            this.chunkBuffer = '';
+          }
         }
       });
+
     } catch (error) {
       console.error('发起获取报告请求失败:', error);
       this.setData({ isLoading: false, isComplete: true });
-      // 显示错误提示
-      wx.showToast({
-        title: '获取报告失败',
-        icon: 'none'
-      });
+      wx.showToast({ title: '获取报告失败', icon: 'none' });
     }
   },
+
 
   /**
    * 将Markdown转换为HTML
