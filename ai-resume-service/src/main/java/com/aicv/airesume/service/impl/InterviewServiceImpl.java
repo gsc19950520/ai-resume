@@ -623,9 +623,6 @@ public class InterviewServiceImpl implements InterviewService {
                         "重要要求：请使用纯文本格式，不要使用Markdown格式（如标题、列表、粗体等），直接输出文字内容即可。\n\n" +
                         "面试会话记录：\n%s", sessionContent.toString());
 
-                prompt = "请作为资深技术面试官，全面分析以下面试会话记录，生成一份详细的面试报告。面试会话记录：" + sessionContent.toString();
-                prompt = "描述下福州这个城市，100字以内";
-                
                 // 7. 使用流式方式调用DeepSeek API，为面试报告设置特定的事件名称"report"
                 aiServiceUtils.callDeepSeekApiStream(prompt, emitter, () -> {
                         // 流结束回调：发送结束信号并完成emitter
