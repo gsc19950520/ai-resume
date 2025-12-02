@@ -1,6 +1,6 @@
 // pages/report/report.js
 const app = getApp();
-import { postStream } from '../../utils/request';
+import { getStream } from '../../utils/request';
 
 Page({
   /**
@@ -60,7 +60,7 @@ Page({
 
     try {
       // 使用流式请求获取报告内容
-      postStream(url, data, {
+      getStream(url, data, {
         onChunk: (chunk) => {
           // 处理流式数据
           console.log('收到报告流数据:', chunk);

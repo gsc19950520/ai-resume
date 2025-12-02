@@ -234,13 +234,12 @@ public class InterviewController {
 
     /**
      * 完成面试并生成报告
-     * @param request 请求参数DTO
+     * @param sessionId 会话ID
      * @return 面试报告信息
      */
-    @PostMapping(value = "/finish", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter finishInterview(@RequestBody FinishInterviewRequestDTO request) {
+    @GetMapping(value = "/finish", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter finishInterview(@RequestParam String sessionId) {
         try {
-            String sessionId = request.getSessionId();
             // 使用流式方式调用服务，只返回DeepSeek的结果
             return interviewService.finishInterviewStream(sessionId);
         } catch (Exception e) {
