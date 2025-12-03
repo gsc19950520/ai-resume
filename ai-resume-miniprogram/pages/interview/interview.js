@@ -64,11 +64,16 @@ Page({
     // 从URL参数获取industryJobTag，如果有则更新，并解码
     let industryJobTag = options.industryJobTag ? decodeURIComponent(options.industryJobTag) : this.data.industryJobTag;
     
-    // 更新sessionId、toneStyle和industryJobTag
+    // 从URL参数获取剩余时间，如果有则使用，否则使用默认值
+    let sessionTimeRemaining = options.sessionTimeRemaining ? parseInt(options.sessionTimeRemaining) : this.data.sessionTimeRemaining;
+    
+    // 更新sessionId、toneStyle、industryJobTag和剩余时间
     this.setData({
       sessionId: sessionId,
       toneStyle: toneStyle,
-      industryJobTag: industryJobTag
+      industryJobTag: industryJobTag,
+      sessionTimeRemaining: sessionTimeRemaining,
+      formattedTimeRemaining: this.formatRemainingTime(sessionTimeRemaining)
     });
     
     // 获取面试会话详情，包括剩余时间和历史记录

@@ -13,4 +13,5 @@ public class InterviewStartRequestDTO {
     private Integer sessionSeconds;
     private String analysisDepth = "intermediate";
     private Integer jobTypeId;
+    private Boolean forceNew = false; // 是否强制创建新会话
 }

@@ -69,10 +69,10 @@ public class InterviewSession {
     private String persona = "friendly"; // 面试官风格：friendly, neutral, challenging
     
     @Column(name = "session_seconds", columnDefinition = "int default 900")
-    private Integer sessionSeconds = 900; // 会话总时长（秒）
+    private Integer sessionSeconds = 600; // 会话总时长（秒）
     
     @Column(name = "session_time_remaining", columnDefinition = "int default 900")
-    private Integer sessionTimeRemaining = 900; // 剩余时间（秒）
+    private Integer sessionTimeRemaining = 600; // 剩余时间（秒）
     
     @Column(name = "consecutive_no_match_count", columnDefinition = "int default 0")
     private Integer consecutiveNoMatchCount = 0; // 连续不匹配次数

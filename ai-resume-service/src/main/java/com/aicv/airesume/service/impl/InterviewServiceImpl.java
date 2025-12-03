@@ -415,13 +415,23 @@ public class InterviewServiceImpl implements InterviewService {
         return emitter;
     }
 
+    /**
+     * 开始面试（支持强制创建新会话）
+     * @param userId 用户ID
+     * @param resumeId 简历ID
+     * @param persona 面试官风格
+     * @param sessionSeconds 会话时长（秒）
+     * @param jobTypeId 职位类型ID
+     * @param forceNew 是否强制创建新会话
+     * @return 面试响应VO
+     */
     @Override
-    public InterviewResponseVO startInterview(Long userId, Long resumeId, String persona, Integer sessionSeconds, Integer jobTypeId) {
+    public InterviewResponseVO startInterview(Long userId, Long resumeId, String persona, Integer sessionSeconds, Integer jobTypeId, Boolean forceNew) {
         try {
             // 1. 检查用户是否有未完成的面试会话
             List<InterviewSession> ongoingSessions = sessionRepository.findByUserIdAndStatusOrderByCreatedAtDesc(userId, "in_progress");
-            if (!ongoingSessions.isEmpty()) {
-                // 有未完成的面试会话，直接返回最近的一个
+            if (!ongoingSessions.isEmpty() && !forceNew) {
+                // 有未完成的面试会话且不强制创建新会话，直接返回最近的一个
                 InterviewSession existingSession = ongoingSessions.get(0);
                 log.info("用户 {} 有未完成的面试会话，直接返回: {}", userId, existingSession.getSessionId());
                 
@@ -446,6 +456,7 @@ public class InterviewServiceImpl implements InterviewService {
                 response.setNextQuestion(null);
                 response.setIsCompleted(false); // 面试未完成
                 response.setIndustryJobTag(industryJobTag); // 设置行业职位标签
+                response.setSessionTimeRemaining(existingSession.getSessionTimeRemaining()); // 设置剩余时间
                 
                 return response;
             }
@@ -523,6 +534,7 @@ public class InterviewServiceImpl implements InterviewService {
             response.setNextQuestion(null); // 第一个问题没有下一个问题
             response.setIsCompleted(false); // 面试未完成
             response.setIndustryJobTag(industryJobTag); // 设置行业职位标签
+            response.setSessionTimeRemaining(session.getSessionTimeRemaining()); // 设置剩余时间
 
             return response;
         } catch (Exception e) {

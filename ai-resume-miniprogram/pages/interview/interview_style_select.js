@@ -21,6 +21,7 @@ Page({
     personas: [], // 面试官风格列表
     selectedPersona: '', // 选中的面试官风格ID
     previewQuestion: '' // 当前风格的预览问题
+    forceNewInterview: false, // 是否强制创建新面试
   },
 
   onLoad: function(options) {
@@ -317,9 +318,9 @@ Page({
         sessionId: sessionInfo.sessionId
       });
       
-      // 跳转到面试页面，传递会话ID、行业职位标签和面试官风格
+      // 跳转到面试页面，传递会话ID、行业职位标签、面试官风格和剩余时间
       wx.navigateTo({
-        url: `/pages/interview/interview?sessionId=${encodeURIComponent(sessionInfo.sessionId)}&industryJobTag=${encodeURIComponent(sessionInfo.industryJobTag || '')}&persona=${encodeURIComponent(this.data.selectedPersona)}`
+        url: `/pages/interview/interview?sessionId=${encodeURIComponent(sessionInfo.sessionId)}&industryJobTag=${encodeURIComponent(sessionInfo.industryJobTag || '')}&persona=${encodeURIComponent(this.data.selectedPersona)}&sessionTimeRemaining=${encodeURIComponent(sessionInfo.sessionTimeRemaining)}`
       });
     } catch (error) {
       wx.hideLoading();
@@ -348,7 +349,8 @@ Page({
         resumeId: this.data.resumeId,
         persona: this.data.selectedPersona,
         jobTypeId: this.data.jobTypeId,
-        sessionSeconds: 600 // 默认面试时长10分钟
+        sessionSeconds: 600, // 默认面试时长10分钟
+        forceNew: this.data.forceNewInterview
       })
       .then(resData => {
         clearTimeout(timeoutId);
@@ -364,7 +366,8 @@ Page({
           
           resolve({
             sessionId: data.sessionId,
-            industryJobTag: data.industryJobTag || ''
+            industryJobTag: data.industryJobTag || '',
+            sessionTimeRemaining: data.sessionTimeRemaining || 600 // 默认10分钟
           });
         } else {
           reject(new Error(resData.message || '初始化面试会话失败'));
@@ -515,8 +518,18 @@ Page({
             url: `/pages/interview/interview?sessionId=${encodeURIComponent(ongoingInterview.sessionId)}`
           });
         } else if (res.cancel) {
-          // 用户选择重新开始，不做任何操作，继续留在当前页面
+          // 用户选择重新开始，清除全局会话信息，继续留在当前页面
           console.log('用户选择重新开始面试');
+          // 清除全局会话信息，确保开始面试时创建新的会话
+          if (getApp().globalData) {
+            delete getApp().globalData.currentInterviewSessionId;
+          }
+          // 清除本地存储的会话信息
+          wx.removeStorageSync('currentInterviewSessionId');
+          // 设置强制创建新面试的标志
+          this.setData({
+            forceNewInterview: true
+          });
         }
       }
     });

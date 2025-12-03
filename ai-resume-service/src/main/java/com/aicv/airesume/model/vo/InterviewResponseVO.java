@@ -15,4 +15,5 @@ public class InterviewResponseVO {
     private String nextQuestion;  // 下一个问题
     private Boolean isCompleted;  // 是否完成面试
     private String industryJobTag; // 行业职位标签
+    private Integer sessionTimeRemaining; // 剩余时间（秒）
 }

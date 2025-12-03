@@ -15,15 +15,16 @@ import java.util.Map;
 public interface InterviewService {
 
     /**
-     * 开始面试 - 支持动态配置
+     * 开始面试
      * @param userId 用户ID
      * @param resumeId 简历ID
-     * @param persona 面试官风格（可选）
-     * * @param sessionSeconds 会话时长（可选）
-     * @param jobTypeId 职位类型ID（可选）
+     * @param persona 面试官风格
+     * @param sessionSeconds 会话时长
+     * @param jobTypeId 职位类型ID
+     * @param forceNew 是否强制创建新会话
      * @return 面试响应VO
      */
-    InterviewResponseVO startInterview(Long userId, Long resumeId, String persona, Integer sessionSeconds, Integer jobTypeId);
+    InterviewResponseVO startInterview(Long userId, Long resumeId, String persona, Integer sessionSeconds, Integer jobTypeId, Boolean forceNew);
     
     /**
      * 完成面试并异步生成报告，返回reportId

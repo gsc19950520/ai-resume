@@ -118,6 +118,7 @@ public class InterviewController {
             Long userId = request.getUserId();
             Long resumeId = request.getResumeId();
             String persona = request.getPersona();
+            Boolean forceNew = request.getForceNew() != null ? request.getForceNew() : false;
             
             // 从动态配置获取默认值（仅用于会话时长）
             Integer defaultSessionSeconds = dynamicConfigService.getDefaultSessionSeconds();
@@ -128,8 +129,8 @@ public class InterviewController {
             
             // 调用服务层开始面试，直接获取InterviewResponseVO
             Integer jobTypeId = request.getJobTypeId();
-            log.info("接收到的jobTypeId: {}", jobTypeId);
-            InterviewResponseVO result = interviewService.startInterview(userId, resumeId, persona, sessionSeconds, jobTypeId);
+            log.info("接收到的参数: userId={}, resumeId={}, jobTypeId={}, forceNew={}", userId, resumeId, jobTypeId, forceNew);
+            InterviewResponseVO result = interviewService.startInterview(userId, resumeId, persona, sessionSeconds, jobTypeId, forceNew);
             
             // 直接返回VO对象，无需额外转换
             return BaseResponseVO.success(result);
