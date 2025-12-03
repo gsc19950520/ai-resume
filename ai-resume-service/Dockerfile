@@ -22,17 +22,18 @@ FROM openjdk:11-jre-slim
 WORKDIR /app
 
 # 安装必要依赖（仅保留wkhtmltopdf和基本证书）
-RUN apk add --no-cache \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     wkhtmltopdf \
     tzdata \
+    && rm -rf /var/lib/apt/lists/* \
     && ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 
 # 复制编译后的 jar
 COPY --from=builder /app/target/*.jar app.jar
 
 # 暴露端口
-EXPOSE 8079
+EXPOSE 8080
 
 # 设置环境变量
 ENV SPRING_PROFILES_ACTIVE=prod
