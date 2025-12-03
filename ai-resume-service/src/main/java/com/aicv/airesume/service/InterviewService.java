@@ -48,6 +48,13 @@ public interface InterviewService {
     List<InterviewHistoryVO> getInterviewHistory(Long userId);
     
     /**
+     * 检查用户是否有进行中的面试
+     * @param userId 用户ID
+     * @return 进行中的面试会话VO，如果没有则返回null
+     */
+    InterviewSessionVO checkOngoingInterview(Long userId);
+    
+    /**
      * 获取面试历史记录
      * @param sessionId 会话ID
      * @return 面试历史记录

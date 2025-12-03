@@ -65,6 +65,9 @@ Page({
     
     // 加载面试官风格配置
     this.loadPersonaConfigs()
+    
+    // 检查是否有进行中的面试
+    this.checkOngoingInterview()
   },
 
   // 处理单个简历数据（来自首页）
@@ -471,6 +474,52 @@ Page({
   // 返回上一页
   goBack: function() {
     wx.navigateBack();
+  },
+  
+  // 检查是否有进行中的面试
+  checkOngoingInterview: function() {
+    if (!this.data.userId) {
+      return;
+    }
+    
+    get('/api/interview/check-ongoing', {
+      userId: this.data.userId
+    })
+    .then(resData => {
+      // 处理API返回数据，支持多种格式
+      if ((resData.code === 0 || resData.code === 200) && resData.data) {
+        const ongoingInterview = resData.data;
+        if (ongoingInterview) {
+          // 有进行中的面试，显示弹窗提示
+          this.showContinueInterviewModal(ongoingInterview);
+        }
+      }
+    })
+    .catch(error => {
+      console.error('检查进行中面试失败:', error);
+      // 检查失败不影响页面正常使用
+    });
+  },
+  
+  // 显示是否继续面试的弹窗
+  showContinueInterviewModal: function(ongoingInterview) {
+    wx.showModal({
+      title: '发现进行中的面试',
+      content: '您有一个正在进行的面试，是否继续？',
+      confirmText: '继续面试',
+      cancelText: '重新开始',
+      success: (res) => {
+        if (res.confirm) {
+          // 用户选择继续面试，跳转到面试页面
+          wx.navigateTo({
+            url: `/pages/interview/interview?sessionId=${encodeURIComponent(ongoingInterview.sessionId)}`
+          });
+        } else if (res.cancel) {
+          // 用户选择重新开始，不做任何操作，继续留在当前页面
+          console.log('用户选择重新开始面试');
+        }
+      }
+    });
   },
   
   // 跳转到创建简历页面（模板选择页面）

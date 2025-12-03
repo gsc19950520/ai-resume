@@ -1120,6 +1120,20 @@ public class InterviewServiceImpl implements InterviewService {
             return vo;
         }).collect(Collectors.toList());
     }
+    
+    @Override
+    public InterviewSessionVO checkOngoingInterview(Long userId) {
+        // 查找用户的进行中面试会话
+        List<InterviewSession> sessions = sessionRepository.findByUserIdAndStatusOrderByCreatedAtDesc(userId, "in_progress");
+        
+        if (sessions.isEmpty()) {
+            return null; // 没有进行中的面试
+        }
+        
+        // 返回最新的进行中面试会话
+        InterviewSession session = sessions.get(0);
+        return getInterviewDetail(session.getSessionId());
+    }
 
     @Override
     public SalaryRangeVO calculateSalary(String sessionId) {

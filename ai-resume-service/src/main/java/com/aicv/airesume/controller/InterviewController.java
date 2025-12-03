@@ -275,6 +275,22 @@ public class InterviewController {
     }
     
     /**
+     * 检查用户是否有进行中的面试
+     * @param userId 用户ID
+     * @return 如果有进行中的面试，返回面试详情；否则返回null
+     */
+    @GetMapping("/check-ongoing")
+    public BaseResponseVO checkOngoingInterview(@RequestParam Long userId) {
+        try {
+            InterviewSessionVO ongoingInterview = interviewService.checkOngoingInterview(userId);
+            return BaseResponseVO.success(ongoingInterview);
+        } catch (Exception e) {
+            log.error("Check ongoing interview failed:", e);
+            return BaseResponseVO.error("检查进行中面试失败：" + e.getMessage());
+        }
+    }
+    
+    /**
      * 根据面试结果计算薪资范围
      * 基于AI面试评分、技术深度等多维度计算薪资
      */
