@@ -89,7 +89,7 @@ class UserService {
         cloudPath: `${openId}/avatar_${Date.now()}.jpg`, // 以openId为文件夹名
         filePath: tempFilePath,
         config: {
-          env: 'prod-1gwm267i6a10e7cb', // 云环境ID
+          env: app.globalData.cloudEnvId, // 云环境ID
           region: 'ap-shanghai' // 地域
         }
       });

@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.util.StringUtils;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -424,9 +425,22 @@ public class AiServiceUtils {
                 }
                 
                 // 获取最新的面试日志，更新元数据
+                // 找到轮次号最大且问题文本为空的记录（这是刚创建的新问题记录）
                 List<InterviewLog> logs = interviewLogRepository.findBySessionIdOrderByRoundNumberDesc(sessionId);
                 if (!logs.isEmpty()) {
-                    InterviewLog latestLog = logs.get(0);
+                    InterviewLog latestLog = null;
+                    for (InterviewLog log : logs) {
+                        if (!StringUtils.hasText(log.getQuestionText())) {
+                            latestLog = log;
+                            break;
+                        }
+                    }
+                    
+                    // 如果没有找到问题文本为空的记录，就使用最新的记录
+                    if (latestLog == null) {
+                        latestLog = logs.get(0);
+                    }
+                    
                     latestLog.setDepthLevel(depthLevel);
                     latestLog.setExpectedKeyPoints(JSON.toJSONString(expectedKeyPoints));
                     latestLog.setRelatedTechItems(relatedTech);
@@ -452,9 +466,22 @@ public class AiServiceUtils {
         executorService.submit(() -> {
             try {
                 // 获取最新的面试日志，更新问题文本
+                // 找到轮次号最大且问题文本为空的记录（这是刚创建的新问题记录）
                 List<InterviewLog> logs = interviewLogRepository.findBySessionIdOrderByRoundNumberDesc(sessionId);
                 if (!logs.isEmpty()) {
-                    InterviewLog latestLog = logs.get(0);
+                    InterviewLog latestLog = null;
+                    for (InterviewLog log : logs) {
+                        if (!StringUtils.hasText(log.getQuestionText())) {
+                            latestLog = log;
+                            break;
+                        }
+                    }
+                    
+                    // 如果没有找到问题文本为空的记录，就使用最新的记录
+                    if (latestLog == null) {
+                        latestLog = logs.get(0);
+                    }
+                    
                     latestLog.setQuestionText(questionText);
                     
                     // 保存到数据库

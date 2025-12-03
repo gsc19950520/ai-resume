@@ -10,20 +10,37 @@
     <view class="interview-list">
       <view 
         wx:for="{{interviewList}}" 
-        wx:key="id" 
-        class="interview-item"
-        bindtap="viewReport"
-        data-id="{{item.id}}"
+        wx:key="id"
+        wx:for-index="index"
+        class="interview-item-wrapper"
+        data-index="{{index}}"
+        bindtouchstart="onTouchStart"
+        bindtouchmove="onTouchMove"
+        bindtouchend="onTouchEnd"
       >
-        <view class="interview-header">
-          <text class="interview-title">{{item.title || 'AI模拟面试'}}</text>
-          <text class="interview-time">{{item.createTime || ''}}</text>
+        <view 
+          class="interview-item"
+          bindtap="viewReport"
+          data-id="{{item.id}}"
+          style="transform: translateX({{item.showDelete ? -120 : 0}}rpx);"
+        >
+          <view class="interview-header">
+            <text class="interview-title">{{item.title || 'AI模拟面试'}}</text>
+            <text class="interview-time">{{item.createTime || ''}}</text>
+          </view>
+          <view class="interview-info">
+            <text class="interview-result">{{item.status === 'completed' ? (item.score ? '得分: ' + item.score : '已完成') : '未完成'}}</text>
+          </view>
+          <view class="interview-arrow">
+            <image src="/images/arrow.png" mode="aspectFit"></image>
+          </view>
         </view>
-        <view class="interview-info">
-          <text class="interview-result">{{item.status === 'completed' ? (item.score ? '得分: ' + item.score : '已完成') : '未完成'}}</text>
-        </view>
-        <view class="interview-arrow">
-          <image src="/images/arrow.png" mode="aspectFit"></image>
+        <view 
+          class="delete-btn"
+          bindtap="deleteInterview"
+          data-id="{{item.id}}"
+        >
+          删除
         </view>
       </view>
     </view>

@@ -18,4 +18,10 @@ public interface InterviewReportRepository extends JpaRepository<InterviewReport
      * @return 面试报告
      */
     Optional<InterviewReport> findBySessionId(String sessionId);
+    
+    /**
+     * 删除会话相关的面试报告
+     * @param sessionId 会话ID
+     */
+    void deleteBySessionId(String sessionId);
 }

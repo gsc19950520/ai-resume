@@ -147,9 +147,32 @@ Page({
           const history = res.data;
           console.log('获取到面试历史记录:', history);
           
+          // 格式化历史记录，确保与前端添加的记录格式一致
+          const formattedHistory = history.map(item => ({
+            id: `history-${item.id}`, // 使用后端ID但保持前端ID格式
+            type: item.type,
+            content: item.content,
+            formattedTime: item.formattedTime,
+            feedback: item.feedback,
+            techScore: item.techScore,
+            logicScore: item.logicScore,
+            clarityScore: item.clarityScore,
+            depthScore: item.depthScore,
+            roundNumber: item.roundNumber
+          }));
+          
+          // 过滤掉当前问题，避免在历史记录中重复显示
+          const filteredHistory = formattedHistory.filter(item => {
+            // 如果当前有问题，并且历史记录中的问题与当前问题内容相同，则过滤掉
+            if (this.data.question && item.type === 'question' && item.content === this.data.question) {
+              return false;
+            }
+            return true;
+          });
+          
           // 更新面试历史记录
           this.setData({
-            interviewHistory: history,
+            interviewHistory: filteredHistory,
             hasFetchedHistory: true
           });
         }
@@ -566,6 +589,10 @@ Page({
           
           // 将当前问答添加到历史记录
           this.addToInterviewHistory();
+          
+          // 重新获取会话详情，更新剩余时间
+          const { sessionId } = this.data;
+          this.fetchSessionDetail(sessionId);
         }
       });
     } catch (error) {

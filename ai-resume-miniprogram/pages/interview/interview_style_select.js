@@ -20,8 +20,8 @@ Page({
     selectedResume: null, // 选中的简历对象
     personas: [], // 面试官风格列表
     selectedPersona: '', // 选中的面试官风格ID
-    previewQuestion: '' // 当前风格的预览问题
-    forceNewInterview: false, // 是否强制创建新面试
+    previewQuestion: '', // 当前风格的预览问题
+    forceNewInterview: false // 是否强制创建新面试
   },
 
   onLoad: function(options) {

@@ -13,18 +13,16 @@ import com.aicv.airesume.model.vo.InterviewHistoryVO;
 import com.aicv.airesume.model.vo.InterviewSessionVO;
 import com.aicv.airesume.model.vo.SalaryRangeVO;
 import com.aicv.airesume.model.vo.ReportChunksVO;
+import com.aicv.airesume.model.vo.InterviewHistoryItemVO;
 import com.aicv.airesume.repository.InterviewSessionRepository;
 import com.aicv.airesume.repository.InterviewLogRepository;
 import com.aicv.airesume.repository.ResumeRepository;
 import com.aicv.airesume.repository.InterviewQuestionRepository;
 import com.aicv.airesume.repository.JobTypeRepository;
 import com.aicv.airesume.repository.InterviewReportRepository;
-import com.aicv.airesume.entity.InterviewQuestion;
 import com.aicv.airesume.service.InterviewService;
 import com.aicv.airesume.service.AIGenerateService;
-import com.aicv.airesume.service.ResumeAnalysisService;
 import com.aicv.airesume.service.ResumeService;
-import com.aicv.airesume.model.dto.ResumeAnalysisDTO;
 import com.aicv.airesume.utils.AiServiceUtils;
 import com.aicv.airesume.service.ReportGenerationService;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -250,12 +248,25 @@ public class InterviewServiceImpl implements InterviewService {
                 InterviewSession session = sessionRepository.findBySessionId(sessionId)
                         .orElseThrow(() -> new RuntimeException("会话不存在"));
                 
-                // 获取最新的问题日志
+                // 获取最新的问题日志，需要找到有问题文本的最新记录
                 List<InterviewLog> logs = logRepository.findBySessionIdOrderByRoundNumberAsc(sessionId);
                 if (logs.isEmpty()) {
                     throw new RuntimeException("问题不存在");
                 }
-                InterviewLog currentLog = logs.get(logs.size() - 1);
+                
+                // 找到包含问题文本的最新记录
+                InterviewLog currentLog = null;
+                for (int i = logs.size() - 1; i >= 0; i--) {
+                    InterviewLog log = logs.get(i);
+                    if (StringUtils.hasText(log.getQuestionText())) {
+                        currentLog = log;
+                        break;
+                    }
+                }
+                
+                if (currentLog == null) {
+                    throw new RuntimeException("找不到有问题文本的记录");
+                }
 
                 // 2. 更新当前问题日志
                 currentLog.setUserAnswerText(userAnswerText);
@@ -405,6 +416,7 @@ public class InterviewServiceImpl implements InterviewService {
                 // 7. 更新会话状态（需要从AI响应中获取nextQuestion和stopReason，这里简化处理）
                 session.setQuestionCount(session.getQuestionCount() + 1);
                 session.setInterviewState(objectMapper.writeValueAsString(interviewState));
+                // 保存会话，确保剩余时间的更新被持久化
                 sessionRepository.save(session);
             } catch (Exception e) {
                 log.error("提交回答失败: {}", e.getMessage(), e);
@@ -1278,9 +1290,22 @@ public class InterviewServiceImpl implements InterviewService {
      * 根据会话ID获取面试历史记录
      */
     @Override
-    public List<InterviewLog> getInterviewHistory(String sessionId) {
+    public List<InterviewHistoryItemVO> getInterviewHistory(String sessionId) {
         // 获取指定会话的面试日志，按轮次排序
-        return logRepository.findBySessionIdOrderByRoundNumberAsc(sessionId);
+        List<InterviewLog> logs = logRepository.findBySessionIdOrderByRoundNumberAsc(sessionId);
+        List<InterviewHistoryItemVO> result = new ArrayList<>();
+        
+        for (InterviewLog log : logs) {
+            // 创建问题记录
+            result.add(InterviewHistoryItemVO.createQuestionItem(log));
+            
+            // 如果有用户回答，创建回答记录
+            if (log.getUserAnswerText() != null && !log.getUserAnswerText().isEmpty()) {
+                result.add(InterviewHistoryItemVO.createAnswerItem(log));
+            }
+        }
+        
+        return result;
     }
     
     @Override
@@ -1553,5 +1578,31 @@ public class InterviewServiceImpl implements InterviewService {
         }
         
         return scores;
+    }
+    
+    /**
+     * 删除面试记录
+     * @param sessionId 会话ID
+     */
+    @Override
+    public void deleteInterview(String sessionId) {
+        try {
+            // 删除该会话下的所有面试日志
+            logRepository.deleteBySessionId(sessionId);
+            
+            // 删除该会话下的所有AI跟踪日志
+            aiTraceLogRepository.deleteBySessionId(sessionId);
+            
+            // 删除该会话下的面试报告
+            interviewReportRepository.deleteBySessionId(sessionId);
+            
+            // 最后删除面试会话本身
+            sessionRepository.deleteBySessionId(sessionId);
+            
+            log.info("成功删除面试记录，sessionId: {}", sessionId);
+        } catch (Exception e) {
+            log.error("删除面试记录失败，sessionId: {}", sessionId, e);
+            throw new RuntimeException("删除面试记录失败: " + e.getMessage());
+        }
     }
 }

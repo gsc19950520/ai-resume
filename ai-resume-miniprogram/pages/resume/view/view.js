@@ -419,7 +419,7 @@ Page({
     
     // 使用云托管请求上传图片
     wx.uploadFile({
-      url: 'https://' + app.globalData.cloudEnvId + '.service.springboot-bq0e.gz.tencentclouddomain.com/api/resume/generate/pdf-from-image',
+      url: 'https://' + app.globalData.cloudEnvId + '.service.' + app.globalData.cloudServiceName + '.gz.tencentclouddomain.com/api/resume/generate/pdf-from-image',
       filePath: tempFilePath,
       name: 'file',
       formData: {
@@ -427,7 +427,7 @@ Page({
       },
       header: {
         'token': app.globalData.token || '',
-        'X-WX-SERVICE': 'springboot-bq0e'
+        'X-WX-SERVICE': app.globalData.cloudServiceName
       },
       success: (uploadRes) => {
         console.log('上传成功，准备下载PDF:', uploadRes);

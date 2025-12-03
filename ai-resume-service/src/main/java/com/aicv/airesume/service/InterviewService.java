@@ -1,5 +1,6 @@
 package com.aicv.airesume.service;
 
+import com.aicv.airesume.model.vo.InterviewHistoryItemVO;
 import com.aicv.airesume.model.vo.InterviewHistoryVO;
 import com.aicv.airesume.model.vo.InterviewResponseVO;
 import com.aicv.airesume.model.vo.InterviewSessionVO;
@@ -60,7 +61,7 @@ public interface InterviewService {
      * @param sessionId 会话ID
      * @return 面试历史记录
      */
-    List<com.aicv.airesume.entity.InterviewLog> getInterviewHistory(String sessionId);
+    List<InterviewHistoryItemVO> getInterviewHistory(String sessionId);
     
     /**
      * 保存面试报告
@@ -98,5 +99,11 @@ public interface InterviewService {
      * @return SseEmitter 对象，用于流式输出
      */
     SseEmitter submitAnswerStream(String sessionId, String userAnswerText, Integer answerDuration, String toneStyle);
+    
+    /**
+     * 删除面试记录
+     * @param sessionId 会话ID
+     */
+    void deleteInterview(String sessionId);
     
 }

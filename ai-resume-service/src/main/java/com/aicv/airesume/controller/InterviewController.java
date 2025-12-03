@@ -12,6 +12,7 @@ import com.aicv.airesume.service.ResumeAnalysisService;
 import com.aicv.airesume.service.config.DynamicConfigService;
 import com.aicv.airesume.model.vo.BaseResponseVO;
 import com.aicv.airesume.model.vo.InterviewConfigVO;
+import com.aicv.airesume.model.vo.InterviewHistoryItemVO;
 import com.aicv.airesume.model.vo.InterviewPersonasVO;
 import com.aicv.airesume.model.vo.InterviewStartVO;
 import com.aicv.airesume.model.vo.InterviewResponseVO;
@@ -340,7 +341,7 @@ public class InterviewController {
     @GetMapping("/history/{sessionId}")
     public BaseResponseVO getInterviewHistory(@PathVariable String sessionId) {
         try {
-            List<InterviewLog> logs = interviewService.getInterviewHistory(sessionId);
+            List<InterviewHistoryItemVO> logs = interviewService.getInterviewHistory(sessionId);
             return BaseResponseVO.success(logs);
         } catch (Exception e) {
             log.error("Get interview history failed:", e);
@@ -366,5 +367,20 @@ public class InterviewController {
             return BaseResponseVO.error("保存报告失败：" + e.getMessage());
         }
     }
-
+    
+    /**
+     * 删除面试记录
+     * @param sessionId 会话ID
+     * @return 删除结果
+     */
+    @DeleteMapping("/delete/{sessionId}")
+    public BaseResponseVO deleteInterview(@PathVariable String sessionId) {
+        try {
+            interviewService.deleteInterview(sessionId);
+            return BaseResponseVO.success(null);
+        } catch (Exception e) {
+            log.error("Delete interview failed:", e);
+            return BaseResponseVO.error("删除面试记录失败：" + e.getMessage());
+        }
+    }
 }

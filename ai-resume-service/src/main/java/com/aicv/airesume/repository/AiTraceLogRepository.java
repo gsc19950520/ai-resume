@@ -26,4 +26,10 @@ public interface AiTraceLogRepository extends JpaRepository<AiTraceLog, Long> {
      * @return AI运行日志列表
      */
     List<AiTraceLog> findBySessionIdAndActionTypeOrderByCreatedAtDesc(String sessionId, String actionType);
+    
+    /**
+     * 删除会话相关的所有AI运行日志
+     * @param sessionId 会话ID
+     */
+    void deleteBySessionId(String sessionId);
 }

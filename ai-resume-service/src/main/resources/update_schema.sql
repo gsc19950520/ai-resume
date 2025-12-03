@@ -152,3 +152,29 @@ CREATE TABLE interview_report (
 -- 3. 确保所有实体类的变更都已同步到前后端代码
 -- 4. 优化SQL更新脚本，移除重复的ALTER TABLE语句
 -- 5. 确认所有API接口都支持云托管请求方式
+
+-- 2025-12-03 修复面试页面下拉历史面试区域无数据问题
+-- 1. 创建InterviewHistoryItemVO类，用于将InterviewLog实体转换为前端需要的格式
+-- 2. 修改InterviewService接口中的getInterviewHistory方法，将返回类型从List<InterviewLog>改为List<InterviewHistoryItemVO>
+-- 3. 修改InterviewServiceImpl中的getInterviewHistory方法，实现了InterviewLog到InterviewHistoryItemVO的转换
+-- 4. 修改interview.js中的fetchInterviewHistory方法，添加了数据格式化逻辑
+-- 5. 确保前端使用了正确的云托管请求方式
+
+-- 2025-12-03 修复回答问题时创建新记录而非更新现有记录的问题
+-- 1. 修改InterviewServiceImpl.submitAnswerStream方法
+-- 2. 改为查找包含问题文本的最新记录，而不是简单使用最后一条记录
+-- 3. 确保用户回答更新到正确的问题记录中
+-- 4. 修改AiServiceUtils.saveMetadataAsync和saveQuestionAsync方法
+-- 5. 确保异步保存元数据和问题文本时能找到正确的记录
+
+-- 2025-12-04 修复了前端面试历史列表中重复显示当前问题的bug
+-- 1. 在fetchInterviewHistory方法中过滤掉与当前问题相同的问题记录
+
+-- 2025-12-04
+-- 修复了面试剩余时间(session_time_remaining)未正确更新的问题：
+-- 1. 确认后端submitAnswerStream方法中已正确计算并保存剩余时间
+-- 2. 前端在提交回答后重新获取会话详情，确保剩余时间实时更新
+
+-- 2025-12-05 新增面试历史记录删除功能
+-- 1. 后端添加删除面试记录接口，支持删除所有关联数据
+-- 2. 前端实现向左滑动显示删除按钮的功能

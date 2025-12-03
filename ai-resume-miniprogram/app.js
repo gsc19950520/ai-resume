@@ -11,7 +11,11 @@ App({
     useCloud: true, // 使用云托管服务（通过callContainer调用）
     cloudEnvId: 'prod-1gwm267i6a10e7cb', // 微信云托管环境ID
     cloudServiceName: 'springboot-bq0e', // 云托管服务名称
-    latestResumeData: null // 存储最新简历数据，用于面试页面
+    latestResumeData: null, // 存储最新简历数据，用于面试页面
+    
+    // 本地调试配置
+    useLocalServer: true, // 开启本地调试（开发时设置为true，上线前改为false使用云托管）
+    localServerUrl: 'https://266nm936vs89.vicp.fun' // 本地服务地址
   },
   
   // 初始化云开发环境
@@ -26,6 +30,69 @@ App({
   
   // 云托管调用方法
   cloudCall: function(path, data = {}, method = 'GET', header = {}, timeout = 15000) {
+    // 如果启用本地调试，使用wx.request调用本地服务
+    if (this.globalData.useLocalServer) {
+      return new Promise((resolve, reject) => {
+        // 构建完整的本地服务URL
+        const fullUrl = this.globalData.localServerUrl + (path.startsWith('/api') ? path : `/api${path}`);
+        
+        console.log('[本地调试] 发起请求:', { 
+          url: fullUrl, 
+          method: method, 
+          data: data 
+        });
+        
+        // 处理GET请求的查询参数
+        let requestUrl = fullUrl;
+        let requestData = data;
+        
+        if (method === 'GET') {
+          // 对于GET请求，将参数拼接到URL上
+          const queryString = Object.keys(requestData)
+            .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(requestData[key])}`)
+            .join('&');
+          requestUrl = queryString ? `${requestUrl}?${queryString}` : requestUrl;
+          requestData = {};
+        }
+        
+        wx.request({
+          url: requestUrl,
+          method: method,
+          header: {
+            'content-type': 'application/json',
+            'Authorization': this.globalData.token ? `Bearer ${this.globalData.token}` : '',
+            ...header
+          },
+          data: requestData,
+          timeout: timeout,
+          success: res => {
+            console.log('[本地调试] 请求成功:', res);
+            
+            // 检查是否有新的token（后端刷新token）
+            if (res && res.header) {
+              const newToken = res.header['X-New-Token'];
+              const tokenRefreshed = res.header['X-Token-Refreshed'];
+              
+              if (newToken && tokenRefreshed === 'true') {
+                console.log('[本地调试] 检测到新的token，更新本地存储');
+                // 更新全局token
+                this.globalData.token = newToken;
+                // 更新本地存储
+                wx.setStorageSync('token', newToken);
+              }
+            }
+            
+            resolve(res.data);
+          },
+          fail: err => {
+            console.error('[本地调试] 请求失败:', err);
+            reject(err);
+          }
+        });
+      });
+    }
+    
+    // 否则使用云托管调用
     return new Promise((resolve, reject) => {
       wx.cloud.callContainer({
         config: {
@@ -64,6 +131,55 @@ App({
 
   // 云托管二进制数据调用方法（用于PDF下载等）
   cloudCallBinary: function(path, data = {}, method = 'GET', header = {}) {
+    // 如果启用本地调试，使用wx.request调用本地服务
+    if (this.globalData.useLocalServer) {
+      return new Promise((resolve, reject) => {
+        // 构建完整的本地服务URL
+        const fullUrl = this.globalData.localServerUrl + (path.startsWith('/api') ? path : `/api${path}`);
+        
+        console.log('[本地调试] 发起二进制请求:', { 
+          url: fullUrl, 
+          method: method, 
+          data: data 
+        });
+        
+        // 处理GET请求的查询参数
+        let requestUrl = fullUrl;
+        let requestData = data;
+        
+        if (method === 'GET') {
+          // 对于GET请求，将参数拼接到URL上
+          const queryString = Object.keys(requestData)
+            .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(requestData[key])}`)
+            .join('&');
+          requestUrl = queryString ? `${requestUrl}?${queryString}` : requestUrl;
+          requestData = {};
+        }
+        
+        wx.request({
+          url: requestUrl,
+          method: method,
+          header: {
+            'content-type': 'application/json',
+            'Authorization': this.globalData.token ? `Bearer ${this.globalData.token}` : '',
+            ...header
+          },
+          data: requestData,
+          timeout: 60000, // 二进制数据下载可以设置更长的超时时间
+          responseType: 'arraybuffer', // 设置响应类型为arraybuffer以处理二进制数据
+          success: res => {
+            console.log('[本地调试] 二进制请求成功，响应类型:', typeof res.data, '数据长度:', res.data ? res.data.byteLength : 0);
+            resolve(res.data);
+          },
+          fail: err => {
+            console.error('[本地调试] 二进制请求失败:', err);
+            reject(err);
+          }
+        });
+      });
+    }
+    
+    // 否则使用云托管调用
     return new Promise((resolve, reject) => {
       wx.cloud.callContainer({
         config: {

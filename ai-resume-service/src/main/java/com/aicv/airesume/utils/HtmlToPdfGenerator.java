@@ -21,7 +21,6 @@ public class HtmlToPdfGenerator {
         userInfo.put("gender", 1);
         userInfo.put("province", null);
         userInfo.put("phone", "17858555555");
-        userInfo.put("avatarUrl", "cloud://prod-1gwm267i6a10e7cb.7072-prod-1gwm267i6a10e7cb-1258669146/oOS8B5fgXrjB4FiLAvy0L8ptzjGA/avatar_1763794052738.jpg");
         userInfo.put("city", "福建省福州市仓山区");
         userInfo.put("name", "高先生");
         userInfo.put("nickname", "轻盈的树叶画家");

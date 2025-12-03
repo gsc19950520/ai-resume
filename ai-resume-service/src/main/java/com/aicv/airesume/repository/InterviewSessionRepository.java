@@ -35,4 +35,10 @@ public interface InterviewSessionRepository extends JpaRepository<InterviewSessi
      */
     List<InterviewSession> findByUserIdAndStatusOrderByCreatedAtDesc(Long userId, String status);
 
+    /**
+     * 根据会话ID删除会话
+     * @param sessionId 会话ID
+     */
+    void deleteBySessionId(String sessionId);
+
 }
