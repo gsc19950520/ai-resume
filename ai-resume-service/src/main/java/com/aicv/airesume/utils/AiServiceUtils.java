@@ -58,7 +58,7 @@ public class AiServiceUtils {
     private InterviewLogRepository interviewLogRepository;
 
     private final RestTemplate restTemplate = new RestTemplate();
-    private final ExecutorService executorService = Executors.newFixedThreadPool(5);
+    private final ExecutorService executorService = Executors.newFixedThreadPool(2);
     private final WebClient webClient = WebClient.builder().build();
 
     /**

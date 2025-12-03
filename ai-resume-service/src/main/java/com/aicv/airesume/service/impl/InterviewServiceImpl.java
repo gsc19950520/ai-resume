@@ -94,7 +94,7 @@ public class InterviewServiceImpl implements InterviewService {
     private InterviewReportRepository interviewReportRepository;
     
     // 线程池，用于处理异步任务
-    private final ExecutorService executorService = java.util.concurrent.Executors.newFixedThreadPool(5);
+    private final ExecutorService executorService = java.util.concurrent.Executors.newFixedThreadPool(2);
     
     // 保存AI调用的跟踪日志
      private void saveAiTraceLog(String sessionId, String actionType, String promptInput, String aiResponse) {

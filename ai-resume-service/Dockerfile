@@ -30,6 +30,6 @@ EXPOSE 8079
 # 设置环境变量
 ENV SPRING_PROFILES_ACTIVE=prod
 ENV WKHTMLTOPDF_PATH=/usr/bin/wkhtmltopdf
-ENV JAVA_OPTS="-Xmx400m -Xms256m -XX:MaxMetaspaceSize=128m -XX:+UseSerialGC -XX:+UseStringDeduplication -XX:+PrintGCDetails -XX:+PrintGCTimeStamps"
+ENV JAVA_OPTS="-Xmx300m -Xms128m -XX:MaxMetaspaceSize=96m -XX:+UseSerialGC -XX:+UseStringDeduplication -XX:+PrintGCDetails -XX:+PrintGCTimeStamps -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp"
 
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -Djava.security.egd=file:/dev/./urandom -jar app.jar"]
