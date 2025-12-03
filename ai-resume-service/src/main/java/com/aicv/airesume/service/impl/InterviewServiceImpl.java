@@ -1215,6 +1215,7 @@ public class InterviewServiceImpl implements InterviewService {
         
         InterviewSessionVO vo = new InterviewSessionVO();
         vo.setId(session.getId());
+        vo.setSessionId(session.getSessionId());
         vo.setTitle(jobType + " 面试");
         vo.setDescription("会话ID: " + session.getSessionId());
         vo.setStatus(session.getStatus());

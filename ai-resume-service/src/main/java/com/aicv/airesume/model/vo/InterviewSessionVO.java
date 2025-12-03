@@ -11,6 +11,7 @@ import com.aicv.airesume.entity.InterviewLog;
 @Data
 public class InterviewSessionVO {
     private Long id;
+    private String sessionId;
     private String title;
     private String description;
     private Long startTime;
