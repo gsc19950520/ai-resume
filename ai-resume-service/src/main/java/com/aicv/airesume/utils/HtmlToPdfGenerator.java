@@ -1,21 +1,10 @@
 package com.aicv.airesume.utils;
 
 import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import com.ruiyun.jvppeteer.api.core.Browser;
-import com.ruiyun.jvppeteer.api.core.Page;
-import com.ruiyun.jvppeteer.cdp.core.Puppeteer;
-import com.ruiyun.jvppeteer.cdp.entities.LaunchOptions;
-import com.ruiyun.jvppeteer.cdp.entities.PDFOptions;
-import com.ruiyun.jvppeteer.cdp.entities.WaitForOptions;
-import com.ruiyun.jvppeteer.common.Product;
-import com.ruiyun.jvppeteer.common.PuppeteerLifeCycle;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
@@ -293,84 +282,27 @@ public class HtmlToPdfGenerator {
         
         // 从命令行参数获取WKHtmlToPdf路径（如果提供）
         String wkHtmlToPdfPath = null;
-        wkHtmlToPdfPath = "D:\\software\\wkhtmltopdf\\bin\\wkhtmltopdf.exe";
-        System.out.println("使用命令行提供的WKHtmlToPdf路径: " + wkHtmlToPdfPath);
+        if (args.length > 0) {
+            wkHtmlToPdfPath = args[0];
+            System.out.println("使用命令行提供的WKHtmlToPdf路径: " + wkHtmlToPdfPath);
+        }
         
         // 检查WKHtmlToPdf是否可用
         boolean wkHtmlToPdfAvailable = isWkHtmlToPdfAvailable(wkHtmlToPdfPath);
         boolean pdfGenerated = false;
         
-        // 优先使用WKHtmlToPdf生成PDF（本地测试模式）
+        // 使用WKHtmlToPdf生成PDF
         if (wkHtmlToPdfAvailable) {
-            System.out.println("WKHtmlToPdf可用，优先使用WKHtmlToPdf生成PDF...");
+            System.out.println("WKHtmlToPdf可用，使用WKHtmlToPdf生成PDF...");
             pdfGenerated = convertHtmlToPdfWithWkHtml(htmlContent, "output_wkhtmltopdf.pdf", wkHtmlToPdfPath);
             
             if (pdfGenerated) {
                 System.out.println("WKHtmlToPdf方式PDF生成成功！");
             } else {
-                System.out.println("WKHtmlToPdf方式生成PDF失败，尝试使用浏览器方式...");
+                System.out.println("WKHtmlToPdf方式生成PDF失败！");
             }
         } else {
-            System.out.println("WKHtmlToPdf不可用，尝试使用浏览器方式生成PDF...");
-        }
-        
-        // 如果WKHtmlToPdf生成失败或不可用，则尝试使用浏览器方式
-        if (!pdfGenerated) {
-            try {
-                System.out.println("尝试使用浏览器方式生成PDF...");
-                // 启动浏览器
-                LaunchOptions options = LaunchOptions.builder()
-                        .headless(true)
-                        .args(Arrays.asList("--no-sandbox", "--disable-setuid-sandbox"))
-                        .product(Product.Chrome)  // 指定 Chrome
-                        .build();
-
-                Browser browser = null;
-                try {
-                    browser = Puppeteer.launch(options);
-
-                    // 新建页面
-                    Page page = browser.newPage();
-
-                    // 设置 HTML 内容
-                    WaitForOptions waitForOptions = new WaitForOptions();
-                    waitForOptions.setTimeout(30000);
-                    waitForOptions.setWaitUntil(Arrays.asList(PuppeteerLifeCycle.load));
-
-                    page.setContent(htmlContent, waitForOptions);
-
-                    // 配置 PDF
-                    PDFOptions pdfOptions = new PDFOptions();
-                    pdfOptions.setWidth("210mm");  
-                    pdfOptions.setHeight("297mm"); 
-                    pdfOptions.setPrintBackground(true);
-                    pdfOptions.setPreferCSSPageSize(true);
-                    pdfOptions.setTimeout(30000);
-                    pdfOptions.setPath("output_browser.pdf");
-                    pdfOptions.setLandscape(false);
-
-                    // 生成 PDF
-                    byte[] pdfBytes = page.pdf(pdfOptions);
-
-                    // 保存 PDF
-                    Files.write(Paths.get("output2_browser.pdf"), pdfBytes);
-                    
-                    System.out.println("浏览器方式PDF生成成功！");
-                    pdfGenerated = true;
-                } finally {
-                    // 确保关闭浏览器
-                    if (browser != null) {
-                        try {
-                            browser.close();
-                        } catch (Exception e) {
-                            System.out.println("关闭浏览器时出错: " + e.getMessage());
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                System.out.println("浏览器方式生成PDF失败: " + e.getMessage());
-                e.printStackTrace();
-            }
+            System.out.println("WKHtmlToPdf不可用，无法生成PDF！");
         }
 
         if (pdfGenerated) {
