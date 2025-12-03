@@ -23,6 +23,11 @@ public class InterviewReportVO {
     private String overallFeedback;
     private String strengths;
     private String improvements;
+    private String techDepthEvaluation;
+    private String logicExpressionEvaluation;
+    private String communicationEvaluation;
+    private String answerDepthEvaluation;
+    private String detailedImprovementSuggestions;
     private String createdAt;
     
     // 成长报告数据
@@ -129,6 +134,46 @@ public class InterviewReportVO {
     
     public void setImprovements(String improvements) {
         this.improvements = improvements;
+    }
+    
+    public String getTechDepthEvaluation() {
+        return techDepthEvaluation;
+    }
+    
+    public void setTechDepthEvaluation(String techDepthEvaluation) {
+        this.techDepthEvaluation = techDepthEvaluation;
+    }
+    
+    public String getLogicExpressionEvaluation() {
+        return logicExpressionEvaluation;
+    }
+    
+    public void setLogicExpressionEvaluation(String logicExpressionEvaluation) {
+        this.logicExpressionEvaluation = logicExpressionEvaluation;
+    }
+    
+    public String getCommunicationEvaluation() {
+        return communicationEvaluation;
+    }
+    
+    public void setCommunicationEvaluation(String communicationEvaluation) {
+        this.communicationEvaluation = communicationEvaluation;
+    }
+    
+    public String getAnswerDepthEvaluation() {
+        return answerDepthEvaluation;
+    }
+    
+    public void setAnswerDepthEvaluation(String answerDepthEvaluation) {
+        this.answerDepthEvaluation = answerDepthEvaluation;
+    }
+    
+    public String getDetailedImprovementSuggestions() {
+        return detailedImprovementSuggestions;
+    }
+    
+    public void setDetailedImprovementSuggestions(String detailedImprovementSuggestions) {
+        this.detailedImprovementSuggestions = detailedImprovementSuggestions;
     }
     
     public String getCreatedAt() {

@@ -7,12 +7,12 @@ import com.aicv.airesume.entity.Resume;
 import com.aicv.airesume.entity.InterviewReport;
 import com.aicv.airesume.model.dto.InterviewQuestionDTO;
 import com.aicv.airesume.model.dto.InterviewReportDTO;
-import com.aicv.airesume.model.dto.InterviewResponseDTO;
-import com.aicv.airesume.model.vo.InterviewResponseVO;
 import com.aicv.airesume.model.vo.InterviewHistoryVO;
+import com.aicv.airesume.model.vo.InterviewReportVO;
+import com.aicv.airesume.model.vo.InterviewResponseVO;
 import com.aicv.airesume.model.vo.InterviewSessionVO;
-import com.aicv.airesume.model.vo.SalaryRangeVO;
 import com.aicv.airesume.model.vo.ReportChunksVO;
+import com.aicv.airesume.model.vo.SalaryRangeVO;
 import com.aicv.airesume.model.vo.InterviewHistoryItemVO;
 import com.aicv.airesume.repository.InterviewSessionRepository;
 import com.aicv.airesume.repository.InterviewLogRepository;
@@ -43,6 +43,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 /**
@@ -212,7 +215,7 @@ public class InterviewServiceImpl implements InterviewService {
                                              log.error("发送结束信号失败：{}", e.getMessage(), e);
                                              emitter.completeWithError(e);
                                          }
-                                     }, sessionId);
+                                     }, sessionId, "tech"); // 首次问题默认是技术问题
                 
                 // 获取生成的问题（需要从AI响应中解析，这里简化处理）
                 String firstQuestion = "";
@@ -334,47 +337,134 @@ public class InterviewServiceImpl implements InterviewService {
                     projectPoints = objectMapper.readValue(session.getProjectPoints(), new TypeReference<List<Map<String, Object>>>() {});
                 }
                 
-                // 获取当前深度级别
+                // 获取当前深度级别和使用记录
                 String currentDepthLevel = (String) interviewState.getOrDefault("currentDepthLevel", "usage");
                 List<String> usedTechItems = (List<String>) interviewState.getOrDefault("usedTechItems", new ArrayList<>());
                 List<String> usedProjectPoints = (List<String>) interviewState.getOrDefault("usedProjectPoints", new ArrayList<>());
+                List<String> exhaustedTechItems = (List<String>) interviewState.getOrDefault("exhaustedTechItems", new ArrayList<>());
+                List<String> exhaustedProjectPoints = (List<String>) interviewState.getOrDefault("exhaustedProjectPoints", new ArrayList<>());
+                Integer consecutiveFailures = (Integer) interviewState.getOrDefault("consecutiveFailures", 0);
+                String currentQuestionType = (String) interviewState.getOrDefault("currentQuestionType", "tech");
                 
-                // 根据用户回答评分调整深度级别
                 // 计算四个维度的平均分
                 double avgScore = (scores.get("tech") + scores.get("logic") + scores.get("clarity") + scores.get("depth")) / 4;
                 
-                // 如果平均分低于60分，降低深度级别
+                // 如果平均分低于60分，降低深度级别或切换话题
                 if (avgScore < 60) {
-                    log.info("用户回答平均分{:.2f}低于60分，准备降低深度级别，当前级别：{}", avgScore, currentDepthLevel);
+                    consecutiveFailures++;
+                    log.info("用户回答平均分{:.2f}低于60分，当前级别：{}，连续失败次数：{}", avgScore, currentDepthLevel, consecutiveFailures);
                     
                     // 定义深度级别降级规则：optimization -> principle -> implementation -> usage
                     switch (currentDepthLevel) {
                         case "optimization":
                             currentDepthLevel = "principle";
+                            consecutiveFailures = 0; // 降级成功，重置连续失败次数
+                            log.info("降级到principle级别");
                             break;
                         case "principle":
                             currentDepthLevel = "implementation";
+                            consecutiveFailures = 0; // 降级成功，重置连续失败次数
+                            log.info("降级到implementation级别");
                             break;
                         case "implementation":
                             currentDepthLevel = "usage";
+                            consecutiveFailures = 0; // 降级成功，重置连续失败次数
+                            log.info("降级到usage级别");
                             break;
                         case "usage":
-                            // 已经是最低级别，保持不变，但可以考虑换一个技术点提问
-                            log.info("已经是最低深度级别(usage)，保持不变");
-                            // 如果已经使用了所有技术点，则清空已使用列表，重新开始
-                            if (usedTechItems.size() >= techItems.size()) {
-                                log.info("已使用所有技术点，清空已使用列表，重新开始");
+                            // 已经是最低级别，需要切换话题
+                            log.info("已经是最低深度级别(usage)，连续失败次数：{}", consecutiveFailures);
+                            
+                            // 如果连续失败2次，切换话题
+                            if (consecutiveFailures >= 2) {
+                                log.info("连续失败2次，切换话题");
+                                consecutiveFailures = 0; // 重置连续失败次数
+                                
+                                // 标记当前技术项或项目点为已耗尽
+                                if ("tech".equals(currentQuestionType) && !usedTechItems.isEmpty()) {
+                                    // 将当前使用的技术项添加到已耗尽列表
+                                    String lastTechItem = usedTechItems.get(usedTechItems.size() - 1);
+                                    if (!exhaustedTechItems.contains(lastTechItem)) {
+                                        exhaustedTechItems.add(lastTechItem);
+                                        log.info("标记技术项为已耗尽：{}", lastTechItem);
+                                    }
+                                } else if ("project".equals(currentQuestionType) && !usedProjectPoints.isEmpty()) {
+                                    // 将当前使用的项目点添加到已耗尽列表
+                                    String lastProjectPoint = usedProjectPoints.get(usedProjectPoints.size() - 1);
+                                    if (!exhaustedProjectPoints.contains(lastProjectPoint)) {
+                                        exhaustedProjectPoints.add(lastProjectPoint);
+                                        log.info("标记项目点为已耗尽：{}", lastProjectPoint);
+                                    }
+                                }
+                                
+                                // 清空当前使用列表，准备新的话题
                                 usedTechItems.clear();
+                                usedProjectPoints.clear();
+                                
+                                // 选择新的话题类型
+                                // 1. 首先检查是否有未耗尽的技术项
+                                List<String> availableTechItems = techItems.stream()
+                                    .filter(item -> !exhaustedTechItems.contains(item))
+                                    .collect(Collectors.toList());
+                                
+                                // 2. 检查是否有未耗尽的项目点
+                                List<String> availableProjectPoints = new ArrayList<>();
+                                if (projectPoints != null) {
+                                    availableProjectPoints = projectPoints.stream()
+                                        .map(point -> String.valueOf(point.get("title")))
+                                        .filter(title -> !exhaustedProjectPoints.contains(title))
+                                        .collect(Collectors.toList());
+                                }
+                                
+                                // 3. 选择新话题
+                                if (!availableTechItems.isEmpty()) {
+                                    currentQuestionType = "tech";
+                                    log.info("切换到新的技术项，可用技术项数量：{}", availableTechItems.size());
+                                } else if (!availableProjectPoints.isEmpty()) {
+                                    currentQuestionType = "project";
+                                    log.info("切换到新的项目点，可用项目点数量：{}", availableProjectPoints.size());
+                                } else {
+                                    currentQuestionType = "hr";
+                                    log.info("所有技术和项目点已耗尽，切换到HR问题");
+                                }
                             }
                             break;
                         default:
                             currentDepthLevel = "usage";
+                            consecutiveFailures = 0;
+                            log.info("重置到usage级别");
                             break;
                     }
                     
-                    log.info("调整后深度级别：{}", currentDepthLevel);
-                    // 更新面试状态中的深度级别
+                    log.info("调整后：深度级别={}，连续失败次数={}，当前话题类型={}", currentDepthLevel, consecutiveFailures, currentQuestionType);
+                    // 更新面试状态
                     interviewState.put("currentDepthLevel", currentDepthLevel);
+                    interviewState.put("consecutiveFailures", consecutiveFailures);
+                    interviewState.put("currentQuestionType", currentQuestionType);
+                    interviewState.put("usedTechItems", usedTechItems);
+                    interviewState.put("usedProjectPoints", usedProjectPoints);
+                    interviewState.put("exhaustedTechItems", exhaustedTechItems);
+                    interviewState.put("exhaustedProjectPoints", exhaustedProjectPoints);
+                } else {
+                    // 回答良好，重置连续失败次数
+                    consecutiveFailures = 0;
+                    interviewState.put("consecutiveFailures", consecutiveFailures);
+                    // 如果回答良好，将当前技术项或项目点添加到已使用列表
+                    if ("tech".equals(currentQuestionType) && !usedTechItems.isEmpty() && techItems.size() > 0) {
+                        String lastTechItem = usedTechItems.get(usedTechItems.size() - 1);
+                        if (!exhaustedTechItems.contains(lastTechItem)) {
+                            exhaustedTechItems.add(lastTechItem);
+                            log.info("回答良好，标记技术项为已耗尽：{}", lastTechItem);
+                        }
+                        usedTechItems.clear();
+                    } else if ("project".equals(currentQuestionType) && !usedProjectPoints.isEmpty() && projectPoints != null && projectPoints.size() > 0) {
+                        String lastProjectPoint = usedProjectPoints.get(usedProjectPoints.size() - 1);
+                        if (!exhaustedProjectPoints.contains(lastProjectPoint)) {
+                            exhaustedProjectPoints.add(lastProjectPoint);
+                            log.info("回答良好，标记项目点为已耗尽：{}", lastProjectPoint);
+                        }
+                        usedProjectPoints.clear();
+                    }
                 }
                 
                 // 构建响应，包含评分
@@ -411,7 +501,7 @@ public class InterviewServiceImpl implements InterviewService {
                                              log.error("发送结束信号失败：{}", e.getMessage(), e);
                                              emitter.completeWithError(e);
                                          }
-                                     }, sessionId);
+                                     }, sessionId, currentQuestionType);
                 
                 // 7. 更新会话状态（需要从AI响应中获取nextQuestion和stopReason，这里简化处理）
                 session.setQuestionCount(session.getQuestionCount() + 1);
@@ -716,7 +806,11 @@ public class InterviewServiceImpl implements InterviewService {
                         }
                         // 标记报告生成完成
                         record.setStatus(ReportGenerationService.ReportStatus.COMPLETED);
-                    } catch (Exception ignored) {
+                        
+                        // 自动保存报告到数据库
+                        saveGeneratedReportToDatabase(sessionId, record);
+                    } catch (Exception e) {
+                        log.error("自动保存报告失败: {}", e.getMessage(), e);
                     }
                 }, sessionId, "report");
 
@@ -974,7 +1068,7 @@ public class InterviewServiceImpl implements InterviewService {
                                       String currentDepthLevel, Integer sessionTimeRemaining,
                                       String persona, String jobType, String fullResumeContent,
                                       String previousQuestion, String previousAnswer, SseEmitter emitter,
-                                      Runnable onComplete, String sessionId) {
+                                      Runnable onComplete, String sessionId, String currentQuestionType) {
         // 构建prompt调用AI生成问题
         StringBuilder promptBuilder = new StringBuilder();
         
@@ -983,20 +1077,50 @@ public class InterviewServiceImpl implements InterviewService {
         promptBuilder.append(String.format("你是%s风格的面试官。%s\n", persona, personaStyle));
         promptBuilder.append("请确保你生成的问题是单一的、独立的，只关注一个具体的知识点或技术点。\n");
         
-        // 只有第一次生成问题时（没有上下文）才发送完整简历，后续问题基于上下文生成
-        if (StringUtils.hasText(previousQuestion) && StringUtils.hasText(previousAnswer)) {
+        // 检查是否需要切换话题（已使用列表为空，且有之前的问答）
+        boolean needSwitchTopic = (usedTechItems.isEmpty() && usedProjectPoints.isEmpty()) && 
+                                StringUtils.hasText(previousQuestion) && StringUtils.hasText(previousAnswer);
+        
+        // 根据当前问题类型生成不同的问题
+        String questionTypePrompt = ""; 
+        if ("hr".equals(currentQuestionType)) {
+            questionTypePrompt = "请生成一个HR面试问题，关注候选人的职业规划、团队协作能力、沟通能力或个人发展等非技术方面。\n";
+        } else if ("project".equals(currentQuestionType)) {
+            questionTypePrompt = "请生成一个关于项目经验的问题，关注候选人在项目中的具体贡献、遇到的挑战和解决方法。\n";
+        } else {
+            // 默认是技术问题
+            questionTypePrompt = "请生成一个技术问题，关注具体的技术知识点或技术实践。\n";
+        }
+        
+        // 只有第一次生成问题时（没有上下文）才发送完整简历，后续问题根据情况生成
+        if (needSwitchTopic) {
+            // 切换话题：忽略上一题的上下文，生成全新的问题
+            log.info("切换话题，生成全新问题，类型：{}", currentQuestionType);
+            if (StringUtils.hasText(fullResumeContent)) {
+                promptBuilder.append("以下是候选人的完整简历内容：\n");
+                promptBuilder.append(fullResumeContent).append("\n\n");
+            }
+            promptBuilder.append("请基于候选人的简历内容，生成一个全新的、与之前完全不同的面试问题。\n");
+            promptBuilder.append(questionTypePrompt);
+            promptBuilder.append("不要与上一题有任何关联。\n");
+            promptBuilder.append("每个问题只能关注一个具体的知识点或能力点，不要生成复合问题。\n");
+        } else if (StringUtils.hasText(previousQuestion) && StringUtils.hasText(previousAnswer)) {
             // 后续问题：基于上一题的问答上下文生成，不发送完整简历
             promptBuilder.append("上一轮面试问答：\n");
             promptBuilder.append(String.format("问题：%s\n", previousQuestion));
             promptBuilder.append(String.format("回答：%s\n\n", previousAnswer));
-            promptBuilder.append("请根据上一题的问答内容，结合候选人的简历，生成下一个相关的面试问题。每个问题只能关注一个具体的知识点或技术点，不要生成复合问题。\n");
+            promptBuilder.append("请根据上一题的问答内容，结合候选人的简历，生成下一个相关的面试问题。\n");
+            promptBuilder.append(questionTypePrompt);
+            promptBuilder.append("每个问题只能关注一个具体的知识点或能力点，不要生成复合问题。\n");
         } else {
             // 第一次生成问题：发送完整简历
             if (StringUtils.hasText(fullResumeContent)) {
                 promptBuilder.append("以下是候选人的完整简历内容：\n");
                 promptBuilder.append(fullResumeContent).append("\n\n");
             }
-            promptBuilder.append("请直接基于候选人的简历内容生成针对性的面试问题。每个问题只能关注一个具体的知识点或技术点，不要生成复合问题。\n");
+            promptBuilder.append("请直接基于候选人的简历内容生成针对性的面试问题。\n");
+            promptBuilder.append(questionTypePrompt);
+            promptBuilder.append("每个问题只能关注一个具体的知识点或能力点，不要生成复合问题。\n");
         }
         
         promptBuilder.append("规则：\n");
@@ -1285,6 +1409,41 @@ public class InterviewServiceImpl implements InterviewService {
         
         return vo;
     }
+    
+    @Override
+    public InterviewReportVO getInterviewReport(String sessionId) {
+        // 获取会话信息
+        InterviewSession session = sessionRepository.findBySessionId(sessionId)
+                .orElseThrow(() -> new RuntimeException("Interview session not found"));
+        
+        // 获取报告信息
+        Optional<InterviewReport> reportOpt = interviewReportRepository.findBySessionId(sessionId);
+        
+        InterviewReportVO vo = new InterviewReportVO();
+        vo.setSessionId(sessionId);
+        vo.setTotalScore(session.getTotalScore());
+        
+        // 设置会话评分
+        vo.setTechScore(session.getTechScore());
+        vo.setLogicScore(session.getLogicScore());
+        vo.setClarityScore(session.getClarityScore());
+        vo.setDepthScore(session.getDepthScore());
+        
+        // 如果报告存在，设置报告内容
+        if (reportOpt.isPresent()) {
+            InterviewReport report = reportOpt.get();
+            vo.setOverallFeedback(report.getOverallFeedback());
+            vo.setStrengths(report.getStrengths());
+            vo.setImprovements(report.getImprovements());
+            vo.setTechDepthEvaluation(report.getTechDepthEvaluation());
+            vo.setLogicExpressionEvaluation(report.getLogicExpressionEvaluation());
+            vo.setCommunicationEvaluation(report.getCommunicationEvaluation());
+            vo.setAnswerDepthEvaluation(report.getAnswerDepthEvaluation());
+            vo.setDetailedImprovementSuggestions(report.getDetailedImprovementSuggestions());
+            return vo;
+        }
+        return null;
+    }
 
     /**
      * 根据会话ID获取面试历史记录
@@ -1337,6 +1496,13 @@ public class InterviewServiceImpl implements InterviewService {
             }
             String improvementsJson = objectMapper.writeValueAsString(improvements);
             
+            // 解析新的报告字段
+            String techDepthEvaluation = reportData.get("techDepthEvaluation") != null ? reportData.get("techDepthEvaluation").toString() : "";
+            String logicExpressionEvaluation = reportData.get("logicExpressionEvaluation") != null ? reportData.get("logicExpressionEvaluation").toString() : "";
+            String communicationEvaluation = reportData.get("communicationEvaluation") != null ? reportData.get("communicationEvaluation").toString() : "";
+            String answerDepthEvaluation = reportData.get("answerDepthEvaluation") != null ? reportData.get("answerDepthEvaluation").toString() : "";
+            String detailedImprovementSuggestions = reportData.get("detailedImprovementSuggestions") != null ? reportData.get("detailedImprovementSuggestions").toString() : "";
+            
             // 3. 保存报告到interview_report表
             // 检查是否已存在报告
             Optional<InterviewReport> existingReport = interviewReportRepository.findBySessionId(sessionId);
@@ -1347,6 +1513,11 @@ public class InterviewServiceImpl implements InterviewService {
                 report.setOverallFeedback(overallFeedback);
                 report.setStrengths(strengthsJson);
                 report.setImprovements(improvementsJson);
+                report.setTechDepthEvaluation(techDepthEvaluation);
+                report.setLogicExpressionEvaluation(logicExpressionEvaluation);
+                report.setCommunicationEvaluation(communicationEvaluation);
+                report.setAnswerDepthEvaluation(answerDepthEvaluation);
+                report.setDetailedImprovementSuggestions(detailedImprovementSuggestions);
                 interviewReportRepository.save(report);
             } else {
                 // 创建新报告
@@ -1356,6 +1527,11 @@ public class InterviewServiceImpl implements InterviewService {
                 report.setOverallFeedback(overallFeedback);
                 report.setStrengths(strengthsJson);
                 report.setImprovements(improvementsJson);
+                report.setTechDepthEvaluation(techDepthEvaluation);
+                report.setLogicExpressionEvaluation(logicExpressionEvaluation);
+                report.setCommunicationEvaluation(communicationEvaluation);
+                report.setAnswerDepthEvaluation(answerDepthEvaluation);
+                report.setDetailedImprovementSuggestions(detailedImprovementSuggestions);
                 interviewReportRepository.save(report);
             }
             
@@ -1581,10 +1757,97 @@ public class InterviewServiceImpl implements InterviewService {
     }
     
     /**
+     * 自动保存生成的报告到数据库
+     * @param sessionId 会话ID
+     * @param record 报告生成记录
+     */
+    private void saveGeneratedReportToDatabase(String sessionId, ReportGenerationService.ReportGenerationRecord record) {
+        try {
+            // 1. 获取完整报告内容
+            StringBuilder fullReport = new StringBuilder();
+            for (ReportGenerationService.ReportChunk chunk : record.getChunks()) {
+                fullReport.append(chunk.getContent());
+            }
+            String reportContent = fullReport.toString();
+            log.info("自动保存报告，sessionId: {}, 报告内容: {}", sessionId, reportContent);
+            
+            // 2. 解析Markdown报告
+            Map<String, Object> reportData = parseGeneratedReport(reportContent);
+            
+            // 3. 使用现有的saveReport方法保存到数据库
+            saveReport(sessionId, reportData);
+            
+            log.info("自动保存报告成功，sessionId: {}", sessionId);
+        } catch (Exception e) {
+            log.error("自动保存报告到数据库失败: {}", e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * 解析生成的Markdown报告
+     * @param reportContent 报告内容
+     * @return 解析后的报告数据
+     */
+    private Map<String, Object> parseGeneratedReport(String reportContent) {
+        Map<String, Object> reportData = new HashMap<>();
+        
+        try {
+            // 提取总分（从"## 总体评价和总分"部分）
+            String overallSection = extractSectionFromReport(reportContent, "## 总体评价和总分", "## 优势分析");
+            if (StringUtils.hasText(overallSection)) {
+                // 提取总分，查找类似 "总分：85" 或 "总体评分：85" 的模式
+                Pattern scorePattern = Pattern.compile("(总分|总体评分)：?(\\d+\\.?\\d*)");
+                Matcher scoreMatcher = scorePattern.matcher(overallSection);
+                if (scoreMatcher.find()) {
+                    double totalScore = Double.parseDouble(scoreMatcher.group(2));
+                    reportData.put("totalScore", totalScore);
+                }
+                
+                // 提取总体评价（总分之后的内容）
+                String overallFeedback = overallSection;
+                reportData.put("overallFeedback", overallFeedback);
+            }
+            
+            // 提取优势列表
+            String strengthsSection = extractSectionFromReport(reportContent, "## 优势分析", "## 改进点");
+            if (StringUtils.hasText(strengthsSection)) {
+                List<String> strengths = new ArrayList<>();
+                // 匹配以"- "开头的优势项
+                Pattern strengthPattern = Pattern.compile("-\\s+([^\\n]+)", Pattern.MULTILINE);
+                Matcher strengthMatcher = strengthPattern.matcher(strengthsSection);
+                while (strengthMatcher.find()) {
+                    strengths.add(strengthMatcher.group(1).trim());
+                }
+                reportData.put("strengths", strengths);
+            }
+            
+            // 提取改进点列表
+            String improvementsSection = extractSectionFromReport(reportContent, "## 改进点", "##");
+            if (StringUtils.hasText(improvementsSection)) {
+                List<String> improvements = new ArrayList<>();
+                // 匹配以"- "开头的改进项
+                Pattern improvementPattern = Pattern.compile("-\\s+([^\\n]+)", Pattern.MULTILINE);
+                Matcher improvementMatcher = improvementPattern.matcher(improvementsSection);
+                while (improvementMatcher.find()) {
+                    improvements.add(improvementMatcher.group(1).trim());
+                }
+                reportData.put("improvements", improvements);
+            }
+            
+            log.info("解析报告成功，提取的数据: {}", reportData);
+        } catch (Exception e) {
+            log.error("解析生成的报告失败: {}", e.getMessage(), e);
+        }
+        
+        return reportData;
+    }
+    
+    /**
      * 删除面试记录
      * @param sessionId 会话ID
      */
     @Override
+    @Transactional
     public void deleteInterview(String sessionId) {
         try {
             // 删除该会话下的所有面试日志
@@ -1603,6 +1866,32 @@ public class InterviewServiceImpl implements InterviewService {
         } catch (Exception e) {
             log.error("删除面试记录失败，sessionId: {}", sessionId, e);
             throw new RuntimeException("删除面试记录失败: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 更新面试剩余时间
+     * @param sessionId 会话ID
+     * @param remainingTime 剩余时间（秒）
+     * @return 是否更新成功
+     */
+    @Override
+    public boolean updateRemainingTime(String sessionId, Integer remainingTime) {
+        try {
+            Optional<InterviewSession> sessionOpt = sessionRepository.findBySessionId(sessionId);
+            if (sessionOpt.isPresent()) {
+                InterviewSession session = sessionOpt.get();
+                session.setSessionTimeRemaining(remainingTime);
+                sessionRepository.save(session);
+                log.info("成功更新面试剩余时间，sessionId: {}, remainingTime: {}", sessionId, remainingTime);
+                return true;
+            } else {
+                log.error("更新面试剩余时间失败，会话不存在，sessionId: {}", sessionId);
+                return false;
+            }
+        } catch (Exception e) {
+            log.error("更新面试剩余时间失败，sessionId: {}", sessionId, e);
+            return false;
         }
     }
 }

@@ -34,6 +34,21 @@ public class InterviewReport {
     @Column(name = "improvements", columnDefinition = "text")
     private String improvements;
 
+    @Column(name = "tech_depth_evaluation", columnDefinition = "text")
+    private String techDepthEvaluation;
+
+    @Column(name = "logic_expression_evaluation", columnDefinition = "text")
+    private String logicExpressionEvaluation;
+
+    @Column(name = "communication_evaluation", columnDefinition = "text")
+    private String communicationEvaluation;
+
+    @Column(name = "answer_depth_evaluation", columnDefinition = "text")
+    private String answerDepthEvaluation;
+
+    @Column(name = "detailed_improvement_suggestions", columnDefinition = "text")
+    private String detailedImprovementSuggestions;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

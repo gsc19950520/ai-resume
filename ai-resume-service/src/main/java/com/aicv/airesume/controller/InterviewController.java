@@ -7,6 +7,8 @@ import com.aicv.airesume.model.dto.SubmitAnswerRequestDTO;
 import com.aicv.airesume.model.dto.FinishInterviewRequestDTO;
 import com.aicv.airesume.model.dto.CalculateSalaryRequestDTO;
 import com.aicv.airesume.model.dto.AnalyzeResumeRequestDTO;
+import com.aicv.airesume.model.dto.SaveReportRequestDTO;
+import com.aicv.airesume.model.dto.UpdateRemainingTimeRequestDTO;
 import com.aicv.airesume.service.InterviewService;
 import com.aicv.airesume.service.ResumeAnalysisService;
 import com.aicv.airesume.service.config.DynamicConfigService;
@@ -355,10 +357,10 @@ public class InterviewController {
      * @return 保存结果
      */
     @PostMapping("/save-report")
-    public BaseResponseVO saveReport(@RequestBody Map<String, Object> request) {
+    public BaseResponseVO saveReport(@RequestBody SaveReportRequestDTO request) {
         try {
-            String sessionId = (String) request.get("sessionId");
-            Map<String, Object> reportData = (Map<String, Object>) request.get("reportData");
+            String sessionId = request.getSessionId();
+            Map<String, Object> reportData = request.getReportData();
             
             interviewService.saveReport(sessionId, reportData);
             return BaseResponseVO.success(null);
@@ -381,6 +383,49 @@ public class InterviewController {
         } catch (Exception e) {
             log.error("Delete interview failed:", e);
             return BaseResponseVO.error("删除面试记录失败：" + e.getMessage());
+        }
+    }
+    
+    /**
+     * 获取面试报告详情
+     * @param sessionId 会话ID
+     * @return 面试报告详情
+     */
+    @GetMapping("/report/{sessionId}")
+    public BaseResponseVO getInterviewReport(@PathVariable String sessionId) {
+        try {
+            InterviewReportVO report = interviewService.getInterviewReport(sessionId);
+            return BaseResponseVO.success(report);
+        } catch (Exception e) {
+            log.error("Get interview report failed:", e);
+            return BaseResponseVO.error("获取面试报告失败：" + e.getMessage());
+        }
+    }
+    
+    /**
+     * 更新面试剩余时间
+     * @param request 请求参数，包含sessionId和remainingTime
+     * @return 更新结果
+     */
+    @PostMapping("/update-remaining-time")
+    public BaseResponseVO updateRemainingTime(@RequestBody UpdateRemainingTimeRequestDTO request) {
+        try {
+            String sessionId = request.getSessionId();
+            Integer remainingTime = request.getSessionTimeRemaining();
+            
+            if (sessionId == null || remainingTime == null) {
+                return BaseResponseVO.error("参数错误：sessionId和remainingTime不能为空");
+            }
+            
+            boolean result = interviewService.updateRemainingTime(sessionId, remainingTime);
+            if (result) {
+                return BaseResponseVO.success(null);
+            } else {
+                return BaseResponseVO.error("更新剩余时间失败：会话不存在或更新失败");
+            }
+        } catch (Exception e) {
+            log.error("Update remaining time failed:", e);
+            return BaseResponseVO.error("更新剩余时间失败：" + e.getMessage());
         }
     }
 }

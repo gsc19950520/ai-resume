@@ -13,6 +13,11 @@ Page({
   },
 
   onLoad: function() {
+    // 获取屏幕宽度，用于像素到rpx的转换
+    const screenWidth = wx.getSystemInfoSync().screenWidth;
+    this.setData({
+      screenWidth: screenWidth
+    });
     this.loadInterviewHistory()
   },
 
@@ -43,7 +48,8 @@ Page({
           createTime: item.endTime ? this.formatDate(item.endTime) : '',
           score: item.finalScore || 0,
           status: item.status,
-          sessionId: item.uniqueSessionId
+          sessionId: item.uniqueSessionId,
+          showDelete: false
         }));
 
         this.setData({
@@ -104,15 +110,77 @@ Page({
 
   // 开始新面试
   startNewInterview: function() {
-    wx.navigateTo({
-      url: '/pages/interview/interview'
+    const app = getApp();
+    const userInfo = app.globalData.userInfo || wx.getStorageSync('userInfo');
+    
+    if (!userInfo) {
+      wx.showModal({
+        title: '提示',
+        content: '请先登录，以使用完整功能',
+        showCancel: false,
+        confirmText: '去登录',
+        success: () => {
+          wx.navigateTo({ url: '/pages/login/login' })
+        }
+      })
+      return;
+    }
+    
+    // 检查用户是否有简历
+    this.checkUserHasResume(userInfo.id);
+  },
+  
+  // 检查用户简历状态并获取最新简历数据
+  checkUserHasResume: function(userId) {
+    wx.showLoading({ title: '检查简历中...' })
+    
+    const app = getApp()
+    
+    // 先调用/getLatest接口获取用户最新简历
+    get('/resume/getLatest', { userId: userId })
+      .then(res => {
+        wx.hideLoading()
+        if (res && res.success && res.data) {
+          // 有简历，将最新简历数据存储到全局
+          app.globalData.latestResumeData = res.data
+          
+          // 跳转到风格和简历选择页面，设置强制新建面试标志
+          wx.navigateTo({ 
+            url: `/pages/interview/interview_style_select?resumeId=${res.data.id || ''}&forceNewInterview=true` 
+          })
+        } else {
+          // 无简历，提示用户创建或上传简历
+          this.showNoResumePrompt()
+        }
+      })
+      .catch(error => {
+        wx.hideLoading()
+        console.error('获取最新简历失败:', error)
+        
+        // 错误，提示用户创建简历
+        this.showNoResumePrompt()
+      })
+  },
+  
+  // 显示无简历提示
+  showNoResumePrompt: function() {
+    wx.showModal({
+      title: '提示',
+      content: '您还没有创建简历，为了开始面试模拟，您需要先创建一份简历',
+      showCancel: false,
+      confirmText: '去创建简历',
+      success: () => {
+        wx.navigateTo({ url: '/pages/template/template' })
+      }
     })
   },
 
   // 滑动开始
   onTouchStart: function(e) {
-    const startX = e.touches[0].clientX;
+    const startX = e.touches[0].pageX;
     const index = e.currentTarget.dataset.index;
+    // 滑动开始前，先收起其他所有项
+    this.resetSwipe();
     this.setData({
       startX: startX,
       currentIndex: index,
@@ -122,40 +190,53 @@ Page({
 
   // 滑动中
   onTouchMove: function(e) {
-    const currentX = e.touches[0].clientX;
-    const distance = currentX - this.data.startX;
+    const currentX = e.touches[0].pageX;
+    const startX = this.data.startX;
+    const index = this.data.currentIndex;
+    const interviewList = this.data.interviewList;
+    
+    if (index === -1 || !interviewList[index]) return;
+    
+    // 计算滑动距离（直接使用像素距离）
+    let distance = currentX - startX;
+    // 获取屏幕宽度，用于px转rpx的转换
+    const screenWidth = wx.getSystemInfoSync().screenWidth;
+    // 计算120rpx对应的px值
+    const maxSlideDistancePx = (120 * screenWidth) / 750;
     // 只允许向左滑动，最大滑动距离120rpx
-    if (distance < 0 && Math.abs(distance) <= 120) {
+    if (distance < 0 && Math.abs(distance) <= maxSlideDistancePx) {
       this.setData({
         moveDistance: distance
       });
-      // 更新当前项的位置
-      const interviewList = this.data.interviewList;
-      const animation = wx.createAnimation({
-        duration: 0,
-        timingFunction: 'ease'
+      // 实时更新当前项的位置
+      this.setData({
+        [`interviewList[${index}].translateX`]: distance
       });
-      // 这里我们不直接使用动画对象，而是直接设置transform
-      // 因为列表项可能有多个，我们需要为每个项单独设置
     }
   },
 
   // 滑动结束
   onTouchEnd: function(e) {
     const distance = this.data.moveDistance;
-    // 如果滑动距离大于60rpx，则显示删除按钮
-    if (Math.abs(distance) > 60) {
+    const index = this.data.currentIndex;
+    const interviewList = this.data.interviewList;
+    
+    if (index === -1 || !interviewList[index]) return;
+    
+    // 只要是向左滑动，就显示删除按钮
+    if (distance < 0) {
       // 更新列表，标记当前项为展开状态
-      const interviewList = this.data.interviewList;
-      const index = this.data.currentIndex;
-      if (interviewList[index]) {
-        interviewList[index].showDelete = true;
-        this.setData({
-          interviewList: interviewList
-        });
-      }
+      interviewList[index].showDelete = true;
+      // 获取屏幕宽度，用于px转rpx的转换
+      const screenWidth = wx.getSystemInfoSync().screenWidth;
+      // 计算120rpx对应的px值
+      const maxSlideDistancePx = (120 * screenWidth) / 750;
+      interviewList[index].translateX = -maxSlideDistancePx; // 固定显示删除按钮，距离为120rpx
+      this.setData({
+        interviewList: interviewList
+      });
     } else {
-      // 滑动距离不足，收起删除按钮
+      // 向右滑动或没有滑动，收起删除按钮
       this.resetSwipe();
     }
   },
@@ -163,9 +244,10 @@ Page({
   // 重置滑动状态
   resetSwipe: function() {
     const interviewList = this.data.interviewList;
-    // 重置所有项的展开状态
+    // 重置所有项的展开状态和translateX值
     interviewList.forEach(item => {
       item.showDelete = false;
+      delete item.translateX;
     });
     this.setData({
       interviewList: interviewList,

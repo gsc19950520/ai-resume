@@ -78,6 +78,11 @@ Page({
     
     // 获取面试会话详情，包括剩余时间和历史记录
     this.fetchSessionDetail(sessionId);
+    
+    // 启动每隔5秒更新后端剩余时间的定时器
+    this.backendTimeUpdateTimer = setInterval(() => {
+      this.updateRemainingTimeToServer();
+    }, 5000);
   },
   
   /**
@@ -187,6 +192,38 @@ Page({
     if (this.timer) {
       clearInterval(this.timer);
       this.timer = null;
+    }
+    
+    // 清除后端时间更新定时器
+    if (this.backendTimeUpdateTimer) {
+      clearInterval(this.backendTimeUpdateTimer);
+      this.backendTimeUpdateTimer = null;
+    }
+  },
+  
+  /**
+   * 更新后端session表中的剩余时间
+   */
+  updateRemainingTimeToServer: function() {
+    const { sessionId, sessionTimeRemaining } = this.data;
+    
+    // 只有在页面未暂停且面试未完成时才更新
+    if (!this.data.isPaused && !this.data.isCompleted) {
+      // 调用接口更新后端剩余时间
+      post('/api/interview/update-remaining-time', {
+        sessionId: sessionId,
+        sessionTimeRemaining: sessionTimeRemaining
+      })
+      .then(res => {
+        if (res && res.success) {
+          console.log('后端剩余时间更新成功:', res.data);
+        } else {
+          console.error('后端剩余时间更新失败:', res.message || '未知错误');
+        }
+      })
+      .catch(error => {
+        console.error('更新后端剩余时间请求失败:', error);
+      });
     }
   },
   
@@ -385,6 +422,17 @@ Page({
 
   // 返回上一页
   goBack: function() {
+    // 清除所有定时器
+    if (this.timer) {
+      clearInterval(this.timer);
+      this.timer = null;
+    }
+    
+    if (this.backendTimeUpdateTimer) {
+      clearInterval(this.backendTimeUpdateTimer);
+      this.backendTimeUpdateTimer = null;
+    }
+    
     wx.navigateBack();
   },
 
@@ -429,10 +477,15 @@ Page({
   finishInterview: function() {
     const { sessionId, interviewHistory } = this.data;
     
-    // 清除定时器
+    // 清除所有定时器
     if (this.timer) {
       clearInterval(this.timer);
       this.timer = null;
+    }
+    
+    if (this.backendTimeUpdateTimer) {
+      clearInterval(this.backendTimeUpdateTimer);
+      this.backendTimeUpdateTimer = null;
     }
     
     // 检查是否有问答记录
@@ -590,9 +643,6 @@ Page({
           // 将当前问答添加到历史记录
           this.addToInterviewHistory();
           
-          // 重新获取会话详情，更新剩余时间
-          const { sessionId } = this.data;
-          this.fetchSessionDetail(sessionId);
         }
       });
     } catch (error) {

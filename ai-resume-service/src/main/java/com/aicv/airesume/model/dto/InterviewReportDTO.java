@@ -16,6 +16,11 @@ public class InterviewReportDTO {
     private String strengths;
     private String areasForImprovement;
     private String improvements;
+    private String techDepthEvaluation;
+    private String logicExpressionEvaluation;
+    private String communicationEvaluation;
+    private String answerDepthEvaluation;
+    private String detailedImprovementSuggestions;
     private Double finalScore;
     private Double totalScore;
     private LocalDateTime createdAt;

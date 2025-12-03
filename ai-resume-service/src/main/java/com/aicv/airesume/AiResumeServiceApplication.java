@@ -5,6 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.retry.annotation.EnableRetry;
+import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -16,6 +17,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 		org.springframework.boot.autoconfigure.data.redis.RedisReactiveAutoConfiguration.class
 })
 @EnableRetry // 启用Spring的重试功能
+@EnableTransactionManagement // 启用Spring的事务管理
 @ComponentScan("com.aicv.airesume") // 确保扫描所有子包
 public class AiResumeServiceApplication {
 

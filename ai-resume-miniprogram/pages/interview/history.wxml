@@ -1,12 +1,9 @@
-<!--pages/interview/history.wxml-->
 <view class="container">
   <view class="header">
     <text class="title">面试历史</text>
   </view>
 
-  <!-- 列表内容 -->
   <view class="content">
-    <!-- 面试列表 -->
     <view class="interview-list">
       <view 
         wx:for="{{interviewList}}" 
@@ -18,23 +15,7 @@
         bindtouchmove="onTouchMove"
         bindtouchend="onTouchEnd"
       >
-        <view 
-          class="interview-item"
-          bindtap="viewReport"
-          data-id="{{item.id}}"
-          style="transform: translateX({{item.showDelete ? -120 : 0}}rpx);"
-        >
-          <view class="interview-header">
-            <text class="interview-title">{{item.title || 'AI模拟面试'}}</text>
-            <text class="interview-time">{{item.createTime || ''}}</text>
-          </view>
-          <view class="interview-info">
-            <text class="interview-result">{{item.status === 'completed' ? (item.score ? '得分: ' + item.score : '已完成') : '未完成'}}</text>
-          </view>
-          <view class="interview-arrow">
-            <image src="/images/arrow.png" mode="aspectFit"></image>
-          </view>
-        </view>
+        <!-- 删除按钮（固定底层） -->
         <view 
           class="delete-btn"
           bindtap="deleteInterview"
@@ -42,24 +23,44 @@
         >
           删除
         </view>
+
+        <!-- 滑动主体 -->
+        <view 
+          class="interview-item"
+          style="transform: translateX({{item.translateX}}px);"
+          bindtap="viewReport"
+          data-id="{{item.id}}"
+        >
+          <view class="interview-header">
+            <text class="interview-title">{{item.title || 'AI模拟面试'}}</text>
+            <text class="interview-time">{{item.createTime}}</text>
+          </view>
+
+          <view class="interview-info">
+            <text class="interview-result">
+              {{item.status === 'completed' ? (item.score ? '得分: ' + item.score : '已完成') : '未完成'}}
+            </text>
+          </view>
+
+          <view class="interview-arrow">
+            <image src="/images/arrow.png" mode="aspectFit"></image>
+          </view>
+        </view>
       </view>
     </view>
 
-    <!-- 空状态 -->
     <view class="empty-state" wx:if="{{!loading && interviewList.length === 0}}">
       <image src="/images/list.png" mode="aspectFit"></image>
       <text class="empty-text">暂无面试记录</text>
       <button class="empty-btn" bindtap="startNewInterview">开始新面试</button>
     </view>
 
-    <!-- 加载中 -->
     <view class="loading-state" wx:if="{{loading}}">
       <text>加载中...</text>
     </view>
   </view>
 
-  <!-- 底部操作按钮 -->
-  <view class="bottom-actions">
+  <view class="bottom-actions"  wx:if="{{interviewList.length !== 0}}">
     <button class="primary-btn" bindtap="startNewInterview">开始新面试</button>
   </view>
 </view>

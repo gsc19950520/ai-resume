@@ -9,11 +9,11 @@ Page({
   data: {
     sessionId: '',
     reportContent: '',
-    renderedContent: '',
     isLoading: true,
     isComplete: false,
     nextContent: '', // 用于流式展示，逐字/逐词添加
-    isSaved: false // 报告是否已保存
+    isSaved: false, // 报告是否已保存
+    reportData: null // 解析后的报告数据
   },
 
   /**
@@ -39,10 +39,77 @@ Page({
     this.reportId = null;
     this.pollingInterval = null;
 
-    // 开始生成报告
-    this.startReportGeneration(sessionId);
+    // 首先检查是否已有保存的报告
+    this.checkSavedReport(sessionId);
   },
 
+  /**
+   * 检查是否已有保存的报告
+   * @param {string} sessionId - 会话ID
+   */
+  checkSavedReport(sessionId) {
+    // 初始化状态
+    this.setData({
+      isLoading: true,
+      nextContent: '',
+      reportContent: ''
+    });
+
+    try {
+      // 调用获取报告详情接口
+      get(`/api/interview/report/${sessionId}`)
+        .then(res => {
+          if (res && res.success && res.data) {
+            console.log('已找到保存的报告，直接显示:', res.data);
+            
+            // 解析保存的报告数据并显示
+            this.displaySavedReport(res.data);
+          } else {
+            // 没有保存的报告，开始生成
+            console.log('未找到保存的报告，开始生成');
+            this.startReportGeneration(sessionId);
+          }
+        })
+        .catch(error => {
+          console.error('检查保存报告失败:', error);
+          // 检查失败，开始生成报告
+          this.startReportGeneration(sessionId);
+        });
+    } catch (error) {
+      console.error('发起检查报告请求失败:', error);
+      // 请求发起失败，开始生成报告
+      this.startReportGeneration(sessionId);
+    }
+  },
+  
+  /**
+   * 显示已保存的报告
+   * @param {object} reportData - 报告数据
+   */
+  displaySavedReport(reportData) {
+    try {
+      // 确保 strengths 和 improvements 是数组格式
+      if (reportData.strengths && typeof reportData.strengths === 'string') {
+        reportData.strengths = JSON.parse(reportData.strengths);
+      }
+      if (reportData.improvements && typeof reportData.improvements === 'string') {
+        reportData.improvements = JSON.parse(reportData.improvements);
+      }
+      
+      // 更新报告数据，直接传递给新的UI结构
+      this.setData({
+        reportData: reportData,
+        isLoading: false,
+        isComplete: true,
+        isSaved: true
+      });
+    } catch (error) {
+      console.error('显示保存的报告失败:', error);
+      // 显示失败，开始生成新报告
+      this.startReportGeneration(this.data.sessionId);
+    }
+  },
+  
   /**
    * 开始生成报告
    * @param {string} sessionId - 会话ID
@@ -122,12 +189,12 @@ Page({
                 reportContent: updatedReportContent
               });
               
-              // 实时转换为HTML并更新渲染内容
-              const htmlContent = this.markdownToHtml(updatedReportContent);
-              this.setData({ renderedContent: htmlContent });
-              
               // 更新lastIndex
               this.lastIndex = data.lastIndex || 0;
+              
+              // 实时解析报告内容并更新UI
+              const parsedReportData = this.parseReportContent(updatedReportContent);
+              this.setData({ reportData: parsedReportData });
             }
             
             // 检查报告是否完成
@@ -135,7 +202,8 @@ Page({
               this.setData({
                 isLoading: false,
                 isComplete: true,
-                nextContent: ''
+                nextContent: '',
+                isSaved: true // 报告已生成完成，后端会自动保存
               });
               
               // 停止轮询
@@ -209,37 +277,7 @@ Page({
   },
 
 
-  /**
-   * 将Markdown转换为HTML
-   * 针对后端返回的简洁Markdown格式进行优化，确保页面展示美观
-   * @param {string} markdown - Markdown文本
-   * @returns {string} HTML文本
-   */
-  markdownToHtml(markdown) {
-    if (!markdown) return '';
-    
-    let html = markdown;
-    
-    // 先处理转义的*，替换为临时标记
-    html = html.replace(/\\\*/g, 'TEMP_ESCAPED_ASTERISK');
-    
-    // 处理二级标题（后端规定仅使用##）
-    html = html.replace(/^## (.*$)/gm, '<h2 class="section-title">$1</h2>');
-    
-    // 处理粗体（仅支持**）
-    html = html.replace(/\*\*(.*?)\*\*/g, '<strong class="highlight">$1</strong>');
-    
-    // 处理无序列表（仅支持-）
-    html = html.replace(/^- (.*$)/gm, '<ul class="content-list"><li class="list-item">$1</li></ul>');
-    
-    // 处理换行
-    html = html.replace(/\n/g, '<br>');
-    
-    // 恢复转义的*，转换为HTML实体
-    html = html.replace(/TEMP_ESCAPED_ASTERISK/g, '&#42;');
-    
-    return html;
-  },
+
   
   /**
    * 保存报告
@@ -289,7 +327,12 @@ Page({
       totalScore: 0,
       overallFeedback: '',
       strengths: [],
-      improvements: []
+      improvements: [],
+      techDepthEvaluation: '',
+      logicExpressionEvaluation: '',
+      communicationEvaluation: '',
+      answerDepthEvaluation: '',
+      detailedImprovementSuggestions: ''
     };
     
     // 根据DeepSeek prompt的规范，报告结构为：
@@ -301,6 +344,16 @@ Page({
     // ## 改进点
     // - 改进点1
     // - 改进点2
+    // ## 技术深度评价
+    // 内容
+    // ## 逻辑表达评价
+    // 内容
+    // ## 沟通表达评价
+    // 内容
+    // ## 回答深度评价
+    // 内容
+    // ## 针对候选人的详细改进建议
+    // 内容
     
     // 提取总分
     const scoreMatch = content.match(/总分：(\d+\.\d+)/);
@@ -315,7 +368,7 @@ Page({
     }
     
     // 提取优势
-    const strengthsMatch = content.match(/## 优势分析[\s\S]*?(?=## 改进点|$)/);
+    const strengthsMatch = content.match(/## 优势分析[\s\S]*?(?=## 改进点)/);
     if (strengthsMatch) {
       const strengthsContent = strengthsMatch[0].replace(/## 优势分析/, '').trim();
       reportData.strengths = strengthsContent.split(/^- /gm)
@@ -324,12 +377,42 @@ Page({
     }
     
     // 提取改进点
-    const improvementsMatch = content.match(/## 改进点[\s\S]*/);
+    const improvementsMatch = content.match(/## 改进点[\s\S]*?(?=## 技术深度评价)/);
     if (improvementsMatch) {
       const improvementsContent = improvementsMatch[0].replace(/## 改进点/, '').trim();
       reportData.improvements = improvementsContent.split(/^- /gm)
         .filter(line => line.trim())
         .map(line => line.trim());
+    }
+    
+    // 提取技术深度评价
+    const techDepthMatch = content.match(/## 技术深度评价[\s\S]*?(?=## 逻辑表达评价)/);
+    if (techDepthMatch) {
+      reportData.techDepthEvaluation = techDepthMatch[0].replace(/## 技术深度评价/, '').trim();
+    }
+    
+    // 提取逻辑表达评价
+    const logicExpressionMatch = content.match(/## 逻辑表达评价[\s\S]*?(?=## 沟通表达评价)/);
+    if (logicExpressionMatch) {
+      reportData.logicExpressionEvaluation = logicExpressionMatch[0].replace(/## 逻辑表达评价/, '').trim();
+    }
+    
+    // 提取沟通表达评价
+    const communicationMatch = content.match(/## 沟通表达评价[\s\S]*?(?=## 回答深度评价)/);
+    if (communicationMatch) {
+      reportData.communicationEvaluation = communicationMatch[0].replace(/## 沟通表达评价/, '').trim();
+    }
+    
+    // 提取回答深度评价
+    const answerDepthMatch = content.match(/## 回答深度评价[\s\S]*?(?=## 针对候选人的详细改进建议)/);
+    if (answerDepthMatch) {
+      reportData.answerDepthEvaluation = answerDepthMatch[0].replace(/## 回答深度评价/, '').trim();
+    }
+    
+    // 提取针对候选人的详细改进建议
+    const detailedImprovementMatch = content.match(/## 针对候选人的详细改进建议[\s\S]*/);
+    if (detailedImprovementMatch) {
+      reportData.detailedImprovementSuggestions = detailedImprovementMatch[0].replace(/## 针对候选人的详细改进建议/, '').trim();
     }
     
     return reportData;

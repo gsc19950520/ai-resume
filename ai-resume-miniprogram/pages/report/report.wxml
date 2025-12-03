@@ -1,26 +1,152 @@
 <!--pages/report/report.wxml-->
 <view class="report-container">
 
-  <!-- 报告内容区域 -->
-  <view class="report-content">
-    <!-- 使用rich-text组件渲染markdown内容 -->
-    <rich-text nodes="{{renderedContent}}" class="markdown-content"></rich-text>
+<!-- 顶部标题卡片 -->
+<view class="report-header">
+  <text class="report-title">AI 面试评估报告</text>
+  <text class="report-subtitle">AI Interview Evaluation</text>
+</view>
+
+<!-- 内容区域 -->
+<view class="report-content" wx:if="{{reportData}}">
+
+  <!-- 总体评价 -->
+  <view class="section">
+    <view class="section-title">
+      <view class="title-left">
+        <text class="title-icon">📘</text>
+        <text class="title-text">总体评价</text>
+      </view>
+      <text class="total-score" wx:if="{{reportData.totalScore > 0}}">
+        总分：{{reportData.totalScore}}
+      </text>
+    </view>
+    <view class="section-body">
+      <text class="paragraph">
+        {{reportData.overallFeedback || '暂无总体评价'}}
+      </text>
+    </view>
   </view>
 
-  <!-- 加载完成提示 -->
-  <view class="complete-tip" wx:if="{{isComplete && !isLoading}}">
-    <text class="complete-text">报告生成完成</text>
+  <!-- 优势分析 -->
+  <view class="section">
+    <view class="section-title">
+      <view class="title-left">
+        <text class="title-icon">✅</text>
+        <text class="title-text">优势分析</text>
+      </view>
+    </view>
+    <view class="section-body">
+      <block wx:if="{{reportData.strengths && reportData.strengths.length > 0}}">
+        <view class="list-item" wx:for="{{reportData.strengths}}" wx:key="index">
+          <view class="item-bullet positive"></view>
+          <text class="item-text">{{item}}</text>
+        </view>
+      </block>
+      <text class="empty-text" wx:else>暂无优势分析</text>
+    </view>
   </view>
-  
-  <!-- 保存报告按钮 -->
-  <view class="report-actions" wx:if="{{isComplete && !isLoading && !isSaved}}">
-    <button class="save-btn" bindtap="saveReport">
-      保存报告
-    </button>
+
+  <!-- 改进点 -->
+  <view class="section">
+    <view class="section-title">
+      <view class="title-left">
+        <text class="title-icon warning">⚠️</text>
+        <text class="title-text">改进点</text>
+      </view>
+    </view>
+    <view class="section-body">
+      <block wx:if="{{reportData.improvements && reportData.improvements.length > 0}}">
+        <view class="list-item" wx:for="{{reportData.improvements}}" wx:key="index">
+          <view class="item-bullet warning"></view>
+          <text class="item-text">{{item}}</text>
+        </view>
+      </block>
+      <text class="empty-text" wx:else>暂无改进点</text>
+    </view>
   </view>
-  
-  <!-- 保存成功提示 -->
-  <view class="save-success-tip" wx:if="{{isSaved}}">
-    <text class="save-success-text">报告已保存</text>
+
+  <!-- 技术深度 -->
+  <view class="section">
+    <view class="section-title">
+      <view class="title-left">
+        <text class="title-icon">🧠</text>
+        <text class="title-text">技术深度评价</text>
+      </view>
+    </view>
+    <view class="section-body">
+      <text class="paragraph">
+        {{reportData.techDepthEvaluation || '暂无技术深度评价'}}
+      </text>
+    </view>
   </view>
+
+  <!-- 逻辑表达 -->
+  <view class="section">
+    <view class="section-title">
+      <view class="title-left">
+        <text class="title-icon">🗂</text>
+        <text class="title-text">逻辑表达评价</text>
+      </view>
+    </view>
+    <view class="section-body">
+      <text class="paragraph">
+        {{reportData.logicExpressionEvaluation || '暂无逻辑表达评价'}}
+      </text>
+    </view>
+  </view>
+
+  <!-- 沟通表达 -->
+  <view class="section">
+    <view class="section-title">
+      <view class="title-left">
+        <text class="title-icon">💬</text>
+        <text class="title-text">沟通表达评价</text>
+      </view>
+    </view>
+    <view class="section-body">
+      <text class="paragraph">
+        {{reportData.communicationEvaluation || '暂无沟通表达评价'}}
+      </text>
+    </view>
+  </view>
+
+  <!-- 回答深度 -->
+  <view class="section">
+    <view class="section-title">
+      <view class="title-left">
+        <text class="title-icon">🔎</text>
+        <text class="title-text">回答深度评价</text>
+      </view>
+    </view>
+    <view class="section-body">
+      <text class="paragraph">
+        {{reportData.answerDepthEvaluation || '暂无回答深度评价'}}
+      </text>
+    </view>
+  </view>
+
+  <!-- 详细建议 -->
+  <view class="section">
+    <view class="section-title">
+      <view class="title-left">
+        <text class="title-icon">📝</text>
+        <text class="title-text">详细改进建议</text>
+      </view>
+    </view>
+    <view class="section-body">
+      <text class="paragraph">
+        {{reportData.detailedImprovementSuggestions || '暂无详细建议'}}
+      </text>
+    </view>
+  </view>
+
+</view>
+
+<!-- 加载中 -->
+<view class="loading-container" wx:else>
+  <view class="loading-spinner"></view>
+  <text class="loading-text">正在加载报告...</text>
+</view>
+
 </view>

@@ -51,7 +51,9 @@ Page({
       userId: userInfo.id || wx.getStorageSync('userId') || '0',
       industryJobTag: options.industryJobTag || latestResumeData?.occupation || '',
       // 新增：标记是否直接来自首页的简历数据
-      hasResumeFromHome: !!latestResumeData || !!options.resumeId
+      hasResumeFromHome: !!latestResumeData || !!options.resumeId,
+      // 新增：标记是否强制创建新面试
+      forceNewInterview: options.forceNewInterview === 'true' || false
     })
 
     // 如果有全局简历数据或传入了resumeId，直接使用，否则加载用户简历列表
@@ -67,8 +69,18 @@ Page({
     // 加载面试官风格配置
     this.loadPersonaConfigs()
     
-    // 检查是否有进行中的面试
-    this.checkOngoingInterview()
+    // 如果不是强制新建面试，才检查是否有进行中的面试
+    if (!this.data.forceNewInterview) {
+      this.checkOngoingInterview()
+    } else {
+      console.log('强制新建面试，跳过进行中面试检查');
+      // 清除全局会话信息，确保开始面试时创建新的会话
+      if (getApp().globalData) {
+        delete getApp().globalData.currentInterviewSessionId;
+      }
+      // 清除本地存储的会话信息
+      wx.removeStorageSync('currentInterviewSessionId');
+    }
   },
 
   // 处理单个简历数据（来自首页）

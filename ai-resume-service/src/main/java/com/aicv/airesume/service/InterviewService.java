@@ -2,6 +2,7 @@ package com.aicv.airesume.service;
 
 import com.aicv.airesume.model.vo.InterviewHistoryItemVO;
 import com.aicv.airesume.model.vo.InterviewHistoryVO;
+import com.aicv.airesume.model.vo.InterviewReportVO;
 import com.aicv.airesume.model.vo.InterviewResponseVO;
 import com.aicv.airesume.model.vo.InterviewSessionVO;
 import com.aicv.airesume.model.vo.ReportChunksVO;
@@ -105,5 +106,20 @@ public interface InterviewService {
      * @param sessionId 会话ID
      */
     void deleteInterview(String sessionId);
+    
+    /**
+     * 更新面试剩余时间
+     * @param sessionId 会话ID
+     * @param remainingTime 剩余时间（秒）
+     * @return 是否更新成功
+     */
+    boolean updateRemainingTime(String sessionId, Integer remainingTime);
+    
+    /**
+     * 获取面试报告详情
+     * @param sessionId 会话ID
+     * @return 面试报告VO
+     */
+    InterviewReportVO getInterviewReport(String sessionId);
     
 }
