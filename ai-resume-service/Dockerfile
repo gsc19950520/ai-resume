@@ -9,7 +9,7 @@ RUN mvn clean package -DskipTests
 #########################################################
 # 2️⃣ 运行阶段
 ######################################################### 运行阶段
-FROM openjdk:11-jre-slim-buster
+FROM openjdk:11-jre-slim-bullseye
 WORKDIR /app
 
 # 安装必要依赖（仅保留wkhtmltopdf和基本证书）
