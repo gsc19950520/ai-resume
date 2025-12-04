@@ -32,6 +32,7 @@ import com.aicv.airesume.model.vo.SalaryInfoVO;
 import com.aicv.airesume.model.vo.GrowthAdviceVO;
 import com.aicv.airesume.model.vo.ReportChunksVO;
 import lombok.extern.slf4j.Slf4j;
+import com.aicv.airesume.annotation.Log;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import java.io.IOException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -408,6 +409,7 @@ public class InterviewController {
      * @return 更新结果
      */
     @PostMapping("/update-remaining-time")
+    @Log(recordParams = false, recordResult = false, recordExecutionTime = false)
     public BaseResponseVO updateRemainingTime(@RequestBody UpdateRemainingTimeRequestDTO request) {
         try {
             String sessionId = request.getSessionId();

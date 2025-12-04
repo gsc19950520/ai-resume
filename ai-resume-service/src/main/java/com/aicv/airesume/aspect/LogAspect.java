@@ -49,6 +49,11 @@ public class LogAspect {
         MethodSignature signature = (MethodSignature) joinPoint.getSignature();
         Method method = signature.getMethod();
         
+        // 跳过update-remaining-time接口的日志
+        if (request.getRequestURI().equals("/api/interview/update-remaining-time")) {
+            return;
+        }
+        
         // 获取方法上的Log注解
         Log logAnnotation = method.getAnnotation(Log.class);
         
@@ -118,6 +123,15 @@ public class LogAspect {
         long startTime = System.currentTimeMillis();
         Object result = null;
         String errorMsg = null;
+        
+        // 跳过update-remaining-time接口的日志
+        ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        if (attributes != null) {
+            HttpServletRequest request = attributes.getRequest();
+            if (request.getRequestURI().equals("/api/interview/update-remaining-time")) {
+                return joinPoint.proceed();
+            }
+        }
         
         // 获取方法信息和Log注解
         MethodSignature signature = (MethodSignature) joinPoint.getSignature();

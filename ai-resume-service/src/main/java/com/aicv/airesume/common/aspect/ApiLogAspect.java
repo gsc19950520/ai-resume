@@ -63,8 +63,8 @@ public class ApiLogAspect {
         Method targetMethod = signature.getMethod();
         String methodName = targetMethod.getName();
         
-        // 记录请求开始信息
-        if (log.isInfoEnabled()) {
+        // 记录请求开始信息，但跳过update-remaining-time接口
+        if (log.isInfoEnabled() && !uri.equals("/api/interview/update-remaining-time")) {
             String params = maskSensitiveParams(joinPoint.getArgs());
             log.info("[API-START] requestId: {}, ip: {}, uri: {}, method: {}, userId: {}, class: {}, method: {}, params: {}",
                     requestId, ip, uri, method, userId, className, methodName, params);
@@ -88,17 +88,19 @@ public class ApiLogAspect {
             long endTime = System.currentTimeMillis();
             long timeConsumed = endTime - startTime;
             
-            // 记录API请求日志（使用LogUtil）
-            LogUtil.logApiRequest(requestId, userId, uri, method, 200, timeConsumed);
-            
-            if (log.isInfoEnabled()) {
-                // 限制结果日志长度
-                String resultStr = result != null ? result.toString() : "null";
-                if (resultStr.length() > 1000) {
-                    resultStr = resultStr.substring(0, 1000) + "...";
+            // 记录API请求日志（使用LogUtil），但跳过update-remaining-time接口
+            if (!uri.equals("/api/interview/update-remaining-time")) {
+                LogUtil.logApiRequest(requestId, userId, uri, method, 200, timeConsumed);
+                
+                if (log.isInfoEnabled()) {
+                    // 限制结果日志长度
+                    String resultStr = result != null ? result.toString() : "null";
+                    if (resultStr.length() > 1000) {
+                        resultStr = resultStr.substring(0, 1000) + "...";
+                    }
+                    log.info("[API-END] requestId: {}, uri: {}, method: {}, time: {}ms, result: {}",
+                            requestId, uri, method, timeConsumed, resultStr);
                 }
-                log.info("[API-END] requestId: {}, uri: {}, method: {}, time: {}ms, result: {}",
-                        requestId, uri, method, timeConsumed, resultStr);
             }
         }
     }

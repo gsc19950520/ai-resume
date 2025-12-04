@@ -202,6 +202,15 @@ public class InterviewServiceImpl implements InterviewService {
                 // 保存初始日志记录
                 logRepository.save(firstQuestionLog);
                 
+                // 确定初始问题类型：如果有项目点，优先选择项目问题
+                String initialQuestionType = "project";
+                if (projectPoints == null || projectPoints.isEmpty()) {
+                    initialQuestionType = "tech";
+                    log.info("没有项目点，初始问题类型设置为tech");
+                } else {
+                    log.info("有项目点，初始问题类型设置为project");
+                }
+                
                 // 调用统一的流式生成问题方法，并传递回调函数
                 generateQuestionStream(techItems, projectPoints, usedTechItems, usedProjectPoints,
                                      currentDepthLevel, session.getSessionTimeRemaining(),
@@ -215,7 +224,7 @@ public class InterviewServiceImpl implements InterviewService {
                                              log.error("发送结束信号失败：{}", e.getMessage(), e);
                                              emitter.completeWithError(e);
                                          }
-                                     }, sessionId, "tech"); // 首次问题默认是技术问题
+                                     }, sessionId, initialQuestionType); // 首次问题根据情况选择项目或技术问题
                 
                 // 获取生成的问题（需要从AI响应中解析，这里简化处理）
                 String firstQuestion = "";
@@ -416,13 +425,13 @@ public class InterviewServiceImpl implements InterviewService {
                                         .collect(Collectors.toList());
                                 }
                                 
-                                // 3. 选择新话题
-                                if (!availableTechItems.isEmpty()) {
-                                    currentQuestionType = "tech";
-                                    log.info("切换到新的技术项，可用技术项数量：{}", availableTechItems.size());
-                                } else if (!availableProjectPoints.isEmpty()) {
+                                // 3. 选择新话题 - 优先选择项目点，确保先问完项目相关问题
+                                if (!availableProjectPoints.isEmpty()) {
                                     currentQuestionType = "project";
                                     log.info("切换到新的项目点，可用项目点数量：{}", availableProjectPoints.size());
+                                } else if (!availableTechItems.isEmpty()) {
+                                    currentQuestionType = "tech";
+                                    log.info("切换到新的技术项，可用技术项数量：{}", availableTechItems.size());
                                 } else {
                                     currentQuestionType = "hr";
                                     log.info("所有技术和项目点已耗尽，切换到HR问题");
@@ -1076,6 +1085,12 @@ public class InterviewServiceImpl implements InterviewService {
         String personaStyle = enhancePersonaWithStyle(persona);
         promptBuilder.append(String.format("你是%s风格的面试官。%s\n", persona, personaStyle));
         promptBuilder.append("请确保你生成的问题是单一的、独立的，只关注一个具体的知识点或技术点。\n");
+        promptBuilder.append("请严格按照以下面试流程提问：\n");
+        promptBuilder.append("1. 首先问项目相关的内容，了解候选人的项目经验\n");
+        promptBuilder.append("2. 然后结合项目当中所用到的技术，循序渐进地提问\n");
+        promptBuilder.append("3. 问题难度要从简到深，先问基础用法，再问原理，最后问优化和经验\n");
+        promptBuilder.append("4. 如果是项目问题，请先了解项目的整体情况，再深入项目中的具体技术实现\n");
+        promptBuilder.append("5. 如果是技术问题，请结合候选人在项目中使用该技术的实际情况提问\n");
         
         // 检查是否需要切换话题（已使用列表为空，且有之前的问答）
         boolean needSwitchTopic = (usedTechItems.isEmpty() && usedProjectPoints.isEmpty()) && 
@@ -1883,14 +1898,11 @@ public class InterviewServiceImpl implements InterviewService {
                 InterviewSession session = sessionOpt.get();
                 session.setSessionTimeRemaining(remainingTime);
                 sessionRepository.save(session);
-                log.info("成功更新面试剩余时间，sessionId: {}, remainingTime: {}", sessionId, remainingTime);
                 return true;
             } else {
-                log.error("更新面试剩余时间失败，会话不存在，sessionId: {}", sessionId);
                 return false;
             }
         } catch (Exception e) {
-            log.error("更新面试剩余时间失败，sessionId: {}", sessionId, e);
             return false;
         }
     }
