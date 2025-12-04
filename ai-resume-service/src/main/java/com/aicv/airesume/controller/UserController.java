@@ -7,12 +7,12 @@ import com.aicv.airesume.model.vo.BaseResponseVO;
 import com.aicv.airesume.service.InterviewService;
 import com.aicv.airesume.service.StatisticsService;
 import com.aicv.airesume.service.UserService;
+import com.aicv.airesume.utils.GlobalContextUtil;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -41,6 +41,8 @@ public class UserController {
     @Autowired
     private RestTemplate restTemplate;
     
+
+    
     @Value("${wechat.app-id}")
     private String appId;
     
@@ -55,6 +57,14 @@ public class UserController {
     @GetMapping("/{id}")
     public BaseResponseVO getUserById(@PathVariable Long id) {
         try {
+            // 从全局上下文获取用户ID
+            Long userIdFromToken = GlobalContextUtil.getUserId();
+            
+            // 只能获取自己的信息
+            if (!id.equals(userIdFromToken)) {
+                return BaseResponseVO.error("没有权限获取该用户信息");
+            }
+            
             User user = userService.getUserById(id).orElse(null);
             return BaseResponseVO.success(user);
         } catch (Exception e) {
@@ -217,9 +227,12 @@ public class UserController {
     @PutMapping("/{id}")
     public BaseResponseVO updateUser(@PathVariable Long id, @RequestBody User userInfo) {
         try {
-            // 验证ID是否匹配
-            if (!id.equals(userInfo.getId())) {
-                return BaseResponseVO.error("用户ID不匹配");
+            // 从全局上下文获取用户ID
+            Long userIdFromToken = GlobalContextUtil.getUserId();
+            
+            // 只能更新自己的信息
+            if (!id.equals(userIdFromToken) || !id.equals(userInfo.getId())) {
+                return BaseResponseVO.error("没有权限更新该用户信息");
             }
             
             // 调用服务层更新用户信息
@@ -239,6 +252,14 @@ public class UserController {
     @GetMapping("/{userId}/check-optimize")
     public BaseResponseVO checkOptimizeCount(@PathVariable Long userId) {
         try {
+            // 从全局上下文获取用户ID
+            Long userIdFromToken = GlobalContextUtil.getUserId();
+            
+            // 只能检查自己的优化次数
+            if (!userId.equals(userIdFromToken)) {
+                return BaseResponseVO.error("没有权限检查该用户的优化次数");
+            }
+            
             boolean result = userService.checkOptimizeCount(userId);
             return BaseResponseVO.success(result);
         } catch (Exception e) {
@@ -254,7 +275,16 @@ public class UserController {
     @GetMapping("/{userId}/check-vip")
     public BaseResponseVO checkVipStatus(@PathVariable Long userId) {
         try {
-            boolean result = false;
+            // 从全局上下文获取用户ID
+            Long userIdFromToken = GlobalContextUtil.getUserId();
+            
+            // 只能检查自己的VIP状态
+            if (!userId.equals(userIdFromToken)) {
+                return BaseResponseVO.error("没有权限检查该用户的VIP状态");
+            }
+            
+            Optional<User> userOpt = userService.getUserById(userId);
+            boolean result = userOpt.isPresent() && userOpt.get().getVip() != null && userOpt.get().getVip();
             return BaseResponseVO.success(result);
         } catch (Exception e) {
             return BaseResponseVO.error("检查VIP状态失败: " + e.getMessage());
@@ -263,27 +293,33 @@ public class UserController {
 
     /**
      * 获取用户信息和统计数据
-     * @param openId 用户的微信openId
+     * 支持两种方式：
+     * 1. 通过token获取用户信息（推荐）
+     * 2. 通过openId参数获取用户信息（向后兼容）
      * @return 包含用户信息和统计数据的响应
      */
     @GetMapping("/info")
-    public ResponseEntity<Map<String, Object>> getUserInfo(@RequestParam("openId") String openId) {
+    public ResponseEntity<Map<String, Object>> getUserInfo(@RequestParam(value = "openId", required = false) String openId) {
         Map<String, Object> response = new HashMap<>();
         Map<String, Object> data = new HashMap<>();
         
         try {
-            // 验证openId参数
-            if (openId == null || openId.isEmpty()) {
-                response.put("success", false);
-                response.put("message", "缺少openId参数");
-                response.put("data", null);
-                return ResponseEntity.ok(response);
+            Optional<User> userOpt;
+            
+            if (openId != null && !openId.isEmpty()) {
+                // 通过openId获取用户信息（向后兼容）
+                log.info("开始获取用户信息，openId: {}", openId);
+                userOpt = userService.getUserByOpenId(openId);
+            } else {
+                // 从全局上下文获取用户ID
+                Long userId = GlobalContextUtil.getUserId();
+                
+                log.info("开始获取用户信息，userId: {}", userId);
+                
+                // 使用UserService根据userId获取用户基本信息
+                userOpt = userService.getUserById(userId);
             }
             
-            log.info("开始获取用户信息，openId: {}", openId);
-            
-            // 使用UserService根据openId获取用户基本信息
-            Optional<User> userOpt = userService.getUserByOpenId(openId);
             if (!userOpt.isPresent()) {
                 response.put("success", false);
                 response.put("message", "用户不存在");
@@ -350,6 +386,9 @@ public class UserController {
         Map<String, Object> response = new HashMap<>();
         
         try {
+            // 从全局上下文获取用户ID
+            Long userIdFromToken = GlobalContextUtil.getUserId();
+            
             // 获取userId参数
             Object userIdObj = requestData.get("userId");
             if (userIdObj == null) {
@@ -365,6 +404,13 @@ public class UserController {
             } catch (NumberFormatException e) {
                 response.put("success", false);
                 response.put("message", "userId格式错误");
+                return ResponseEntity.ok(response);
+            }
+            
+            // 只能更新自己的信息
+            if (!userId.equals(userIdFromToken)) {
+                response.put("success", false);
+                response.put("message", "没有权限更新该用户信息");
                 return ResponseEntity.ok(response);
             }
             
@@ -459,8 +505,8 @@ public class UserController {
     }
     
     /**
-     * 更新用户头像地址（通过openId）
-     * @param requestData 请求数据，包含openId和avatarUrl
+     * 更新用户头像地址
+     * @param requestData 请求数据，包含avatarUrl
      * @return 更新结果
      */
     @PostMapping("/avatar")
@@ -468,17 +514,13 @@ public class UserController {
         Map<String, Object> response = new HashMap<>();
         
         try {
+            // 从全局上下文获取用户ID
+            Long userId = GlobalContextUtil.getUserId();
+            
             // 获取参数
-            String openId = (String) requestData.get("openId");
             String avatarUrl = (String) requestData.get("avatarUrl");
             
             // 参数验证
-            if (openId == null || openId.isEmpty()) {
-                response.put("success", false);
-                response.put("message", "缺少openId参数");
-                return ResponseEntity.ok(response);
-            }
-            
             if (avatarUrl == null || avatarUrl.isEmpty()) {
                 response.put("success", false);
                 response.put("message", "头像地址不能为空");
@@ -492,10 +534,10 @@ public class UserController {
                 return ResponseEntity.ok(response);
             }
             
-            log.info("开始更新头像地址，openId: {}", openId);
+            log.info("开始更新头像地址，userId: {}", userId);
             
-            // 根据openId查找用户
-            Optional<User> userOpt = userService.getUserByOpenId(openId);
+            // 根据userId查找用户
+            Optional<User> userOpt = userService.getUserById(userId);
             if (!userOpt.isPresent()) {
                 response.put("success", false);
                 response.put("message", "用户不存在");

@@ -6,7 +6,7 @@ import com.aicv.airesume.model.dto.BuyTemplatePackageDTO;
 import com.aicv.airesume.model.dto.PayNotifyDTO;
 import com.aicv.airesume.model.vo.BaseResponseVO;
 import com.aicv.airesume.service.SubscriptionService;
-import com.aicv.airesume.utils.TokenUtils;
+import com.aicv.airesume.utils.GlobalContextUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,21 +25,16 @@ public class SubscriptionController {
     @Autowired
     private SubscriptionService subscriptionService;
 
-    @Autowired
-    private TokenUtils tokenUtils;
+
 
     /**
      * 购买会员
      */
     @PostMapping("/buy/membership")
     public BaseResponseVO buyMembership(
-            @RequestBody BuyMembershipDTO buyMembershipDTO,
-            @RequestHeader("Authorization") String token) {
+            @RequestBody BuyMembershipDTO buyMembershipDTO) {
         
-        Long userId = tokenUtils.getUserIdFromToken(token.replace("Bearer ", ""));
-        if (userId == null) {
-            throw new BusinessException(ResponseCode.UNAUTHORIZED, "Token无效，请重新登录");
-        }
+        Long userId = GlobalContextUtil.getUserId();
         
         Integer days = buyMembershipDTO.getDays();
         if (days == null) {
@@ -55,13 +50,9 @@ public class SubscriptionController {
      */
     @PostMapping("/buy/optimize-package")
     public BaseResponseVO buyOptimizePackage(
-            @RequestBody BuyOptimizePackageDTO buyOptimizePackageDTO,
-            @RequestHeader("Authorization") String token) {
+            @RequestBody BuyOptimizePackageDTO buyOptimizePackageDTO) {
         
-        Long userId = tokenUtils.getUserIdFromToken(token.replace("Bearer ", ""));
-        if (userId == null) {
-            throw new BusinessException(ResponseCode.UNAUTHORIZED, "Token无效，请重新登录");
-        }
+        Long userId = GlobalContextUtil.getUserId();
         
         Integer count = buyOptimizePackageDTO.getCount();
         if (count == null) {
@@ -77,13 +68,9 @@ public class SubscriptionController {
      */
     @PostMapping("/buy/template-package")
     public BaseResponseVO buyTemplatePackage(
-            @RequestBody BuyTemplatePackageDTO buyTemplatePackageDTO,
-            @RequestHeader("Authorization") String token) {
+            @RequestBody BuyTemplatePackageDTO buyTemplatePackageDTO) {
         
-        Long userId = tokenUtils.getUserIdFromToken(token.replace("Bearer ", ""));
-        if (userId == null) {
-            throw new BusinessException(ResponseCode.UNAUTHORIZED, "Token无效，请重新登录");
-        }
+        Long userId = GlobalContextUtil.getUserId();
         
         Long templateId = buyTemplatePackageDTO.getTemplateId();
         if (templateId == null) {
@@ -100,13 +87,9 @@ public class SubscriptionController {
     @GetMapping("/orders")
     public BaseResponseVO getOrders(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestHeader("Authorization") String token) {
+            @RequestParam(defaultValue = "10") int size) {
         
-        Long userId = tokenUtils.getUserIdFromToken(token.replace("Bearer ", ""));
-        if (userId == null) {
-            throw new BusinessException(ResponseCode.UNAUTHORIZED, "Token无效，请重新登录");
-        }
+        Long userId = GlobalContextUtil.getUserId();
         
         Object result = subscriptionService.getOrders(userId, page, size);
         return BaseResponseVO.success(result);

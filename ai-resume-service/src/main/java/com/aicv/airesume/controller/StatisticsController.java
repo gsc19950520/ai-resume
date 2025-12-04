@@ -3,7 +3,7 @@ package com.aicv.airesume.controller;
 import com.aicv.airesume.model.dto.RecordUserActionDTO;
 import com.aicv.airesume.model.vo.BaseResponseVO;
 import com.aicv.airesume.service.StatisticsService;
-import com.aicv.airesume.utils.TokenUtils;
+import com.aicv.airesume.utils.GlobalContextUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,15 +18,15 @@ public class StatisticsController {
 
     @Autowired
     private StatisticsService statisticsService;
+    
+
 
     /**
      * 获取用户统计信息
-     * @param userId 用户ID
-/**
-     * 获取用户统计信息
      */
-    @GetMapping("/user/{userId}")
-    public BaseResponseVO getUserStatistics(@PathVariable Long userId) {
+    @GetMapping("/user")
+    public BaseResponseVO getUserStatistics() {
+        Long userId = GlobalContextUtil.getUserId();
         Map<String, Object> result = statisticsService.getUserStatistics(userId);
         return BaseResponseVO.success(result);
     }
@@ -47,7 +47,7 @@ public class StatisticsController {
      */
     @PostMapping("/user-action")
     public BaseResponseVO recordUserAction(@RequestBody RecordUserActionDTO recordUserActionDTO) {
-        Long userId = recordUserActionDTO.getUserId();
+        Long userId = GlobalContextUtil.getUserId();
         String action = recordUserActionDTO.getAction();
         String details = recordUserActionDTO.getDetails();
         statisticsService.recordUserAction(userId, action, details);

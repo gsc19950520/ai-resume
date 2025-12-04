@@ -45,6 +45,10 @@ import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
+import com.aicv.airesume.utils.TokenUtils;
+import com.aicv.airesume.utils.GlobalContextUtil;
+import com.aicv.airesume.common.constant.ResponseCode;
+import com.aicv.airesume.common.exception.BusinessException;
 
 /**
  * 面试相关接口控制器
@@ -62,6 +66,9 @@ public class InterviewController {
     
     @Autowired
     private DynamicConfigService dynamicConfigService;
+    
+    @Autowired
+    private TokenUtils tokenUtils;
 
     /**
      * 获取面试配置
@@ -113,8 +120,8 @@ public class InterviewController {
     @PostMapping("/start")
     public BaseResponseVO startInterview(@RequestBody InterviewStartRequestDTO request) {
         try {
+            Long userId = GlobalContextUtil.getUserId();
             // 从DTO中获取参数
-            Long userId = request.getUserId();
             Long resumeId = request.getResumeId();
             String persona = request.getPersona();
             Boolean forceNew = request.getForceNew() != null ? request.getForceNew() : false;
@@ -133,6 +140,8 @@ public class InterviewController {
             
             // 直接返回VO对象，无需额外转换
             return BaseResponseVO.success(result);
+        } catch (BusinessException e) {
+            return BaseResponseVO.error(e.getMessage());
         } catch (Exception e) {
             log.error("Start interview failed:", e);
             return BaseResponseVO.error("开始面试失败：" + e.getMessage());
@@ -177,6 +186,8 @@ public class InterviewController {
                 .collect(Collectors.toList());
             
             return BaseResponseVO.success(voList);
+        } catch (BusinessException e) {
+            return BaseResponseVO.error(e.getMessage());
         } catch (Exception e) {
             log.error("获取AI跟踪日志失败", e);
             return BaseResponseVO.error("获取AI跟踪日志失败：" + e.getMessage());
@@ -185,17 +196,17 @@ public class InterviewController {
     
     /**
      * 提交答案并获取下一个问题（流式输出）
-     * @param request 请求参数DTO
+     * @param requestDTO 请求参数DTO
      * @return SSE响应流
      */
     @PostMapping(value = "/answer-stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter submitAnswerStream(@RequestBody SubmitAnswerRequestDTO request) {
+    public SseEmitter submitAnswerStream(@RequestBody SubmitAnswerRequestDTO requestDTO) {
         try {
-            String sessionId = request.getSessionId();
-            String userAnswerText = request.getUserAnswerText();
-            Integer answerDuration = request.getAnswerDuration();
+            String sessionId = requestDTO.getSessionId();
+            String userAnswerText = requestDTO.getUserAnswerText();
+            Integer answerDuration = requestDTO.getAnswerDuration();
             // 支持动态更新面试官风格（可选参数）
-            String toneStyle = request.getToneStyle();
+            String toneStyle = requestDTO.getToneStyle();
 
             return interviewService.submitAnswerStream(sessionId, userAnswerText, answerDuration, toneStyle);
         } catch (Exception e) {
@@ -231,15 +242,17 @@ public class InterviewController {
 
     /**
      * 获取面试历史列表
-     * @param userId 用户ID
      * @return 面试历史列表
      */
     @GetMapping("/history")
-    public BaseResponseVO getInterviewHistory(@RequestParam Long userId) {
+    public BaseResponseVO getInterviewHistoryList() {
         try {
+            Long userId = GlobalContextUtil.getUserId();
             List<InterviewHistoryVO> histories = interviewService.getInterviewHistory(userId);
             InterviewHistoryListVO result = new InterviewHistoryListVO(histories);
             return BaseResponseVO.success(result);
+        } catch (BusinessException e) {
+            return BaseResponseVO.error(e.getMessage());
         } catch (Exception e) {
             log.error("Get interview history failed:", e);
             return BaseResponseVO.error("获取面试历史失败：" + e.getMessage());
@@ -248,14 +261,16 @@ public class InterviewController {
     
     /**
      * 检查用户是否有进行中的面试
-     * @param userId 用户ID
      * @return 如果有进行中的面试，返回面试详情；否则返回null
      */
     @GetMapping("/check-ongoing")
-    public BaseResponseVO checkOngoingInterview(@RequestParam Long userId) {
+    public BaseResponseVO checkOngoingInterview() {
         try {
+            Long userId = GlobalContextUtil.getUserId();
             InterviewSessionVO ongoingInterview = interviewService.checkOngoingInterview(userId);
             return BaseResponseVO.success(ongoingInterview);
+        } catch (BusinessException e) {
+            return BaseResponseVO.error(e.getMessage());
         } catch (Exception e) {
             log.error("Check ongoing interview failed:", e);
             return BaseResponseVO.error("检查进行中面试失败：" + e.getMessage());
@@ -267,9 +282,9 @@ public class InterviewController {
      * 基于AI面试评分、技术深度等多维度计算薪资
      */
     @PostMapping("/calculate-salary")
-    public BaseResponseVO calculateSalary(@RequestBody CalculateSalaryRequestDTO request) {
+    public BaseResponseVO calculateSalary(@RequestBody CalculateSalaryRequestDTO requestDTO) {
         try {
-            String sessionId = request.getSessionId();
+            String sessionId = requestDTO.getSessionId();
             SalaryRangeVO salaryRange = interviewService.calculateSalary(sessionId);
             
             // 转换为VO对象

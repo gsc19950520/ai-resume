@@ -28,9 +28,10 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        // 注册token刷新拦截器，拦截所有需要认证的API接口
+        // 注册token拦截器，拦截所有需要认证的API接口
         registry.addInterceptor(tokenRefreshInterceptor)
                 .addPathPatterns("/api/**")
-                .excludePathPatterns("/api/user/login", "/api/user/register", "/api/user/wechat/login"); // 排除登录相关的接口
+                .excludePathPatterns("/api/user/login", "/api/user/register", "/api/user/wechat/login", 
+                                    "/api/job-types", "/swagger/**", "/v3/api-docs/**"); // 排除不需要认证的接口
     }
 }

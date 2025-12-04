@@ -33,8 +33,7 @@ public class InterviewLog {
     @Column(name = "user_answer_text", columnDefinition = "TEXT")
     private String userAnswerText;
 
-    @Column(name = "user_answer_audio_url", length = 255)
-    private String userAnswerAudioUrl;
+
 
     @Column(name = "depth_level", length = 20)
     private String depthLevel;

@@ -36,14 +36,7 @@ public class Resume {
 
     @Column(nullable = false)
     private String originalFilename;
-    @Column(name = "download_url_pdf")
-    private String downloadUrlPdf;
-    private String originalContent;
-    @Column(name = "optimized_content")
-    private String optimizedContent;
-    @Column(name = "ai_score")
-    private Integer aiScore;
-    private String aiSuggestion;
+
 
     @Column(name = "status", nullable = false, columnDefinition = "int default 0")
     private Integer status = 0; // 0: 上传/创建成功, 1: 优化中, 2: 优化成功, 3: 优化失败
