@@ -364,15 +364,6 @@ Page({
     }
     wx.navigateTo({ url: '/pages/growth/report' })
   },
-  
-  // 简历优化功能
-  resumeOptimization: function() {
-    if (!this.data.userInfo) {
-      this.showLoginTip()
-      return
-    }
-    wx.navigateTo({ url: '/pages/resume/optimize' })
-  },
 
   // 简历模板
   resumeTemplates: function() {

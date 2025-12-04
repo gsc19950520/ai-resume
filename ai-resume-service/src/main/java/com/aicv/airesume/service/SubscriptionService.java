@@ -1,6 +1,5 @@
 package com.aicv.airesume.service;
 
-import com.aicv.airesume.entity.Order;
 import com.aicv.airesume.model.dto.PayNotifyDTO;
 
 import java.util.List;
@@ -14,7 +13,7 @@ public interface SubscriptionService {
     /**
      * 创建订单
      */
-    Order createOrder(Long userId, String productId, String productType, Integer amount);
+    Object createOrder(Long userId, String productId, String productType, Integer amount);
 
     /**
      * 支付订单
@@ -34,17 +33,17 @@ public interface SubscriptionService {
     /**
      * 查询订单列表
      */
-    List<Order> getOrderList(Long userId);
+    List<Object> getOrderList(Long userId);
 
     /**
      * 分页查询订单列表
      */
-    List<Order> getOrders(Long userId, int page, int pageSize);
+    List<Object> getOrders(Long userId, int page, int pageSize);
 
     /**
      * 根据订单号查询订单
      */
-    Order getOrderByNo(String orderNo);
+    Object getOrderByNo(String orderNo);
 
     /**
      * 购买会员

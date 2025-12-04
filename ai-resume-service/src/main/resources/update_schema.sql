@@ -205,3 +205,9 @@ DROP COLUMN `actual_duration_secs`;
 -- 2025-12-05 新增面试历史记录删除功能
 -- 1. 后端添加删除面试记录接口，支持删除所有关联数据
 -- 2. 前端实现向左滑动显示删除按钮的功能
+
+-- 2025-12-05 删除Order和Product相关表
+-- 1. 删除order表
+DROP TABLE IF EXISTS `order`;
+-- 2. 删除product表
+DROP TABLE IF EXISTS `product`;

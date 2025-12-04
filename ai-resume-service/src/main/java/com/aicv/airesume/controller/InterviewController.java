@@ -2,7 +2,6 @@ package com.aicv.airesume.controller;
 
 import com.aicv.airesume.model.dto.InterviewResponseDTO;
 import com.aicv.airesume.model.dto.InterviewReportDTO;
-import com.aicv.airesume.model.dto.ResumeAnalysisDTO;
 import com.aicv.airesume.model.dto.SubmitAnswerRequestDTO;
 import com.aicv.airesume.model.dto.FinishInterviewRequestDTO;
 import com.aicv.airesume.model.dto.CalculateSalaryRequestDTO;
@@ -10,7 +9,6 @@ import com.aicv.airesume.model.dto.AnalyzeResumeRequestDTO;
 import com.aicv.airesume.model.dto.SaveReportRequestDTO;
 import com.aicv.airesume.model.dto.UpdateRemainingTimeRequestDTO;
 import com.aicv.airesume.service.InterviewService;
-import com.aicv.airesume.service.ResumeAnalysisService;
 import com.aicv.airesume.service.config.DynamicConfigService;
 import com.aicv.airesume.model.vo.BaseResponseVO;
 import com.aicv.airesume.model.vo.InterviewConfigVO;
@@ -64,9 +62,6 @@ public class InterviewController {
     
     @Autowired
     private DynamicConfigService dynamicConfigService;
-
-    @Autowired
-    private ResumeAnalysisService resumeAnalysisService;
 
     /**
      * 获取面试配置
@@ -160,34 +155,6 @@ public class InterviewController {
             SseEmitter emitter = new SseEmitter();
             emitter.completeWithError(e);
             return emitter;
-        }
-    }
-
-    
-    /**
-     * 分析简历并生成结构化面试问题清单
-     * @param request 请求参数DTO
-     * @return 简历分析结果和面试问题清单
-     */
-    @PostMapping("/analyze-resume")
-    public BaseResponseVO analyzeResume(@RequestBody AnalyzeResumeRequestDTO request) {
-        try {
-            Long resumeId = request.getResumeId();
-            String jobType = request.getJobType();
-            String analysisDepth = request.getAnalysisDepth();
-            
-            log.info("开始分析简历，resumeId: {}, jobType: {}, analysisDepth: {}", resumeId, jobType, analysisDepth);
-            
-            // 调用简历分析服务
-            ResumeAnalysisDTO analysisResult = resumeAnalysisService.analyzeResume(resumeId, jobType, analysisDepth);
-            
-            log.info("简历分析完成，analysisId: {}", analysisResult.getAnalysisId());
-            
-            return BaseResponseVO.success(analysisResult);
-            
-        } catch (Exception e) {
-            log.error("简历分析失败: {}", e.getMessage(), e);
-            return BaseResponseVO.error("简历分析失败：" + e.getMessage());
         }
     }
 

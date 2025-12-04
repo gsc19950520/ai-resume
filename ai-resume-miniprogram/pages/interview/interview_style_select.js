@@ -395,40 +395,6 @@ Page({
       });
     });
   },
-
-  // 分析简历
-  analyzeResume: async function() {
-    if (!this.data.selectedResume) {
-      wx.showToast({
-        title: '请先选择简历',
-        icon: 'none'
-      });
-      return;
-    }
-
-    wx.showLoading({ title: '正在分析简历...' });
-    
-    try {
-      // 调用后端API分析简历
-      const analysisResult = await this.callAnalyzeResumeAPI();
-      
-      wx.hideLoading();
-      
-      // 跳转到简历分析结果页面
-      wx.navigateTo({
-        url: `/pages/interview/resume_analysis_result?analysisData=${encodeURIComponent(JSON.stringify(analysisResult))}`
-      });
-      
-    } catch (error) {
-      wx.hideLoading();
-      wx.showToast({
-        title: error.message || '简历分析失败',
-        icon: 'none',
-        duration: 2000
-      });
-      console.error('简历分析失败:', error);
-    }
-  },
   
   // 调用分析简历API
   callAnalyzeResumeAPI: function() {

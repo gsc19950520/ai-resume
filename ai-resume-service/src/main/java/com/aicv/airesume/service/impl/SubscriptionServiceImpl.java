@@ -1,8 +1,6 @@
 package com.aicv.airesume.service.impl;
 
-import com.aicv.airesume.entity.Order;
 import com.aicv.airesume.model.dto.PayNotifyDTO;
-import com.aicv.airesume.repository.OrderRepository;
 import com.aicv.airesume.service.SubscriptionService;
 import com.aicv.airesume.service.UserService;
 import com.aicv.airesume.utils.WechatUtils;
@@ -23,8 +21,7 @@ import java.util.UUID;
 @Service
 public class SubscriptionServiceImpl implements SubscriptionService {
 
-    @Autowired
-    private OrderRepository orderRepository;
+
 
     @Autowired
     private UserService userService;
@@ -33,7 +30,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     private WechatUtils wechatUtils;
 
     @Override
-    public Order createOrder(Long userId, String productId, String productType, Integer amount) {
+    public Object createOrder(Long userId, String productId, String productType, Integer amount) {
         return null;
     }
 
@@ -83,19 +80,19 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     }
 
     @Override
-    public List<Order> getOrderList(Long userId) {
+    public List<Object> getOrderList(Long userId) {
         return new ArrayList<>();
     }
 
     @Override
-    public List<Order> getOrders(Long userId, int page, int pageSize) {
+    public List<Object> getOrders(Long userId, int page, int pageSize) {
         // 临时实现，返回空列表以修复编译错误
         // 在实际项目中，应该使用JPA的分页查询功能
         return new ArrayList<>();
     }
 
     @Override
-    public Order getOrderByNo(String orderNo) {
+    public Object getOrderByNo(String orderNo) {
         return null;
     }
 
@@ -148,11 +145,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         return "AI简历优化服务";
     }
 
-    /**
-     * 处理产品交付
-     */
-    private void handleProductDelivery(Order order) {
-    }
+
 
     /**
      * 计算会员价格
