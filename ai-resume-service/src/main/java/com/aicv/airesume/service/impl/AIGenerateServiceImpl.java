@@ -31,12 +31,6 @@ public class AIGenerateServiceImpl implements AIGenerateService {
     private AiTraceLogRepository aiTraceLogRepository;
     
     @Autowired
-    private InterviewSessionRepository sessionRepository;
-    
-    @Autowired
-    private InterviewLogRepository logRepository;
-    
-    @Autowired
     private JobTypeRepository jobTypeRepository;
     
     @Autowired

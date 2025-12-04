@@ -25,6 +25,18 @@ public class InterviewReport {
     @Column(name = "total_score", nullable = false)
     private Double totalScore;
 
+    @Column(name = "tech_score")
+    private Double techScore;
+
+    @Column(name = "logic_score")
+    private Double logicScore;
+
+    @Column(name = "clarity_score")
+    private Double clarityScore;
+
+    @Column(name = "depth_score")
+    private Double depthScore;
+
     @Column(name = "overall_feedback", columnDefinition = "text")
     private String overallFeedback;
 

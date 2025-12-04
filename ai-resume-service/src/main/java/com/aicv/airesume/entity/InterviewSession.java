@@ -37,33 +37,8 @@ public class InterviewSession {
     @Column(name = "status", nullable = false, length = 20)
     private String status; // pending, in_progress, completed, canceled
 
-    @Column(name = "total_score")
-    private Double totalScore;
 
-    @Column(name = "tech_score")
-    private Double techScore;
 
-    @Column(name = "logic_score")
-    private Double logicScore;
-
-    @Column(name = "clarity_score")
-    private Double clarityScore;
-
-    @Column(name = "depth_score")
-    private Double depthScore;
-
-    @Column(name = "ai_estimated_years", length = 20)
-    private String aiEstimatedYears;
-
-    @Column(name = "ai_salary_range", length = 20)
-    private String aiSalaryRange;
-
-    @Column(name = "confidence")
-    private Double confidence;
-
-    @Column(name = "report_url", length = 255)
-    private String reportUrl;
-    
     // 新增字段 - 动态面试相关
     @Column(name = "persona", length = 50, columnDefinition = "varchar(50) default 'friendly'")
     private String persona = "friendly"; // 面试官风格：friendly, neutral, challenging
@@ -74,13 +49,11 @@ public class InterviewSession {
     @Column(name = "session_time_remaining", columnDefinition = "int default 900")
     private Integer sessionTimeRemaining = 600; // 剩余时间（秒）
     
-    @Column(name = "consecutive_no_match_count", columnDefinition = "int default 0")
-    private Integer consecutiveNoMatchCount = 0; // 连续不匹配次数
-    
     @Column(name = "stop_reason", length = 100)
     private String stopReason; // 停止原因
     
-    @Column(name = "start_time")
+    @CreationTimestamp
+    @Column(name = "start_time", nullable = false, updatable = false)
     private LocalDateTime startTime; // 开始时间
     
     @Column(name = "end_time")
@@ -94,21 +67,6 @@ public class InterviewSession {
     
     @Column(name = "interview_state", columnDefinition = "text")
     private String interviewState;
-    
-    @Column(name = "interview_mode", length = 20, columnDefinition = "varchar(20) default 'time_based'")
-    private String interviewMode = "time_based";
-
-    @Column(name = "max_depth_per_point")
-    private Integer maxDepthPerPoint;
-
-    @Column(name = "max_followups")
-    private Integer maxFollowups;
-
-    @Column(name = "time_limit_secs")
-    private Integer timeLimitSecs;
-
-    @Column(name = "actual_duration_secs")
-    private Integer actualDurationSecs;
     
     @Column(name = "ai_question_seed")
     private Integer aiQuestionSeed;

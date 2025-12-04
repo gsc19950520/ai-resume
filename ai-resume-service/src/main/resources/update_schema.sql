@@ -146,6 +146,20 @@ CREATE TABLE interview_report (
 -- 4. 修改InterviewController.finishInterview方法，确保返回的VO对象包含前端所需的所有字段
 -- 5. 更新前端report页面，增加面试反馈、推荐技能、职业发展路径等新模块
 
+-- 将评分字段从interview_session表迁移到interview_report表
+-- 2025-03-21 10:15:30
+ALTER TABLE interview_report ADD COLUMN tech_score DOUBLE DEFAULT 0.0;
+ALTER TABLE interview_report ADD COLUMN logic_score DOUBLE DEFAULT 0.0;
+ALTER TABLE interview_report ADD COLUMN clarity_score DOUBLE DEFAULT 0.0;
+ALTER TABLE interview_report ADD COLUMN depth_score DOUBLE DEFAULT 0.0;
+
+-- 从interview_session表移除评分字段
+ALTER TABLE interview_session DROP COLUMN total_score;
+ALTER TABLE interview_session DROP COLUMN tech_score;
+ALTER TABLE interview_session DROP COLUMN logic_score;
+ALTER TABLE interview_session DROP COLUMN clarity_score;
+ALTER TABLE interview_session DROP COLUMN depth_score;
+
 -- 2025-12-02 优化AI面试系统
 -- 1. 确认前端所有API请求均使用云托管callContainer方式
 -- 2. 修复实体类与数据库表字段的一致性
@@ -174,6 +188,19 @@ CREATE TABLE interview_report (
 -- 修复了面试剩余时间(session_time_remaining)未正确更新的问题：
 -- 1. 确认后端submitAnswerStream方法中已正确计算并保存剩余时间
 -- 2. 前端在提交回答后重新获取会话详情，确保剩余时间实时更新
+
+-- 2025-12-04 17:00:00 - 删除interview_session表中未使用的字段
+ALTER TABLE `interview_session`
+DROP COLUMN `ai_estimated_years`,
+DROP COLUMN `ai_salary_range`,
+DROP COLUMN `confidence`,
+DROP COLUMN `report_url`,
+DROP COLUMN `consecutive_no_match_count`,
+DROP COLUMN `interview_mode`,
+DROP COLUMN `max_depth_per_point`,
+DROP COLUMN `max_followups`,
+DROP COLUMN `time_limit_secs`,
+DROP COLUMN `actual_duration_secs`;
 
 -- 2025-12-05 新增面试历史记录删除功能
 -- 1. 后端添加删除面试记录接口，支持删除所有关联数据

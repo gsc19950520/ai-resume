@@ -141,6 +141,8 @@ public class InterviewServiceImpl implements InterviewService {
                 } else {
                     interviewState.put("usedTechItems", new ArrayList<>());
                     interviewState.put("usedProjectPoints", new ArrayList<>());
+                    interviewState.put("exhaustedTechItems", new ArrayList<>());
+                    interviewState.put("exhaustedProjectPoints", new ArrayList<>());
                     interviewState.put("currentDepthLevel", "usage");
                 }
                 
@@ -612,6 +614,8 @@ public class InterviewServiceImpl implements InterviewService {
             // 初始化面试状态，先不进行耗时的简历分析
             interviewState.put("usedTechItems", new ArrayList<>());
             interviewState.put("usedProjectPoints", new ArrayList<>());
+            interviewState.put("exhaustedTechItems", new ArrayList<>());
+            interviewState.put("exhaustedProjectPoints", new ArrayList<>());
             interviewState.put("currentDepthLevel", initialDepthLevel);
             session.setInterviewState(objectMapper.writeValueAsString(interviewState));
             
@@ -701,17 +705,35 @@ public class InterviewServiceImpl implements InterviewService {
                     log.error("解析面试状态失败: {}", e.getMessage());
                     interviewState.put("usedTechItems", new ArrayList<>());
                     interviewState.put("usedProjectPoints", new ArrayList<>());
+                    interviewState.put("exhaustedTechItems", new ArrayList<>());
+                    interviewState.put("exhaustedProjectPoints", new ArrayList<>());
                     interviewState.put("currentDepthLevel", "usage");
                 }
             } else {
                 interviewState.put("usedTechItems", new ArrayList<>());
                 interviewState.put("usedProjectPoints", new ArrayList<>());
+                interviewState.put("exhaustedTechItems", new ArrayList<>());
+                interviewState.put("exhaustedProjectPoints", new ArrayList<>());
                 interviewState.put("currentDepthLevel", "usage");
             }
             
             // 更新面试状态，包含完整简历内容和会话ID
             interviewState.put("fullResumeContent", resumeContent);
             interviewState.put("sessionId", session.getSessionId());
+            
+            // 将提取的技术项和项目点分配到interviewState的相关字段中
+            // 初始时，usedTechItems和usedProjectPoints为空
+            // exhaustedTechItems和exhaustedProjectPoints包含所有提取的技术项和项目点
+            List<String> exhaustedTechItems = new ArrayList<>(techItems);
+            List<String> exhaustedProjectPoints = new ArrayList<>();
+            for (Map<String, Object> projectPoint : projectPoints) {
+                if (projectPoint.containsKey("title")) {
+                    exhaustedProjectPoints.add((String) projectPoint.get("title"));
+                }
+            }
+            
+            interviewState.put("exhaustedTechItems", exhaustedTechItems);
+            interviewState.put("exhaustedProjectPoints", exhaustedProjectPoints);
             
             // 存储提取的数据到会话
             session.setTechItems(objectMapper.writeValueAsString(techItems));
@@ -748,8 +770,7 @@ public class InterviewServiceImpl implements InterviewService {
                 Map<String, Double> aggregatedScores = calculateAggregatedScores(logs);
                 double totalScore = aggregatedScores.get("total");
 
-                // 3. 更新会话评分和状态
-                session.setTotalScore(totalScore);
+                // 3. 更新会话状态
                 session.setStatus("completed");
                 session.setEndTime(LocalDateTime.now());
                 
@@ -1265,7 +1286,11 @@ public class InterviewServiceImpl implements InterviewService {
             vo.setSessionId(session.getId());
             vo.setUniqueSessionId(session.getSessionId()); // 添加唯一会话ID
             vo.setTitle(jobType);
-            vo.setFinalScore(session.getTotalScore());
+            
+            // 从面试报告获取总评分
+            Optional<InterviewReport> reportOpt = interviewReportRepository.findBySessionId(session.getSessionId());
+            reportOpt.ifPresent(report -> vo.setFinalScore(report.getTotalScore()));
+            
             vo.setStatus(session.getStatus());
             
             // 转换时间格式
@@ -1309,11 +1334,26 @@ public class InterviewServiceImpl implements InterviewService {
 
             // 获取评分信息
             Map<String, Double> aggregatedScores = new HashMap<>();
-            aggregatedScores.put("tech", session.getTechScore());
-            aggregatedScores.put("logic", session.getLogicScore());
-            aggregatedScores.put("clarity", session.getClarityScore());
-            aggregatedScores.put("depth", session.getDepthScore());
-            aggregatedScores.put("total", session.getTotalScore());
+            
+            // 优先从面试报告获取评分
+            Optional<InterviewReport> reportOpt = interviewReportRepository.findBySessionId(sessionId);
+            if (reportOpt.isPresent()) {
+                InterviewReport report = reportOpt.get();
+                aggregatedScores.put("tech", report.getTechScore());
+                aggregatedScores.put("logic", report.getLogicScore());
+                aggregatedScores.put("clarity", report.getClarityScore());
+                aggregatedScores.put("depth", report.getDepthScore());
+                aggregatedScores.put("total", report.getTotalScore());
+            } else {
+                // 如果没有报告，则从面试日志计算平均评分
+                List<InterviewLog> logs = logRepository.findBySessionIdOrderByRoundNumberAsc(sessionId);
+                Map<String, Double> avgScores = calculateAggregatedScores(logs);
+                aggregatedScores.put("tech", avgScores.get("tech"));
+                aggregatedScores.put("logic", avgScores.get("logic"));
+                aggregatedScores.put("clarity", avgScores.get("clarity"));
+                aggregatedScores.put("depth", avgScores.get("depth"));
+                aggregatedScores.put("total", avgScores.get("total"));
+            }
             
             // 准备用户性能数据
             Map<String, Object> userPerformanceData = new HashMap<>();
@@ -1385,7 +1425,6 @@ public class InterviewServiceImpl implements InterviewService {
         vo.setPersona(session.getPersona());
         vo.setSessionSeconds(session.getSessionSeconds());
         vo.setSessionTimeRemaining(session.getSessionTimeRemaining());
-        vo.setTotalScore(session.getTotalScore());
         vo.setInterviewDuration(session.getSessionSeconds() - session.getSessionTimeRemaining());
         vo.setCreatedAt(session.getCreatedAt());
         vo.setFinishedAt(session.getEndTime());
@@ -1436,17 +1475,15 @@ public class InterviewServiceImpl implements InterviewService {
         
         InterviewReportVO vo = new InterviewReportVO();
         vo.setSessionId(sessionId);
-        vo.setTotalScore(session.getTotalScore());
         
-        // 设置会话评分
-        vo.setTechScore(session.getTechScore());
-        vo.setLogicScore(session.getLogicScore());
-        vo.setClarityScore(session.getClarityScore());
-        vo.setDepthScore(session.getDepthScore());
-        
-        // 如果报告存在，设置报告内容
+        // 如果报告存在，设置报告内容和评分
         if (reportOpt.isPresent()) {
             InterviewReport report = reportOpt.get();
+            vo.setTotalScore(report.getTotalScore());
+            vo.setTechScore(report.getTechScore());
+            vo.setLogicScore(report.getLogicScore());
+            vo.setClarityScore(report.getClarityScore());
+            vo.setDepthScore(report.getDepthScore());
             vo.setOverallFeedback(report.getOverallFeedback());
             vo.setStrengths(report.getStrengths());
             vo.setImprovements(report.getImprovements());
@@ -1491,6 +1528,10 @@ public class InterviewServiceImpl implements InterviewService {
             
             // 2. 解析报告数据
             Double totalScore = reportData.get("totalScore") != null ? Double.parseDouble(reportData.get("totalScore").toString()) : 0.0;
+            Double techScore = reportData.get("techScore") != null ? Double.parseDouble(reportData.get("techScore").toString()) : null;
+            Double logicScore = reportData.get("logicScore") != null ? Double.parseDouble(reportData.get("logicScore").toString()) : null;
+            Double clarityScore = reportData.get("clarityScore") != null ? Double.parseDouble(reportData.get("clarityScore").toString()) : null;
+            Double depthScore = reportData.get("depthScore") != null ? Double.parseDouble(reportData.get("depthScore").toString()) : null;
             String overallFeedback = reportData.get("overallFeedback") != null ? reportData.get("overallFeedback").toString() : "";
             
             // 处理优势列表
@@ -1525,6 +1566,10 @@ public class InterviewServiceImpl implements InterviewService {
                 // 更新现有报告
                 InterviewReport report = existingReport.get();
                 report.setTotalScore(totalScore);
+                report.setTechScore(techScore);
+                report.setLogicScore(logicScore);
+                report.setClarityScore(clarityScore);
+                report.setDepthScore(depthScore);
                 report.setOverallFeedback(overallFeedback);
                 report.setStrengths(strengthsJson);
                 report.setImprovements(improvementsJson);
@@ -1539,6 +1584,10 @@ public class InterviewServiceImpl implements InterviewService {
                 InterviewReport report = new InterviewReport();
                 report.setSessionId(sessionId);
                 report.setTotalScore(totalScore);
+                report.setTechScore(techScore);
+                report.setLogicScore(logicScore);
+                report.setClarityScore(clarityScore);
+                report.setDepthScore(depthScore);
                 report.setOverallFeedback(overallFeedback);
                 report.setStrengths(strengthsJson);
                 report.setImprovements(improvementsJson);
@@ -1550,9 +1599,8 @@ public class InterviewServiceImpl implements InterviewService {
                 interviewReportRepository.save(report);
             }
             
-            // 4. 更新interview_session表中的总分
-            session.setTotalScore(totalScore);
-            sessionRepository.save(session);
+            // 4. 不再需要更新interview_session表中的总分，评分已迁移到interview_report表
+            // sessionRepository.save(session);
             
             // 5. 清空报告缓存
             // 如果使用了缓存机制，可以在这里清空缓存

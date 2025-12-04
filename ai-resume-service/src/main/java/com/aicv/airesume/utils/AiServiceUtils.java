@@ -24,7 +24,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.core.type.TypeReference;
 
 import com.aicv.airesume.entity.InterviewLog;
+import com.aicv.airesume.entity.InterviewSession;
 import com.aicv.airesume.repository.InterviewLogRepository;
+import com.aicv.airesume.repository.InterviewSessionRepository;
 
 import java.io.IOException;
 import java.math.BigInteger;
@@ -34,6 +36,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -57,6 +60,9 @@ public class AiServiceUtils {
 
     @Autowired
     private InterviewLogRepository interviewLogRepository;
+    
+    @Autowired
+    private InterviewSessionRepository interviewSessionRepository;
 
     private final RestTemplate restTemplate = new RestTemplate();
     private final ExecutorService executorService = Executors.newFixedThreadPool(2);
@@ -449,6 +455,40 @@ public class AiServiceUtils {
                     // 保存到数据库
                     interviewLogRepository.save(latestLog);
                     log.info("元数据保存成功，会话ID：{}", sessionId);
+                }
+                
+                // 更新会话的 usedTechItems 和 usedProjectPoints
+                Optional<InterviewSession> sessionOpt = interviewSessionRepository.findBySessionId(sessionId);
+                if (sessionOpt.isPresent()) {
+                    InterviewSession session = sessionOpt.get();
+                    String interviewStateStr = session.getInterviewState();
+                    Map<String, Object> interviewState = new HashMap<>();
+                    
+                    // 解析 interviewState
+                    if (StringUtils.hasText(interviewStateStr)) {
+                        interviewState = JSONObject.parseObject(interviewStateStr);
+                    }
+                    
+                    // 获取或初始化 usedTechItems
+                    List<String> usedTechItems = (List<String>) interviewState.getOrDefault("usedTechItems", new ArrayList<>());
+                    if (StringUtils.hasText(relatedTech) && !usedTechItems.contains(relatedTech)) {
+                        usedTechItems.add(relatedTech);
+                        log.info("添加技术项到已使用列表：{}，会话ID：{}", relatedTech, sessionId);
+                    }
+                    
+                    // 获取或初始化 usedProjectPoints
+                    List<String> usedProjectPoints = (List<String>) interviewState.getOrDefault("usedProjectPoints", new ArrayList<>());
+                    if (StringUtils.hasText(relatedProjectPoint) && !usedProjectPoints.contains(relatedProjectPoint)) {
+                        usedProjectPoints.add(relatedProjectPoint);
+                        log.info("添加项目点到已使用列表：{}，会话ID：{}", relatedProjectPoint, sessionId);
+                    }
+                    
+                    // 更新 interviewState 并保存到数据库
+                    interviewState.put("usedTechItems", usedTechItems);
+                    interviewState.put("usedProjectPoints", usedProjectPoints);
+                    session.setInterviewState(JSON.toJSONString(interviewState));
+                    interviewSessionRepository.save(session);
+                    log.info("更新会话已使用列表成功，会话ID：{}", sessionId);
                 }
             } catch (Exception e) {
                 log.error("解析并保存元数据失败：{}", e.getMessage(), e);
