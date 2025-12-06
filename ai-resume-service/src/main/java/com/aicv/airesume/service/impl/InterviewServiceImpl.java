@@ -5,8 +5,6 @@ import com.aicv.airesume.entity.JobType;
 import com.aicv.airesume.entity.InterviewLog;
 import com.aicv.airesume.entity.Resume;
 import com.aicv.airesume.entity.InterviewReport;
-import com.aicv.airesume.model.dto.InterviewQuestionDTO;
-import com.aicv.airesume.model.dto.InterviewReportDTO;
 import com.aicv.airesume.model.vo.InterviewHistoryVO;
 import com.aicv.airesume.model.vo.InterviewReportVO;
 import com.aicv.airesume.model.vo.InterviewResponseVO;
@@ -226,7 +224,7 @@ public class InterviewServiceImpl implements InterviewService {
                                              log.error("发送结束信号失败：{}", e.getMessage(), e);
                                              emitter.completeWithError(e);
                                          }
-                                     }, sessionId, initialQuestionType); // 首次问题根据情况选择项目或技术问题
+                                     }, sessionId, initialQuestionType, session); // 首次问题根据情况选择项目或技术问题
                 
                 // 获取生成的问题（需要从AI响应中解析，这里简化处理）
                 String firstQuestion = "";
@@ -512,7 +510,7 @@ public class InterviewServiceImpl implements InterviewService {
                                              log.error("发送结束信号失败：{}", e.getMessage(), e);
                                              emitter.completeWithError(e);
                                          }
-                                     }, sessionId, currentQuestionType);
+                                     }, sessionId, currentQuestionType, session);
                 
                 // 7. 更新会话状态（需要从AI响应中获取nextQuestion和stopReason，这里简化处理）
                 session.setQuestionCount(session.getQuestionCount() + 1);
@@ -611,6 +609,11 @@ public class InterviewServiceImpl implements InterviewService {
             session.setSessionSeconds(sessionSeconds != null ? sessionSeconds : dynamicConfigService.getDefaultSessionSeconds());
             session.setSessionTimeRemaining(session.getSessionSeconds());
             
+            // 生成并保存面试官风格提示词
+            String personaStyle = enhancePersonaWithStyle(session.getPersona());
+            String personaPrompt = String.format("你是%s风格的面试官。%s\n请确保你生成的问题是单一的、独立的，只关注一个具体的知识点或技术点。\n", session.getPersona(), personaStyle);
+            session.setPersonaPrompt(personaPrompt);
+            
             // 初始化面试状态，先不进行耗时的简历分析
             interviewState.put("usedTechItems", new ArrayList<>());
             interviewState.put("usedProjectPoints", new ArrayList<>());
@@ -622,9 +625,9 @@ public class InterviewServiceImpl implements InterviewService {
             // 保存初始会话 - 这是快速返回的关键
             sessionRepository.save(session);
             
-            // 4. 异步处理简历分析和第一个问题生成
+            // 4. 异步处理简历分析和会话初始化
             CompletableFuture.runAsync(() -> {
-                processFirstQuestionAsync(session.getSessionId(), resumeId, actualJobTypeId);
+                analyzeResumeAndInitSessionAsync(session.getSessionId(), resumeId, actualJobTypeId);
             });
 
             // 5. 通过jobTypeId查询job_type表数据获取jobName
@@ -661,13 +664,13 @@ public class InterviewServiceImpl implements InterviewService {
     }
     
     /**
-     * 异步处理第一个面试问题的生成
+     * 异步处理简历分析和会话初始化
      * 
      * @param sessionId   会话ID
      * @param resumeId    简历ID
      * @param jobTypeId   职位类型ID
      */
-    private void processFirstQuestionAsync(String sessionId, Long resumeId, Integer jobTypeId) {
+    private void analyzeResumeAndInitSessionAsync(String sessionId, Long resumeId, Integer jobTypeId) {
         try {
             // 从数据库获取会话信息
             InterviewSession session = sessionRepository.findBySessionId(sessionId).orElse(null);
@@ -739,6 +742,8 @@ public class InterviewServiceImpl implements InterviewService {
             session.setTechItems(objectMapper.writeValueAsString(techItems));
             session.setProjectPoints(objectMapper.writeValueAsString(projectPoints));
             session.setInterviewState(objectMapper.writeValueAsString(interviewState));
+            // 保存完整简历内容到session
+            session.setResumeContent(resumeContent);
             
             // 保存更新后的会话
             sessionRepository.save(session);
@@ -794,7 +799,9 @@ public class InterviewServiceImpl implements InterviewService {
                 }
                 
                 // 6. 构建prompt让DeepSeek全面分析面试情况
-                String prompt = String.format("请作为资深技术面试官，全面分析以下面试会话记录，生成一份详细的面试报告。\n" +
+                // 从动态配置中获取系统提示词，如果不存在则使用默认值
+                String systemPrompt = dynamicConfigService.getReportGenerationSystemPrompt().orElse(
+                        "请作为资深技术面试官，全面分析以下面试会话记录，生成一份详细的面试报告。\n" +
                         "报告需要包含以下内容：\n" +
                         "1. 总体评价和总分\n" +
                         "2. 优势分析\n" +
@@ -813,12 +820,14 @@ public class InterviewServiceImpl implements InterviewService {
                         "4. 强调使用：仅对核心关键词使用**（粗体），例如：**核心优势**\n" +
                         "5. 避免使用：代码块、链接、图片、分割线等复杂格式。\n" +
                         "6. 内容结构：每部分内容保持简洁，重点突出，避免冗长。\n" +
-                        "7. 格式对应：请确保生成的Markdown格式与前端展示能力匹配。\n\n" +
-                        "面试会话记录：\n%s", sessionContent.toString());
+                        "7. 格式对应：请确保生成的Markdown格式与前端展示能力匹配。"
+                );
+                
+                String userPrompt = "面试会话记录：\n" + sessionContent.toString();
 
                 // 7. 使用流式方式调用DeepSeek API，将结果按块存储到reportGenerationService
                 StringBuilder currentChunk = new StringBuilder();
-                aiServiceUtils.callDeepSeekApiStream(prompt, emitter, content -> {
+                aiServiceUtils.callDeepSeekApiStream(systemPrompt, userPrompt, emitter, content -> {
                     if (content != null && !content.isEmpty()) {
                         currentChunk.append(content);
                         // 当当前块超过20字时，存储并清空
@@ -1098,20 +1107,37 @@ public class InterviewServiceImpl implements InterviewService {
                                       String currentDepthLevel, Integer sessionTimeRemaining,
                                       String persona, String jobType, String fullResumeContent,
                                       String previousQuestion, String previousAnswer, SseEmitter emitter,
-                                      Runnable onComplete, String sessionId, String currentQuestionType) {
-        // 构建prompt调用AI生成问题
-        StringBuilder promptBuilder = new StringBuilder();
+                                      Runnable onComplete, String sessionId, String currentQuestionType, InterviewSession session) {
+        // 构建系统提示词（包含固定的指令和要求）
+        StringBuilder systemPromptBuilder = new StringBuilder();
         
-        // 根据不同风格设置不同的提示词
-        String personaStyle = enhancePersonaWithStyle(persona);
-        promptBuilder.append(String.format("你是%s风格的面试官。%s\n", persona, personaStyle));
-        promptBuilder.append("请确保你生成的问题是单一的、独立的，只关注一个具体的知识点或技术点。\n");
-        promptBuilder.append("请严格按照以下面试流程提问：\n");
-        promptBuilder.append("1. 首先问项目相关的内容，了解候选人的项目经验\n");
-        promptBuilder.append("2. 然后结合项目当中所用到的技术，循序渐进地提问\n");
-        promptBuilder.append("3. 问题难度要从简到深，先问基础用法，再问原理，最后问优化和经验\n");
-        promptBuilder.append("4. 如果是项目问题，请先了解项目的整体情况，再深入项目中的具体技术实现\n");
-        promptBuilder.append("5. 如果是技术问题，请结合候选人在项目中使用该技术的实际情况提问\n");
+        // 从session中获取面试官风格提示词，如果存在则使用，否则重新生成
+        try {
+            if (session != null && StringUtils.hasText(session.getPersonaPrompt())) {
+                // 使用session中保存的风格提示词
+                systemPromptBuilder.append(session.getPersonaPrompt());
+            } else {
+                // 否则重新生成并保存
+                String personaStyle = enhancePersonaWithStyle(persona);
+                String personaPrompt = String.format("你是%s风格的面试官。%s\n请确保你生成的问题是单一的、独立的，只关注一个具体的知识点或技术点。\n", persona, personaStyle);
+                systemPromptBuilder.append(personaPrompt);
+                
+                // 保存到session中（如果session存在）
+                if (session != null) {
+                    session.setPersonaPrompt(personaPrompt);
+                    sessionRepository.save(session);
+                }
+            }
+        } catch (Exception e) {
+            log.error("从session获取或生成personaPrompt失败: {}", e.getMessage());
+            // 失败时使用默认方式生成
+            String personaStyle = enhancePersonaWithStyle(persona);
+            systemPromptBuilder.append(String.format("你是%s风格的面试官。%s\n", persona, personaStyle));
+            systemPromptBuilder.append("请确保你生成的问题是单一的、独立的，只关注一个具体的知识点或技术点。\n");
+        }
+        
+        // 构建用户提示词（包含动态内容和具体问题要求）
+        StringBuilder userPromptBuilder = new StringBuilder();
         
         // 检查是否需要切换话题（已使用列表为空，且有之前的问答）
         boolean needSwitchTopic = (usedTechItems.isEmpty() && usedProjectPoints.isEmpty()) && 
@@ -1128,67 +1154,42 @@ public class InterviewServiceImpl implements InterviewService {
             questionTypePrompt = "请生成一个技术问题，关注具体的技术知识点或技术实践。\n";
         }
         
-        // 只有第一次生成问题时（没有上下文）才发送完整简历，后续问题根据情况生成
+        // 根据不同情况构建prompt，完整对话历史由AiServiceUtils的getConversationHistory处理
         if (needSwitchTopic) {
-            // 切换话题：忽略上一题的上下文，生成全新的问题
+            // 切换话题：生成全新的问题
             log.info("切换话题，生成全新问题，类型：{}", currentQuestionType);
-            if (StringUtils.hasText(fullResumeContent)) {
-                promptBuilder.append("以下是候选人的完整简历内容：\n");
-                promptBuilder.append(fullResumeContent).append("\n\n");
-            }
-            promptBuilder.append("请基于候选人的简历内容，生成一个全新的、与之前完全不同的面试问题。\n");
-            promptBuilder.append(questionTypePrompt);
-            promptBuilder.append("不要与上一题有任何关联。\n");
-            promptBuilder.append("每个问题只能关注一个具体的知识点或能力点，不要生成复合问题。\n");
+            userPromptBuilder.append("请基于候选人的简历内容和之前的面试上下文，生成一个全新的、与之前完全不同的面试问题。\n");
+            userPromptBuilder.append(questionTypePrompt);
+            userPromptBuilder.append("不要与上一题有任何关联。\n");
         } else if (StringUtils.hasText(previousQuestion) && StringUtils.hasText(previousAnswer)) {
-            // 后续问题：基于上一题的问答上下文生成，不发送完整简历
-            promptBuilder.append("上一轮面试问答：\n");
-            promptBuilder.append(String.format("问题：%s\n", previousQuestion));
-            promptBuilder.append(String.format("回答：%s\n\n", previousAnswer));
-            promptBuilder.append("请根据上一题的问答内容，结合候选人的简历，生成下一个相关的面试问题。\n");
-            promptBuilder.append(questionTypePrompt);
-            promptBuilder.append("每个问题只能关注一个具体的知识点或能力点，不要生成复合问题。\n");
+            // 后续问题：基于完整的对话历史生成下一个相关问题
+            userPromptBuilder.append("请根据之前的完整面试对话历史，生成下一个相关的面试问题。\n");
+            userPromptBuilder.append(questionTypePrompt);
         } else {
-            // 第一次生成问题：发送完整简历
+            // 第一次生成问题：发送完整简历和问答要求
             if (StringUtils.hasText(fullResumeContent)) {
-                promptBuilder.append("以下是候选人的完整简历内容：\n");
-                promptBuilder.append(fullResumeContent).append("\n\n");
+                userPromptBuilder.append("以下是候选人的完整简历内容：\n");
+                userPromptBuilder.append(fullResumeContent).append("\n\n");
             }
-            promptBuilder.append("请直接基于候选人的简历内容生成针对性的面试问题。\n");
-            promptBuilder.append(questionTypePrompt);
-            promptBuilder.append("每个问题只能关注一个具体的知识点或能力点，不要生成复合问题。\n");
+            userPromptBuilder.append("请直接基于候选人的简历内容生成针对性的面试问题。\n");
+            userPromptBuilder.append(questionTypePrompt);
         }
         
-        promptBuilder.append("规则：\n");
-        promptBuilder.append("- 从用法或项目实践切入，逐步深入原理/优化。\n");
-        promptBuilder.append("- 只生成单个、独立的问题，绝对不要生成复合问题。\n");
-        promptBuilder.append("- 禁止使用'以及'、'还有'、'同时'等连接词将多个问题合并为一个。\n");
-        promptBuilder.append("- 每个问题只关注一个具体的知识点或技术点。\n");
-        promptBuilder.append(String.format("- 已使用技术项：%s\n", usedTechItems));
-        promptBuilder.append(String.format("- 已使用项目点：%s\n", usedProjectPoints));
-        promptBuilder.append(String.format("- 当前深度级别：%s\n", currentDepthLevel));
-        promptBuilder.append(String.format("- 剩余时间：%d秒\n", sessionTimeRemaining));
-        promptBuilder.append("- 若时间<60s或连续两次回答偏离主题，则进入总结问题。\n");
-        promptBuilder.append("输出：\n");
-        promptBuilder.append("请严格按照以下格式返回内容：\n");
-        promptBuilder.append("# 元数据开始\n");
-        promptBuilder.append("{");
-        promptBuilder.append("\"depthLevel\": 整数, ");
-        promptBuilder.append("\"expectedKeyPoints\": [\"关键点1\", \"关键点2\"], ");
-        promptBuilder.append("\"relatedTech\": \"相关技术项\"}");
-        promptBuilder.append("\n# 元数据结束\n");
-        promptBuilder.append("问题内容（仅纯文本，不要任何其他格式，必须是单一问题）\n");
-        promptBuilder.append("注意事项：\n");
-        promptBuilder.append("1. 元数据必须是有效的JSON格式，包含depthLevel、expectedKeyPoints和relatedTech三个字段。\n");
-        promptBuilder.append("2. 问题内容必须紧跟在元数据结束标记之后，且只能包含纯文本问题。\n");
-        promptBuilder.append("3. 请确保问题是单一的、独立的，不包含多个问题。\n");
+        // 动态信息（每次生成问题时需要更新）
+        userPromptBuilder.append(String.format("- 已使用技术项：%s\n", usedTechItems));
+        userPromptBuilder.append(String.format("- 已使用项目点：%s\n", usedProjectPoints));
+        userPromptBuilder.append(String.format("- 当前深度级别：%s\n", currentDepthLevel));
+        userPromptBuilder.append(String.format("- 剩余时间：%d秒\n", sessionTimeRemaining));
+        userPromptBuilder.append("- 若时间<60s或连续两次回答偏离主题，则进入总结问题。\n");
         
-        String prompt = promptBuilder.toString();
+        
+        String systemPrompt = systemPromptBuilder.toString();
+        String userPrompt = userPromptBuilder.toString();
         
         try {
             // 调用AI服务（流式）
-            log.info("调用Deepseek API生成问题prompt: {}", prompt);
-            aiServiceUtils.callDeepSeekApiStream(prompt, emitter, onComplete, sessionId);
+            log.info("调用Deepseek API生成问题，systemPrompt: {}, userPrompt: {}", systemPrompt, userPrompt);
+            aiServiceUtils.callDeepSeekApiStream(systemPrompt, userPrompt, emitter, onComplete, sessionId);
             log.info("调用Deepseek API生成问题完成（流式）");
         } catch (Exception e) {
             log.error("生成问题失败：{}", e.getMessage(), e);
@@ -1200,82 +1201,6 @@ public class InterviewServiceImpl implements InterviewService {
             }
         }
     }
-    
-    /**
-     * 解析AI返回的问题结果
-     * @param aiResponse AI返回的完整响应
-     * @param result 存储解析结果的Map
-     * @return 解析出的问题文本
-     */
-    private String parseQuestionFromAIResponse(String aiResponse, Map<String, Object> result) {
-        if (aiResponse == null || aiResponse.isEmpty()) {
-            return "请简单介绍一下你自己。";
-        }
-        
-        try {
-            // 提取元数据
-            String metadataStr = extractSection(aiResponse, "# 元数据开始", "# 元数据结束");
-            if (!metadataStr.isEmpty()) {
-                // 解析元数据JSON
-                ObjectMapper mapper = new ObjectMapper();
-                JsonNode metadata = mapper.readTree(metadataStr);
-                
-                // 提取深度级别
-                if (metadata.has("depthLevel")) {
-                    result.put("depthLevel", metadata.get("depthLevel").asText());
-                }
-                
-                // 提取期望关键点
-                if (metadata.has("expectedKeyPoints")) {
-                    List<String> expectedKeyPoints = mapper.readValue(
-                        metadata.get("expectedKeyPoints").toString(), 
-                        new TypeReference<List<String>>() {}
-                    );
-                    result.put("expectedKeyPoints", expectedKeyPoints);
-                }
-                
-                // 提取相关技术
-                if (metadata.has("relatedTech")) {
-                    result.put("relatedTech", metadata.get("relatedTech").asText());
-                }
-                
-                // 提取相关项目点
-                if (metadata.has("relatedProjectPoint")) {
-                    result.put("relatedProjectPoint", metadata.get("relatedProjectPoint").asText());
-                }
-            }
-            
-            // 提取问题内容
-            String questionContent = extractSection(aiResponse, "# 元数据结束", null);
-            return questionContent.isEmpty() ? "请简单介绍一下你自己。" : questionContent;
-        } catch (Exception e) {
-            log.error("解析AI返回结果失败", e);
-            return "请简单介绍一下你自己。";
-        }
-    }
-    
-    /**
-     * 提取文本中的特定部分
-     */
-    private String extractSection(String text, String startTag, String endTag) {
-        if (text == null || !text.contains(startTag)) {
-            return "";
-        }
-        
-        int startIndex = text.indexOf(startTag) + startTag.length();
-        int endIndex = text.length();
-        
-        if (endTag != null && text.contains(endTag)) {
-            endIndex = text.indexOf(endTag);
-        }
-        
-        return text.substring(startIndex, endIndex).trim();
-    }
-
-
-
-
-
 
     @Override
     public List<InterviewHistoryVO> getInterviewHistory(Long userId) {

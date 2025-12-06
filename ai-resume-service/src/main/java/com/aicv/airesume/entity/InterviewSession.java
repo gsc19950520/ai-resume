@@ -76,8 +76,15 @@ public class InterviewSession {
     
     @Column(name = "question_count", columnDefinition = "int default 0")
     private Integer questionCount = 0;
-
-    @CreationTimestamp
+    
+    @Column(name = "persona_prompt", columnDefinition = "text")
+    private String personaPrompt; // 面试官风格提示词
+    
+    // 新增字段 - 存储简历内容
+    @Column(name = "resume_content", columnDefinition = "longtext")
+    private String resumeContent;
+  
+     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

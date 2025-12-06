@@ -238,6 +238,14 @@ public class DynamicConfigService {
     }
 
     /**
+     * 获取报告生成的系统提示词
+     * @return 报告生成系统提示词，如果不存在则返回空
+     */
+    public Optional<String> getReportGenerationSystemPrompt() {
+        return getConfigValue("REPORT", "REPORT_GENERATION_SYSTEM_PROMPT");
+    }
+
+    /**
      * 刷新配置缓存
      */
     public void refreshCache() {

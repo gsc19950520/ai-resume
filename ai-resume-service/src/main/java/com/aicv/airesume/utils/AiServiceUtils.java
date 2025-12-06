@@ -27,6 +27,7 @@ import com.aicv.airesume.entity.InterviewLog;
 import com.aicv.airesume.entity.InterviewSession;
 import com.aicv.airesume.repository.InterviewLogRepository;
 import com.aicv.airesume.repository.InterviewSessionRepository;
+import com.aicv.airesume.service.config.DynamicConfigService;
 
 import java.io.IOException;
 import java.math.BigInteger;
@@ -63,6 +64,9 @@ public class AiServiceUtils {
     
     @Autowired
     private InterviewSessionRepository interviewSessionRepository;
+    
+    @Autowired
+    private DynamicConfigService dynamicConfigService;
 
     private final RestTemplate restTemplate = new RestTemplate();
     private final ExecutorService executorService = Executors.newFixedThreadPool(2);
@@ -151,17 +155,26 @@ public class AiServiceUtils {
      * @return API响应内容
      */
     public String callDeepSeekApi(String prompt) {
+        return callDeepSeekApi(prompt, null);
+    }
+    
+    /**
+     * 调用DeepSeek API（同步方式，支持上下文）
+     * @param prompt 提示词
+     * @param sessionId 会话ID，用于获取对话历史
+     * @return API响应内容
+     */
+    public String callDeepSeekApi(String prompt, String sessionId) {
         try {
             // 构建请求体
             Map<String, Object> requestBody = new HashMap<>();
             requestBody.put("model", "deepseek-chat");
             requestBody.put("stream", false);
             
-            Map<String, String> message = new HashMap<>();
-            message.put("role", "user");
-            message.put("content", prompt);
+            // 获取完整的对话历史
+            List<Map<String, String>> messages = getConversationHistory(sessionId, prompt);
             
-            requestBody.put("messages", new Object[]{message});
+            requestBody.put("messages", messages);
             requestBody.put("temperature", 0.7);
             requestBody.put("max_tokens", 2000);
 
@@ -200,38 +213,163 @@ public class AiServiceUtils {
 
     /**
      * 调用DeepSeek API（流式输出方式）
-     * @param prompt 提示词
+     * @param systemPrompt 系统提示词
+     * @param userPrompt 用户提示词
      * @param emitter SSE发射器，用于流式输出
      * @param onComplete 流结束回调函数
      * @param sessionId 会话ID，用于保存元数据
      */
-    public void callDeepSeekApiStream(String prompt, SseEmitter emitter, Runnable onComplete, String sessionId) {
+    public void callDeepSeekApiStream(String systemPrompt, String userPrompt, SseEmitter emitter, Runnable onComplete, String sessionId) {
         // 默认使用"question"作为事件名称
-        callDeepSeekApiStream(prompt, emitter, onComplete, sessionId, "question");
+        callDeepSeekApiStream(systemPrompt, userPrompt, emitter, onComplete, sessionId, "question");
     }
     
     /**
      * 调用DeepSeek API（流式输出方式，支持自定义事件名称）
-     * @param prompt 提示词
+     * @param systemPrompt 系统提示词
+     * @param userPrompt 用户提示词
      * @param emitter SSE发射器，用于流式输出
      * @param onComplete 流结束回调函数
      * @param sessionId 会话ID，用于保存元数据
      * @param eventName 事件名称
      */
-    public void callDeepSeekApiStream(String prompt, SseEmitter emitter, Runnable onComplete, String sessionId, String eventName) {
-        callDeepSeekApiStream(prompt, emitter, null, onComplete, sessionId, eventName);
+    public void callDeepSeekApiStream(String systemPrompt, String userPrompt, SseEmitter emitter, Runnable onComplete, String sessionId, String eventName) {
+        callDeepSeekApiStream(systemPrompt, userPrompt, emitter, null, onComplete, sessionId, eventName);
     }
     
     /**
-     * 调用DeepSeek API（流式输出方式，支持自定义事件名称和内容回调）
-     * @param prompt 提示词
-     * @param emitter SSE发射器，用于流式输出（可为null）
-     * @param contentCallback 内容回调函数，用于直接获取流内容
+     * 获取对话历史
+     * @param sessionId 会话ID
+     * @param userPrompt 当前用户输入
+     * @return 完整的对话历史消息列表
+     */
+    private List<Map<String, String>> getConversationHistory(String sessionId, String userPrompt) {
+        return getConversationHistory(sessionId, null, userPrompt);
+    }
+    
+    /**
+     * 获取对话历史
+     * @param sessionId 会话ID
+     * @param systemPrompt 系统提示词
+     * @param userPrompt 当前用户输入
+     * @return 完整的对话历史消息列表
+     */
+    private List<Map<String, String>> getConversationHistory(String sessionId, String systemPrompt, String userPrompt) {
+        List<Map<String, String>> messages = new ArrayList<>();
+        
+        // 如果有sessionId，获取历史对话
+        if (sessionId != null) {
+            try {
+                // 首先获取InterviewSession，添加系统级别的简历内容和面试要求
+                Optional<InterviewSession> sessionOptional = interviewSessionRepository.findBySessionId(sessionId);
+                if (sessionOptional.isPresent()) {
+                    InterviewSession session = sessionOptional.get();
+                    
+                    // 添加简历内容作为系统消息（仅在会话开始时添加一次）
+                    if (session.getResumeContent() != null && !session.getResumeContent().isEmpty()) {
+                        Map<String, String> resumeMessage = new HashMap<>();
+                        resumeMessage.put("role", "system");
+                        resumeMessage.put("content", "以下是候选人的完整简历内容：\n" + session.getResumeContent());
+                        messages.add(resumeMessage);
+                    }
+                    
+                    // 添加面试要求作为系统消息
+                    String interviewRequirements = dynamicConfigService.getConfigValue("INTERVIEW", "INTERVIEW_REQUIREMENTS").orElse(null);
+                    if (StringUtils.hasText(interviewRequirements)) {
+                        Map<String, String> requirementsMessage = new HashMap<>();
+                        requirementsMessage.put("role", "system");
+                        requirementsMessage.put("content", interviewRequirements);
+                        messages.add(requirementsMessage);
+                    }
+                    
+                    // 添加通用规则作为系统消息
+                    String generalRules = dynamicConfigService.getConfigValue("INTERVIEW", "GENERAL_RULES").orElse(null);
+                    if (StringUtils.hasText(generalRules)) {
+                        Map<String, String> rulesMessage = new HashMap<>();
+                        rulesMessage.put("role", "system");
+                        rulesMessage.put("content", generalRules);
+                        messages.add(rulesMessage);
+                    }
+                    
+                    // 添加输出格式作为系统消息
+                    String outputFormat = dynamicConfigService.getConfigValue("INTERVIEW", "OUTPUT_FORMAT").orElse(null);
+                    if (StringUtils.hasText(outputFormat)) {
+                        Map<String, String> formatMessage = new HashMap<>();
+                        formatMessage.put("role", "system");
+                        formatMessage.put("content", outputFormat);
+                        messages.add(formatMessage);
+                    }
+                    
+                    // 添加自定义系统提示词（如果有）
+                    if (StringUtils.hasText(systemPrompt)) {
+                        Map<String, String> customSystemMessage = new HashMap<>();
+                        customSystemMessage.put("role", "system");
+                        customSystemMessage.put("content", systemPrompt);
+                        messages.add(customSystemMessage);
+                    }
+                }
+                
+                // 从InterviewLog获取该sessionId下的所有面试记录
+                List<InterviewLog> interviewLogs = interviewLogRepository.findBySessionIdOrderByRoundNumberAsc(sessionId);
+                
+                for (InterviewLog log : interviewLogs) {
+                    // 添加AI问题作为assistant角色
+                    if (log.getQuestionText() != null && !log.getQuestionText().isEmpty()) {
+                        Map<String, String> assistantMessage = new HashMap<>();
+                        assistantMessage.put("role", "assistant");
+                        assistantMessage.put("content", log.getQuestionText());
+                        messages.add(assistantMessage);
+                    }
+                    
+                    // 添加用户回答作为user角色
+                    if (log.getUserAnswerText() != null && !log.getUserAnswerText().isEmpty()) {
+                        Map<String, String> userMessage = new HashMap<>();
+                        userMessage.put("role", "user");
+                        userMessage.put("content", log.getUserAnswerText());
+                        messages.add(userMessage);
+                    }
+                    
+                    // 添加AI反馈作为assistant角色（如果有）
+                    if (log.getFeedback() != null && !log.getFeedback().isEmpty()) {
+                        Map<String, String> feedbackMessage = new HashMap<>();
+                        feedbackMessage.put("role", "assistant");
+                        feedbackMessage.put("content", log.getFeedback());
+                        messages.add(feedbackMessage);
+                    }
+                }
+            } catch (Exception e) {
+                log.error("获取对话历史失败: {}", e.getMessage(), e);
+            }
+        } else {
+            // 如果没有sessionId，但有系统提示词，也添加为系统消息
+            if (StringUtils.hasText(systemPrompt)) {
+                Map<String, String> customSystemMessage = new HashMap<>();
+                customSystemMessage.put("role", "system");
+                customSystemMessage.put("content", systemPrompt);
+                messages.add(customSystemMessage);
+            }
+        }
+        
+        // 添加当前用户输入
+        Map<String, String> currentMessage = new HashMap<>();
+        currentMessage.put("role", "user");
+        currentMessage.put("content", userPrompt);
+        messages.add(currentMessage);
+        
+        return messages;
+    }
+    
+    /**
+     * 调用DeepSeek API（流式输出方式，支持自定义事件名称）
+     * @param systemPrompt 系统提示词
+     * @param userPrompt 用户提示词
+     * @param emitter SSE发射器，用于流式输出
+     * @param contentCallback 内容回调函数
      * @param onComplete 流结束回调函数
-     * @param sessionId 会话ID，用于保存元数据
+     * @param sessionId 会话ID，用于保存元数据和获取对话历史
      * @param eventName 事件名称
      */
-    public void callDeepSeekApiStream(String prompt, SseEmitter emitter, Consumer<String> contentCallback, Runnable onComplete, String sessionId, String eventName) {
+    public void callDeepSeekApiStream(String systemPrompt, String userPrompt, SseEmitter emitter, Consumer<String> contentCallback, Runnable onComplete, String sessionId, String eventName) {
         // 标记 emitter 是否已经关闭
         AtomicBoolean emitterClosed = new AtomicBoolean(false);
 
@@ -252,10 +390,20 @@ public class AiServiceUtils {
                 requestBody.put("model", "deepseek-chat");
                 requestBody.put("stream", true);
 
-                Map<String, String> message = new HashMap<>();
-                message.put("role", "user");
-                message.put("content", prompt);
-                requestBody.put("messages", new Object[]{message});
+                // 获取对话历史，报告生成时不需要拼接上下文
+                List<Map<String, String>> messages;
+                if ("report".equals(eventName)) {
+                    // 报告生成：直接使用当前prompt，不拼接上下文
+                    messages = new ArrayList<>();
+                    Map<String, String> currentMessage = new HashMap<>();
+                    currentMessage.put("role", "user");
+                    currentMessage.put("content", userPrompt);
+                    messages.add(currentMessage);
+                } else {
+                    // 其他情况：获取完整的对话历史
+                    messages = getConversationHistory(sessionId, systemPrompt, userPrompt);
+                }
+                requestBody.put("messages", messages);
 
                 requestBody.put("temperature", 0.7);
                 requestBody.put("max_tokens", 5000);

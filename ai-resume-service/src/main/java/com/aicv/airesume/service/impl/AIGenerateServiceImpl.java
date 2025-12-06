@@ -4,8 +4,6 @@ import com.aicv.airesume.entity.AiTraceLog;
 import com.aicv.airesume.entity.JobType;
 import com.aicv.airesume.model.vo.SalaryRangeVO;
 import com.aicv.airesume.repository.AiTraceLogRepository;
-import com.aicv.airesume.repository.InterviewLogRepository;
-import com.aicv.airesume.repository.InterviewSessionRepository;
 import com.aicv.airesume.repository.JobTypeRepository;
 import com.aicv.airesume.service.AIGenerateService;
 import com.aicv.airesume.utils.AiServiceUtils;

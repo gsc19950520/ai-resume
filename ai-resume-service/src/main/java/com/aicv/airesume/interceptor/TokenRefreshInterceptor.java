@@ -41,17 +41,17 @@ public class TokenRefreshInterceptor implements HandlerInterceptor {
         
         // 不需要token验证的路径
         if (requestURI.startsWith("/api/user/login") || 
+            requestURI.startsWith("/api/user/wechat-login") ||
             requestURI.startsWith("/api/user/register") || 
             requestURI.startsWith("/api/job-types") ||
+            requestURI.startsWith("/api/interview/update-remaining-time") ||
             requestURI.startsWith("/swagger") ||
             requestURI.startsWith("/v3/api-docs")) {
-            log.info("请求路径{}匹配不需要验证的路径，直接放行", requestURI);
             return true;
         }
         
         // 获取Authorization头
         String authorizationHeader = request.getHeader("Authorization");
-        log.info("获取到的token: {}", authorizationHeader);
         
         // 验证token
         if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
@@ -62,7 +62,6 @@ public class TokenRefreshInterceptor implements HandlerInterceptor {
         
         // 移除"Bearer "前缀
         String token = authorizationHeader.substring(7);
-        log.info("移除Bearer前缀后的token: {}", token);
         // 验证token是否有效
         if (!tokenUtils.validateToken(token)) {
             log.info("token验证失败，返回401错误");
@@ -71,7 +70,6 @@ public class TokenRefreshInterceptor implements HandlerInterceptor {
         }
         // 从token中获取用户ID
         Long userId = tokenUtils.getUserIdFromToken(token);
-        log.info("从token中获取到的userId: {}", userId);
         
         if (userId == null) {
             log.info("从token中获取userId失败，返回401错误");
@@ -103,7 +101,6 @@ public class TokenRefreshInterceptor implements HandlerInterceptor {
     public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
         // 清除ThreadLocal中的数据，防止内存泄漏
         GlobalContextUtil.clearUserId();
-        log.info("已清除ThreadLocal中的用户ID");
     }
     
     /**
