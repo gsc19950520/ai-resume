@@ -76,13 +76,40 @@ Page({
       formattedTimeRemaining: this.formatRemainingTime(sessionTimeRemaining)
     });
     
-    // 获取面试会话详情，包括剩余时间和历史记录
-    this.fetchSessionDetail(sessionId);
+    // 获取后端配置（包括默认会话时长）
+    this.fetchBackendConfig().then(() => {
+      // 获取面试会话详情，包括剩余时间和历史记录
+      this.fetchSessionDetail(sessionId);
+    });
     
     // 启动每隔5秒更新后端剩余时间的定时器
     this.backendTimeUpdateTimer = setInterval(() => {
       this.updateRemainingTimeToServer();
     }, 5000);
+  },
+  
+  /**
+   * 获取后端配置（包括默认会话时长）
+   */
+  fetchBackendConfig: function() {
+    return get('/api/interview/get-config')
+      .then(res => {
+        if (res && res.success && res.data) {
+          const config = res.data;
+          console.log('获取到后端配置:', config);
+          
+          // 如果返回了默认会话时长，则更新页面数据
+          if (config.defaultSessionSeconds) {
+            this.setData({
+              sessionSeconds: config.defaultSessionSeconds
+            });
+          }
+        }
+      })
+      .catch(error => {
+        console.error('获取后端配置失败:', error);
+        // 失败时不影响页面加载，继续使用默认值
+      });
   },
   
   /**

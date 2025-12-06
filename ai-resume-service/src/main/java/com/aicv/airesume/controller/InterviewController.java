@@ -83,14 +83,8 @@ public class InterviewController {
             // 获取面试官风格配置（只返回启用的）
             dynamicConfigService.getInterviewPersonas().ifPresent(config::setPersonas);
             
-            // 获取深度级别配置
-            dynamicConfigService.getInterviewDepthLevels().ifPresent(config::setDepthLevels);
-            
-            // 获取默认会话时长
+            // 设置默认会话时长
             config.setDefaultSessionSeconds(dynamicConfigService.getDefaultSessionSeconds());
-            
-            // 获取默认面试官风格
-            config.setDefaultPersona(dynamicConfigService.getDefaultPersona());
             
             return BaseResponseVO.success(config);
         } catch (Exception e) {

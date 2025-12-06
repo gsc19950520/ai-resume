@@ -78,7 +78,7 @@ public class DynamicConfigService {
 
     /**
      * 获取所有面试官风格配置（只返回启用状态的风格）
-     * 优先从interview_dynamic_config读取，如不存在则从interview_personas读取
+     * 优先从interview_dynamic_config读取，如不存在则从interview_personas读取，最后尝试从persona类型的配置读取
      * @return 面试官风格列表的Optional包装，与原有项目调用方式兼容
      */
     public Optional<List<Map<String, Object>>> getInterviewPersonas() {
@@ -89,12 +89,18 @@ public class DynamicConfigService {
         }
         
         // 如果interview_dynamic_config不存在或没有personas，尝试从interview_personas读取
-        return getPersonasFromConfig("interview_personas", true);
+        Optional<List<Map<String, Object>>> personasFromPersonasConfig = getPersonasFromConfig("interview_personas", true);
+        if (personasFromPersonasConfig.isPresent()) {
+            return personasFromPersonasConfig;
+        }
+        
+        // 最后尝试从persona类型的配置读取
+        return getPersonasFromPersonaTypeConfigs(true);
     }
     
     /**
      * 获取所有面试官风格配置（包括禁用的）
-     * 优先从interview_dynamic_config读取，如不存在则从interview_personas读取
+     * 优先从interview_dynamic_config读取，如不存在则从interview_personas读取，最后尝试从persona类型的配置读取
      * @return 所有面试官风格列表
      */
     public Optional<List<Map<String, Object>>> getAllInterviewPersonas() {
@@ -105,7 +111,49 @@ public class DynamicConfigService {
         }
         
         // 如果interview_dynamic_config不存在或没有personas，尝试从interview_personas读取
-        return getPersonasFromConfig("interview_personas", false);
+        Optional<List<Map<String, Object>>> personasFromPersonasConfig = getPersonasFromConfig("interview_personas", false);
+        if (personasFromPersonasConfig.isPresent()) {
+            return personasFromPersonasConfig;
+        }
+        
+        // 最后尝试从persona类型的配置读取
+        return getPersonasFromPersonaTypeConfigs(false);
+    }
+    
+    /**
+     * 从persona类型的配置中读取所有面试官风格
+     * @param filterEnabled 是否只返回启用的风格
+     * @return 面试官风格列表
+     */
+    private Optional<List<Map<String, Object>>> getPersonasFromPersonaTypeConfigs(boolean filterEnabled) {
+        try {
+            // 从数据库查询所有persona类型的配置
+            List<DynamicConfig> personaConfigs = dynamicConfigRepository.findByConfigTypeAndIsActiveTrue("persona");
+            if (personaConfigs.isEmpty()) {
+                return Optional.empty();
+            }
+            
+            List<Map<String, Object>> personas = new ArrayList<>();
+            for (DynamicConfig config : personaConfigs) {
+                String configValue = config.getConfigValue();
+                // 解析配置值为JSON
+                JsonNode personaNode = objectMapper.readTree(configValue);
+                
+                Map<String, Object> persona = new HashMap<>();
+                persona.put("id", config.getConfigKey());
+                persona.put("name", personaNode.get("name").asText());
+                persona.put("description", personaNode.get("description").asText());
+                persona.put("prompt", personaNode.get("prompt").asText());
+                persona.put("enabled", true); // 因为查询条件已经是isActiveTrue
+                
+                personas.add(persona);
+            }
+            
+            return Optional.of(personas);
+        } catch (Exception e) {
+            logger.error("从persona类型配置获取面试官风格失败", e);
+        }
+        return Optional.empty();
     }
     
     /**
@@ -167,57 +215,6 @@ public class DynamicConfigService {
     }
 
     /**
-     * 获取问题深度级别配置
-     * 优先从interview_dynamic_config读取，如不存在则从interview_depth_levels读取
-     * @return 深度级别配置列表，如果不存在则返回空
-     */
-    public Optional<List<Map<String, Object>>> getInterviewDepthLevels() {
-        try {
-            // 优先从interview_dynamic_config配置中读取深度级别
-            String configValue = getConfigValue("config", "interview_dynamic_config").orElse("{}");
-            JsonNode configNode = objectMapper.readTree(configValue);
-            if (configNode.has("depthLevels")) {
-                List<Map<String, Object>> depthLevels = new ArrayList<>();
-                for (JsonNode levelNode : configNode.get("depthLevels")) {
-                    Map<String, Object> level = new HashMap<>();
-                    // 映射字段
-                    if (levelNode.has("id")) level.put("id", levelNode.get("id").asText());
-                    if (levelNode.has("name")) level.put("name", levelNode.get("name").asText());
-                    if (levelNode.has("text")) level.put("text", levelNode.get("text").asText());
-                    if (levelNode.has("description")) level.put("description", levelNode.get("description").asText());
-                    depthLevels.add(level);
-                }
-                return Optional.of(depthLevels);
-            }
-        } catch (Exception e) {
-            logger.error("从interview_dynamic_config获取深度级别配置失败", e);
-        }
-        
-        // 如果interview_dynamic_config中没有，尝试从interview_depth_levels读取
-        try {
-            String configValue = getConfigValue("config", "interview_depth_levels").orElse("[]");
-            // interview_depth_levels可能直接是数组格式
-            JsonNode rootNode = objectMapper.readTree(configValue);
-            if (rootNode.isArray()) {
-                List<Map<String, Object>> depthLevels = new ArrayList<>();
-                for (JsonNode levelNode : rootNode) {
-                    Map<String, Object> level = new HashMap<>();
-                    if (levelNode.has("id")) level.put("id", levelNode.get("id").asText());
-                    if (levelNode.has("name")) level.put("name", levelNode.get("name").asText());
-                    if (levelNode.has("text")) level.put("text", levelNode.get("text").asText());
-                    if (levelNode.has("description")) level.put("description", levelNode.get("description").asText());
-                    depthLevels.add(level);
-                }
-                return Optional.of(depthLevels);
-            }
-        } catch (Exception e) {
-            logger.error("从interview_depth_levels获取深度级别配置失败", e);
-        }
-        
-        return Optional.empty();
-    }
-
-    /**
      * 获取默认会话时长
      * @return 默认会话时长（秒），默认为900秒
      */
@@ -226,15 +223,6 @@ public class DynamicConfigService {
         return getConfigValue("system", "default_session_seconds")
                 .map(Integer::parseInt)
                 .orElse(900);
-    }
-
-    /**
-     * 获取默认面试官风格
-     * @return 默认面试官风格ID，使用原有项目的默认值"friendly"
-     */
-    public String getDefaultPersona() {
-        // 使用原有项目的默认面试官风格，保持兼容性
-        return getConfigValue("config", "default_persona").orElse("friendly");
     }
 
     /**

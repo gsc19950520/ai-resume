@@ -605,7 +605,7 @@ public class InterviewServiceImpl implements InterviewService {
             session.setAiQuestionSeed(new Random().nextInt(1000));
             
             // 设置动态面试参数
-            session.setPersona(StringUtils.hasText(persona) ? persona : dynamicConfigService.getDefaultPersona());
+            session.setPersona(StringUtils.hasText(persona) ? persona : "professional");
             session.setSessionSeconds(sessionSeconds != null ? sessionSeconds : dynamicConfigService.getDefaultSessionSeconds());
             session.setSessionTimeRemaining(session.getSessionSeconds());
             
@@ -1048,9 +1048,23 @@ public class InterviewServiceImpl implements InterviewService {
             Optional<List<Map<String, Object>>> personasOpt = dynamicConfigService.getInterviewPersonas();
             if (personasOpt.isPresent()) {
                 for (Map<String, Object> persona : personasOpt.get()) {
-                    if (personaId.equals(persona.get("id"))) {
-                        // 只返回基本描述，保持原有风格
-                        return (String) persona.get("description");
+                    // 匹配config_key字段作为personaId
+                    if (personaId.equals(persona.get("config_key"))) {
+                        // 解析config_value JSON获取prompt或description
+                        try {
+                            String configValue = (String) persona.get("config_value");
+                            JsonNode jsonNode = objectMapper.readTree(configValue);
+                            // 优先使用prompt字段，如果不存在则使用description字段
+                            if (jsonNode.has("prompt") && !jsonNode.get("prompt").isNull()) {
+                                return jsonNode.get("prompt").asText();
+                            } else if (jsonNode.has("description") && !jsonNode.get("description").isNull()) {
+                                return jsonNode.get("description").asText();
+                            }
+                        } catch (IOException e) {
+                            log.error("解析面试官风格配置JSON失败", e);
+                            // JSON解析失败时继续循环查找下一个匹配项
+                            continue;
+                        }
                     }
                 }
             }
@@ -1060,26 +1074,22 @@ public class InterviewServiceImpl implements InterviewService {
         
         // 回退到硬编码的风格描述，保持与原有项目一致
         switch (personaId) {
-            case "friendly":
-                return "语气友好、平易近人，创造轻松的面试氛围。";
-            case "colloquial":
-                return "轻松自然，像朋友聊天一样。适合练习表达与思维。";
-            case "formal":
-                return "逻辑清晰、专业正式，模拟真实企业面试场景。";
-            case "manager":
-                return "偏重项目成果与业务价值，关注你的思考与协作方式。";
-            case "analytical":
-                return "冷静分析型面试官，逻辑严谨、问题拆解式提问，适合技术深度练习。";
-            case "encouraging":
-                return "鼓励型面试官，语气温和积极，注重引导思考与成长体验。";
-            case "pressure":
-                return "压力面风格，高强度提问，快速节奏模拟顶级面试场景。";
-            case "mentor":
-                return "友善风格面试官，以友好、鼓励的方式进行面试。";
-            case "neutral":
-                return "中性面试官，保持客观、专业的面试风格。";
-            case "challenging":
-                return "挑战性面试官，提出深入的技术问题，挑战候选人的极限。";
+            case "professional":
+                return "专业严谨型面试官，逻辑清晰、问题深入，严格评估技术能力和项目经验。";
+            case "funny":
+                return "搞怪幽默型面试官，问题充满趣味，用搞笑的方式引导面试，让氛围轻松愉快。";
+            case "philosophical":
+                return "抽象哲学型面试官，用哲学思维提问，探索技术背后的本质和意义。";
+            case "crazy":
+                return "抽风跳跃型面试官，问题跳跃性强，思维发散，考验随机应变能力。";
+            case "anime":
+                return "中二热血型面试官，充满动漫风格的热血提问，让面试像动漫剧情一样精彩。";
+            case "healing":
+                return "温柔治愈型面试官，语气温柔亲切，像心理咨询师一样引导和鼓励。";
+            case "sharp":
+                return "毒舌犀利型面试官，点评尖锐但幽默，用调侃的方式指出问题。";
+            case "retro":
+                return "怀旧复古型面试官，用老式面试方式提问，充满年代感。";
             default:
                 return "专业面试官，语气客观中立，关注事实和技术能力。";
         }

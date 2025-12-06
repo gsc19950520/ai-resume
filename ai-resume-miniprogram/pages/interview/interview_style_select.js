@@ -213,12 +213,26 @@ Page({
         this.setData({
           personas: config.data.personas
         });
+        // 默认选中第一个风格
+        if (config.data.personas.length > 0 && !this.data.selectedPersona) {
+          this.setData({
+            selectedPersona: config.data.personas[0].id,
+            previewQuestion: config.data.personas[0].example || '请选择一种面试官风格体验不同的面试方式'
+          });
+        }
       } else {
         // 如果获取失败或没有数据，使用默认配置
         const defaultPersonas = this.getDefaultPersonas();
         this.setData({
           personas: defaultPersonas
         });
+        // 默认选中第一个风格
+        if (defaultPersonas.length > 0 && !this.data.selectedPersona) {
+          this.setData({
+            selectedPersona: defaultPersonas[0].id,
+            previewQuestion: defaultPersonas[0].example || '请选择一种面试官风格体验不同的面试方式'
+          });
+        }
       }
     } catch (error) {
       console.error('获取面试官风格配置失败:', error);
@@ -227,6 +241,13 @@ Page({
       this.setData({
         personas: defaultPersonas
       });
+      // 默认选中第一个风格
+      if (defaultPersonas.length > 0 && !this.data.selectedPersona) {
+        this.setData({
+          selectedPersona: defaultPersonas[0].id,
+          previewQuestion: defaultPersonas[0].example || '请选择一种面试官风格体验不同的面试方式'
+        });
+      }
     }
   },
 
@@ -234,32 +255,60 @@ Page({
   getDefaultPersonas: function() {
     return [
       { 
-        id: 'colloquial', 
-        name: '口语化', 
-        emoji: '💬',
-        description: '轻松自然，像朋友聊天一样。适合练习表达与思维。',
-        example: '你平时在项目里主要怎么用这个框架的？讲讲你的思路。'
-      },
-      { 
-        id: 'formal', 
-        name: '正式面试', 
+        id: 'professional', 
+        name: '专业严谨型', 
         emoji: '🎓',
-        description: '逻辑清晰、专业正式，模拟真实企业面试场景。',
-        example: '请详细说明你在该项目中负责的模块及技术实现。'
+        description: '逻辑清晰、专业正式，严格评估技术能力和项目经验，注重细节和方法论。',
+        example: '请详细说明你在该项目中负责的模块架构设计及其技术选型理由。'
       },
       { 
-        id: 'manager', 
-        name: '主管语气', 
+        id: 'funny', 
+        name: '搞怪幽默型', 
+        emoji: '🤡',
+        description: '轻松活泼，喜欢用幽默方式提问，让面试过程充满乐趣。',
+        example: '如果让你用一个表情包形容你写的代码，你会选哪个？为什么？'
+      },
+      { 
+        id: 'philosophical', 
+        name: '抽象哲学型', 
         emoji: '🧠',
-        description: '偏重项目成果与业务价值，关注你的思考与协作方式。',
-        example: '这个优化最终提升了什么指标？对团队交付有什么帮助？'
+        description: '喜欢探讨技术背后的本质和意义，提问具有深度和哲理性。',
+        example: '你认为技术创新的本质是什么？它如何影响人类的思维方式？'
       },
       { 
-        id: 'encouraging', 
-        name: '鼓励型', 
-        emoji: '🌱',
-        description: '语气温和积极，注重引导思考与成长体验。',
-        example: '你的思路挺好，可以再具体举个例子来支撑一下吗？'
+        id: 'crazy', 
+        name: '抽风跳跃型', 
+        emoji: '🐇',
+        description: '思维跳跃，话题转换快，考验你的应变能力和知识面广度。',
+        example: '先聊聊微服务架构，哦对了，你平时喜欢看什么电影？和编程有什么关联吗？'
+      },
+      { 
+        id: 'anime', 
+        name: '中二热血型', 
+        emoji: '⚡',
+        description: '充满激情和活力，喜欢用动漫风格的语言和比喻。',
+        example: '作为一名开发者，你愿意成为拯救代码世界的英雄吗？请展示你的必杀技！'
+      },
+      { 
+        id: 'healing', 
+        name: '温柔治愈型', 
+        description: '语气温和亲切，善于引导和鼓励，营造轻松的面试氛围。',
+        emoji: '🌈',
+        example: '你在项目中遇到过什么困难吗？当时你是怎么应对的？我相信你一定做得很好。'
+      },
+      { 
+        id: 'sharp', 
+        name: '毒舌犀利型', 
+        emoji: '😏',
+        description: '言辞犀利，直击要害，喜欢挑战你的观点和技术能力。',
+        example: '这个方案漏洞百出，你真的觉得它能在实际环境中运行吗？'
+      },
+      { 
+        id: 'retro', 
+        name: '怀旧复古型', 
+        emoji: '🕰️',
+        description: '喜欢从历史角度看待技术发展，注重基础知识和经典技术。',
+        example: '你了解计算机科学的经典算法吗？它们如何影响现代技术的发展？'
       }
     ];
   },
@@ -300,7 +349,7 @@ Page({
     if (selectedPersona) {
       this.setData({
         selectedPersona: personaId,
-        previewQuestion: selectedPersona.example
+        previewQuestion: selectedPersona.example || '请选择一种面试官风格体验不同的面试方式'
       });
     }
   },

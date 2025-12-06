@@ -40,8 +40,8 @@ public class InterviewSession {
 
 
     // 新增字段 - 动态面试相关
-    @Column(name = "persona", length = 50, columnDefinition = "varchar(50) default 'friendly'")
-    private String persona = "friendly"; // 面试官风格：friendly, neutral, challenging
+    @Column(name = "persona", length = 50, columnDefinition = "varchar(50) default 'professional'")
+    private String persona = "professional"; // 面试官风格：professional, funny, philosophical, crazy, anime, healing, sharp, retro
     
     @Column(name = "session_seconds", columnDefinition = "int default 900")
     private Integer sessionSeconds = 600; // 会话总时长（秒）
