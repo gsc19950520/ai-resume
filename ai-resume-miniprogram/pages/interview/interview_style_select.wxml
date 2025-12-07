@@ -49,14 +49,7 @@
       <view class="persona-card {{selectedPersona === item.id ? 'selected' : ''}}" wx:for="{{personas}}" wx:key="id" data-id="{{item.id}}" bindtap="selectPersona">
         <view class="persona-emoji">{{item.emoji}}</view>
         <view class="persona-name">{{item.name}}</view>
-        <view class="persona-description">{{item.description}}</view>
       </view>
-    </view>
-    
-    <!-- 预览问题 -->
-    <view class="preview-section">
-      <view class="preview-title">预览问题</view>
-      <view class="preview-question">{{previewQuestion || '请先选择面试官风格'}}</view>
     </view>
     
       <!-- 开始面试按钮 -->

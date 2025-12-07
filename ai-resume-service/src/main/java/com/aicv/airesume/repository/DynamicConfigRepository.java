@@ -30,6 +30,11 @@ public interface DynamicConfigRepository extends JpaRepository<DynamicConfig, Lo
     List<DynamicConfig> findByConfigTypeAndIsActiveTrue(String configType);
 
     /**
+     * 根据配置类型查询所有配置列表（包括禁用的）
+     */
+    List<DynamicConfig> findByConfigType(String configType);
+
+    /**
      * 查询所有启用的配置
      */
     List<DynamicConfig> findByIsActiveTrue();

@@ -1,5 +1,6 @@
 package com.aicv.airesume.service.impl;
 
+import com.aicv.airesume.entity.DynamicConfig;
 import com.aicv.airesume.entity.InterviewSession;
 import com.aicv.airesume.entity.JobType;
 import com.aicv.airesume.entity.InterviewLog;
@@ -1043,27 +1044,16 @@ public class InterviewServiceImpl implements InterviewService {
      * 根据面试官风格ID增强风格描述
      */
     private String enhancePersonaWithStyle(String personaId) {
-        // 优先从动态配置获取面试官风格描述
+        // 优先从动态配置获取面试官风格描述，直接使用DynamicConfig实体类对象
         try {
-            Optional<List<Map<String, Object>>> personasOpt = dynamicConfigService.getInterviewPersonas();
+            Optional<List<DynamicConfig>> personasOpt = dynamicConfigService.getInterviewPersonasAsDynamicConfigs();
             if (personasOpt.isPresent()) {
-                for (Map<String, Object> persona : personasOpt.get()) {
-                    // 匹配config_key字段作为personaId
-                    if (personaId.equals(persona.get("config_key"))) {
-                        // 解析config_value JSON获取prompt或description
-                        try {
-                            String configValue = (String) persona.get("config_value");
-                            JsonNode jsonNode = objectMapper.readTree(configValue);
-                            // 优先使用prompt字段，如果不存在则使用description字段
-                            if (jsonNode.has("prompt") && !jsonNode.get("prompt").isNull()) {
-                                return jsonNode.get("prompt").asText();
-                            } else if (jsonNode.has("description") && !jsonNode.get("description").isNull()) {
-                                return jsonNode.get("description").asText();
-                            }
-                        } catch (IOException e) {
-                            log.error("解析面试官风格配置JSON失败", e);
-                            // JSON解析失败时继续循环查找下一个匹配项
-                            continue;
+                for (DynamicConfig persona : personasOpt.get()) {
+                    // 匹配configKey作为personaId
+                    if (personaId.equals(persona.getConfigKey())) {
+                        // 直接使用configValue作为prompt
+                        if (StringUtils.hasText(persona.getConfigValue())) {
+                            return persona.getConfigValue();
                         }
                     }
                 }
@@ -1075,21 +1065,21 @@ public class InterviewServiceImpl implements InterviewService {
         // 回退到硬编码的风格描述，保持与原有项目一致
         switch (personaId) {
             case "professional":
-                return "专业严谨型面试官，逻辑清晰、问题深入，严格评估技术能力和项目经验。";
+                return "你是一位专业严谨的资深技术面试官。请使用以下风格：1.问题结构清晰，逻辑严密，层层递进；2.聚焦技术深度和实现细节；3.要求候选人提供具体案例和数据支撑；4.严格按照专业标准进行评估；5.语言正式、客观，避免情绪化表达；6.注重考察系统设计能力和问题解决思路。";
             case "funny":
-                return "搞怪幽默型面试官，问题充满趣味，用搞笑的方式引导面试，让氛围轻松愉快。";
+                return "你是一位搞怪幽默的技术面试官。请使用以下风格：1.语言风趣幽默，加入适当的网络流行语和调侃；2.问题设计充满创意，避免枯燥的常规提问；3.用轻松的方式引导候选人，缓解紧张情绪；4.在专业评估的基础上增加趣味性；5.保持微笑和热情的语气；6.可以用比喻、夸张等修辞手法增加表达的趣味性。";
             case "philosophical":
-                return "抽象哲学型面试官，用哲学思维提问，探索技术背后的本质和意义。";
+                return "你是一位抽象哲学型技术面试官。请使用以下风格：1.从哲学层面提问，探索技术的本质和意义；2.引导候选人思考技术与人类、社会、伦理的关系；3.问题具有启发性和开放性，不追求标准答案；4.关注候选人的思维深度和洞察力；5.使用富有哲理的语言表达；6.鼓励候选人提出自己的观点和思考过程。";
             case "crazy":
-                return "抽风跳跃型面试官，问题跳跃性强，思维发散，考验随机应变能力。";
+                return "你是一位抽风跳跃型技术面试官。请使用以下风格：1.问题之间没有明显的逻辑关联，随机切换话题；2.从技术细节突然跳到宏观架构，再到个人兴趣；3.考验候选人的快速思维和随机应变能力；4.保持活泼、随意的语气；5.问题形式多样化，包括技术、非技术、突发场景等；6.观察候选人在压力下的表现和适应能力。";
             case "anime":
-                return "中二热血型面试官，充满动漫风格的热血提问，让面试像动漫剧情一样精彩。";
+                return "你是一位中二热血型技术面试官。请使用以下风格：1.语言充满动漫风格，使用夸张的词汇和语气；2.将技术面试比喻为冒险、战斗或拯救世界的任务；3.使用热血、激情的表达，如\"让我看看你的真正实力！\"、\"这就是你的极限吗？\"；4.加入动漫式的感叹词和肢体语言描述；5.激发候选人的斗志和竞争意识；6.保持积极向上的热血氛围。";
             case "healing":
-                return "温柔治愈型面试官，语气温柔亲切，像心理咨询师一样引导和鼓励。";
+                return "你是一位温柔治愈型技术面试官。请使用以下风格：1.语气温柔亲切，语速适中，充满耐心；2.使用鼓励性的语言，如\"没关系，慢慢想\"、\"这个想法很不错\"；3.像心理咨询师一样倾听和引导，关注候选人的情绪变化；4.提供积极的反馈和肯定；5.营造安全、包容的面试氛围；6.帮助候选人放松心情，减轻压力。";
             case "sharp":
-                return "毒舌犀利型面试官，点评尖锐但幽默，用调侃的方式指出问题。";
+                return "你是一位毒舌犀利型技术面试官。请使用以下风格：1.语言尖锐直接，一针见血地指出问题；2.加入幽默的调侃和讽刺，避免生硬指责；3.提问具有挑战性，考验候选人的抗压能力；4.使用反问和质疑的方式激发候选人思考；5.保持专业但略带调侃的语气；6.点评犀利但有建设性，帮助候选人认识不足。";
             case "retro":
-                return "怀旧复古型面试官，用老式面试方式提问，充满年代感。";
+                return "你是一位怀旧复古型技术面试官。请使用以下风格：1.使用传统的面试方式，注重基础知识和经典技术；2.语言正式庄重，避免现代流行语；3.提问聚焦于算法、数据结构、编程语言基础等核心内容；4.重视扎实的基本功和传统价值观；5.保持礼貌和谦逊的态度；6.可以提及过去的技术发展历史，增加怀旧感。";
             default:
                 return "专业面试官，语气客观中立，关注事实和技术能力。";
         }
@@ -1166,32 +1156,33 @@ public class InterviewServiceImpl implements InterviewService {
         
         // 根据不同情况构建prompt，完整对话历史由AiServiceUtils的getConversationHistory处理
         if (needSwitchTopic) {
+            userPromptBuilder.append("请生成下一个面试题。\n");
             // 切换话题：生成全新的问题
-            log.info("切换话题，生成全新问题，类型：{}", currentQuestionType);
-            userPromptBuilder.append("请基于候选人的简历内容和之前的面试上下文，生成一个全新的、与之前完全不同的面试问题。\n");
-            userPromptBuilder.append(questionTypePrompt);
-            userPromptBuilder.append("不要与上一题有任何关联。\n");
+            // log.info("切换话题，生成全新问题，类型：{}", currentQuestionType);
+            // userPromptBuilder.append("请基于候选人的简历内容和之前的面试上下文，生成一个全新的、与之前完全不同的面试问题。\n");
+            // userPromptBuilder.append(questionTypePrompt);
+            // userPromptBuilder.append("不要与上一题有任何关联。\n");
+            // // 动态信息（每次生成问题时需要更新）
+            // userPromptBuilder.append(String.format("- 已使用技术项：%s\n", usedTechItems));
+            // userPromptBuilder.append(String.format("- 已使用项目点：%s\n", usedProjectPoints));
+            // userPromptBuilder.append(String.format("- 当前深度级别：%s\n", currentDepthLevel));
+            // userPromptBuilder.append(String.format("- 剩余时间：%d秒\n", sessionTimeRemaining));
+            // userPromptBuilder.append("- 若时间<60s或连续两次回答偏离主题，则进入总结问题。\n");
         } else if (StringUtils.hasText(previousQuestion) && StringUtils.hasText(previousAnswer)) {
+            userPromptBuilder.append("请生成下一个面试题。\n");
             // 后续问题：基于完整的对话历史生成下一个相关问题
-            userPromptBuilder.append("请根据之前的完整面试对话历史，生成下一个相关的面试问题。\n");
-            userPromptBuilder.append(questionTypePrompt);
+            // userPromptBuilder.append("请根据之前的完整面试对话历史，生成下一个相关的面试问题。\n");
+            // userPromptBuilder.append(questionTypePrompt);
+            // // 动态信息（每次生成问题时需要更新）
+            // userPromptBuilder.append(String.format("- 已使用技术项：%s\n", usedTechItems));
+            // userPromptBuilder.append(String.format("- 已使用项目点：%s\n", usedProjectPoints));
+            // userPromptBuilder.append(String.format("- 当前深度级别：%s\n", currentDepthLevel));
+            // userPromptBuilder.append(String.format("- 剩余时间：%d秒\n", sessionTimeRemaining));
+            // userPromptBuilder.append("- 若时间<60s或连续两次回答偏离主题，则进入总结问题。\n");
         } else {
-            // 第一次生成问题：发送完整简历和问答要求
-            if (StringUtils.hasText(fullResumeContent)) {
-                userPromptBuilder.append("以下是候选人的完整简历内容：\n");
-                userPromptBuilder.append(fullResumeContent).append("\n\n");
-            }
             userPromptBuilder.append("请直接基于候选人的简历内容生成针对性的面试问题。\n");
             userPromptBuilder.append(questionTypePrompt);
         }
-        
-        // 动态信息（每次生成问题时需要更新）
-        userPromptBuilder.append(String.format("- 已使用技术项：%s\n", usedTechItems));
-        userPromptBuilder.append(String.format("- 已使用项目点：%s\n", usedProjectPoints));
-        userPromptBuilder.append(String.format("- 当前深度级别：%s\n", currentDepthLevel));
-        userPromptBuilder.append(String.format("- 剩余时间：%d秒\n", sessionTimeRemaining));
-        userPromptBuilder.append("- 若时间<60s或连续两次回答偏离主题，则进入总结问题。\n");
-        
         
         String systemPrompt = systemPromptBuilder.toString();
         String userPrompt = userPromptBuilder.toString();

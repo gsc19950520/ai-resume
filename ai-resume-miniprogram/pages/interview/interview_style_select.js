@@ -210,14 +210,28 @@ Page({
       // 优先从后端获取配置
       const config = await this.fetchPersonaConfigs();
       if (config && config.data.personas && config.data.personas.length > 0) {
+        // 获取默认配置用于映射emoji和example
+        const defaultPersonas = this.getDefaultPersonas();
+        
+        // 为每个从后端获取的persona添加emoji和example字段
+        const personas = config.data.personas.map(persona => {
+          // 根据id查找默认配置
+          const defaultPersona = defaultPersonas.find(p => p.id === persona.id);
+          return {
+            ...persona,
+            emoji: defaultPersona ? defaultPersona.emoji : '👤',
+            example: defaultPersona ? defaultPersona.example : ''
+          };
+        });
+        
         this.setData({
-          personas: config.data.personas
+          personas: personas
         });
         // 默认选中第一个风格
-        if (config.data.personas.length > 0 && !this.data.selectedPersona) {
+        if (personas.length > 0 && !this.data.selectedPersona) {
           this.setData({
-            selectedPersona: config.data.personas[0].id,
-            previewQuestion: config.data.personas[0].example || '请选择一种面试官风格体验不同的面试方式'
+            selectedPersona: personas[0].id,
+            previewQuestion: personas[0].example || '请选择一种面试官风格体验不同的面试方式'
           });
         }
       } else {
