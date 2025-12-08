@@ -612,7 +612,7 @@ public class InterviewServiceImpl implements InterviewService {
             
             // 生成并保存面试官风格提示词
             String personaStyle = enhancePersonaWithStyle(session.getPersona());
-            String personaPrompt = String.format("你是%s风格的面试官。%s\n请确保你生成的问题是单一的、独立的，只关注一个具体的知识点或技术点。\n", session.getPersona(), personaStyle);
+            String personaPrompt = String.format("你是%s风格的面试官。%s\n", session.getPersona(), personaStyle);
             session.setPersonaPrompt(personaPrompt);
             
             // 初始化面试状态，先不进行耗时的简历分析
@@ -1119,7 +1119,7 @@ public class InterviewServiceImpl implements InterviewService {
             } else {
                 // 否则重新生成并保存
                 String personaStyle = enhancePersonaWithStyle(persona);
-                String personaPrompt = String.format("你是%s风格的面试官。%s\n请确保你生成的问题是单一的、独立的，只关注一个具体的知识点或技术点。\n", persona, personaStyle);
+                String personaPrompt = String.format("你是%s风格的面试官。%s\n", persona, personaStyle);
                 systemPromptBuilder.append(personaPrompt);
                 
                 // 保存到session中（如果session存在）
@@ -1133,7 +1133,6 @@ public class InterviewServiceImpl implements InterviewService {
             // 失败时使用默认方式生成
             String personaStyle = enhancePersonaWithStyle(persona);
             systemPromptBuilder.append(String.format("你是%s风格的面试官。%s\n", persona, personaStyle));
-            systemPromptBuilder.append("请确保你生成的问题是单一的、独立的，只关注一个具体的知识点或技术点。\n");
         }
         
         // 构建用户提示词（包含动态内容和具体问题要求）
@@ -1171,8 +1170,6 @@ public class InterviewServiceImpl implements InterviewService {
         } else if (StringUtils.hasText(previousQuestion) && StringUtils.hasText(previousAnswer)) {
             userPromptBuilder.append("请生成下一个面试题。\n");
             // 后续问题：基于完整的对话历史生成下一个相关问题
-            // userPromptBuilder.append("请根据之前的完整面试对话历史，生成下一个相关的面试问题。\n");
-            // userPromptBuilder.append(questionTypePrompt);
             // // 动态信息（每次生成问题时需要更新）
             // userPromptBuilder.append(String.format("- 已使用技术项：%s\n", usedTechItems));
             // userPromptBuilder.append(String.format("- 已使用项目点：%s\n", usedProjectPoints));
@@ -1183,7 +1180,7 @@ public class InterviewServiceImpl implements InterviewService {
             userPromptBuilder.append("请直接基于候选人的简历内容生成针对性的面试问题。\n");
             userPromptBuilder.append(questionTypePrompt);
         }
-        
+        userPromptBuilder.append("整句话只能有一个问号。\n");
         String systemPrompt = systemPromptBuilder.toString();
         String userPrompt = userPromptBuilder.toString();
         
