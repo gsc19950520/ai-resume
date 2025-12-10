@@ -24,8 +24,6 @@ public class InterviewLog {
 
     @Column(name = "session_id", nullable = false, length = 100)
     private String sessionId;
-    
-    // private InterviewSession session; // 暂时注释掉关联对象
 
     @Column(name = "question_text", nullable = true, columnDefinition = "TEXT")
     private String questionText;
@@ -33,28 +31,8 @@ public class InterviewLog {
     @Column(name = "user_answer_text", columnDefinition = "TEXT")
     private String userAnswerText;
 
-
-
     @Column(name = "depth_level", length = 20)
     private String depthLevel;
-
-    @Column(name = "tech_score")
-    private Double techScore;
-
-    @Column(name = "logic_score")
-    private Double logicScore;
-
-    @Column(name = "clarity_score")
-    private Double clarityScore;
-
-    @Column(name = "depth_score")
-    private Double depthScore;
-
-    @Column(name = "feedback", columnDefinition = "TEXT")
-    private String feedback;
-
-    @Column(name = "matched_points", columnDefinition = "TEXT")
-    private String matchedPoints; // JSON格式存储
 
     @Column(name = "round_number", nullable = false)
     private Integer roundNumber;
@@ -63,23 +41,8 @@ public class InterviewLog {
     @Column(name = "answer_duration")
     private Integer answerDuration;
     
-    @Column(name = "related_tech_items", columnDefinition = "text")
-    private String relatedTechItems;
-    
-    @Column(name = "related_project_points", columnDefinition = "text")
-    private String relatedProjectPoints;
-    
     @Column(name = "expected_key_points", columnDefinition = "text")
     private String expectedKeyPoints; // 期望的关键点，JSON格式存储
-    
-    @Column(name = "stop_reason", length = 100)
-    private String stopReason;
-    
-    @Column(name = "persona", length = 50)
-    private String persona; // 当前题目使用的面试官语气风格
-    
-    @Column(name = "ai_feedback_json", columnDefinition = "longtext")
-    private String aiFeedbackJson; // AI原始评分和分析结果
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

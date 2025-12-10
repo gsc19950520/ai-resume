@@ -1,8 +1,6 @@
 package com.aicv.airesume.utils;
 
 import com.alibaba.fastjson.JSONObject;
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONArray;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -18,19 +16,12 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.core.type.TypeReference;
-
 import com.aicv.airesume.entity.InterviewLog;
 import com.aicv.airesume.entity.InterviewSession;
 import com.aicv.airesume.repository.InterviewLogRepository;
 import com.aicv.airesume.repository.InterviewSessionRepository;
 import com.aicv.airesume.service.config.DynamicConfigService;
-
 import java.io.IOException;
-import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.ArrayList;
@@ -43,7 +34,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.Base64;
 import java.util.function.Consumer;
 
 /**
@@ -266,7 +256,7 @@ public class AiServiceUtils {
                     InterviewSession session = sessionOptional.get();
                     
                     // 添加简历内容作为系统消息（仅在会话开始时添加一次）
-                    if (session.getResumeContent() != null && !session.getResumeContent().isEmpty()) {
+                    if (StringUtils.hasText(session.getResumeContent())) {
                         Map<String, String> resumeMessage = new HashMap<>();
                         resumeMessage.put("role", "system");
                         resumeMessage.put("content", "以下是候选人的完整简历内容：\n" + session.getResumeContent());
@@ -289,15 +279,6 @@ public class AiServiceUtils {
                         rulesMessage.put("role", "system");
                         rulesMessage.put("content", generalRules);
                         messages.add(rulesMessage);
-                    }
-                    
-                    // 添加输出格式作为系统消息
-                    String outputFormat = dynamicConfigService.getConfigValue("INTERVIEW", "OUTPUT_FORMAT").orElse(null);
-                    if (StringUtils.hasText(outputFormat)) {
-                        Map<String, String> formatMessage = new HashMap<>();
-                        formatMessage.put("role", "system");
-                        formatMessage.put("content", outputFormat);
-                        messages.add(formatMessage);
                     }
                     
                     // 添加自定义系统提示词（如果有）
@@ -329,13 +310,6 @@ public class AiServiceUtils {
                         messages.add(userMessage);
                     }
                     
-                    // 添加AI反馈作为assistant角色（如果有）
-                    if (log.getFeedback() != null && !log.getFeedback().isEmpty()) {
-                        Map<String, String> feedbackMessage = new HashMap<>();
-                        feedbackMessage.put("role", "assistant");
-                        feedbackMessage.put("content", log.getFeedback());
-                        messages.add(feedbackMessage);
-                    }
                 }
             } catch (Exception e) {
                 log.error("获取对话历史失败: {}", e.getMessage(), e);
@@ -410,12 +384,9 @@ public class AiServiceUtils {
 
                 log.info("Sending streaming request to DeepSeek API: {}", JSONObject.toJSONString(requestBody));
 
-                // ======= 保留原逻辑变量 =======
-                boolean[] isExtractingMetadata = {false};
-                StringBuilder[] metadataBuilder = {new StringBuilder()};
-                StringBuilder[] currentContentBuffer = {new StringBuilder()};
-                boolean[] metadataProcessed = {false};
+                // ======= 流式请求变量 =======
                 StringBuilder[] fullQuestionBuffer = {new StringBuilder()};
+                // 移除了元数据处理相关变量
 
                 // ======= WebClient 流式请求 =======
                 webClient.post()
@@ -460,44 +431,11 @@ public class AiServiceUtils {
                                         }
                                         
                                         if (emitter != null) {
-                                            if ("report".equals(eventName)) {
-                                                if (!emitterClosed.get()) {
-                                                    emitter.send(SseEmitter.event().name(eventName).data(content));
-                                                }
-                                                fullQuestionBuffer[0].append(content);
-                                            } else if (metadataProcessed[0]) {
-                                                if (!emitterClosed.get()) {
-                                                    emitter.send(SseEmitter.event().name(eventName).data(content));
-                                                }
-                                                fullQuestionBuffer[0].append(content);
-                                            } else {
-                                                currentContentBuffer[0].append(content);
-                                                String buffer = currentContentBuffer[0].toString();
-
-                                                int startIndex = buffer.indexOf("# 元数据开始");
-                                                int endIndex = buffer.indexOf("# 元数据结束");
-
-                                                if (startIndex != -1 && endIndex != -1) {
-                                                    String metadataContent = buffer.substring(startIndex, endIndex + "# 元数据结束".length());
-                                                    log.info("Extracted complete metadata block: {}", metadataContent);
-
-                                                    String metadataJsonStr = buffer.substring(startIndex + "# 元数据开始".length(), endIndex).trim();
-                                                    if (!metadataJsonStr.isEmpty()) {
-                                                        saveMetadataAsync(metadataJsonStr, sessionId);
-                                                    }
-
-                                                    if (endIndex + "# 元数据结束".length() < buffer.length()) {
-                                                        String questionPart = buffer.substring(endIndex + "# 元数据结束".length());
-                                                        if (!questionPart.isEmpty() && !emitterClosed.get()) {
-                                                            emitter.send(SseEmitter.event().name(eventName).data(questionPart));
-                                                        }
-                                                        fullQuestionBuffer[0].append(questionPart);
-                                                    }
-
-                                                    metadataProcessed[0] = true;
-                                                    currentContentBuffer[0].setLength(0);
-                                                }
+                                            // 直接流式输出内容，不进行元数据处理
+                                            if (!emitterClosed.get()) {
+                                                emitter.send(SseEmitter.event().name(eventName).data(content));
                                             }
+                                            fullQuestionBuffer[0].append(content);
                                         }
                                     } catch (Exception e) {
                                         log.error("Error processing streaming line: {}", e.getMessage(), e);
@@ -556,93 +494,9 @@ public class AiServiceUtils {
 
 
     
-    /**
-     * 异步保存元数据到数据库
-     *
-     * @param metadataJsonStr 元数据JSON字符串
-     * @param sessionId 会话ID
-     */
-    private void saveMetadataAsync(String metadataJsonStr, String sessionId) {
-        executorService.submit(() -> {
-            try {
-                // 解析元数据
-                JSONObject metadata = JSONObject.parseObject(metadataJsonStr);
-                String depthLevel = metadata.getString("depthLevel");
-                JSONArray expectedKeyPointsJson = metadata.getJSONArray("expectedKeyPoints");
-                String relatedTech = metadata.getString("relatedTech");
-                String relatedProjectPoint = metadata.getString("relatedProjectPoint");
-                
-                // 将JSONArray转换为List
-                List<String> expectedKeyPoints = new ArrayList<>();
-                for (int i = 0; i < expectedKeyPointsJson.size(); i++) {
-                    expectedKeyPoints.add(expectedKeyPointsJson.getString(i));
-                }
-                
-                // 获取最新的面试日志，更新元数据
-                // 找到轮次号最大且问题文本为空的记录（这是刚创建的新问题记录）
-                List<InterviewLog> logs = interviewLogRepository.findBySessionIdOrderByRoundNumberDesc(sessionId);
-                if (!logs.isEmpty()) {
-                    InterviewLog latestLog = null;
-                    for (InterviewLog log : logs) {
-                        if (!StringUtils.hasText(log.getQuestionText())) {
-                            latestLog = log;
-                            break;
-                        }
-                    }
-                    
-                    // 如果没有找到问题文本为空的记录，就使用最新的记录
-                    if (latestLog == null) {
-                        latestLog = logs.get(0);
-                    }
-                    
-                    latestLog.setDepthLevel(depthLevel);
-                    latestLog.setExpectedKeyPoints(JSON.toJSONString(expectedKeyPoints));
-                    latestLog.setRelatedTechItems(relatedTech);
-                    latestLog.setRelatedProjectPoints(relatedProjectPoint);
-                    
-                    // 保存到数据库
-                    interviewLogRepository.save(latestLog);
-                    log.info("元数据保存成功，会话ID：{}", sessionId);
-                }
-                
-                // 更新会话的 usedTechItems 和 usedProjectPoints
-                Optional<InterviewSession> sessionOpt = interviewSessionRepository.findBySessionId(sessionId);
-                if (sessionOpt.isPresent()) {
-                    InterviewSession session = sessionOpt.get();
-                    String interviewStateStr = session.getInterviewState();
-                    Map<String, Object> interviewState = new HashMap<>();
-                    
-                    // 解析 interviewState
-                    if (StringUtils.hasText(interviewStateStr)) {
-                        interviewState = JSONObject.parseObject(interviewStateStr);
-                    }
-                    
-                    // 获取或初始化 usedTechItems
-                    List<String> usedTechItems = (List<String>) interviewState.getOrDefault("usedTechItems", new ArrayList<>());
-                    if (StringUtils.hasText(relatedTech) && !usedTechItems.contains(relatedTech)) {
-                        usedTechItems.add(relatedTech);
-                        log.info("添加技术项到已使用列表：{}，会话ID：{}", relatedTech, sessionId);
-                    }
-                    
-                    // 获取或初始化 usedProjectPoints
-                    List<String> usedProjectPoints = (List<String>) interviewState.getOrDefault("usedProjectPoints", new ArrayList<>());
-                    if (StringUtils.hasText(relatedProjectPoint) && !usedProjectPoints.contains(relatedProjectPoint)) {
-                        usedProjectPoints.add(relatedProjectPoint);
-                        log.info("添加项目点到已使用列表：{}，会话ID：{}", relatedProjectPoint, sessionId);
-                    }
-                    
-                    // 更新 interviewState 并保存到数据库
-                    interviewState.put("usedTechItems", usedTechItems);
-                    interviewState.put("usedProjectPoints", usedProjectPoints);
-                    session.setInterviewState(JSON.toJSONString(interviewState));
-                    interviewSessionRepository.save(session);
-                    log.info("更新会话已使用列表成功，会话ID：{}", sessionId);
-                }
-            } catch (Exception e) {
-                log.error("解析并保存元数据失败：{}", e.getMessage(), e);
-            }
-        });
-    }
+    // 元数据处理逻辑已移除，现在直接流式输出内容
+    
+
     
     /**
      * 异步保存完整问题文本到数据库
@@ -680,86 +534,5 @@ public class AiServiceUtils {
                 log.error("保存完整问题失败：{}", e.getMessage(), e);
             }
         });
-    }
-    
-    /**
-     * 评估面试回答
-     * @param questionText 问题文本
-     * @param userAnswerText 用户回答文本
-     * @param expectedKeyPoints 期望的关键点
-     * @param depthLevel 当前问题的深度级别
-     * @param relatedTech 相关技术点
-     * @param persona 面试官风格
-     * @return 评分结果，包含技术分、逻辑分、清晰度分、深度分
-     */
-    public Map<String, Double> assessInterviewAnswer(String questionText, String userAnswerText, List<String> expectedKeyPoints, String depthLevel, String relatedTech, String persona) {
-        // 构建评分prompt，结合元数据进行更准确的评分
-        StringBuilder prompt = new StringBuilder();
-        prompt.append("作为一个专业的面试官，请根据以下信息对候选人的回答进行评分：\n");
-        prompt.append("\n1. 问题：");
-        prompt.append(questionText);
-        prompt.append("\n2. 问题深度级别：");
-        prompt.append(depthLevel);
-        prompt.append("\n3. 相关技术点：");
-        prompt.append(relatedTech);
-        prompt.append("\n4. 期望的关键点：");
-        prompt.append(expectedKeyPoints != null ? expectedKeyPoints.toString() : "无");
-        prompt.append("\n5. 候选人回答：");
-        prompt.append(userAnswerText);
-        prompt.append("\n6. 面试官风格：");
-        prompt.append(persona);
-        prompt.append("\n\n请按照以下格式返回评分结果，只返回JSON，不要添加任何其他说明：");
-        prompt.append("\n{");
-        prompt.append("\"tech\": 技术分（0-100）,");
-        prompt.append("\"logic\": 逻辑分（0-100）,");
-        prompt.append("\"clarity\": 清晰度分（0-100）,");
-        prompt.append("\"depth\": 深度分（0-100）");
-        prompt.append("}");
-        
-        try {
-            // 调用DeepSeek API进行评分
-            // 构建请求参数
-            Map<String, Object> requestBody = new HashMap<>();
-            requestBody.put("model", "deepseek-chat");
-            
-            List<Map<String, String>> messages = new ArrayList<>();
-            
-            Map<String, String> systemMessage = new HashMap<>();
-            systemMessage.put("role", "system");
-            systemMessage.put("content", "你是一个专业的技术面试官，擅长对候选人的回答进行评分。");
-            messages.add(systemMessage);
-            
-            Map<String, String> userMessage = new HashMap<>();
-            userMessage.put("role", "user");
-            userMessage.put("content", prompt.toString());
-            messages.add(userMessage);
-            
-            requestBody.put("messages", messages);
-            requestBody.put("stream", false);
-            log.info("调用deepseek计算评分请求参数：{}", JSONObject.toJSONString(requestBody));
-            String response = webClient.post()
-                    .uri(deepseekApiUrl)
-                    .header("Authorization", "Bearer " + deepseekApiKey)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .bodyValue(requestBody)
-                    .retrieve()
-                    .bodyToMono(String.class)
-                    .block();
-            log.info("调用deepseek计算评分响应结果：{}", JSONObject.toJSONString(response));
-            // 解析评分结果
-            ObjectMapper objectMapper = new ObjectMapper();
-            JsonNode rootNode = objectMapper.readTree(response);
-            String content = rootNode.path("choices").get(0).path("message").path("content").asText();
-            return objectMapper.readValue(content, new TypeReference<Map<String, Double>>() {});
-        } catch (Exception e) {
-            log.error("Error assessing interview answer: {}", e.getMessage(), e);
-            // 如果调用失败，返回默认评分
-            Map<String, Double> defaultScores = new HashMap<>();
-            defaultScores.put("tech", 75.0);
-            defaultScores.put("logic", 75.0);
-            defaultScores.put("clarity", 75.0);
-            defaultScores.put("depth", 75.0);
-            return defaultScores;
-        }
     }
 }

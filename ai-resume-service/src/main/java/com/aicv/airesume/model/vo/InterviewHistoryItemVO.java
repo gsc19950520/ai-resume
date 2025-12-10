@@ -38,17 +38,6 @@ public class InterviewHistoryItemVO {
         // 设置轮次
         vo.setRoundNumber(log.getRoundNumber());
         
-        // 设置匹配点
-        vo.setMatchedPoints(log.getMatchedPoints());
-        
-        // 设置评分
-        vo.setTechScore(log.getTechScore());
-        vo.setLogicScore(log.getLogicScore());
-        vo.setClarityScore(log.getClarityScore());
-        vo.setDepthScore(log.getDepthScore());
-        
-        // 设置反馈
-        vo.setFeedback(log.getFeedback());
         
         return vo;
     }

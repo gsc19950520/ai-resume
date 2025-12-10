@@ -28,16 +28,14 @@ public class InterviewSession {
     @Column(name = "resume_id", nullable = false)
     private Long resumeId;
 
-    @Column(name = "job_type_id", nullable = false, length = 100)
-    private Integer jobTypeId;
+    @Column(name = "job_name", nullable = false, length = 100)
+    private String jobName;
 
     @Column(name = "city", nullable = false, length = 50)
     private String city;
 
     @Column(name = "status", nullable = false, length = 20)
     private String status; // pending, in_progress, completed, canceled
-
-
 
     // 新增字段 - 动态面试相关
     @Column(name = "persona", length = 50, columnDefinition = "varchar(50) default 'professional'")
@@ -49,24 +47,12 @@ public class InterviewSession {
     @Column(name = "session_time_remaining", columnDefinition = "int default 900")
     private Integer sessionTimeRemaining = 600; // 剩余时间（秒）
     
-    @Column(name = "stop_reason", length = 100)
-    private String stopReason; // 停止原因
-    
     @CreationTimestamp
     @Column(name = "start_time", nullable = false, updatable = false)
     private LocalDateTime startTime; // 开始时间
     
     @Column(name = "end_time")
     private LocalDateTime endTime; // 结束时间
-    
-    @Column(name = "tech_items", columnDefinition = "text")
-    private String techItems;
-    
-    @Column(name = "project_points", columnDefinition = "text")
-    private String projectPoints;
-    
-    @Column(name = "interview_state", columnDefinition = "text")
-    private String interviewState;
     
     @Column(name = "ai_question_seed")
     private Integer aiQuestionSeed;

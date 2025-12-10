@@ -14,7 +14,6 @@
     "pages/resume/view/view",
     "pages/interview/interview",
     "pages/interview/interview_style_select",
-    "pages/interview/resume_analysis_result",
     "pages/interview/history",
     "pages/career/report",
     "pages/report/report",
