@@ -28,6 +28,7 @@ import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import com.aicv.airesume.entity.AiTraceLog;
 import com.aicv.airesume.repository.AiTraceLogRepository;
+import com.aicv.airesume.model.dto.StartReportRequest;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -198,12 +199,16 @@ public class InterviewController {
 
     /**
      * 开始生成面试报告
-     * @param sessionId 会话ID
+     * @param request 请求参数DTO
      * @return 报告ID
      */
-    @GetMapping("/start-report")
-    public BaseResponseVO startReportGeneration(@RequestParam String sessionId) {
-        String reportId = interviewService.startReportGeneration(sessionId);
+    @PostMapping("/start-report")
+    public BaseResponseVO startReportGeneration(@RequestBody StartReportRequest request) {
+        // 验证参数
+        if (request.getSessionId() == null || request.getSessionId().isEmpty()) {
+            return BaseResponseVO.error("缺少必要参数: sessionId");
+        }
+        String reportId = interviewService.startReportGeneration(request.getSessionId(), request.getLastAnswer());
         return BaseResponseVO.success(reportId);
     }
 

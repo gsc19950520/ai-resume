@@ -20,8 +20,20 @@ Page({
    * 生命周期函数--监听页面加载
    */
   onLoad(options) {
-    // 获取路由参数中的sessionId
+    // 获取路由参数中的sessionId和lastAnswer
     const sessionId = options.sessionId || '';
+    let lastAnswer = options.lastAnswer || '';
+    
+    // 对lastAnswer进行URL解码处理
+    if (lastAnswer) {
+      try {
+        lastAnswer = decodeURIComponent(lastAnswer);
+      } catch (e) {
+        console.warn('解码lastAnswer失败:', e);
+        // 解码失败时使用原始值
+      }
+    }
+    
     if (!sessionId) {
       wx.showToast({
         title: '缺少sessionId参数',
@@ -31,7 +43,8 @@ Page({
     }
 
     this.setData({
-      sessionId: sessionId
+      sessionId: sessionId,
+      lastAnswer: lastAnswer
     });
 
     // 初始化轮询相关变量
@@ -123,8 +136,11 @@ Page({
     });
 
     try {
-      // 调用开始生成报告接口，使用查询参数传递sessionId（后端接口已改为GET）
-      get(`/api/interview/start-report?sessionId=${sessionId}`)
+      // 调用开始生成报告接口，使用POST方法传递sessionId和lastAnswer
+      post('/api/interview/start-report', {
+        sessionId: sessionId,
+        lastAnswer: this.data.lastAnswer
+      })
         .then(res => {
           if (res && res.success && res.data) {
             this.reportId = res.data;

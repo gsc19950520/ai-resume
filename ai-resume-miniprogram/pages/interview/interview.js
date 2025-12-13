@@ -527,9 +527,12 @@ Page({
     // 有问答记录，生成报告
     wx.showLoading({ title: '正在生成报告...' });
     
-    // 跳转到报告页面，并传递sessionId，报告页面将使用流式API获取报告内容
+    // 获取最后一题的回答内容
+    const lastAnswer = this.data.userAnswer || '';
+    
+    // 跳转到报告页面，并传递sessionId和最后一题的回答内容，报告页面将使用流式API获取报告内容
     wx.redirectTo({
-      url: `/pages/report/report?sessionId=${encodeURIComponent(sessionId)}&useStream=true`
+      url: `/pages/report/report?sessionId=${encodeURIComponent(sessionId)}&useStream=true&lastAnswer=${encodeURIComponent(lastAnswer)}`
     });
   },
 

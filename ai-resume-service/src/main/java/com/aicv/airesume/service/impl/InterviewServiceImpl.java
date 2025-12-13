@@ -353,7 +353,7 @@ public class InterviewServiceImpl implements InterviewService {
     }
 
     @Override
-    public String startReportGeneration(String sessionId) {
+    public String startReportGeneration(String sessionId, String lastAnswer) {
         // 生成唯一的reportId
         String reportId = "report_" + UUID.randomUUID().toString().replace("-", "");
         
@@ -367,6 +367,29 @@ public class InterviewServiceImpl implements InterviewService {
                 InterviewSession session = sessionRepository.findBySessionId(sessionId)
                         .orElseThrow(() -> new RuntimeException("会话不存在"));
                 List<InterviewLog> logs = logRepository.findBySessionIdOrderByRoundNumberAsc(sessionId);
+                
+                // 2. 处理最后一题：更新或删除
+                if (!logs.isEmpty()) {
+                    InterviewLog lastLog = logs.get(logs.size() - 1);
+                    
+                    // 如果有传递最后一题的回答内容
+                    if (lastAnswer != null && !lastAnswer.trim().isEmpty()) {
+                        log.info("面试时间归零，接收到最后一题回答内容，更新到日志中，sessionId: {}", sessionId);
+                        lastLog.setUserAnswerText(lastAnswer.trim());
+                        logRepository.save(lastLog);
+                    } else {
+                        // 如果最后一个问题没有回答内容
+                        if (lastLog.getUserAnswerText() == null || lastLog.getUserAnswerText().trim().isEmpty()) {
+                            log.info("面试时间归零，最后一题无回答内容，删除最后一个问题，sessionId: {}", sessionId);
+                            logRepository.delete(lastLog);
+                            logs.remove(logs.size() - 1);
+                            // 更新会话的问题计数
+                            session.setQuestionCount(session.getQuestionCount() - 1);
+                        } else {
+                            log.info("面试时间归零，最后一题已有回答内容，保留最后一个问题，sessionId: {}", sessionId);
+                        }
+                    }
+                }
 
                 // 3. 更新会话状态
                 session.setStatus("completed");
@@ -485,6 +508,10 @@ public class InterviewServiceImpl implements InterviewService {
             return "";
         }
         
+        if (startSection == null || startSection.isEmpty()) {
+            return "";
+        }
+        
         int startIndex = report.indexOf(startSection);
         if (startIndex == -1) {
             return "";
@@ -492,8 +519,13 @@ public class InterviewServiceImpl implements InterviewService {
         
         startIndex += startSection.length();
         
-        int endIndex = report.indexOf(endSection);
-        if (endIndex == -1) {
+        // 如果endSection为null或空，则直接返回从startIndex到报告结尾的内容
+        if (endSection == null || endSection.isEmpty()) {
+            return report.substring(startIndex).trim();
+        }
+        
+        int endIndex = report.indexOf(endSection, startIndex); // 从startIndex之后开始查找endSection
+        if (endIndex == -1 || endIndex < startIndex) {
             return report.substring(startIndex).trim();
         }
         
@@ -568,8 +600,9 @@ public class InterviewServiceImpl implements InterviewService {
         if (StringUtils.hasText(previousQuestion) && StringUtils.hasText(previousAnswer)) {
             // 根据用户回答生成有深度的追问或新的相关问题
             userPromptBuilder.append("请基于候选人的回答生成下一个面试题。\n");
-            userPromptBuilder.append("如果候选人这个问题回答有效，继续深入追问。\n");
-            userPromptBuilder.append("如果候选人这个问题回答的很差或者不知道，请立即转向一个新的话题或知识点的问题，禁止重复之前整个上下文中问过的问题或相似的问题。\n");
+            userPromptBuilder.append("如果候选人这个问题回答有效，请务必继续在同一话题上进行深入追问，建立从浅到深的递进关系。\n");
+            userPromptBuilder.append("追问应该更加深入、更加专业，挖掘候选人在该技术点上的真实水平。\n");
+            userPromptBuilder.append("只有当候选人明显无法回答或者答案质量极差时，才可以转向一个新的话题或知识点，禁止重复之前整个上下文中问过的问题或相似的问题。\n");
         } else {
             userPromptBuilder.append("请直接基于候选人的简历内容生成针对性的面试问题。\n");
             userPromptBuilder.append("问题应该有针对性，考察候选人的实际技术能力。\n");
@@ -721,10 +754,6 @@ public class InterviewServiceImpl implements InterviewService {
         if (reportOpt.isPresent()) {
             InterviewReport report = reportOpt.get();
             vo.setTotalScore(report.getTotalScore());
-            vo.setTechScore(report.getTechScore());
-            vo.setLogicScore(report.getLogicScore());
-            vo.setClarityScore(report.getClarityScore());
-            vo.setDepthScore(report.getDepthScore());
             vo.setOverallFeedback(report.getOverallFeedback());
             vo.setStrengths(report.getStrengths());
             vo.setImprovements(report.getImprovements());
@@ -803,10 +832,6 @@ public class InterviewServiceImpl implements InterviewService {
                 // 更新现有报告
                 InterviewReport report = existingReport.get();
                 report.setTotalScore(totalScore);
-                report.setTechScore(techScore);
-                report.setLogicScore(logicScore);
-                report.setClarityScore(clarityScore);
-                report.setDepthScore(depthScore);
                 report.setOverallFeedback(overallFeedback);
                 report.setStrengths(strengthsJson);
                 report.setImprovements(improvementsJson);
@@ -821,10 +846,6 @@ public class InterviewServiceImpl implements InterviewService {
                 InterviewReport report = new InterviewReport();
                 report.setSessionId(sessionId);
                 report.setTotalScore(totalScore);
-                report.setTechScore(techScore);
-                report.setLogicScore(logicScore);
-                report.setClarityScore(clarityScore);
-                report.setDepthScore(depthScore);
                 report.setOverallFeedback(overallFeedback);
                 report.setStrengths(strengthsJson);
                 report.setImprovements(improvementsJson);
@@ -1031,7 +1052,7 @@ public class InterviewServiceImpl implements InterviewService {
         Map<String, Object> reportData = new HashMap<>();
         
         try {
-            // 提取总分（从"## 总体评价和总分"部分）
+            // 1. 提取总分和总体评价
             String overallSection = extractSectionFromReport(reportContent, "## 总体评价和总分", "## 优势分析");
             if (StringUtils.hasText(overallSection)) {
                 // 提取总分，查找类似 "总分：85" 或 "总体评分：85" 的模式
@@ -1042,40 +1063,119 @@ public class InterviewServiceImpl implements InterviewService {
                     reportData.put("totalScore", totalScore);
                 }
                 
-                // 提取总体评价（总分之后的内容）
-                String overallFeedback = overallSection;
-                reportData.put("overallFeedback", overallFeedback);
+                // 提取总体评价
+                reportData.put("overallFeedback", overallSection);
+            } else {
+                // 设置默认值
+                reportData.put("overallFeedback", "**总分：50/100**。候选人表现一般，需要进一步评估。");
+                reportData.put("totalScore", 50.0);
             }
             
-            // 提取优势列表
+            // 2. 提取优势列表
             String strengthsSection = extractSectionFromReport(reportContent, "## 优势分析", "## 改进点");
+            List<String> strengths = new ArrayList<>();
             if (StringUtils.hasText(strengthsSection)) {
-                List<String> strengths = new ArrayList<>();
                 // 匹配以"- "开头的优势项
                 Pattern strengthPattern = Pattern.compile("-\\s+([^\\n]+)", Pattern.MULTILINE);
                 Matcher strengthMatcher = strengthPattern.matcher(strengthsSection);
                 while (strengthMatcher.find()) {
                     strengths.add(strengthMatcher.group(1).trim());
                 }
-                reportData.put("strengths", strengths);
+                // 如果没有找到列表项，直接使用整个章节内容
+                if (strengths.isEmpty()) {
+                    strengths.add(strengthsSection.trim());
+                }
             }
             
-            // 提取改进点列表
-            String improvementsSection = extractSectionFromReport(reportContent, "## 改进点", "##");
+            // 确保优势列表不为空
+            if (strengths.isEmpty()) {
+                strengths.add("有一定的学习意愿和态度。");
+            }
+            reportData.put("strengths", strengths);
+            
+            // 3. 提取改进点列表
+            String improvementsSection = extractSectionFromReport(reportContent, "## 改进点", "## 技术深度评价");
+            List<String> improvements = new ArrayList<>();
             if (StringUtils.hasText(improvementsSection)) {
-                List<String> improvements = new ArrayList<>();
                 // 匹配以"- "开头的改进项
                 Pattern improvementPattern = Pattern.compile("-\\s+([^\\n]+)", Pattern.MULTILINE);
                 Matcher improvementMatcher = improvementPattern.matcher(improvementsSection);
                 while (improvementMatcher.find()) {
                     improvements.add(improvementMatcher.group(1).trim());
                 }
-                reportData.put("improvements", improvements);
+                // 如果没有找到列表项，直接使用整个章节内容
+                if (improvements.isEmpty()) {
+                    improvements.add(improvementsSection.trim());
+                }
+            }
+            
+            // 确保改进点列表不为空
+            if (improvements.isEmpty()) {
+                improvements.add("技术知识需要进一步系统化学习。");
+            }
+            reportData.put("improvements", improvements);
+            
+            // 4. 提取技术深度评价并设置默认值
+            String techDepthEvaluationSection = extractSectionFromReport(reportContent, "## 技术深度评价", "## 逻辑表达评价");
+            if (StringUtils.hasText(techDepthEvaluationSection)) {
+                reportData.put("techDepthEvaluation", techDepthEvaluationSection);
+            } else {
+                reportData.put("techDepthEvaluation", "**技术深度一般**。候选人对部分技术有基本了解，但缺乏深入的原理理解和实践经验。");
+            }
+            
+            // 5. 提取逻辑表达评价并设置默认值
+            String logicExpressionEvaluationSection = extractSectionFromReport(reportContent, "## 逻辑表达评价", "## 沟通表达评价");
+            if (StringUtils.hasText(logicExpressionEvaluationSection)) {
+                reportData.put("logicExpressionEvaluation", logicExpressionEvaluationSection);
+            } else {
+                reportData.put("logicExpressionEvaluation", "**逻辑表达基本清晰**。候选人能够组织基本的技术阐述，但在复杂问题上逻辑性有待加强。");
+            }
+            
+            // 6. 提取沟通表达评价并设置默认值
+            String communicationEvaluationSection = extractSectionFromReport(reportContent, "## 沟通表达评价", "## 回答深度评价");
+            if (StringUtils.hasText(communicationEvaluationSection)) {
+                reportData.put("communicationEvaluation", communicationEvaluationSection);
+            } else {
+                reportData.put("communicationEvaluation", "**沟通表达能力一般**。候选人能够基本表达自己的观点，但在主动沟通和澄清问题方面有待提高。");
+            }
+            
+            // 7. 提取回答深度评价并设置默认值
+            String answerDepthEvaluationSection = extractSectionFromReport(reportContent, "## 回答深度评价", "## 针对候选人的详细改进建议");
+            if (StringUtils.hasText(answerDepthEvaluationSection)) {
+                reportData.put("answerDepthEvaluation", answerDepthEvaluationSection);
+            } else {
+                reportData.put("answerDepthEvaluation", "**回答深度中等**。候选人的回答能够覆盖基本知识点，但缺乏深入的分析和拓展。");
+            }
+            
+            // 8. 提取针对候选人的详细改进建议并设置默认值
+            String detailedImprovementSuggestionsSection = extractSectionFromReport(reportContent, "## 针对候选人的详细改进建议", null);
+            if (StringUtils.hasText(detailedImprovementSuggestionsSection)) {
+                reportData.put("detailedImprovementSuggestions", detailedImprovementSuggestionsSection);
+            } else {
+                reportData.put("detailedImprovementSuggestions", "1. **系统学习**：建议候选人系统学习核心技术栈的基础理论和实践。\n2. **项目实践**：通过实际项目积累经验，加深对技术的理解。\n3. **深入思考**：面对技术问题时，不仅要知道怎么做，还要理解为什么这么做。");
             }
             
             log.info("解析报告成功，提取的数据: {}", reportData);
         } catch (Exception e) {
             log.error("解析生成的报告失败: {}", e.getMessage(), e);
+            
+            // 异常情况下设置所有字段的默认值
+            reportData.put("overallFeedback", "**总分：50/100**。由于报告解析失败，提供默认评价。");
+            reportData.put("totalScore", 50.0);
+            
+            List<String> defaultStrengths = new ArrayList<>();
+            defaultStrengths.add("有一定的学习意愿和态度。");
+            reportData.put("strengths", defaultStrengths);
+            
+            List<String> defaultImprovements = new ArrayList<>();
+            defaultImprovements.add("技术知识需要进一步系统化学习。");
+            reportData.put("improvements", defaultImprovements);
+            
+            reportData.put("techDepthEvaluation", "**技术深度一般**。候选人对部分技术有基本了解，但缺乏深入的原理理解和实践经验。");
+            reportData.put("logicExpressionEvaluation", "**逻辑表达基本清晰**。候选人能够组织基本的技术阐述，但在复杂问题上逻辑性有待加强。");
+            reportData.put("communicationEvaluation", "**沟通表达能力一般**。候选人能够基本表达自己的观点，但在主动沟通和澄清问题方面有待提高。");
+            reportData.put("answerDepthEvaluation", "**回答深度中等**。候选人的回答能够覆盖基本知识点，但缺乏深入的分析和拓展。");
+            reportData.put("detailedImprovementSuggestions", "1. **系统学习**：建议候选人系统学习核心技术栈的基础理论和实践。\n2. **项目实践**：通过实际项目积累经验，加深对技术的理解。\n3. **深入思考**：面对技术问题时，不仅要知道怎么做，还要理解为什么这么做。");
         }
         
         return reportData;

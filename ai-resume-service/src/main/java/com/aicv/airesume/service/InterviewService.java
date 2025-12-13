@@ -33,7 +33,7 @@ public interface InterviewService {
      * @param sessionId 会话ID
      * @return reportId和状态
      */
-    String startReportGeneration(String sessionId);
+    String startReportGeneration(String sessionId, String lastAnswer);
 
     /**
      * 获取报告块

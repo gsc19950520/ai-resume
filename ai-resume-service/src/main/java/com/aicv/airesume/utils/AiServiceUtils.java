@@ -364,15 +364,25 @@ public class AiServiceUtils {
                 requestBody.put("model", "deepseek-chat");
                 requestBody.put("stream", true);
 
-                // 获取对话历史，报告生成时不需要拼接上下文
+                // 获取对话历史，报告生成时也需要system prompt
                 List<Map<String, String>> messages;
                 if ("report".equals(eventName)) {
-                    // 报告生成：直接使用当前prompt，不拼接上下文
+                    // 报告生成：使用system prompt和当前user prompt
                     messages = new ArrayList<>();
-                    Map<String, String> currentMessage = new HashMap<>();
-                    currentMessage.put("role", "user");
-                    currentMessage.put("content", userPrompt);
-                    messages.add(currentMessage);
+                    
+                    // 添加system prompt
+                    if (StringUtils.hasText(systemPrompt)) {
+                        Map<String, String> systemMessage = new HashMap<>();
+                        systemMessage.put("role", "system");
+                        systemMessage.put("content", systemPrompt);
+                        messages.add(systemMessage);
+                    }
+                    
+                    // 添加user prompt
+                    Map<String, String> userMessage = new HashMap<>();
+                    userMessage.put("role", "user");
+                    userMessage.put("content", userPrompt);
+                    messages.add(userMessage);
                 } else {
                     // 其他情况：获取完整的对话历史
                     messages = getConversationHistory(sessionId, systemPrompt, userPrompt);
@@ -455,7 +465,7 @@ public class AiServiceUtils {
                                     log.info("Streaming response completed");
 
                                     String fullQuestion = fullQuestionBuffer[0].toString().trim();
-                                    if (!fullQuestion.isEmpty()) {
+                                    if (!fullQuestion.isEmpty() && !"report".equals(eventName)) {
                                         saveQuestionAsync(fullQuestion, sessionId);
                                     }
 
