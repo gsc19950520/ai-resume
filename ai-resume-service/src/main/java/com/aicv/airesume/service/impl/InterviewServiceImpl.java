@@ -27,8 +27,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.core.type.TypeReference;
 import lombok.extern.slf4j.Slf4j;
-import com.aicv.airesume.entity.AiTraceLog;
-import com.aicv.airesume.repository.AiTraceLogRepository;
 import com.aicv.airesume.service.config.DynamicConfigService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -64,9 +62,6 @@ public class InterviewServiceImpl implements InterviewService {
 
     @Autowired
     private AiServiceUtils aiServiceUtils;
-
-    @Autowired
-    private AiTraceLogRepository aiTraceLogRepository;
     
     @Autowired
     private JobTypeRepository jobTypeRepository;
@@ -88,21 +83,6 @@ public class InterviewServiceImpl implements InterviewService {
     
     // 线程池，用于处理异步任务
     private final ExecutorService executorService = java.util.concurrent.Executors.newFixedThreadPool(2);
-    
-    // 保存AI调用的跟踪日志
-     private void saveAiTraceLog(String sessionId, String actionType, String promptInput, String aiResponse) {
-         try {
-             AiTraceLog traceLog = new AiTraceLog();
-             traceLog.setSessionId(sessionId);
-             traceLog.setActionType(actionType);
-             traceLog.setPromptInput(promptInput);
-             traceLog.setAiResponse(aiResponse);
-             traceLog.setCreatedAt(LocalDateTime.now());
-             aiTraceLogRepository.save(traceLog);
-         } catch (Exception e) {
-             log.error("保存AI跟踪日志失败", e);
-         }
-     }
 
     @Override
     public SseEmitter getFirstQuestionStream(String sessionId) {
@@ -113,9 +93,6 @@ public class InterviewServiceImpl implements InterviewService {
                 // 查询会话是否存在
                 InterviewSession session = sessionRepository.findBySessionId(sessionId)
                         .orElseThrow(() -> new RuntimeException("会话不存在"));
-                
-                // 获取完整简历内容
-                String resumeContent = getResumeContent(session);
                 
                 // 创建第一个问题的日志记录
                 InterviewLog firstQuestionLog = new InterviewLog();
@@ -131,10 +108,6 @@ public class InterviewServiceImpl implements InterviewService {
                 
                 // 获取生成的问题（需要从AI响应中解析，这里简化处理）
                 String firstQuestion = "";
-                
-                // 保存AI生成问题的跟踪日志
-                saveAiTraceLog(session.getSessionId(), "generate_question", 
-                        "生成第一个问题的prompt内容", firstQuestion);
                 
                 // 更新会话问题计数
                 session.setQuestionCount(1);
@@ -1191,9 +1164,6 @@ public class InterviewServiceImpl implements InterviewService {
         try {
             // 删除该会话下的所有面试日志
             logRepository.deleteBySessionId(sessionId);
-            
-            // 删除该会话下的所有AI跟踪日志
-            aiTraceLogRepository.deleteBySessionId(sessionId);
             
             // 删除该会话下的面试报告
             interviewReportRepository.deleteBySessionId(sessionId);

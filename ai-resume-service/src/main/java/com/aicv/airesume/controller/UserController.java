@@ -7,6 +7,7 @@ import com.aicv.airesume.model.vo.BaseResponseVO;
 import com.aicv.airesume.service.InterviewService;
 import com.aicv.airesume.service.StatisticsService;
 import com.aicv.airesume.service.UserService;
+import com.aicv.airesume.service.GrowthReportService;
 import com.aicv.airesume.utils.GlobalContextUtil;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -40,6 +41,9 @@ public class UserController {
     
     @Autowired
     private RestTemplate restTemplate;
+    
+    @Autowired
+    private GrowthReportService growthReportService;
     
 
     
@@ -372,7 +376,6 @@ public class UserController {
             response.put("message", "获取用户信息失败: " + e.getMessage());
             response.put("data", null);
         }
-        
         return ResponseEntity.ok(response);
     }
     
@@ -482,25 +485,51 @@ public class UserController {
             User updatedUser = userService.updateUser(existingUser);
             
             // 构建返回数据，避免返回敏感信息
-            Map<String, Object> userData = new HashMap<>();
-            userData.put("id", updatedUser.getId());
-            userData.put("name", updatedUser.getName());
-            userData.put("gender", updatedUser.getGender());
-            userData.put("phone", updatedUser.getPhone());
-            userData.put("email", updatedUser.getEmail());
-            userData.put("birthDate", updatedUser.getBirthDate());
-            userData.put("city", updatedUser.getCity());
-            userData.put("address", updatedUser.getAddress());
-            userData.put("avatarUrl", updatedUser.getAvatarUrl());
+        Map<String, Object> userData = new HashMap<>();
+        userData.put("id", updatedUser.getId());
+        userData.put("name", updatedUser.getName());
+        userData.put("gender", updatedUser.getGender());
+        userData.put("phone", updatedUser.getPhone());
+        userData.put("email", updatedUser.getEmail());
+        userData.put("birthDate", updatedUser.getBirthDate());
+        userData.put("city", updatedUser.getCity());
+        userData.put("address", updatedUser.getAddress());
+        userData.put("avatarUrl", updatedUser.getAvatarUrl());
+        
+        // 添加用户数据到响应
+        response.put("success", true);
+        response.put("message", "更新成功");
+        response.put("data", userData);
+    } catch (Exception e) {
+        log.error("更新用户信息失败", e);
+        response.put("success", false);
+        response.put("message", "更新用户信息失败: " + e.getMessage());
+    }
+    
+    return ResponseEntity.ok(response);
+    }
+    
+    /**
+     * 生成用户的AI成长报告
+     * @return 成长报告
+     */
+    @GetMapping("/history/analyze")
+    public ResponseEntity<BaseResponseVO> generateGrowthReport() {
+        try {
+            // 从全局上下文获取用户ID
+            Long userId = GlobalContextUtil.getUserId();
             
-            response.put("success", true);
-            response.put("message", "保存成功");
-            response.put("data", userData);
-            return ResponseEntity.ok(response);
+            // 调用服务层生成成长报告
+            com.aicv.airesume.model.vo.GrowthReportVO growthReport = growthReportService.generateGrowthReport(userId);
+            
+            return ResponseEntity.ok(BaseResponseVO.success(growthReport));
+        } catch (IllegalArgumentException e) {
+            // 处理业务异常
+            return ResponseEntity.ok(BaseResponseVO.error(e.getMessage()));
         } catch (Exception e) {
-            response.put("success", false);
-            response.put("message", "保存失败: " + e.getMessage());
-            return ResponseEntity.ok(response);
+            // 处理系统异常
+            log.error("生成成长报告失败", e);
+            return ResponseEntity.ok(BaseResponseVO.error("生成成长报告失败: " + e.getMessage()));
         }
     }
     

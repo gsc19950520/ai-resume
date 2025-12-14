@@ -40,5 +40,14 @@ public interface InterviewSessionRepository extends JpaRepository<InterviewSessi
      * @param sessionId 会话ID
      */
     void deleteBySessionId(String sessionId);
+    
+    /**
+     * 根据用户ID和时间范围查找会话列表，按创建时间正序
+     * @param userId 用户ID
+     * @param startDate 开始时间
+     * @param endDate 结束时间
+     * @return 会话列表
+     */
+    List<InterviewSession> findByUserIdAndCreatedAtBetweenOrderByCreatedAtAsc(Long userId, java.time.LocalDateTime startDate, java.time.LocalDateTime endDate);
 
 }
