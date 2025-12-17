@@ -31,6 +31,8 @@ public class GrowthReportVO {
         private List<ImprovementVO> improvements;
         private List<String> aiSuggestions;
         private Map<String, Object> visualizationData;
+        private List<RecommendedJobVO> recommendedJobs;
+        private List<GrowthPlanVO> growthPlans;
     }
 
     /**
@@ -49,7 +51,7 @@ public class GrowthReportVO {
     }
 
     /**
-     * 得分趋势项VO
+     * 得分趋势项VO - 只保留总分、技术、深度三项
      */
     @Data
     public static class ScoreTrendItemVO {
@@ -58,9 +60,9 @@ public class GrowthReportVO {
         private Double totalScore;
         private String jobName;
         private Double techDepthScore;
-        private Double logicExpressionScore;
-        private Double communicationScore;
         private Double answerDepthScore;
+        // 已移除: logicExpressionScore
+        // 已移除: communicationScore
     }
 
     /**
@@ -93,5 +95,25 @@ public class GrowthReportVO {
         private String area;
         private Integer progress;
         private String analysis;
+    }
+    
+    /**
+     * 推荐职业方向VO
+     */
+    @Data
+    public static class RecommendedJobVO {
+        private String jobName;
+        private String matchReason;
+        private Integer matchScore;
+    }
+    
+    /**
+     * 未来成长规划VO
+     */
+    @Data
+    public static class GrowthPlanVO {
+        private String timeFrame;
+        private List<String> goals;
+        private List<String> actionSteps;
     }
 }

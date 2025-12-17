@@ -74,17 +74,10 @@
             <text>技术</text>
           </view>
           <view class="legend-item">
-            <view class="legend-dot logic"></view>
-            <text>逻辑</text>
-          </view>
-          <view class="legend-item">
-            <view class="legend-dot clarity"></view>
-            <text>表达</text>
-          </view>
-          <view class="legend-item">
             <view class="legend-dot depth"></view>
             <text>深度</text>
           </view>
+          <!-- 已移除: 逻辑、表达图例 -->
         </view>
       </view>
     </view>
@@ -129,17 +122,6 @@
               <text class="goal-text">{{goal}}</text>
             </view>
           </view>
-        </view>
-      </view>
-    </view>
-
-    <!-- 学习资源推荐 -->
-    <view class="resources-section">
-      <text class="section-title">推荐学习资源</text>
-      <view class="resources-list">
-        <view class="resource-item" wx:for="{{reportData.resourceRecommendations}}" wx:key="index">
-          <view class="resource-icon">📚</view>
-          <text class="resource-text">{{item}}</text>
         </view>
       </view>
     </view>

@@ -2,6 +2,7 @@ package com.aicv.airesume.service;
 
 import com.aicv.airesume.entity.GrowthReport;
 import com.aicv.airesume.model.vo.GrowthReportVO;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
 import java.util.Optional;
@@ -40,10 +41,18 @@ public interface GrowthReportService {
     Optional<GrowthReportVO> getGrowthReportById(Long reportId);
 
     /**
-     * 删除成长报告
-     * @param reportId 报告ID
-     * @param userId 用户ID
-     * @return 是否删除成功
-     */
-    boolean deleteGrowthReport(Long reportId, Long userId);
+ * 删除成长报告
+ * @param reportId 报告ID
+ * @param userId 用户ID
+ * @return 是否删除成功
+ */
+boolean deleteGrowthReport(Long reportId, Long userId);
+
+/**
+ * 异步流式生成用户的AI成长报告
+ * @param userId 用户ID
+ * @param emitter SSE发射器，用于流式输出结果
+ * @return 报告ID
+ */
+String generateGrowthReportStream(Long userId, SseEmitter emitter);
 }

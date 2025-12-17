@@ -10,14 +10,18 @@ import com.aicv.airesume.repository.InterviewReportRepository;
 import com.aicv.airesume.repository.InterviewSessionRepository;
 import com.aicv.airesume.repository.UserRepository;
 import com.aicv.airesume.service.GrowthReportService;
+import com.aicv.airesume.service.ReportGenerationService;
 import com.aicv.airesume.utils.AiServiceUtils;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 /**
@@ -26,6 +30,22 @@ import java.util.stream.Collectors;
 @Service
 @Slf4j
 public class GrowthReportServiceImpl implements GrowthReportService {
+    // DeepSeek API 提示词常量
+    private static final String RECOMMEND_JOBS_PROMPT_START = "请基于用户的面试表现，推荐3个最适合的职业方向。\n";
+    private static final String RECOMMEND_JOBS_PROMPT_END = "\n请为每个推荐的职业方向提供：职业名称、匹配理由（30字以内）、匹配分数（0-100）。\n" +
+            "格式要求：JSON格式，包含recommendations数组，每个元素包含jobName、matchReason、matchScore字段。";
+    
+    private static final String GROWTH_PLANS_PROMPT_START = "请基于用户的面试表现，制定短期（1-3个月）、中期（3-6个月）和长期（6-12个月）的成长规划。\n";
+    private static final String GROWTH_PLANS_PROMPT_END = "\n请为每个时间阶段提供：目标（3-5条）和具体行动步骤（3-5条）。\n" +
+            "格式要求：JSON格式，包含plans数组，每个元素包含timeFrame（'短期'/'中期'/'长期'）、goals数组、actionSteps数组。";
+    
+    private static final String AI_SUGGESTIONS_PROMPT_START = "请基于用户的面试表现分析，生成结构化的AI建议，包含以下部分：\n" +
+            "1. 一条简短的推荐职业方向（30字以内）\n" +
+            "2. 近期目标（3-6个月）的3条具体行动建议\n" +
+            "3. 中期目标（6-12个月）的3条具体行动建议\n" +
+            "4. 长期目标（1-3年）的3条具体行动建议\n";
+    private static final String AI_SUGGESTIONS_PROMPT_END = "\n请提供具体、可操作的建议，每条建议30-50字。\n" +
+            "格式要求：每行一条，按照推荐方向、近期目标1-3、中期目标1-3、长期目标1-3的顺序排列。";
 
     @Autowired
     private GrowthReportRepository growthReportRepository;
@@ -44,7 +64,297 @@ public class GrowthReportServiceImpl implements GrowthReportService {
 
     @Autowired
     private AiServiceUtils aiServiceUtils;
+    
+    // 报告生成服务，用于流式生成报告内容
+    @Autowired
+    private ReportGenerationService reportGenerationService;
 
+    /**
+     * 异步流式生成用户的AI成长报告
+     */
+    @Override
+    public String generateGrowthReportStream(Long userId, SseEmitter emitter) {
+        // 生成报告ID
+        String reportId = UUID.randomUUID().toString();
+        
+        // 创建报告生成记录
+        ReportGenerationService.ReportGenerationRecord record = reportGenerationService.createReportRecord(reportId);
+        
+        // 异步处理报告生成
+        CompletableFuture.runAsync(() -> {
+            try {
+                // 获取用户信息
+                User user = userRepository.findById(userId)
+                        .orElseThrow(() -> new RuntimeException("用户不存在: " + userId));
+                
+                // 获取用户最近的面试会话和报告
+                List<InterviewSession> sessions = interviewSessionRepository.findByUserIdOrderByCreatedAtDesc(userId);
+                // 反转列表以获得正序
+                Collections.reverse(sessions);
+                List<Map<String, Object>> sessionReportPairs = new ArrayList<>();
+                
+                // 构建会话和报告的映射关系
+                for (InterviewSession session : sessions) {
+                    Optional<InterviewReport> reportOpt = interviewReportRepository.findBySessionId(session.getSessionId());
+                    if (reportOpt.isPresent()) {
+                        Map<String, Object> pair = new HashMap<>();
+                        pair.put("session", session);
+                        pair.put("report", reportOpt.get());
+                        sessionReportPairs.add(pair);
+                    }
+                }
+                
+                if (sessionReportPairs.size() < 2) {
+                    throw new IllegalArgumentException("需要至少2次完整的面试记录才能生成成长报告");
+                }
+                
+                // 生成各种报告内容并流式输出
+                StringBuilder currentChunk = new StringBuilder();
+                
+                // 1. 生成概览信息并流式输出
+                GrowthReportVO.OverviewVO overview = generateOverview(user, sessionReportPairs, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+                String overviewJson = objectMapper.writeValueAsString(overview);
+                currentChunk.append("概览信息：").append(overviewJson);
+                
+                // 超过20字时发送内容块
+                if (currentChunk.length() > 20) {
+                    record.addChunk(currentChunk.toString());
+                    emitter.send(SseEmitter.event().name("report").data(currentChunk.toString()));
+                    currentChunk.setLength(0);
+                }
+                
+                // 2. 生成AI建议并流式输出
+                List<GrowthReportVO.ScoreTrendItemVO> scoreTrend = generateScoreTrend(sessionReportPairs, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+                Map<String, GrowthReportVO.AbilityGrowthVO> abilityGrowth = generateAbilityGrowth(scoreTrend);
+                List<GrowthReportVO.StrengthVO> strengths = generateStrengths(sessionReportPairs);
+                List<GrowthReportVO.ImprovementVO> improvements = generateImprovements(sessionReportPairs);
+                List<String> aiSuggestions = generateAISuggestions(abilityGrowth, improvements);
+                
+                String suggestionsJson = objectMapper.writeValueAsString(aiSuggestions);
+                currentChunk.append("\nAI建议：").append(suggestionsJson);
+                
+                // 发送AI建议内容块
+                if (currentChunk.length() > 20) {
+                    record.addChunk(currentChunk.toString());
+                    emitter.send(SseEmitter.event().name("report").data(currentChunk.toString()));
+                    currentChunk.setLength(0);
+                }
+                
+                // 生成职业推荐并流式输出
+                List<GrowthReportVO.RecommendedJobVO> recommendedJobs = generateRecommendedJobs(user, sessionReportPairs, strengths, improvements);
+                String jobsJson = objectMapper.writeValueAsString(recommendedJobs);
+                currentChunk.append("\n职业推荐：").append(jobsJson);
+                
+                record.addChunk(currentChunk.toString());
+                emitter.send(SseEmitter.event().name("report").data(currentChunk.toString()));
+                currentChunk.setLength(0);
+                
+                // 3. 生成成长规划并流式输出
+                List<GrowthReportVO.GrowthPlanVO> growthPlans = generateGrowthPlans(user, sessionReportPairs, strengths, improvements);
+                String plansJson = objectMapper.writeValueAsString(growthPlans);
+                currentChunk.append("\n成长规划：").append(plansJson);
+                record.addChunk(currentChunk.toString());
+                emitter.send(SseEmitter.event().name("report").data(currentChunk.toString()));
+                
+                // 生成完整报告并保存
+                GrowthReport report = new GrowthReport();
+                report.setUserId(userId);
+                report.setUserName(user.getName());
+                
+                // 设置概览信息字段
+                report.setLatestJobName(overview.getLatestJobName());
+                report.setTimeRange(overview.getTimeRange());
+                report.setFirstTotalScore(overview.getFirstTotalScore());
+                report.setLatestTotalScore(overview.getLatestTotalScore());
+                report.setAverageScore(overview.getAverageScore());
+                report.setImprovementRate(overview.getImprovementRate());
+                
+                report.setInterviewCount(sessionReportPairs.size());
+                report.setStartDate(sessions.get(0).getCreatedAt());
+                report.setEndDate(sessions.get(sessions.size() - 1).getCreatedAt());
+                
+                // 组合报告内容
+                StringBuilder fullReport = new StringBuilder();
+                for (ReportGenerationService.ReportChunk chunk : record.getChunks()) {
+                    fullReport.append(chunk.getContent());
+                }
+                
+                // 将复杂数据转换为JSON并存储
+                try {
+                    report.setScoreTrendJson(objectMapper.writeValueAsString(scoreTrend));
+                    report.setAbilityGrowthJson(objectMapper.writeValueAsString(abilityGrowth));
+                    report.setStrengthsJson(objectMapper.writeValueAsString(strengths));
+                    report.setImprovementsJson(objectMapper.writeValueAsString(improvements));
+                    report.setAiSuggestionsJson(objectMapper.writeValueAsString(aiSuggestions));
+                } catch (Exception e) {
+                    log.error("JSON序列化失败: {}", e.getMessage(), e);
+                }
+                
+                growthReportRepository.save(report);
+                
+                // 标记报告生成完成
+                record.setStatus(ReportGenerationService.ReportStatus.COMPLETED);
+                emitter.complete();
+                
+            } catch (Exception e) {
+                log.error("生成成长报告失败", e);
+                record.setStatus(ReportGenerationService.ReportStatus.FAILED);
+                record.setErrorMessage("生成成长报告失败: " + e.getMessage());
+                emitter.completeWithError(e);
+            }
+        });
+        
+        return reportId;
+    }
+    
+    /**
+     * 生成职业推荐方向
+     */
+    private List<GrowthReportVO.RecommendedJobVO> generateRecommendedJobs(User user, List<Map<String, Object>> sessionReportPairs, 
+                                                                         List<GrowthReportVO.StrengthVO> strengths, 
+                                                                         List<GrowthReportVO.ImprovementVO> improvements) {
+        List<GrowthReportVO.RecommendedJobVO> recommendations = new ArrayList<>();
+        
+        try {
+            // 准备提示词
+            StringBuilder prompt = new StringBuilder();
+            prompt.append(RECOMMEND_JOBS_PROMPT_START);
+            prompt.append("用户基本信息：姓名：").append(user.getName() != null ? user.getName() : "未知").append("，");
+            
+            // 添加用户的优势
+            prompt.append("用户优势：");
+            strengths.forEach(strength -> {
+                prompt.append("\"").append(strength.getSkill()).append("\" (").append(strength.getAnalysis()).append(")，");
+            });
+            
+            // 添加需要改进的方面
+            prompt.append("需要改进：");
+            improvements.forEach(improvement -> {
+                prompt.append("\"").append(improvement.getArea()).append("\"，");
+            });
+            
+            // 添加面试经历
+            prompt.append("最近面试：");
+            for (int i = 0; i < Math.min(3, sessionReportPairs.size()); i++) {
+                InterviewSession session = (InterviewSession) sessionReportPairs.get(sessionReportPairs.size() - 1 - i).get("session");
+                prompt.append(session.getJobName()).append("，");
+            }
+            
+            prompt.append(RECOMMEND_JOBS_PROMPT_END);
+            
+            // 调用DeepSeek API
+            String response = aiServiceUtils.callDeepSeekApi(prompt.toString());
+            
+            // 清理响应，移除代码块标记
+            if (response != null) {
+                response = response.trim();
+                // 移除 ```json 和 ``` 标记
+                if (response.startsWith("```json")) {
+                    response = response.substring(7);
+                }
+                if (response.endsWith("```")) {
+                    response = response.substring(0, response.length() - 3);
+                }
+                response = response.trim();
+            }
+            
+            // 解析响应
+            JsonNode rootNode = objectMapper.readTree(response);
+            JsonNode recommendationsNode = rootNode.path("recommendations");
+            
+            if (recommendationsNode.isArray()) {
+                for (JsonNode node : recommendationsNode) {
+                    GrowthReportVO.RecommendedJobVO job = new GrowthReportVO.RecommendedJobVO();
+                    job.setJobName(node.path("jobName").asText());
+                    job.setMatchReason(node.path("matchReason").asText());
+                    job.setMatchScore(node.path("matchScore").asInt());
+                    recommendations.add(job);
+                }
+            }
+        } catch (Exception e) {
+            log.error("生成职业推荐失败: {}", e.getMessage(), e);
+            // 添加默认推荐
+            GrowthReportVO.RecommendedJobVO defaultJob1 = new GrowthReportVO.RecommendedJobVO();
+            defaultJob1.setJobName("高级软件工程师");
+            defaultJob1.setMatchReason("技术能力强，逻辑清晰");
+            defaultJob1.setMatchScore(85);
+            recommendations.add(defaultJob1);
+        }
+        
+        return recommendations;
+    }
+    
+    /**
+     * 生成未来成长规划
+     */
+    private List<GrowthReportVO.GrowthPlanVO> generateGrowthPlans(User user, List<Map<String, Object>> sessionReportPairs, 
+                                                                 List<GrowthReportVO.StrengthVO> strengths, 
+                                                                 List<GrowthReportVO.ImprovementVO> improvements) {
+        List<GrowthReportVO.GrowthPlanVO> plans = new ArrayList<>();
+        
+        try {
+            // 准备提示词
+            StringBuilder prompt = new StringBuilder();
+            prompt.append(GROWTH_PLANS_PROMPT_START);
+            prompt.append("用户优势：");
+            strengths.forEach(strength -> {
+                prompt.append("\"").append(strength.getSkill()).append("\"，");
+            });
+            
+            prompt.append("需要改进：");
+            improvements.forEach(improvement -> {
+                prompt.append("\"").append(improvement.getArea()).append("\"，");
+            });
+            
+            prompt.append(GROWTH_PLANS_PROMPT_END);
+            
+            // 调用DeepSeek API
+            String response = aiServiceUtils.callDeepSeekApi(prompt.toString());
+            
+            // 解析响应
+            JsonNode rootNode = objectMapper.readTree(response);
+            JsonNode plansNode = rootNode.path("plans");
+            
+            if (plansNode.isArray()) {
+                for (JsonNode node : plansNode) {
+                    GrowthReportVO.GrowthPlanVO plan = new GrowthReportVO.GrowthPlanVO();
+                    plan.setTimeFrame(node.path("timeFrame").asText());
+                    
+                    List<String> goals = new ArrayList<>();
+                    JsonNode goalsNode = node.path("goals");
+                    if (goalsNode.isArray()) {
+                        for (JsonNode goalNode : goalsNode) {
+                            goals.add(goalNode.asText());
+                        }
+                    }
+                    plan.setGoals(goals);
+                    
+                    List<String> actionSteps = new ArrayList<>();
+                    JsonNode stepsNode = node.path("actionSteps");
+                    if (stepsNode.isArray()) {
+                        for (JsonNode stepNode : stepsNode) {
+                            actionSteps.add(stepNode.asText());
+                        }
+                    }
+                    plan.setActionSteps(actionSteps);
+                    plans.add(plan);
+                }
+            }
+        } catch (Exception e) {
+            log.error("生成成长规划失败: {}", e.getMessage(), e);
+            // 添加默认规划
+            GrowthReportVO.GrowthPlanVO defaultPlan = new GrowthReportVO.GrowthPlanVO();
+            defaultPlan.setTimeFrame("短期");
+            List<String> defaultGoals = Arrays.asList("提升技术深度", "增强沟通能力");
+            List<String> defaultSteps = Arrays.asList("每日学习新技术1小时", "练习面试表达");
+            defaultPlan.setGoals(defaultGoals);
+            defaultPlan.setActionSteps(defaultSteps);
+            plans.add(defaultPlan);
+        }
+        
+        return plans;
+    }
+    
     @Override
     public GrowthReportVO generateGrowthReport(Long userId) {
         try {
@@ -99,6 +409,21 @@ public class GrowthReportServiceImpl implements GrowthReportService {
         growthReport.setInterviewCount(sessionReportPairs.size());
         growthReport.setStartDate(sessions.get(0).getCreatedAt());
         growthReport.setEndDate(sessions.get(sessions.size() - 1).getCreatedAt());
+        
+        // 将复杂数据转换为JSON并存储
+        try {
+            growthReport.setScoreTrendJson(objectMapper.writeValueAsString(reportContent.getScoreTrend()));
+            growthReport.setAbilityGrowthJson(objectMapper.writeValueAsString(reportContent.getAbilityGrowth()));
+            growthReport.setStrengthsJson(objectMapper.writeValueAsString(reportContent.getStrengths()));
+            growthReport.setImprovementsJson(objectMapper.writeValueAsString(reportContent.getImprovements()));
+            growthReport.setAiSuggestionsJson(objectMapper.writeValueAsString(reportContent.getAiSuggestions()));
+            growthReport.setVisualizationDataJson(objectMapper.writeValueAsString(reportContent.getVisualizationData()));
+            // 使用现有的aiSuggestionsJson字段存储AI建议
+            growthReport.setAiSuggestionsJson(objectMapper.writeValueAsString(reportContent.getAiSuggestions()));
+        } catch (Exception e) {
+            log.error("JSON序列化失败: {}", e.getMessage(), e);
+        }
+        
         GrowthReport savedReport = growthReportRepository.save(growthReport);
 
             // 转换为VO并返回
@@ -140,6 +465,14 @@ public class GrowthReportServiceImpl implements GrowthReportService {
         // 生成可视化数据
         Map<String, Object> visualizationData = generateVisualizationData(scoreTrend, abilityGrowth);
         content.setVisualizationData(visualizationData);
+        
+        // 生成职业推荐方向
+        List<GrowthReportVO.RecommendedJobVO> recommendedJobs = generateRecommendedJobs(user, sessionReportPairs, strengths, improvements);
+        content.setRecommendedJobs(recommendedJobs);
+        
+        // 生成未来成长规划
+        List<GrowthReportVO.GrowthPlanVO> growthPlans = generateGrowthPlans(user, sessionReportPairs, strengths, improvements);
+        content.setGrowthPlans(growthPlans);
 
         return content;
     }
@@ -188,11 +521,10 @@ public class GrowthReportServiceImpl implements GrowthReportService {
             item.setJobName(session.getJobName());
 
             // 这里简化处理，实际项目中可能需要从报告内容中提取各维度得分
-            // 假设报告内容中包含这些信息，或者需要通过NLP分析报告文本
+            // 只保留总分、技术、深度三项
             item.setTechDepthScore(estimateScoreFromText(report.getTechDepthEvaluation()));
-            item.setLogicExpressionScore(estimateScoreFromText(report.getLogicExpressionEvaluation()));
-            item.setCommunicationScore(estimateScoreFromText(report.getCommunicationEvaluation()));
             item.setAnswerDepthScore(estimateScoreFromText(report.getAnswerDepthEvaluation()));
+            // 已移除: 逻辑表达和沟通能力评分
 
             return item;
         }).collect(Collectors.toList());
@@ -203,9 +535,9 @@ public class GrowthReportServiceImpl implements GrowthReportService {
 
         if (scoreTrend.size() < 2) return abilityGrowth;
 
-        // 分析各个能力维度
-        String[] abilities = {"techDepth", "logicExpression", "communication", "answerDepth"};
-        String[] abilityNames = {"技术深度", "逻辑表达", "沟通能力", "回答深度"};
+        // 分析各个能力维度 - 只保留技术深度和回答深度
+        String[] abilities = {"techDepth", "answerDepth"};
+        String[] abilityNames = {"技术深度", "回答深度"};
 
         for (int i = 0; i < abilities.length; i++) {
             GrowthReportVO.AbilityGrowthVO growth = new GrowthReportVO.AbilityGrowthVO();
@@ -218,12 +550,6 @@ public class GrowthReportServiceImpl implements GrowthReportService {
                 switch (ability) {
                     case "techDepth":
                         scores.add(item.getTechDepthScore());
-                        break;
-                    case "logicExpression":
-                        scores.add(item.getLogicExpressionScore());
-                        break;
-                    case "communication":
-                        scores.add(item.getCommunicationScore());
                         break;
                     case "answerDepth":
                         scores.add(item.getAnswerDepthScore());
@@ -328,158 +654,60 @@ public class GrowthReportServiceImpl implements GrowthReportService {
     }
 
     private List<String> generateAISuggestions(Map<String, GrowthReportVO.AbilityGrowthVO> abilityGrowth, List<GrowthReportVO.ImprovementVO> improvements) {
-        // 1. 先使用规则生成基础建议（作为备选）
-        List<String> ruleBasedSuggestions = generateRuleBasedSuggestions(abilityGrowth, improvements);
-        
         try {
-            // 2. 尝试使用DeepSeek生成更智能的建议
-            String formattedData = formatDataForDeepSeek(abilityGrowth, improvements);
+            // 准备提示词
+            StringBuilder prompt = new StringBuilder();
+            prompt.append(AI_SUGGESTIONS_PROMPT_START);
+            prompt.append("\n用户在以下方面需要改进：\n");
             
-            // 构建DeepSeek提示词
-            String prompt = String.format("你是一位专业的面试教练，请基于以下面试成长分析数据，为用户提供具体、实用的改进建议：\n\n%s\n\n请输出3-5条针对性强、可操作的建议，每条建议独立一行，不要添加任何序号或标记。", formattedData);
+            improvements.forEach(improvement -> {
+                prompt.append("- " + improvement.getArea() + "（改进进度：" + improvement.getProgress() + "%）\n");
+            });
+            
+            prompt.append(AI_SUGGESTIONS_PROMPT_END);
             
             // 调用DeepSeek API
-            String deepSeekResponse = aiServiceUtils.callDeepSeekApi(prompt);
+            String response = aiServiceUtils.callDeepSeekApi(prompt.toString());
             
-            if (deepSeekResponse != null && !deepSeekResponse.isEmpty()) {
-                // 解析DeepSeek返回的建议
-                List<String> aiSuggestions = parseDeepSeekSuggestions(deepSeekResponse);
-                
-                // 如果AI生成的建议不为空，则返回AI建议，否则返回规则生成的建议
-                if (!aiSuggestions.isEmpty()) {
-                    log.info("使用DeepSeek生成的AI建议: {}", aiSuggestions);
-                    return aiSuggestions;
+            // 解析响应
+            List<String> suggestions = new ArrayList<>();
+            String[] lines = response.split("\\n");
+            for (String line : lines) {
+                String trimmedLine = line.trim();
+                if (!trimmedLine.isEmpty()) {
+                    suggestions.add(trimmedLine);
                 }
             }
+            
+            // 确保至少有9条建议，以便前端能正确提取推荐方向和三个时间维度的目标
+            while (suggestions.size() < 9) {
+                suggestions.add("持续学习和提升是职业发展的关键");
+            }
+            
+            log.info("使用DeepSeek生成的AI建议: {}", suggestions);
+            return suggestions;
         } catch (Exception e) {
             // 记录错误，但不影响正常流程
             log.error("调用DeepSeek API失败: {}", e.getMessage(), e);
-        }
-        
-        // 3. 如果DeepSeek调用失败或返回空结果，则使用基于规则的建议
-        log.info("使用规则生成的建议: {}", ruleBasedSuggestions);
-        return ruleBasedSuggestions;
-    }
-    
-    /**
-     * 使用规则生成基础建议
-     */
-    private List<String> generateRuleBasedSuggestions(Map<String, GrowthReportVO.AbilityGrowthVO> abilityGrowth, List<GrowthReportVO.ImprovementVO> improvements) {
-        List<String> suggestions = new ArrayList<>();
-
-        // 基于能力成长提出建议
-        abilityGrowth.forEach((ability, growth) -> {
-            if (growth.getTrend().equals("需要改进") || growth.getChangeRate() < 0) {
-                switch (ability) {
-                    case "techDepth":
-                        suggestions.add("加强技术知识的学习，特别是在" + (growth.getAnalysis().contains("技术深度") ? "相关领域" : "新技术") + "方面");
-                        break;
-                    case "logicExpression":
-                        suggestions.add("练习结构化思考和表达，提高回答的条理性");
-                        break;
-                    case "communication":
-                        suggestions.add("增强沟通能力，注意表达的清晰度和简洁性");
-                        break;
-                    case "answerDepth":
-                        suggestions.add("培养深入分析问题的能力，尝试从多个角度思考问题");
-                        break;
-                }
-            }
-        });
-
-        // 基于改进点提出建议
-        improvements.forEach(improvement -> {
-            if (improvement.getProgress() < 50) {
-                suggestions.add("重点关注\"" + improvement.getArea() + "\"的提升，制定针对性的学习计划");
-            }
-        });
-
-        // 添加通用建议
-        suggestions.add("保持定期练习，通过模拟面试不断提升面试技巧");
-        suggestions.add("总结每次面试的经验教训，形成自己的面试准备体系");
-
-        return suggestions.stream().distinct().limit(5).collect(Collectors.toList());
-    }
-    
-    /**
-     * 解析DeepSeek返回的建议，格式化为列表
-     */
-    private List<String> parseDeepSeekSuggestions(String response) {
-        List<String> suggestions = new ArrayList<>();
-        
-        // 去除首尾空白
-        response = response.trim();
-        
-        // 如果是用分号分隔的
-        if (response.contains(";")) {
-            String[] parts = response.split(";");
-            for (String part : parts) {
-                String suggestion = part.trim();
-                if (!suggestion.isEmpty()) {
-                    // 移除可能的序号
-                    suggestion = suggestion.replaceAll("^[0-9]+[\\.、][\\s]*", "");
-                    suggestions.add(suggestion);
-                }
-            }
-        } 
-        // 如果是用换行分隔的
-        else if (response.contains("\n")) {
-            String[] lines = response.split("\n");
-            for (String line : lines) {
-                String suggestion = line.trim();
-                if (!suggestion.isEmpty()) {
-                    // 移除可能的序号
-                    suggestion = suggestion.replaceAll("^[0-9]+[\\.、][\\s]*", "");
-                    suggestions.add(suggestion);
-                }
-            }
-        } 
-        // 如果是单个建议
-        else {
-            suggestions.add(response);
-        }
-        
-        // 限制返回数量为3-5条
-        return suggestions.stream()
-                .distinct()
-                .limit(5)
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * 格式化数据为自然语言描述，用于发送给DeepSeek API
-     */
-    private String formatDataForDeepSeek(Map<String, GrowthReportVO.AbilityGrowthVO> abilityGrowth, List<GrowthReportVO.ImprovementVO> improvements) {
-        StringBuilder data = new StringBuilder();
-        
-        // 格式化能力成长数据
-        data.append("【能力成长分析】\n");
-        abilityGrowth.forEach((ability, growth) -> {
-            String abilityName = "";
-            switch (ability) {
-                case "techDepth": abilityName = "技术深度"; break;
-                case "logicExpression": abilityName = "逻辑表达"; break;
-                case "communication": abilityName = "沟通能力"; break;
-                case "answerDepth": abilityName = "回答深度"; break;
-            }
             
-            data.append(String.format("%s：%s，首次得分%.2f，最近得分%.2f，变化率%.2f%%\n",
-                    abilityName, growth.getTrend(), growth.getFirstScore(), growth.getLatestScore(), growth.getChangeRate()));
-            data.append(String.format("分析：%s\n\n", growth.getAnalysis()));
-        });
-        
-        // 格式化改进点数据
-        if (!improvements.isEmpty()) {
-            data.append("【需要改进的方面】\n");
-            improvements.forEach(improvement -> {
-                data.append(String.format("%s：进度%d%%\n", improvement.getArea(), improvement.getProgress()));
-                data.append(String.format("分析：%s\n\n", improvement.getAnalysis()));
-            });
+            // 添加默认建议，确保符合前端预期的格式
+            List<String> defaultSuggestions = new ArrayList<>();
+            defaultSuggestions.add("推荐成为技术专家，专注后端架构和性能优化");
+            defaultSuggestions.add("1. 系统学习分布式架构，提升技术深度");
+            defaultSuggestions.add("2. 每日练习算法题，提高逻辑思维能力");
+            defaultSuggestions.add("3. 总结面试经验，完善常见问题的回答");
+            defaultSuggestions.add("4. 参与开源项目，积累实战经验");
+            defaultSuggestions.add("5. 学习系统设计，提升架构能力");
+            defaultSuggestions.add("6. 建立知识体系，形成个人技术博客");
+            defaultSuggestions.add("7. 向技术管理方向发展，培养团队领导能力");
+            defaultSuggestions.add("8. 拓展技术视野，关注行业前沿动态");
+            defaultSuggestions.add("9. 构建个人影响力，参与技术分享");
+            
+            log.info("使用默认生成的结构化建议: {}", defaultSuggestions);
+            return defaultSuggestions;
         }
-        
-        return data.toString();
     }
-
+    
     private Map<String, Object> generateVisualizationData(List<GrowthReportVO.ScoreTrendItemVO> scoreTrend, Map<String, GrowthReportVO.AbilityGrowthVO> abilityGrowth) {
         Map<String, Object> visualizationData = new HashMap<>();
 
@@ -489,9 +717,8 @@ public class GrowthReportServiceImpl implements GrowthReportService {
             dataPoint.put("date", item.getDate());
             dataPoint.put("totalScore", item.getTotalScore());
             dataPoint.put("techDepth", item.getTechDepthScore());
-            dataPoint.put("logicExpression", item.getLogicExpressionScore());
-            dataPoint.put("communication", item.getCommunicationScore());
             dataPoint.put("answerDepth", item.getAnswerDepthScore());
+            // 已移除的字段：logicExpression和communication
             return dataPoint;
         }).collect(Collectors.toList());
 
@@ -655,37 +882,43 @@ public class GrowthReportServiceImpl implements GrowthReportService {
      */
     private GrowthReportVO regenerateGrowthReport(GrowthReport growthReport) {
         try {
-            Long userId = growthReport.getUserId();
+            // 首先尝试从存储的JSON数据中重建报告内容
+            GrowthReportVO.ReportContentVO reportContent = rebuildReportContentFromJson(growthReport);
             
-            // 获取用户信息
-            Optional<User> userOptional = userRepository.findById(userId);
-            if (!userOptional.isPresent()) {
-                throw new IllegalArgumentException("用户不存在");
-            }
-            User user = userOptional.get();
-            
-            // 获取用户在报告时间范围内的所有面试会话（按时间顺序）
-            List<InterviewSession> sessions = interviewSessionRepository.findByUserIdAndCreatedAtBetweenOrderByCreatedAtAsc(
-                    userId, growthReport.getStartDate(), growthReport.getEndDate());
-            
-            // 为每个会话获取对应的面试报告
-            List<Map<String, Object>> sessionReportPairs = new ArrayList<>();
-            for (InterviewSession session : sessions) {
-                Optional<InterviewReport> reportOptional = interviewReportRepository.findBySessionId(session.getSessionId());
-                if (reportOptional.isPresent()) {
-                    Map<String, Object> pair = new HashMap<>();
-                    pair.put("session", session);
-                    pair.put("report", reportOptional.get());
-                    sessionReportPairs.add(pair);
+            // 如果JSON数据不存在或不完整，则重新生成报告内容
+            if (reportContent == null || reportContent.getScoreTrend() == null || reportContent.getScoreTrend().isEmpty()) {
+                Long userId = growthReport.getUserId();
+                
+                // 获取用户信息
+                Optional<User> userOptional = userRepository.findById(userId);
+                if (!userOptional.isPresent()) {
+                    throw new IllegalArgumentException("用户不存在");
                 }
+                User user = userOptional.get();
+                
+                // 获取用户在报告时间范围内的所有面试会话（按时间顺序）
+                List<InterviewSession> sessions = interviewSessionRepository.findByUserIdAndCreatedAtBetweenOrderByCreatedAtAsc(
+                        userId, growthReport.getStartDate(), growthReport.getEndDate());
+                
+                // 为每个会话获取对应的面试报告
+                List<Map<String, Object>> sessionReportPairs = new ArrayList<>();
+                for (InterviewSession session : sessions) {
+                    Optional<InterviewReport> reportOptional = interviewReportRepository.findBySessionId(session.getSessionId());
+                    if (reportOptional.isPresent()) {
+                        Map<String, Object> pair = new HashMap<>();
+                        pair.put("session", session);
+                        pair.put("report", reportOptional.get());
+                        sessionReportPairs.add(pair);
+                    }
+                }
+                
+                if (sessionReportPairs.isEmpty()) {
+                    throw new IllegalArgumentException("找不到对应的面试记录");
+                }
+                
+                // 重新生成报告内容
+                reportContent = generateReportContent(user, sessionReportPairs);
             }
-            
-            if (sessionReportPairs.isEmpty()) {
-                throw new IllegalArgumentException("找不到对应的面试记录");
-            }
-            
-            // 重新生成报告内容
-            GrowthReportVO.ReportContentVO reportContent = generateReportContent(user, sessionReportPairs);
             
             // 转换为VO并返回
             return convertToVO(growthReport, reportContent);
@@ -724,17 +957,67 @@ public class GrowthReportServiceImpl implements GrowthReportService {
             overview.setImprovementRate(growthReport.getImprovementRate());
             overview.setInterviewCount(growthReport.getInterviewCount());
             
-            // 构建报告内容
-            GrowthReportVO.ReportContentVO reportContent = new GrowthReportVO.ReportContentVO();
-            reportContent.setOverview(overview);
-            
-            // 注意：对于其他复杂字段（如scoreTrend、abilityGrowth等），需要重新生成或从其他地方获取
-            // 这里简化处理，仅设置概览信息
+            // 尝试从JSON数据中重建完整报告内容
+            GrowthReportVO.ReportContentVO reportContent = rebuildReportContentFromJson(growthReport);
+            if (reportContent != null) {
+                reportContent.setOverview(overview);
+            } else {
+                // 如果JSON数据不可用，创建空的报告内容
+                reportContent = new GrowthReportVO.ReportContentVO();
+                reportContent.setOverview(overview);
+            }
             
             return convertToVO(growthReport, reportContent);
         } catch (Exception e) {
             log.error("转换成长报告为VO失败: reportId={}", growthReport.getId(), e);
             throw new RuntimeException("转换成长报告失败: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 从数据库存储的JSON数据中重建报告内容
+     */
+    private GrowthReportVO.ReportContentVO rebuildReportContentFromJson(GrowthReport growthReport) {
+        try {
+            GrowthReportVO.ReportContentVO reportContent = new GrowthReportVO.ReportContentVO();
+            
+            // 反序列化各字段
+            if (growthReport.getScoreTrendJson() != null) {
+                reportContent.setScoreTrend(objectMapper.readValue(growthReport.getScoreTrendJson(), 
+                        objectMapper.getTypeFactory().constructCollectionType(List.class, GrowthReportVO.ScoreTrendItemVO.class)));
+            }
+            
+            if (growthReport.getAbilityGrowthJson() != null) {
+                reportContent.setAbilityGrowth(objectMapper.readValue(growthReport.getAbilityGrowthJson(), 
+                        objectMapper.getTypeFactory().constructMapType(Map.class, String.class, GrowthReportVO.AbilityGrowthVO.class)));
+            }
+            
+            if (growthReport.getStrengthsJson() != null) {
+                reportContent.setStrengths(objectMapper.readValue(growthReport.getStrengthsJson(), 
+                        objectMapper.getTypeFactory().constructCollectionType(List.class, GrowthReportVO.StrengthVO.class)));
+            }
+            
+            if (growthReport.getImprovementsJson() != null) {
+                reportContent.setImprovements(objectMapper.readValue(growthReport.getImprovementsJson(), 
+                        objectMapper.getTypeFactory().constructCollectionType(List.class, GrowthReportVO.ImprovementVO.class)));
+            }
+            
+            if (growthReport.getAiSuggestionsJson() != null) {
+                reportContent.setAiSuggestions(objectMapper.readValue(growthReport.getAiSuggestionsJson(), 
+                        objectMapper.getTypeFactory().constructCollectionType(List.class, String.class)));
+            }
+            
+            if (growthReport.getVisualizationDataJson() != null) {
+                reportContent.setVisualizationData(objectMapper.readValue(growthReport.getVisualizationDataJson(), Map.class));
+            }
+            
+            // 已在aiSuggestions中包含推荐职位和成长计划
+            // 无需单独处理推荐职位和成长计划的JSON字段
+            
+            return reportContent;
+        } catch (Exception e) {
+            log.error("从JSON重建报告内容失败: reportId={}, {}", growthReport.getId(), e.getMessage(), e);
+            return null;
         }
     }
 }
