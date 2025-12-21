@@ -491,13 +491,17 @@ public class AiServiceUtils {
 
     private void safeComplete(SseEmitter emitter, AtomicBoolean closedFlag) {
         if (closedFlag.compareAndSet(false, true)) {
-            emitter.complete();
+            try {
+                emitter.complete();
+            } catch (Exception ignored) {}
         }
     }
 
     private void safeCompleteWithError(SseEmitter emitter, AtomicBoolean closedFlag, Throwable e) {
         if (closedFlag.compareAndSet(false, true)) {
-            emitter.completeWithError(e);
+            try {
+                emitter.completeWithError(e);
+            } catch (Exception ignored) {}
         }
     }
 
@@ -514,6 +518,82 @@ public class AiServiceUtils {
      * @param questionText 完整的问题文本
      * @param sessionId 会话ID
      */
+    /**
+     * 顺序调用DeepSeek API（流式输出方式），确保每个prompt响应成功后再进行下一个
+     * @param systemPrompt 系统提示词
+     * @param prompts 用户提示词列表
+     * @param emitter SSE发射器，用于流式输出
+     * @param sessionId 会话ID，用于保存元数据和获取对话历史
+     */
+    public void callDeepSeekApiStreamSequential(String systemPrompt, List<String> prompts, SseEmitter emitter, String sessionId) {
+        executorService.submit(() -> {
+            try {
+                // 遍历所有prompt，顺序执行
+                for (int i = 0; i < prompts.size(); i++) {
+                    final int promptIndex = i + 1;
+                    String prompt = prompts.get(i);
+                    // 为每个prompt创建一个CountDownLatch，用于等待响应完成
+                    final java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(1);
+                    
+                    // 构建事件名称，包含prompt索引
+                    String eventName = "prompt-" + promptIndex;
+                    
+                    // 发送开始事件，通知前端当前处理的是第几个prompt
+                    try {
+                        emitter.send(SseEmitter.event().name("prompt-start").data("{\"index\": " + promptIndex + ", \"total\": " + prompts.size() + ", \"content\": \"" + prompt + "\"}"));
+                    } catch (IOException e) {
+                        log.error("Error sending prompt-start event: {}", e.getMessage(), e);
+                        throw new RuntimeException(e);
+                    }
+                    
+                    // 调用流式API，传入回调函数
+                    callDeepSeekApiStream(
+                        systemPrompt,
+                        prompt,
+                        emitter,
+                        content -> {
+                            // 内容回调，这里可以添加额外处理逻辑
+                        },
+                        () -> {
+                            // 这个prompt响应完成，计数减一
+                            latch.countDown();
+                            // 发送完成事件，通知前端当前prompt已完成
+                            try {
+                                emitter.send(SseEmitter.event().name("prompt-complete").data("{\"index\": " + promptIndex + "}"));
+                            } catch (IOException e) {
+                                log.error("Error sending prompt-complete event: {}", e.getMessage(), e);
+                                throw new RuntimeException(e);
+                            }
+                        },
+                        sessionId,
+                        eventName
+                    );
+                    
+                    // 等待当前prompt响应完成
+                    latch.await();
+                }
+                
+                // 所有prompt处理完成
+                try {
+                    emitter.send(SseEmitter.event().name("all-prompts-complete").data("{\"total\": " + prompts.size() + "}"));
+                } catch (IOException e) {
+                    log.error("Error sending all-prompts-complete event: {}", e.getMessage(), e);
+                    throw new RuntimeException(e);
+                }
+            } catch (Exception e) {
+                log.error("Error in sequential prompt execution: {}", e.getMessage(), e);
+                try {
+                    emitter.send(SseEmitter.event().name("error").data("顺序执行错误: " + e.getMessage()));
+                } catch (IOException ignored) {}
+            } finally {
+                // 确保emitter最终关闭
+                try {
+                    emitter.complete();
+                } catch (Exception ignored) {}
+            }
+        });
+    }
+
     private void saveQuestionAsync(String questionText, String sessionId) {
         executorService.submit(() -> {
             try {

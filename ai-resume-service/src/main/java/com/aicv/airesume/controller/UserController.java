@@ -17,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import org.springframework.web.client.RestTemplate;
 import java.util.HashMap;
 import java.util.Map;
@@ -510,26 +511,53 @@ public class UserController {
     }
     
     /**
-     * 生成用户的AI成长报告
-     * @return 成长报告
+     * 获取或生成用户的AI成长报告（流式返回）
+     * 包含条件判断逻辑：
+     * 1. 检查用户是否有至少两次面试记录
+     * 2. 检查是否有新的面试记录
+     * 3. 如果没有新记录且有报告，则直接返回现有报告
+     * 4. 如果没有新记录且没有报告，则生成新报告
+     * 5. 如果有新记录，则重新生成报告并替换原数据
+     * @return SSE发射器
      */
     @GetMapping("/history/analyze")
-    public ResponseEntity<BaseResponseVO> generateGrowthReport() {
+    public SseEmitter getOrGenerateGrowthReport() {
         try {
             // 从全局上下文获取用户ID
             Long userId = GlobalContextUtil.getUserId();
             
-            // 调用服务层生成成长报告
-            com.aicv.airesume.model.vo.GrowthReportVO growthReport = growthReportService.generateGrowthReport(userId);
+            // 创建SSE发射器，设置超时时间为1小时
+            SseEmitter emitter = new SseEmitter(3600000L);
             
-            return ResponseEntity.ok(BaseResponseVO.success(growthReport));
+            // 调用服务层的异步流式方法
+            String reportId = growthReportService.getOrGenerateGrowthReport(userId, emitter);
+            
+            if (reportId != null) {
+                log.info("开始异步处理成长报告，报告ID: {}, 用户ID: {}", reportId, userId);
+            }
+            
+            return emitter;
         } catch (IllegalArgumentException e) {
             // 处理业务异常
-            return ResponseEntity.ok(BaseResponseVO.error(e.getMessage()));
+            SseEmitter emitter = new SseEmitter();
+            try {
+                emitter.send(SseEmitter.event().name("error").data("生成成长报告失败: " + e.getMessage()));
+                emitter.completeWithError(new RuntimeException(e.getMessage()));
+            } catch (Exception ex) {
+                log.error("发送错误消息失败", ex);
+            }
+            return emitter;
         } catch (Exception e) {
             // 处理系统异常
             log.error("生成成长报告失败", e);
-            return ResponseEntity.ok(BaseResponseVO.error("生成成长报告失败: " + e.getMessage()));
+            SseEmitter emitter = new SseEmitter();
+            try {
+                emitter.send(SseEmitter.event().name("error").data("生成成长报告失败: " + e.getMessage()));
+                emitter.completeWithError(new RuntimeException("生成成长报告失败"));
+            } catch (Exception ex) {
+                log.error("发送错误消息失败", ex);
+            }
+            return emitter;
         }
     }
     

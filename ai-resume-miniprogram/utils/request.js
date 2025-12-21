@@ -145,71 +145,182 @@ const requestStream = (url, options = {}) => {
     method = 'POST',
     header = {},
     onChunk,
+    onEvent,
     onError,
-    onComplete
+    onComplete,
+    onReconnect,
+    maxRetries = 3,
+    retryDelay = 2000
   } = options;
   
-  return new Promise((resolve, reject) => {
-    // 使用云托管callContainer调用，设置60秒超时以适应长prompt
-    app.cloudCall(url, data, method, header, 60000) // 使用60秒超时
-      .then(res => {
-        // 处理响应数据
-        if (res && typeof res === 'string') {
-          // 模拟流式处理：逐字符发送数据
-          let index = 0;
-          const sendNextChar = () => {
-            if (index < res.length) {
-              // 从当前位置查找是否有完整的事件行
-              const endIndex = res.indexOf('\n', index);
-              if (endIndex !== -1) {
-                // 有完整的行，发送整行
-                const chunk = res.substring(index, endIndex + 1);
-                index = endIndex + 1;
-                if (onChunk && typeof onChunk === 'function') {
-                  onChunk(chunk);
-                }
-                // 递归发送下一行，减少延迟以提高响应速度
-                setTimeout(sendNextChar, 10); // 10ms的延迟，提高流式传输速度
-              } else {
-                // 没有完整的行，发送剩余部分
-                const chunk = res.substring(index);
-                index = res.length;
-                if (onChunk && typeof onChunk === 'function') {
-                  onChunk(chunk);
-                }
-                // 递归发送结束
-                setTimeout(sendNextChar, 10);
+  // 记录重试次数和已接收的事件数据
+  let retryCount = 0;
+  let receivedEvents = [];
+  let isCompleted = false;
+  
+  // 解析SSE事件格式
+  const parseSSE = (eventText) => {
+    if (!eventText || typeof eventText !== 'string') {
+      return null;
+    }
+    
+    try {
+      // 简单处理：如果是JSON格式直接解析
+      const parsed = JSON.parse(eventText);
+      if (parsed.name && parsed.data) {
+        return parsed;
+      }
+    } catch (e) {
+      // 不是JSON格式，尝试解析SSE格式
+      const lines = eventText.split('\n');
+      let event = { name: '', data: '' };
+      
+      lines.forEach(line => {
+        line = line.trim();
+        if (line.startsWith('event:')) {
+          event.name = line.substring(6).trim();
+        } else if (line.startsWith('data:')) {
+          event.data = line.substring(5).trim();
+        }
+      });
+      
+      return event.name || event.data ? event : null;
+    }
+    
+    return null;
+  };
+  
+  // 发送事件到回调函数
+  const sendEvent = (event) => {
+    if (event && onEvent && typeof onEvent === 'function') {
+      onEvent(event);
+      // 保存已接收的事件
+      if (event.name !== 'progress') { // 不保存进度事件，避免重复
+        receivedEvents.push(event);
+      }
+    } else if (onChunk && typeof onChunk === 'function') {
+      onChunk(event);
+    }
+  };
+  
+  // 模拟流式处理响应数据
+  const processResponse = (res) => {
+    if (res && typeof res === 'string') {
+      // 模拟流式处理：逐字符发送数据
+      let index = 0;
+      const sendNextChar = () => {
+        if (index < res.length) {
+          // 从当前位置查找是否有完整的事件行
+          const endIndex = res.indexOf('\n\n', index); // 寻找SSE事件分隔符
+          if (endIndex !== -1) {
+            // 有完整的SSE事件，发送整个事件
+            const eventText = res.substring(index, endIndex + 2);
+            index = endIndex + 2;
+            
+            // 解析SSE事件
+            const event = parseSSE(eventText);
+            sendEvent(event);
+            
+            // 递归发送下一个事件
+            setTimeout(sendNextChar, 10);
+          } else {
+            // 没有完整的事件，继续寻找
+            const nextNewline = res.indexOf('\n', index);
+            if (nextNewline !== -1) {
+              // 有换行符，尝试解析部分内容
+              const partialText = res.substring(index, nextNewline + 1);
+              index = nextNewline + 1;
+              
+              if (onChunk && typeof onChunk === 'function') {
+                onChunk(partialText);
               }
+              
+              setTimeout(sendNextChar, 10);
             } else {
-              // 所有数据发送完毕
-              if (onComplete && typeof onComplete === 'function') {
-                onComplete();
+              // 没有换行符，发送剩余部分
+              const chunk = res.substring(index);
+              index = res.length;
+              
+              if (onChunk && typeof onChunk === 'function') {
+                onChunk(chunk);
               }
+              
+              setTimeout(sendNextChar, 10);
             }
-          };
-          // 开始发送数据
-          sendNextChar();
-        } else if (res && typeof res === 'object') {
-          // 如果是对象格式，直接处理
-          if (onChunk && typeof onChunk === 'function') {
-            onChunk(JSON.stringify(res));
           }
-          
+        } else {
+          // 所有数据发送完毕
+          isCompleted = true;
           if (onComplete && typeof onComplete === 'function') {
             onComplete();
           }
         }
-        
-        resolve(res);
-      })
-      .catch(err => {
-        console.error('请求失败:', err);
-        if (onError && typeof onError === 'function') {
-          onError(err);
-        }
-        reject(err);
-      });
-  });
+      };
+      // 开始发送数据
+      sendNextChar();
+    } else if (res && typeof res === 'object') {
+      // 如果是对象格式，直接处理
+      if (res.name && res.data) {
+        // 已经是event格式
+        sendEvent(res);
+      } else {
+        // 尝试作为report-content事件处理
+        const event = { 
+          name: 'report-content', 
+          data: res 
+        };
+        sendEvent(event);
+      }
+      
+      isCompleted = true;
+      if (onComplete && typeof onComplete === 'function') {
+        onComplete();
+      }
+    }
+    
+    return res;
+  };
+  
+  // 执行请求的核心函数
+  const executeRequest = () => {
+    return new Promise((resolve, reject) => {
+      // 使用云托管callContainer调用，设置60秒超时以适应长prompt
+      app.cloudCall(url, data, method, header, 60000) // 使用60秒超时
+        .then(res => {
+          const processedRes = processResponse(res);
+          resolve(processedRes);
+        })
+        .catch(err => {
+          console.error('请求失败:', err);
+          
+          // 处理重试逻辑
+          if (retryCount < maxRetries && !isCompleted) {
+            retryCount++;
+            console.log(`正在进行第${retryCount}次重试...`);
+            
+            // 调用重连回调
+            if (onReconnect && typeof onReconnect === 'function') {
+              onReconnect(retryCount, maxRetries);
+            }
+            
+            // 延迟重试
+            setTimeout(() => {
+              executeRequest()
+                .then(res => resolve(res))
+                .catch(error => reject(error));
+            }, retryDelay * retryCount); // 指数退避
+          } else {
+            // 重试失败，调用错误回调
+            if (onError && typeof onError === 'function') {
+              onError(err);
+            }
+            reject(err);
+          }
+        });
+    });
+  };
+  
+  return executeRequest();
 }
 
 // 导出GET请求方法
