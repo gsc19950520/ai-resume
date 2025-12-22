@@ -14,7 +14,6 @@ import com.aicv.airesume.model.vo.InterviewResponseVO;
 import com.aicv.airesume.model.dto.InterviewStartRequestDTO;
 import com.aicv.airesume.model.vo.InterviewReportVO;
 import com.aicv.airesume.model.vo.InterviewHistoryListVO;
-import com.aicv.airesume.model.vo.AiTraceLogVO;
 import com.aicv.airesume.model.vo.InterviewHistoryVO;
 import com.aicv.airesume.model.vo.InterviewSessionVO;
 import com.aicv.airesume.model.vo.SalaryRangeVO;
@@ -26,12 +25,9 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
-import com.aicv.airesume.entity.AiTraceLog;
-import com.aicv.airesume.repository.AiTraceLogRepository;
 import com.aicv.airesume.model.dto.StartReportRequest;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import com.aicv.airesume.utils.TokenUtils;
 import com.aicv.airesume.utils.GlobalContextUtil;
 import com.aicv.airesume.common.exception.BusinessException;
@@ -48,13 +44,7 @@ public class InterviewController {
     private InterviewService interviewService;
     
     @Autowired
-    private AiTraceLogRepository aiTraceLogRepository;
-    
-    @Autowired
     private DynamicConfigService dynamicConfigService;
-    
-    @Autowired
-    private TokenUtils tokenUtils;
 
     /**
      * 获取面试配置
@@ -146,33 +136,6 @@ public class InterviewController {
             return emitter;
         }
     }
-
-    /**
-     * 获取AI运行日志（调试模式）
-     */
-    @GetMapping("/trace-logs/{sessionId}")
-    public BaseResponseVO getTraceLogs(@PathVariable String sessionId) {
-        try {
-            List<AiTraceLog> logs = aiTraceLogRepository.findBySessionIdOrderByCreatedAtDesc(sessionId);
-            
-            // 转换为VO对象列表
-            List<AiTraceLogVO> voList = logs.stream()
-                .map(log -> new AiTraceLogVO(
-                    log.getSessionId(),
-                    log.getActionType(),
-                    log.getPromptInput(),
-                    log.getCreatedAt().toString()
-                ))
-                .collect(Collectors.toList());
-            
-            return BaseResponseVO.success(voList);
-        } catch (BusinessException e) {
-            return BaseResponseVO.error(e.getMessage());
-        } catch (Exception e) {
-            log.error("获取AI跟踪日志失败", e);
-            return BaseResponseVO.error("获取AI跟踪日志失败：" + e.getMessage());
-        }
-  }
     
     /**
      * 提交答案并获取下一个问题（流式输出）
