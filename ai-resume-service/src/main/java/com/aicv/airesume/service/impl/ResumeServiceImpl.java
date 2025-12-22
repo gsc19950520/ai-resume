@@ -409,6 +409,15 @@ public class ResumeServiceImpl implements ResumeService {
                 if (resumeDataDTO.getPersonalInfo().getInterests() != null) {
                     resume.setInterests(String.join(",", resumeDataDTO.getPersonalInfo().getInterests()));
                 }
+                
+                // 设置职位类型ID
+                if (resumeDataDTO.getPersonalInfo().getJobTypeId() != null && !resumeDataDTO.getPersonalInfo().getJobTypeId().isEmpty()) {
+                    try {
+                        resume.setJobTypeId(Long.valueOf(resumeDataDTO.getPersonalInfo().getJobTypeId()));
+                    } catch (NumberFormatException e) {
+                        log.warn("无效的jobTypeId格式: {}", resumeDataDTO.getPersonalInfo().getJobTypeId());
+                    }
+                }
             }
             
             // 保存简历到数据库
@@ -487,6 +496,15 @@ public class ResumeServiceImpl implements ResumeService {
                 
                 if (personalInfo.getInterests() != null) {
                     resume.setInterests(String.join(",", personalInfo.getInterests()));
+                }
+                
+                // 设置职位类型ID
+                if (personalInfo.getJobTypeId() != null && !personalInfo.getJobTypeId().isEmpty()) {
+                    try {
+                        resume.setJobTypeId(Long.valueOf(personalInfo.getJobTypeId()));
+                    } catch (NumberFormatException e) {
+                        log.warn("无效的jobTypeId格式: {}", personalInfo.getJobTypeId());
+                    }
                 }
             }
             

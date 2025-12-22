@@ -343,6 +343,7 @@ Page({
       id: backendData.id || '',
       userId: backendData.userId || '',
       jobTitle: backendData.jobTitle || '',
+      jobTypeId: backendData.jobTypeId || '',  // 添加jobTypeId字段
       expectedSalary: backendData.expectedSalary || '',
       startTime: backendData.startTime || '',
       interests: backendData.interests || '',

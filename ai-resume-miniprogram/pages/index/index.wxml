@@ -20,7 +20,6 @@
           <view class="module-title">AI模拟面试</view>
           <view class="module-desc">通用AI面试系统，智能训练评估</view>
         </view>
-        <view class="module-badge">热门</view>
       </view>
     </view>
   </view>

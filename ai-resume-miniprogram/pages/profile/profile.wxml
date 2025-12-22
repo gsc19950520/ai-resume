@@ -81,5 +81,8 @@
 
   <!-- 退出登录按钮 -->
   <button class="logout-btn" wx:if="{{userInfo}}" bindtap="logout">退出登录</button>
+  
+  <!-- 版本信息 -->
+  <view class="version-info">版本 1.0.0</view>
 
 </view>

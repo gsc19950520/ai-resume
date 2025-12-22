@@ -495,9 +495,9 @@ Page({
       if (resumeInfo.personalInfo.jobTypeId && this.data.jobTypes && this.data.jobTypes.length > 0) {
         const jobTypeIdStr = String(resumeInfo.personalInfo.jobTypeId);
         const selectedJobType = this.data.jobTypes.find(type => String(type.id) === jobTypeIdStr);
-        if (selectedJobType && selectedJobType.name) {
-          resumeInfo.personalInfo.jobTitle = selectedJobType.name;
-          console.log('根据jobTypeId更新jobTitle:', selectedJobType.name);
+        if (selectedJobType && selectedJobType.jobName) {  // 修改为jobName
+          resumeInfo.personalInfo.jobTitle = selectedJobType.jobName;  // 修改为jobName
+          console.log('根据jobTypeId更新jobTitle:', selectedJobType.jobName);  // 修改为jobName
         }
       }
       

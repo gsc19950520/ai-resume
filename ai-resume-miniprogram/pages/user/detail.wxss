@@ -1,13 +1,43 @@
 /* detail.wxss */
 .detail-container {
   padding: 30rpx;
-  background-color: #f8f8f8;
   min-height: 100vh;
+  /* 应用渐变背景 */
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+/* 添加装饰元素 */
+.detail-container::before {
+  content: "";
+  position: absolute;
+  top: -200rpx;
+  right: -200rpx;
+  width: 800rpx;
+  height: 800rpx;
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(76, 175, 80, 0) 70%);
+  border-radius: 50%;
+  z-index: 0;
+}
+
+.detail-container::after {
+  content: "";
+  position: absolute;
+  bottom: -200rpx;
+  left: -200rpx;
+  width: 600rpx;
+  height: 600rpx;
+  background: linear-gradient(135deg, rgba(0, 150, 136, 0.1) 0%, rgba(0, 150, 136, 0) 70%);
+  border-radius: 50%;
+  z-index: 0;
 }
 
 .page-header {
   text-align: center;
   margin-bottom: 40rpx;
+  position: relative;
+  z-index: 1;
 }
 
 .title {
@@ -20,6 +50,8 @@
   display: flex;
   justify-content: center;
   margin-bottom: 50rpx;
+  position: relative;
+  z-index: 1;
 }
 
 .avatar-upload {
@@ -28,8 +60,6 @@
   height: 200rpx;
   border-radius: 50%;
   overflow: hidden;
-  border: 2rpx solid #e8e8e8;
-  background-color: #fff;
 }
 
 .avatar-upload image {
@@ -50,10 +80,15 @@
 }
 
 .form-section {
-  background-color: #fff;
-  border-radius: 16rpx;
+  /* 应用卡片样式 */
+  background-color: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10rpx);
+  border-radius: 24rpx;
   padding: 20rpx 0;
   margin-bottom: 40rpx;
+  box-shadow: 0 8rpx 30rpx rgba(0, 0, 0, 0.08);
+  position: relative;
+  z-index: 1;
 }
 
 .form-item {
@@ -71,13 +106,19 @@
   width: 200rpx;
   font-size: 28rpx;
   color: #666;
+  font-weight: 500;
+  flex-shrink: 0;
 }
 
 .input {
   flex: 1;
   font-size: 28rpx;
   color: #333;
-  text-align: right;
+  /* 确保输入框文字左对齐并上下居中 */
+  text-align: left;
+  padding: 0;
+  height: 70rpx;
+  line-height: 70rpx;
 }
 
 .picker {
@@ -87,11 +128,15 @@
 .picker-text {
   font-size: 28rpx;
   color: #333;
-  text-align: right;
+  text-align: left;
+  height: 70rpx;
+  line-height: 70rpx;
 }
 
 .btn-section {
   padding: 0 20rpx;
+  position: relative;
+  z-index: 1;
 }
 
 /* 必填字段样式 */
@@ -107,7 +152,8 @@
   margin-top: 10rpx;
 }
 
-save-btn {
+/* 修复保存按钮样式选择器 */
+.save-btn {
   background: linear-gradient(135deg, #07c160, #06a34a);
   color: #fff;
   border-radius: 80rpx;
@@ -115,10 +161,15 @@ save-btn {
   font-weight: 600;
   padding: 30rpx 0;
   margin-bottom: 40rpx;
+  border: none;
+  box-shadow: 0 8rpx 20rpx rgba(7, 193, 96, 0.3);
+  transition: all 0.3s ease;
 }
 
 .save-btn:active {
   opacity: 0.8;
+  transform: translateY(2rpx);
+  box-shadow: 0 4rpx 10rpx rgba(7, 193, 96, 0.2);
 }
 
 /* 加载状态样式 */
@@ -138,18 +189,18 @@ save-btn {
 .loading-content {
   background-color: white;
   padding: 40rpx;
-  border-radius: 12rpx;
+  border-radius: 24rpx;
   display: flex;
   flex-direction: column;
   align-items: center;
-  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8rpx 30rpx rgba(0, 0, 0, 0.15);
 }
 
 .loading-spinner {
   width: 50rpx;
   height: 50rpx;
   border: 6rpx solid #f3f3f3;
-  border-top: 6rpx solid #1aad19;
+  border-top: 6rpx solid #07c160;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 20rpx;
