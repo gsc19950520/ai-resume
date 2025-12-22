@@ -96,12 +96,6 @@ public class GrowthReport {
     private LocalDateTime endDate;
     
     /**
-     * 生成报告时的最后一次面试日期，用于判断是否有新的面试记录
-     */
-    @Column(name = "last_interview_date", nullable = false)
-    private LocalDateTime lastInterviewDate;
-    
-    /**
      * 得分趋势数据，JSON格式存储，包含总分、技术和深度三项得分的历史变化
      */
     @Column(name = "score_trend_json", columnDefinition = "JSON")

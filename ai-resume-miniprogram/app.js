@@ -15,7 +15,7 @@ App({
     
     // 本地调试配置
     useLocalServer: true, // 开启本地调试（开发时设置为true，上线前改为false使用云托管）
-    localServerUrl: 'https://2204k113o5.zicp.fun' // 本地服务地址
+    localServerUrl: 'https://266nm936vs89.vicp.fun' // 本地服务地址
   },
   
   // 初始化云开发环境

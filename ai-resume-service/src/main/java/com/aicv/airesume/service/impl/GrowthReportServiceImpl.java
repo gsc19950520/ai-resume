@@ -19,8 +19,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import java.io.IOException;
-import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -32,37 +30,21 @@ import java.util.stream.Collectors;
 @Service
 @Slf4j
 public class GrowthReportServiceImpl implements GrowthReportService {
-    // DeepSeek API 提示词常量 - 优化版：增加个性化信息、上下文和更明确的要求
-    private static final String RECOMMEND_JOBS_PROMPT_START = "请基于用户的面试表现、技能优势、改进空间、职业背景和面试得分趋势，推荐3个最适合的职业方向。\n" +
-            "请结合用户的实际面试经历、得分变化趋势、最高得分领域和薄弱环节，确保推荐的职业方向与用户的成长轨迹和能力特征高度匹配。\n" +
-            "请考虑用户的面试目标岗位、行业偏好和技能发展潜力，提供精准的职业发展建议。\n";
-    private static final String RECOMMEND_JOBS_PROMPT_END = "\n请为每个推荐的职业方向提供：\n" +
-            "1. 职业名称：具体明确（如'高级Java后端工程师'而非'后端工程师'）\n" +
-            "2. 匹配理由：基于用户的面试表现和技能特点，30字以内\n" +
-            "3. 匹配分数：0-100分，精确反映匹配度\n" +
+    // DeepSeek API 提示词常量
+    private static final String RECOMMEND_JOBS_PROMPT_START = "请基于用户的面试表现，推荐3个最适合的职业方向。\n";
+    private static final String RECOMMEND_JOBS_PROMPT_END = "\n请为每个推荐的职业方向提供：职业名称、匹配理由（30字以内）、匹配分数（0-100）。\n" +
             "格式要求：JSON格式，包含recommendations数组，每个元素包含jobName、matchReason、matchScore字段。";
     
-    private static final String GROWTH_PLANS_PROMPT_START = "请基于用户的面试表现、当前技能水平、优势领域、改进空间和得分趋势，制定高度个性化的成长规划。\n" +
-            "规划应包含短期（1-3个月）、中期（3-6个月）和长期（6-12个月）三个阶段，每个阶段都要有明确的发展目标和行动步骤。\n" +
-            "请结合用户的实际面试得分、薄弱环节改进趋势、行业发展需求和职业目标，确保规划具有高度可操作性和针对性。\n" +
-            "短期规划应聚焦于快速提升薄弱环节，中期规划应注重技能体系构建，长期规划应关注职业发展和晋升路径。\n";
-    private static final String GROWTH_PLANS_PROMPT_END = "\n请为每个时间阶段提供：\n" +
-            "1. 目标：3-5条具体可量化的成长目标\n" +
-            "2. 行动步骤：3-5条详细、可执行的具体行动\n" +
-            "3. 预期成果：清晰描述每个阶段结束时的预期效果\n" +
-            "格式要求：JSON格式，包含plans数组，每个元素包含timeFrame（'短期'/'中期'/'长期'）、goals数组、actionSteps数组、expectedResults数组。";
+    private static final String GROWTH_PLANS_PROMPT_START = "请基于用户的面试表现，制定短期（1-3个月）、中期（3-6个月）和长期（6-12个月）的成长规划。\n";
+    private static final String GROWTH_PLANS_PROMPT_END = "\n请为每个时间阶段提供：目标（3-5条）和具体行动步骤（3-5条）。\n" +
+            "格式要求：JSON格式，包含plans数组，每个元素包含timeFrame（'短期'/'中期'/'长期'）、goals数组、actionSteps数组。";
     
-    private static final String AI_SUGGESTIONS_PROMPT_START = "请基于用户的面试表现分析、技能得分趋势、优势领域、改进空间和职业目标，生成高度个性化的AI建议。\n" +
-            "建议应包含以下部分：\n" +
-            "1. 一条简短而精准的推荐职业方向（20-30字），基于用户的最高得分领域和技能优势\n" +
-            "2. 近期目标（3-6个月）的3条具体行动建议，聚焦于快速提升薄弱环节和核心技能\n" +
-            "3. 中期目标（6-12个月）的3条具体行动建议，聚焦于巩固优势、拓展技能广度和深度\n" +
-            "4. 长期目标（1-3年）的3条具体行动建议，聚焦于职业发展、晋升路径和行业影响力\n" +
-            "请结合用户的实际面试得分、薄弱环节改进趋势、行业发展需求和职业目标，确保建议具有极强的针对性和可操作性。\n";
-    private static final String AI_SUGGESTIONS_PROMPT_END = "\n建议要求：\n" +
-            "1. 每条建议30-50字，具体明确，避免模糊表述\n" +
-            "2. 结合用户的面试表现数据，提供针对性的指导\n" +
-            "3. 重点关注用户的改进空间，帮助其快速提升\n" +
+    private static final String AI_SUGGESTIONS_PROMPT_START = "请基于用户的面试表现分析，生成结构化的AI建议，包含以下部分：\n" +
+            "1. 一条简短的推荐职业方向（30字以内）\n" +
+            "2. 近期目标（3-6个月）的3条具体行动建议\n" +
+            "3. 中期目标（6-12个月）的3条具体行动建议\n" +
+            "4. 长期目标（1-3年）的3条具体行动建议\n";
+    private static final String AI_SUGGESTIONS_PROMPT_END = "\n请提供具体、可操作的建议，每条建议30-50字。\n" +
             "格式要求：每行一条，按照推荐方向、近期目标1-3、中期目标1-3、长期目标1-3的顺序排列。";
 
     @Autowired
@@ -88,84 +70,6 @@ public class GrowthReportServiceImpl implements GrowthReportService {
     private ReportGenerationService reportGenerationService;
 
     /**
-     * 获取或生成成长报告的主方法，包含条件判断逻辑
-     * 1. 检查用户是否有至少两次面试记录
-     * 2. 检查是否有新的面试记录
-     * 3. 如果没有新记录且有报告，则直接返回现有报告
-     * 4. 如果没有新记录且没有报告，则生成新报告
-     * 5. 如果有新记录，则重新生成报告并替换原数据
-     */
-    public String getOrGenerateGrowthReport(Long userId, SseEmitter emitter) {
-        try {
-            // 1. 发送初始化进度信息
-            emitter.send(SseEmitter.event().name("progress").data("{\"percentage\": 0, \"stage\": \"初始化报告生成...\"}"));
-            
-            // 2. 获取用户信息
-            emitter.send(SseEmitter.event().name("progress").data("{\"percentage\": 5, \"stage\": \"获取用户信息...\"}"));
-            User user = userRepository.findById(userId)
-                    .orElseThrow(() -> new RuntimeException("用户不存在: " + userId));
-            
-            // 3. 获取用户所有面试会话
-            emitter.send(SseEmitter.event().name("progress").data("{\"percentage\": 10, \"stage\": \"收集面试记录...\"}"));
-            List<InterviewSession> sessions = interviewSessionRepository.findByUserIdOrderByCreatedAtDesc(userId);
-            
-            emitter.send(SseEmitter.event().name("progress").data("{\"percentage\": 12, \"stage\": \"验证面试次数...\"}"));
-            if (sessions.size() < 2) {
-                // 发送提示：需要至少两次面试
-                emitter.send(SseEmitter.event().name("interview-count-error").data("需要至少2次完整的面试记录才能生成成长报告"));
-                emitter.complete();
-                return null;
-            }
-            
-            // 4. 获取用户最新的面试日期
-            emitter.send(SseEmitter.event().name("progress").data("{\"percentage\": 13, \"stage\": \"分析面试数据...\"}"));
-            LocalDateTime latestInterviewDate = sessions.get(0).getCreatedAt();
-            
-            // 5. 检查是否有现有报告
-            emitter.send(SseEmitter.event().name("progress").data("{\"percentage\": 15, \"stage\": \"检查已有报告...\"}"));
-            Optional<GrowthReport> existingReportOpt = growthReportRepository.findFirstByUserIdOrderByGeneratedAtDesc(userId);
-            
-            if (existingReportOpt.isPresent()) {
-                GrowthReport existingReport = existingReportOpt.get();
-                
-                // 6. 检查是否有新的面试记录
-                if (latestInterviewDate.isAfter(existingReport.getLastInterviewDate())) {
-                    // 有新的面试记录，需要重新生成报告
-                    emitter.send(SseEmitter.event().name("new-interview-found").data("发现新的面试记录，正在重新生成成长报告..."));
-                    
-                    // 删除旧报告
-                    growthReportRepository.delete(existingReport);
-                    
-                    // 生成新报告
-                    return generateGrowthReportStream(userId, emitter);
-                } else {
-                    // 没有新的面试记录，直接返回现有报告
-                    emitter.send(SseEmitter.event().name("report-found").data("使用已有的成长报告..."));
-                    emitter.send(SseEmitter.event().name("progress").data("{\"percentage\": 80, \"stage\": \"加载现有报告...\"}"));
-                    
-                    // 将现有报告转换为VO并流式返回
-                    GrowthReportVO reportVO = regenerateGrowthReport(existingReport);
-                    emitter.send(SseEmitter.event().name("progress").data("{\"percentage\": 100, \"stage\": \"报告加载完成！\"}"));
-                    emitter.send(SseEmitter.event().name("report-content").data(reportVO));
-                    emitter.complete();
-                    return "existing_" + existingReport.getId();
-                }
-            } else {
-                // 没有现有报告，需要生成新报告
-                emitter.send(SseEmitter.event().name("no-report-found").data("未找到成长报告，正在生成..."));
-                return generateGrowthReportStream(userId, emitter);
-            }
-        } catch (Exception e) {
-            log.error("获取或生成成长报告失败", e);
-            try {
-                emitter.send(SseEmitter.event().name("error").data("获取或生成成长报告失败: " + e.getMessage()));
-            } catch (IOException ignored) {}
-            emitter.completeWithError(e);
-            return null;
-        }
-    }
-    
-    /**
      * 异步流式生成用户的AI成长报告
      */
     @Override
@@ -179,24 +83,17 @@ public class GrowthReportServiceImpl implements GrowthReportService {
         // 异步处理报告生成
         CompletableFuture.runAsync(() -> {
             try {
-                // 发送初始进度
-                emitter.send(SseEmitter.event().name("progress").data("{\"percentage\": 20, \"stage\": \"初始化报告生成...\"}"));
-            } catch (IOException ignored) {}
-            try {
                 // 获取用户信息
-                emitter.send(SseEmitter.event().name("progress").data("{\"percentage\": 25, \"stage\": \"获取用户信息...\"}"));
                 User user = userRepository.findById(userId)
                         .orElseThrow(() -> new RuntimeException("用户不存在: " + userId));
                 
                 // 获取用户最近的面试会话和报告
-                emitter.send(SseEmitter.event().name("progress").data("{\"percentage\": 30, \"stage\": \"获取面试会话和报告...\"}"));
                 List<InterviewSession> sessions = interviewSessionRepository.findByUserIdOrderByCreatedAtDesc(userId);
                 // 反转列表以获得正序
                 Collections.reverse(sessions);
                 List<Map<String, Object>> sessionReportPairs = new ArrayList<>();
                 
                 // 构建会话和报告的映射关系
-                emitter.send(SseEmitter.event().name("progress").data("{\"percentage\": 35, \"stage\": \"构建会话和报告映射...\"}"));
                 for (InterviewSession session : sessions) {
                     Optional<InterviewReport> reportOpt = interviewReportRepository.findBySessionId(session.getSessionId());
                     if (reportOpt.isPresent()) {
@@ -211,76 +108,59 @@ public class GrowthReportServiceImpl implements GrowthReportService {
                     throw new IllegalArgumentException("需要至少2次完整的面试记录才能生成成长报告");
                 }
                 
-                // 生成概览信息并流式输出
-                emitter.send(SseEmitter.event().name("progress").data("{\"percentage\": 40, \"stage\": \"提取面试特征...\"}"));
+                // 生成各种报告内容并流式输出
+                StringBuilder currentChunk = new StringBuilder();
+                
+                // 1. 生成概览信息并流式输出
                 GrowthReportVO.OverviewVO overview = generateOverview(user, sessionReportPairs, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
                 String overviewJson = objectMapper.writeValueAsString(overview);
-                String overviewChunk = "概览信息：" + overviewJson;
-                record.addChunk(overviewChunk);
-                emitter.send(SseEmitter.event().name("report").data(overviewChunk));
+                currentChunk.append("概览信息：").append(overviewJson);
                 
-                // 生成得分趋势、能力成长、优势和改进点
-                emitter.send(SseEmitter.event().name("progress").data("{\"percentage\": 45, \"stage\": \"分析成长数据...\"}"));
+                // 超过20字时发送内容块
+                if (currentChunk.length() > 20) {
+                    record.addChunk(currentChunk.toString());
+                    emitter.send(SseEmitter.event().name("report").data(currentChunk.toString()));
+                    currentChunk.setLength(0);
+                }
+                
+                // 2. 生成AI建议并流式输出
                 List<GrowthReportVO.ScoreTrendItemVO> scoreTrend = generateScoreTrend(sessionReportPairs, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
                 Map<String, GrowthReportVO.AbilityGrowthVO> abilityGrowth = generateAbilityGrowth(scoreTrend);
                 List<GrowthReportVO.StrengthVO> strengths = generateStrengths(sessionReportPairs);
                 List<GrowthReportVO.ImprovementVO> improvements = generateImprovements(sessionReportPairs);
+                List<String> aiSuggestions = generateAISuggestions(abilityGrowth, improvements);
                 
-                // 准备AI调用的prompts列表
-                emitter.send(SseEmitter.event().name("progress").data("{\"percentage\": 50, \"stage\": \"准备AI分析...\"}"));
-                List<String> prompts = new ArrayList<>();
+                String suggestionsJson = objectMapper.writeValueAsString(aiSuggestions);
+                currentChunk.append("\nAI建议：").append(suggestionsJson);
                 
-                // 生成AI建议的prompt
-                StringBuilder suggestionsPrompt = new StringBuilder();
-                suggestionsPrompt.append(AI_SUGGESTIONS_PROMPT_START);
-                suggestionsPrompt.append("\n用户在以下方面需要改进：\n");
-                improvements.forEach(improvement -> {
-                    suggestionsPrompt.append("- " + improvement.getArea() + "（改进进度：" + improvement.getProgress() + "%）\n");
-                });
-                suggestionsPrompt.append(AI_SUGGESTIONS_PROMPT_END);
-                prompts.add(suggestionsPrompt.toString());
+                // 发送AI建议内容块
+                if (currentChunk.length() > 20) {
+                    record.addChunk(currentChunk.toString());
+                    emitter.send(SseEmitter.event().name("report").data(currentChunk.toString()));
+                    currentChunk.setLength(0);
+                }
                 
-                // 生成职业推荐的prompt
-                StringBuilder jobsPrompt = new StringBuilder();
-                jobsPrompt.append(RECOMMEND_JOBS_PROMPT_START);
-                jobsPrompt.append("用户基本信息：姓名：").append(user.getName() != null ? user.getName() : "未知").append("，");
-                jobsPrompt.append("用户优势：");
-                strengths.forEach(strength -> {
-                    jobsPrompt.append("\"").append(strength.getSkill()).append("\" (").append(strength.getAnalysis()).append(")，");
-                });
-                jobsPrompt.append("需要改进：");
-                improvements.forEach(improvement -> {
-                    jobsPrompt.append("\"").append(improvement.getArea()).append("\"，");
-                });
-                jobsPrompt.append(RECOMMEND_JOBS_PROMPT_END);
-                prompts.add(jobsPrompt.toString());
+                // 生成职业推荐并流式输出
+                List<GrowthReportVO.RecommendedJobVO> recommendedJobs = generateRecommendedJobs(user, sessionReportPairs, strengths, improvements);
+                String jobsJson = objectMapper.writeValueAsString(recommendedJobs);
+                currentChunk.append("\n职业推荐：").append(jobsJson);
                 
-                // 生成成长规划的prompt
-                StringBuilder plansPrompt = new StringBuilder();
-                plansPrompt.append(GROWTH_PLANS_PROMPT_START);
-                plansPrompt.append("用户优势：");
-                strengths.forEach(strength -> {
-                    plansPrompt.append("\"").append(strength.getSkill()).append("\"，");
-                });
-                plansPrompt.append("需要改进：");
-                improvements.forEach(improvement -> {
-                    plansPrompt.append("\"").append(improvement.getArea()).append("\"，");
-                });
-                plansPrompt.append(GROWTH_PLANS_PROMPT_END);
-                prompts.add(plansPrompt.toString());
+                record.addChunk(currentChunk.toString());
+                emitter.send(SseEmitter.event().name("report").data(currentChunk.toString()));
+                currentChunk.setLength(0);
                 
-                // 顺序调用DeepSeek API - 更细粒度的进度更新
-                emitter.send(SseEmitter.event().name("progress").data("{\"percentage\": 55, \"stage\": \"AI分析 - 生成个性化建议...\"}"));
-                emitter.send(SseEmitter.event().name("ai-start").data("{\"total\": " + prompts.size() + "}"));
-                aiServiceUtils.callDeepSeekApiStreamSequential("", prompts, emitter, null);
+                // 3. 生成成长规划并流式输出
+                List<GrowthReportVO.GrowthPlanVO> growthPlans = generateGrowthPlans(user, sessionReportPairs, strengths, improvements);
+                String plansJson = objectMapper.writeValueAsString(growthPlans);
+                currentChunk.append("\n成长规划：").append(plansJson);
+                record.addChunk(currentChunk.toString());
+                emitter.send(SseEmitter.event().name("report").data(currentChunk.toString()));
                 
-                // 生成完整报告并保存 - 更细粒度的进度更新
-                emitter.send(SseEmitter.event().name("progress").data("{\"percentage\": 70, \"stage\": \"构建报告结构...\"}"));
+                // 生成完整报告并保存
                 GrowthReport report = new GrowthReport();
                 report.setUserId(userId);
                 report.setUserName(user.getName());
                 
-                emitter.send(SseEmitter.event().name("progress").data("{\"percentage\": 72, \"stage\": \"填充报告内容...\"}"));
                 // 设置概览信息字段
                 report.setLatestJobName(overview.getLatestJobName());
                 report.setTimeRange(overview.getTimeRange());
@@ -292,33 +172,29 @@ public class GrowthReportServiceImpl implements GrowthReportService {
                 report.setInterviewCount(sessionReportPairs.size());
                 report.setStartDate(sessions.get(0).getCreatedAt());
                 report.setEndDate(sessions.get(sessions.size() - 1).getCreatedAt());
-                report.setLastInterviewDate(sessions.get(sessions.size() - 1).getCreatedAt());
                 
-                emitter.send(SseEmitter.event().name("progress").data("{\"percentage\": 75, \"stage\": \"组合报告内容...\"}"));
                 // 组合报告内容
                 StringBuilder fullReport = new StringBuilder();
                 for (ReportGenerationService.ReportChunk chunk : record.getChunks()) {
                     fullReport.append(chunk.getContent());
                 }
                 
-                emitter.send(SseEmitter.event().name("progress").data("{\"percentage\": 78, \"stage\": \"数据序列化...\"}"));
                 // 将复杂数据转换为JSON并存储
                 try {
                     report.setScoreTrendJson(objectMapper.writeValueAsString(scoreTrend));
                     report.setAbilityGrowthJson(objectMapper.writeValueAsString(abilityGrowth));
                     report.setStrengthsJson(objectMapper.writeValueAsString(strengths));
                     report.setImprovementsJson(objectMapper.writeValueAsString(improvements));
+                    report.setAiSuggestionsJson(objectMapper.writeValueAsString(aiSuggestions));
                 } catch (Exception e) {
                     log.error("JSON序列化失败: {}", e.getMessage(), e);
                 }
                 
-                emitter.send(SseEmitter.event().name("progress").data("{\"percentage\": 85, \"stage\": \"格式化报告内容...\"}"));
-                emitter.send(SseEmitter.event().name("progress").data("{\"percentage\": 90, \"stage\": \"保存报告到数据库...\"}"));
                 growthReportRepository.save(report);
                 
                 // 标记报告生成完成
                 record.setStatus(ReportGenerationService.ReportStatus.COMPLETED);
-                emitter.send(SseEmitter.event().name("progress").data("{\"percentage\": 100, \"stage\": \"报告生成完成！\"}"));
+                emitter.complete();
                 
             } catch (Exception e) {
                 log.error("生成成长报告失败", e);
@@ -533,7 +409,6 @@ public class GrowthReportServiceImpl implements GrowthReportService {
         growthReport.setInterviewCount(sessionReportPairs.size());
         growthReport.setStartDate(sessions.get(0).getCreatedAt());
         growthReport.setEndDate(sessions.get(sessions.size() - 1).getCreatedAt());
-        growthReport.setLastInterviewDate(sessions.get(sessions.size() - 1).getCreatedAt());
         
         // 将复杂数据转换为JSON并存储
         try {

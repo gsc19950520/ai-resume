@@ -1,13 +1,11 @@
 // pages/growth/report.js
 const app = getApp()
-import { get, post, getStream } from '../../utils/request.js';
+import { get, post } from '../../utils/request.js';
 
 Page({
   data: {
     loading: true,
     loadingText: '正在生成成长报告...',
-    progressPercentage: 0,
-    progressStage: '',
     reportData: null,
     error: false,
     errorMessage: '',
@@ -35,94 +33,23 @@ Page({
 
   // 加载成长报告数据
   loadGrowthReport: function() {
-    this.setData({ loading: true, error: false, errorMessage: '' })
+    this.setData({ loading: true })
     
-    // 调用历史分析API（流式请求）
-    getStream('/api/user/history/analyze', {}, {
-      onEvent: (event) => {
-        // 处理不同类型的SSE事件
-        switch (event.name) {
-          case 'interview-count-error':
-            // 用户面试次数不足
-            this.setData({
-              loading: false,
-              error: true,
-              errorMessage: event.data
-            });
-            break;
-          
-          case 'new-interview-found':
-            // 发现新的面试记录，正在重新生成报告
-            this.setData({
-              loadingText: event.data
-            });
-            break;
-          
-          case 'report-found':
-            // 找到现有报告
-            this.setData({
-              loadingText: event.data
-            });
-            break;
-          
-          case 'no-report-found':
-            // 没有找到现有报告，正在生成新报告
-            this.setData({
-              loadingText: event.data
-            });
-            break;
-          
-          case 'report-content':
-            // 收到报告内容
-            this.renderReport(event.data);
-            break;
-          
-          case 'report':
-            // 处理流式报告内容（旧格式兼容）
-            break;
-          
-          case 'progress':
-            // 处理进度更新
-            try {
-              const progressData = JSON.parse(event.data);
-              this.setData({
-                progressPercentage: progressData.percentage || 0,
-                progressStage: progressData.stage || ''
-              });
-            } catch (e) {
-              console.error('解析进度数据失败:', e);
-            }
-            break;
-          
-          case 'error':
-            // 发生错误
-            this.setData({
-              loading: false,
-              error: true,
-              errorMessage: '生成成长报告失败: ' + event.data
-            });
-            break;
+    // 调用历史分析API - 现在后端已在单个接口返回所有数据
+    get('/api/user/history/analyze')
+      .then(res => {
+        if (res && res.code === 0) {
+          // 直接处理返回的数据
+          this.renderReport(res.data)
+        } else {
+          // 使用模拟数据
+          this.useMockData()
         }
-      },
-      onComplete: () => {
-        // 处理完成事件
-      },
-      onError: (error) => {
-        console.error('获取成长报告失败:', error);
-        this.setData({
-          loading: false,
-          error: true,
-          errorMessage: '生成成长报告失败: 网络异常'
-        });
-      },
-      onReconnect: (retryCount, maxRetries) => {
-        // 显示重连提示
-        this.setData({
-          loadingText: `网络连接不稳定，正在重试 (${retryCount}/${maxRetries})...`,
-          progressStage: '正在重新连接服务器...'
-        });
-      }
-    });
+      })
+      .catch(() => {
+        // 使用模拟数据
+        this.useMockData()
+      })
   },
 
   // 获取成长规划

@@ -26,13 +26,6 @@
   <view class="loading-container" wx:if="{{loading}}">
     <view class="loading-spinner"></view>
     <text class="loading-text">{{loadingText}}</text>
-    <text class="loading-subtext">{{progressStage}}</text>
-    <view class="progress-container">
-      <view class="progress-bar">
-        <view class="progress-fill" style="width: {{progressPercentage}}%;"></view>
-      </view>
-      <text class="progress-text">{{progressPercentage}}%</text>
-    </view>
   </view>
 
   <!-- 报告内容 -->
