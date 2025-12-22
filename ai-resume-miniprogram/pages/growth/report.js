@@ -15,8 +15,9 @@ Page({
       scores: {
         total: [],
         tech: [],
+        logic: [],
+        clarity: [],
         depth: []
-        // 已移除: logic, clarity
       }
     },
     weakPoints: [],
@@ -103,7 +104,7 @@ Page({
     const ctx = wx.createCanvasContext('growthChart')
     const { dates, scores } = this.data.chartData
     
-    // 模拟绘制逻辑 - 只处理总分、技术和深度三个数据系列
+    // 模拟绘制逻辑
     ctx.setFillStyle('#4A90E2')
     ctx.fillRect(50, 50, 200, 150)
     ctx.draw()
@@ -153,8 +154,9 @@ Page({
         scores: {
           total: [65, 68, 70, 72, 75, 76, 79, 81],
           tech: [6.2, 6.5, 6.8, 7.0, 7.3, 7.5, 7.7, 7.9],
+          logic: [6.0, 6.3, 6.7, 7.2, 7.4, 7.6, 7.8, 8.0],
+          clarity: [6.5, 6.7, 6.9, 7.1, 7.3, 7.4, 7.6, 7.7],
           depth: [5.8, 6.0, 6.3, 6.5, 6.8, 7.0, 7.2, 7.4]
-          // 已移除: logic, clarity
         }
       },
       weakPoints: [
