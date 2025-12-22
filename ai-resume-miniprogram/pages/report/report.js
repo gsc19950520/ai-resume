@@ -109,16 +109,6 @@ Page({
         reportData.improvements = JSON.parse(reportData.improvements);
       }
       
-      // 为已保存的报告数据应用Markdown加粗转换
-      reportData.overallFeedback = this.convertMarkdownBold(reportData.overallFeedback);
-      reportData.strengths = reportData.strengths.map(strength => this.convertMarkdownBold(strength));
-      reportData.improvements = reportData.improvements.map(improvement => this.convertMarkdownBold(improvement));
-      reportData.techDepthEvaluation = this.convertMarkdownBold(reportData.techDepthEvaluation);
-      reportData.logicExpressionEvaluation = this.convertMarkdownBold(reportData.logicExpressionEvaluation);
-      reportData.communicationEvaluation = this.convertMarkdownBold(reportData.communicationEvaluation);
-      reportData.answerDepthEvaluation = this.convertMarkdownBold(reportData.answerDepthEvaluation);
-      reportData.detailedImprovementSuggestions = this.convertMarkdownBold(reportData.detailedImprovementSuggestions);
-      
       // 更新报告数据，直接传递给新的UI结构
       this.setData({
         reportData: reportData,
@@ -343,55 +333,6 @@ Page({
   },
   
   /**
-   * 将Markdown格式转换为HTML标签
-   * @param {string} text - 原始文本
-   * @returns {string} 转换后的HTML文本
-   */
-  convertMarkdownBold: function(text) {
-    if (!text) return '';
-    
-    let html = text;
-    
-    // 1. 转换二级标题 ## 标题
-    html = html.replace(/^##\s(.*?)$/gm, '<h2 class="markdown-h2">$1</h2>');
-    
-    // 2. 转换无序列表 - 列表项
-    // 先将连续的列表项分组
-    const lines = html.split('\n');
-    const result = [];
-    let inList = false;
-    
-    lines.forEach(line => {
-      if (line.match(/^-\s/)) {
-        if (!inList) {
-          inList = true;
-          result.push('<ul class="markdown-ul">');
-        }
-        // 移除列表标记并添加列表项
-        result.push('<li class="markdown-li">' + line.replace(/^-\s/, '') + '</li>');
-      } else {
-        if (inList) {
-          inList = false;
-          result.push('</ul>');
-        }
-        result.push(line);
-      }
-    });
-    
-    // 关闭最后一个未关闭的列表
-    if (inList) {
-      result.push('</ul>');
-    }
-    
-    html = result.join('\n');
-    
-    // 3. 转换加粗格式 **text**
-    html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    
-    return html;
-  },
-
-  /**
    * 解析报告内容
    * @param {string} content - 报告内容
    * @returns {object} 解析后的报告数据
@@ -439,10 +380,7 @@ Page({
     // 提取总体评价
     const overallMatch = content.match(/## 总体评价和总分[\s\S]*?(?=## 优势分析)/);
     if (overallMatch) {
-      const text = overallMatch[0].replace(/## 总体评价和总分/, '').trim();
-      console.log('总体评价和总分原始文本:', text);
-      reportData.overallFeedback = this.convertMarkdownBold(text);
-      console.log('总体评价和总分转换后的HTML:', reportData.overallFeedback);
+      reportData.overallFeedback = overallMatch[0].replace(/## 总体评价和总分/, '').trim();
     }
     
     // 提取优势
@@ -451,7 +389,7 @@ Page({
       const strengthsContent = strengthsMatch[0].replace(/## 优势分析/, '').trim();
       reportData.strengths = strengthsContent.split(/^- /gm)
         .filter(line => line.trim())
-        .map(line => this.convertMarkdownBold(line.trim()));
+        .map(line => line.trim());
     }
     
     // 提取改进点
@@ -460,44 +398,37 @@ Page({
       const improvementsContent = improvementsMatch[0].replace(/## 改进点/, '').trim();
       reportData.improvements = improvementsContent.split(/^- /gm)
         .filter(line => line.trim())
-        .map(line => this.convertMarkdownBold(line.trim()));
+        .map(line => line.trim());
     }
     
     // 提取技术深度评价
     const techDepthMatch = content.match(/## 技术深度评价[\s\S]*?(?=## 逻辑表达评价)/);
     if (techDepthMatch) {
-      console.log('技术深度评价原始文本:', techDepthMatch[0]);
-      const text = techDepthMatch[0].replace(/## 技术深度评价/, '').trim();
-      reportData.techDepthEvaluation = this.convertMarkdownBold(text);
-      console.log('技术深度评价转换后的HTML:', reportData.techDepthEvaluation);
+      reportData.techDepthEvaluation = techDepthMatch[0].replace(/## 技术深度评价/, '').trim();
     }
     
     // 提取逻辑表达评价
     const logicExpressionMatch = content.match(/## 逻辑表达评价[\s\S]*?(?=## 沟通表达评价)/);
     if (logicExpressionMatch) {
-      const text = logicExpressionMatch[0].replace(/## 逻辑表达评价/, '').trim();
-      reportData.logicExpressionEvaluation = this.convertMarkdownBold(text);
+      reportData.logicExpressionEvaluation = logicExpressionMatch[0].replace(/## 逻辑表达评价/, '').trim();
     }
     
     // 提取沟通表达评价
     const communicationMatch = content.match(/## 沟通表达评价[\s\S]*?(?=## 回答深度评价)/);
     if (communicationMatch) {
-      const text = communicationMatch[0].replace(/## 沟通表达评价/, '').trim();
-      reportData.communicationEvaluation = this.convertMarkdownBold(text);
+      reportData.communicationEvaluation = communicationMatch[0].replace(/## 沟通表达评价/, '').trim();
     }
     
     // 提取回答深度评价
     const answerDepthMatch = content.match(/## 回答深度评价[\s\S]*?(?=## 针对候选人的详细改进建议)/);
     if (answerDepthMatch) {
-      const text = answerDepthMatch[0].replace(/## 回答深度评价/, '').trim();
-      reportData.answerDepthEvaluation = this.convertMarkdownBold(text);
+      reportData.answerDepthEvaluation = answerDepthMatch[0].replace(/## 回答深度评价/, '').trim();
     }
     
     // 提取针对候选人的详细改进建议
     const detailedImprovementMatch = content.match(/## 针对候选人的详细改进建议[\s\S]*/);
     if (detailedImprovementMatch) {
-      const text = detailedImprovementMatch[0].replace(/## 针对候选人的详细改进建议/, '').trim();
-      reportData.detailedImprovementSuggestions = this.convertMarkdownBold(text);
+      reportData.detailedImprovementSuggestions = detailedImprovementMatch[0].replace(/## 针对候选人的详细改进建议/, '').trim();
     }
     
     return reportData;

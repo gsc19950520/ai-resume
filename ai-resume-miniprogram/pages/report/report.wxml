@@ -3,7 +3,8 @@
 
 <!-- 顶部标题卡片 -->
 <view class="report-header">
-  <text class="report-title">AI面试评估报告</text>
+  <text class="report-title">AI 面试评估报告</text>
+  <text class="report-subtitle">AI Interview Evaluation</text>
 </view>
 
 <!-- 内容区域 -->
@@ -14,11 +15,16 @@
     <view class="section-title">
       <view class="title-left">
         <text class="title-icon">📘</text>
-        <text class="title-text">总体评价（{{reportData.totalScore}}分）</text>
+        <text class="title-text">总体评价</text>
       </view>
+      <text class="total-score" wx:if="{{reportData.totalScore > 0}}">
+        总分：{{reportData.totalScore}}
+      </text>
     </view>
     <view class="section-body">
-      <rich-text class="paragraph" nodes="{{reportData.overallFeedback || '暂无总体评价'}}"></rich-text>
+      <text class="paragraph">
+        {{reportData.overallFeedback || '暂无总体评价'}}
+      </text>
     </view>
   </view>
 
@@ -34,7 +40,7 @@
       <block wx:if="{{reportData.strengths && reportData.strengths.length > 0}}">
         <view class="list-item" wx:for="{{reportData.strengths}}" wx:key="index">
           <view class="item-bullet positive"></view>
-          <rich-text class="item-text" nodes="{{item}}"></rich-text>
+          <text class="item-text">{{item}}</text>
         </view>
       </block>
       <text class="empty-text" wx:else>暂无优势分析</text>
@@ -53,7 +59,7 @@
       <block wx:if="{{reportData.improvements && reportData.improvements.length > 0}}">
         <view class="list-item" wx:for="{{reportData.improvements}}" wx:key="index">
           <view class="item-bullet warning"></view>
-          <rich-text class="item-text" nodes="{{item}}"></rich-text>
+          <text class="item-text">{{item}}</text>
         </view>
       </block>
       <text class="empty-text" wx:else>暂无改进点</text>
@@ -69,7 +75,9 @@
       </view>
     </view>
     <view class="section-body">
-      <rich-text class="paragraph" nodes="{{reportData.techDepthEvaluation || '暂无技术深度评价'}}"></rich-text>
+      <text class="paragraph">
+        {{reportData.techDepthEvaluation || '暂无技术深度评价'}}
+      </text>
     </view>
   </view>
 
@@ -82,7 +90,9 @@
       </view>
     </view>
     <view class="section-body">
-      <rich-text class="paragraph" nodes="{{reportData.logicExpressionEvaluation || '暂无逻辑表达评价'}}"></rich-text>
+      <text class="paragraph">
+        {{reportData.logicExpressionEvaluation || '暂无逻辑表达评价'}}
+      </text>
     </view>
   </view>
 
@@ -95,7 +105,9 @@
       </view>
     </view>
     <view class="section-body">
-      <rich-text class="paragraph" nodes="{{reportData.communicationEvaluation || '暂无沟通表达评价'}}"></rich-text>
+      <text class="paragraph">
+        {{reportData.communicationEvaluation || '暂无沟通表达评价'}}
+      </text>
     </view>
   </view>
 
@@ -108,7 +120,9 @@
       </view>
     </view>
     <view class="section-body">
-      <rich-text class="paragraph" nodes="{{reportData.answerDepthEvaluation || '暂无回答深度评价'}}"></rich-text>
+      <text class="paragraph">
+        {{reportData.answerDepthEvaluation || '暂无回答深度评价'}}
+      </text>
     </view>
   </view>
 
@@ -121,7 +135,9 @@
       </view>
     </view>
     <view class="section-body">
-      <rich-text class="paragraph" nodes="{{reportData.detailedImprovementSuggestions || '暂无详细建议'}}"></rich-text>
+      <text class="paragraph">
+        {{reportData.detailedImprovementSuggestions || '暂无详细建议'}}
+      </text>
     </view>
   </view>
 

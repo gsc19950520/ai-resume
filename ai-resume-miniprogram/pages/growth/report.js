@@ -36,12 +36,12 @@ Page({
   loadGrowthReport: function() {
     this.setData({ loading: true })
     
-    // 调用历史分析API - 现在后端已在单个接口返回所有数据
+    // 调用历史分析API
     get('/api/user/history/analyze')
       .then(res => {
         if (res && res.code === 0) {
-          // 直接处理返回的数据
-          this.renderReport(res.data)
+          // 调用成长规划API
+          this.getGrowthPlan(res.data)
         } else {
           // 使用模拟数据
           this.useMockData()
@@ -72,29 +72,17 @@ Page({
 
   // 渲染报告
   renderReport: function(data) {
-    // 从后端返回的reportContent中提取需要的数据
-    const reportContent = data.reportContent || {};
-    
-    // 数据映射：将后端字段映射到前端需要的结构
-    const chartData = reportContent.visualizationData || {};
-    const weakPoints = reportContent.improvements || [];
-    const aiSuggestions = reportContent.aiSuggestions || [];
-    
-    // 从aiSuggestions中提取推荐方向和成长计划
-    const recommendedDirection = aiSuggestions.length > 0 ? aiSuggestions[0] : '';
-    const growthPlan = this.formatGrowthPlan(aiSuggestions);
-    
     this.setData({
       reportData: data,
-      chartData: chartData,
-      weakPoints: weakPoints,
-      recommendedDirection: recommendedDirection,
-      growthPlan: growthPlan,
+      chartData: data.chartData,
+      weakPoints: data.weakPoints || [],
+      recommendedDirection: data.recommendedDirection || '',
+      growthPlan: data.growthPlan || [],
       loading: false
     })
     
     // 绘制成长曲线图
-    if (chartData) {
+    if (data.chartData) {
       this.drawGrowthChart()
     }
   },
@@ -108,34 +96,6 @@ Page({
     ctx.setFillStyle('#4A90E2')
     ctx.fillRect(50, 50, 200, 150)
     ctx.draw()
-  },
-  
-  // 格式化成长计划
-  formatGrowthPlan: function(aiSuggestions) {
-    // 从aiSuggestions数组中提取并构建成长计划结构
-    // 第0项作为推荐方向，后面的项按时间维度分组
-    const planItems = aiSuggestions.slice(1); // 排除第一个推荐方向项
-    
-    // 构建成长计划 - 按近期、中期、长期分组
-    const growthPlan = [
-      {
-        period: '近期目标（3-6个月）',
-        color: '#50E3C2',
-        goals: planItems.slice(0, 3) // 前3项作为近期目标
-      },
-      {
-        period: '中期目标（6-12个月）',
-        color: '#F5A623',
-        goals: planItems.slice(3, 6) // 中间3项作为中期目标
-      },
-      {
-        period: '长期目标（1-3年）',
-        color: '#D0021B',
-        goals: planItems.slice(6) // 剩余项作为长期目标
-      }
-    ];
-    
-    return growthPlan;
   },
 
   // 使用模拟数据
