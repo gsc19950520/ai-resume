@@ -14,29 +14,4 @@ public interface StatisticsService {
      */
     Map<String, Object> getUserStatistics(Long userId);
 
-    /**
-     * 获取系统统计信息
-     * @return 统计信息Map
-     */
-    Map<String, Object> getSystemStatistics();
-
-    /**
-     * 记录用户行为
-     * @param userId 用户ID
-     * @param action 行为类型
-     * @param data 相关数据
-     */
-    void recordUserAction(Long userId, String action, String data);
-
-    /**
-     * 获取用户行为统计
-     * @return 用户行为统计信息
-     */
-    Map<String, Object> getUserActionStatistics();
-
-    /**
-     * 获取系统行为统计
-     * @return 系统行为统计信息
-     */
-    Map<String, Object> getSystemActionStatistics();
 }

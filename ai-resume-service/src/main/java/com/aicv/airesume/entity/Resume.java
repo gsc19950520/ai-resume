@@ -23,8 +23,6 @@ public class Resume {
     @Column(name = "job_type_id")
     private Long jobTypeId;
     private String jobTitle; // 职位名称
-    @Column(name = "template_id")
-    private String templateId;
     // 期望薪资
     @Column(name = "expected_salary")
     private String expectedSalary;
@@ -33,10 +31,6 @@ public class Resume {
     private String startTime;
     private String selfEvaluation; // 自我评价
     private String interests; // 兴趣爱好
-
-    @Column(nullable = false)
-    private String originalFilename;
-
 
     @Column(name = "status", nullable = false, columnDefinition = "int default 0")
     private Integer status = 0; // 0: 上传/创建成功, 1: 优化中, 2: 优化成功, 3: 优化失败

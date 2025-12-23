@@ -67,7 +67,7 @@
             <text class="label">职位类型</text>
             <picker bindchange="onJobTypeChange" value="{{jobTypeIndex}}" range="{{jobTypes}}" range-key="jobName">
               <view class="picker">
-                {{selectedJobTypeName || '请选择职位类型'}}
+                {{resumeInfo.personalInfo.jobTitle || '请选择职位类型'}}
               </view>
             </picker>
           </view>

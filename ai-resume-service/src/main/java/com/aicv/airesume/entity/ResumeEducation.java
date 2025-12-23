@@ -32,9 +32,6 @@ public class ResumeEducation {
     @Column(name = "end_date")
     private String endDate; // 结束日期
     
-    @Column(columnDefinition = "text")
-    private String description; // 描述
-    
     // 手动添加setter方法以解决编译问题
     public void setResumeId(Long resumeId) {
         this.resumeId = resumeId;

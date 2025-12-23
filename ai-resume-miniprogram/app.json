@@ -15,9 +15,7 @@
     "pages/interview/interview",
     "pages/interview/interview_style_select",
     "pages/interview/history",
-    "pages/career/report",
     "pages/report/report",
-    "pages/growth/report",
     "pages/user/detail",
     "pages/profile/complete-profile/complete-profile"
   ],

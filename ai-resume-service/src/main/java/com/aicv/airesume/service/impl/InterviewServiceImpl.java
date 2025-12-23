@@ -901,9 +901,6 @@ public class InterviewServiceImpl implements InterviewService {
                                   .append(" - ")
                                   .append(education.getEndDate() != null ? education.getEndDate() : "")
                                   .append("\n");
-                            if (education.getDescription() != null) {
-                                content.append("  描述：").append(education.getDescription()).append("\n");
-                            }
                         }
                     }
                     content.append("\n");

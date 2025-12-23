@@ -265,6 +265,12 @@ Page({
   editResume: function() {
     const source = this.data.source;
     const templateId = this.data.templateId;
+    const resumeData = this.data.resumeData; // 获取当前显示的简历数据
+    
+    // 存储到全局变量
+    const app = getApp();
+    app.globalData.editResumeData = resumeData;
+    app.globalData.editTemplateId = templateId;
     
     // 构建跳转参数
     const queryParams = {

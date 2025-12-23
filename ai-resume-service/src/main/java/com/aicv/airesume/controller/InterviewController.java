@@ -69,24 +69,6 @@ public class InterviewController {
         }
     }
     
-    /**
-     * 获取所有面试官风格配置（包括禁用的），用于管理功能
-     * @return 所有面试官风格配置
-     */
-    @GetMapping("/admin/get-all-personas")
-    public BaseResponseVO getAllInterviewPersonas() {
-        try {
-            // 获取所有面试官风格配置（包括禁用的）
-            InterviewPersonasVO result = new InterviewPersonasVO();
-            dynamicConfigService.getAllInterviewPersonas().ifPresent(result::setPersonas);
-            
-            return BaseResponseVO.success(result);
-        } catch (Exception e) {
-            log.error("获取所有面试官风格配置失败", e);
-            return BaseResponseVO.error("获取所有面试官风格配置失败：" + e.getMessage());
-        }
-    }
-    
     @PostMapping("/start")
     public BaseResponseVO startInterview(@RequestBody InterviewStartRequestDTO request) {
         try {
@@ -224,31 +206,6 @@ public class InterviewController {
         }
     }
     
-    /**
-     * 根据面试结果计算薪资范围
-     * 基于AI面试评分、技术深度等多维度计算薪资
-     */
-    @PostMapping("/calculate-salary")
-    public BaseResponseVO calculateSalary(@RequestBody CalculateSalaryRequestDTO requestDTO) {
-        try {
-            String sessionId = requestDTO.getSessionId();
-            SalaryRangeVO salaryRange = interviewService.calculateSalary(sessionId);
-            
-            // 转换为VO对象
-            InterviewSalaryVO vo = new InterviewSalaryVO();
-            vo.setMinSalary(salaryRange.getMinSalary().doubleValue());
-            vo.setMaxSalary(salaryRange.getMaxSalary().doubleValue());
-            vo.setCurrency(salaryRange.getCurrency());
-            vo.setLevel(salaryRange.getLevel());
-            vo.setReason(salaryRange.getReason());
-            
-            return BaseResponseVO.success(vo);
-        } catch (Exception e) {
-            log.error("Calculate salary failed:", e);
-            return BaseResponseVO.error("薪资计算失败：" + e.getMessage());
-        }
-    }
-
     /**
      * 获取面试详情
      * @param sessionId 会话ID

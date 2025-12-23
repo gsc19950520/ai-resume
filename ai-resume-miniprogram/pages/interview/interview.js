@@ -1,6 +1,6 @@
 // pages/interview/interview.js
 const app = getApp();
-import { get, post, postStream, getStream } from '../../utils/request';
+import { get, post, postStream, getStream, del } from '../../utils/request';
 
 Page({
   data: {
@@ -12,6 +12,7 @@ Page({
     nextQuestion: '', // 初始化为空字符串以便流式拼接
     isCompleted: false,
     hasQuestion: false,
+    isStreamingComplete: false, // 标记流式输出是否完成
     
     // 页面状态数据（保留必要的界面相关数据）
     industryJobTag: '',
@@ -226,6 +227,27 @@ Page({
       clearInterval(this.backendTimeUpdateTimer);
       this.backendTimeUpdateTimer = null;
     }
+    
+    // 检查是否需要删除当前面试会话
+    const { sessionId, isStreamingComplete } = this.data;
+    
+    // 如果流式输出未完成且会话ID存在，则调用删除API
+    if (sessionId && !isStreamingComplete) {
+      console.log('流式输出未完成，删除当前面试会话:', sessionId);
+      
+      // 调用删除API，不等待结果返回
+      del(`/api/interview/delete/${sessionId}`)
+        .then(res => {
+          if (res && res.success) {
+            console.log('删除面试会话成功');
+          } else {
+            console.error('删除面试会话失败:', res.message || '未知错误');
+          }
+        })
+        .catch(error => {
+          console.error('删除面试会话请求失败:', error);
+        });
+    }
   },
   
   /**
@@ -315,7 +337,8 @@ Page({
                     this.setData({ 
                       isLoading: false,
                       question: this.data.nextQuestion,
-                      nextQuestion: ''
+                      nextQuestion: '',
+                      isStreamingComplete: true
                     });
                     resolve({
                       content: this.data.question
@@ -355,7 +378,7 @@ Page({
           onComplete: () => {
             console.log('获取第一个问题流式请求完成');
             // 确保即使没有收到end事件，也能正确处理
-            this.setData({ isLoading: false });
+            this.setData({ isLoading: false, isStreamingComplete: true });
             resolve({
               content: this.data.question
             });

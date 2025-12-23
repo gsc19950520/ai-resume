@@ -245,53 +245,6 @@ public class UserController {
     }
 
     /**
-     * 检查是否有优化次数
-     * @param userId 用户ID
-     * @return 是否有优化次数
-     */
-    @GetMapping("/{userId}/check-optimize")
-    public BaseResponseVO checkOptimizeCount(@PathVariable Long userId) {
-        try {
-            // 从全局上下文获取用户ID
-            Long userIdFromToken = GlobalContextUtil.getUserId();
-            
-            // 只能检查自己的优化次数
-            if (!userId.equals(userIdFromToken)) {
-                return BaseResponseVO.error("没有权限检查该用户的优化次数");
-            }
-            
-            boolean result = userService.checkOptimizeCount(userId);
-            return BaseResponseVO.success(result);
-        } catch (Exception e) {
-            return BaseResponseVO.error("检查优化次数失败: " + e.getMessage());
-        }
-    }
-
-    /**
-     * 检查是否是VIP
-     * @param userId 用户ID
-     * @return VIP状态
-     */
-    @GetMapping("/{userId}/check-vip")
-    public BaseResponseVO checkVipStatus(@PathVariable Long userId) {
-        try {
-            // 从全局上下文获取用户ID
-            Long userIdFromToken = GlobalContextUtil.getUserId();
-            
-            // 只能检查自己的VIP状态
-            if (!userId.equals(userIdFromToken)) {
-                return BaseResponseVO.error("没有权限检查该用户的VIP状态");
-            }
-            
-            Optional<User> userOpt = userService.getUserById(userId);
-            boolean result = userOpt.isPresent() && userOpt.get().getVip() != null && userOpt.get().getVip();
-            return BaseResponseVO.success(result);
-        } catch (Exception e) {
-            return BaseResponseVO.error("检查VIP状态失败: " + e.getMessage());
-        }
-    }
-
-    /**
      * 获取用户信息和统计数据
      * 支持两种方式：
      * 1. 通过token获取用户信息（推荐）

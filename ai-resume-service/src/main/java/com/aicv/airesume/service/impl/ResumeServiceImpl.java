@@ -157,9 +157,6 @@ public class ResumeServiceImpl implements ResumeService {
                 throw new RuntimeException("不支持的模板ID格式，请使用template-one或template-two");
             }
             
-            // 设置模板ID（前端自行处理模板渲染，后端仅保存标识）
-            resume.setTemplateId(templateId);
-            
             return resumeRepository.save(resume);
         });
     }
@@ -325,14 +322,12 @@ public class ResumeServiceImpl implements ResumeService {
         // 添加简历基本信息
         result.put("id", resume.getId());
         result.put("userId", resume.getUserId());
-        result.put("originalFilename", resume.getOriginalFilename());
         result.put("expectedSalary", resume.getExpectedSalary());
         result.put("startTime", resume.getStartTime());
         result.put("interests", resume.getInterests());
         result.put("selfEvaluation", resume.getSelfEvaluation());
         result.put("jobTitle", resume.getJobTitle());
         result.put("jobTypeId", resume.getJobTypeId());
-        result.put("templateId", resume.getTemplateId());
         result.put("status", resume.getStatus());
         result.put("createTime", resume.getCreateTime());
         result.put("updateTime", resume.getUpdateTime());
@@ -551,7 +546,6 @@ public class ResumeServiceImpl implements ResumeService {
             education.setDegree(dto.getDegree());
             education.setStartDate(dto.getStartDate());
             education.setEndDate(dto.getEndDate());
-            education.setDescription(dto.getDescription());
             education.setOrderIndex(i);
             
             resumeEducationRepository.save(education);

@@ -36,12 +36,6 @@ App({
         // 构建完整的本地服务URL
         const fullUrl = this.globalData.localServerUrl + (path.startsWith('/api') ? path : `/api${path}`);
         
-        console.log('[本地调试] 发起请求:', { 
-          url: fullUrl, 
-          method: method, 
-          data: data 
-        });
-        
         // 处理GET请求的查询参数
         let requestUrl = fullUrl;
         let requestData = data;
@@ -66,7 +60,6 @@ App({
           data: requestData,
           timeout: timeout,
           success: res => {
-            console.log('[本地调试] 请求成功:', res);
             
             // 检查是否有新的token（后端刷新token）
             if (res && res.header) {

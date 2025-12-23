@@ -30,8 +30,6 @@ public class ResumeController {
     @Autowired
     private ResumeService resumeService;
 
-
-
     /**
      * 上传简历
      * @param name 简历名称
@@ -43,31 +41,6 @@ public class ResumeController {
     public Resume uploadResume(@RequestParam String name, @RequestParam MultipartFile file) {
         Long userId = GlobalContextUtil.getUserId();
         return resumeService.uploadResume(userId, name, file);
-    }
-
-    /**
-     * 批量上传简历
-     * @param files 简历文件列表
-     * @return 简历信息列表
-     */
-    @Log(description = "用户批量上传简历文件", recordParams = true, recordResult = false)
-    @PostMapping("/batch-upload")
-    public List<Resume> batchUploadResumes(@RequestParam List<MultipartFile> files) {
-        Long userId = GlobalContextUtil.getUserId();
-        return resumeService.batchUploadResume(userId, files);
-    }
-
-    /**
-     * AI优化简历
-     * @param resumeId 简历ID
-     * @param targetJob 目标职位（可选）
-     * @return 优化后的简历信息
-     */
-    @Log(description = "AI优化简历", recordParams = true, recordResult = true)
-    @PostMapping("/{resumeId}/optimize")
-    public Resume optimizeResume(@PathVariable Long resumeId, @RequestParam(required = false) String targetJob) {
-        Long userId = GlobalContextUtil.getUserId();
-        return resumeService.optimizeResume(userId, resumeId, targetJob);
     }
 
     /**
@@ -98,7 +71,6 @@ public class ResumeController {
     @Log(description = "获取简历详情", recordParams = true, recordResult = true)
     @GetMapping("/{resumeId}")
     public Object getResume(@PathVariable Long resumeId, @RequestParam(required = false, defaultValue = "false") boolean fullData) {
-        Long userId = GlobalContextUtil.getUserId();
         if (fullData) {
             // 返回完整数据，包含所有关联信息
             return resumeService.getResumeFullData(resumeId);
@@ -162,80 +134,12 @@ public class ResumeController {
     }
     
     /**
-     * 导出为Word
-     * @param resumeId 简历ID
-     * @return Word下载链接
-     */
-    @Log(description = "导出简历为Word", recordParams = true, recordResult = false, recordExecutionTime = true)
-    @GetMapping("/export/word")
-    public byte[] exportToWord(@RequestParam Long resumeId) {
-        return resumeService.exportResumeToWord(resumeId);
-    }
-
-    /**
-     * 获取简历AI评分
-     * @param resumeId 简历ID
-     * @return 评分结果
-     */
-    @Log(description = "获取简历AI评分", recordParams = true, recordResult = true)
-    @GetMapping("/{resumeId}/ai-score")
-    public BaseResponseVO getResumeAiScore(@PathVariable Long resumeId) {
-        
-        Map<String, Object> scoreData = resumeService.getResumeAiScore(resumeId);
-        ResumeScoreVO scoreVO = new ResumeScoreVO();
-        if (scoreData != null && scoreData.containsKey("score")) {
-            scoreVO.setScore(((Number) scoreData.get("score")).intValue());
-        }
-        return BaseResponseVO.success(scoreVO);
-    }
-
-    /**
-     * 获取简历AI优化建议
-     * @param resumeId 简历ID
-     * @return 优化建议
-     */
-    @Log(description = "获取简历AI优化建议", recordParams = true, recordResult = true)
-    @GetMapping("/{resumeId}/ai-suggestions")
-    public BaseResponseVO getResumeAiSuggestions(@PathVariable Long resumeId) {
-        
-        Map<String, Object> suggestionsData = resumeService.getResumeAiSuggestions(resumeId);
-        ResumeSuggestionVO suggestionsVO = new ResumeSuggestionVO();
-        if (suggestionsData != null && suggestionsData.containsKey("suggestions")) {
-            suggestionsVO.setSuggestions((List<String>) suggestionsData.get("suggestions"));
-        }
-        return BaseResponseVO.success(suggestionsVO);
-    }
-    
-    /**
-     * 设置简历模板
-     * @param resumeId 简历ID
-     * @param requestBody 请求体（包含templateId）
-     * @return 统一响应包装的更新后简历信息
-     */
-    @Log(description = "设置简历模板", recordParams = true, recordResult = true)
-    @PostMapping("/{resumeId}/template")
-    public BaseResponseVO setResumeTemplate(@PathVariable Long resumeId,
-                                   @RequestBody Map<String, String> requestBody) {
-        Long userId = GlobalContextUtil.getUserId();
-        
-        String templateId = requestBody.get("templateId");
-        if (templateId == null) {
-            throw new RuntimeException("模板ID不能为空");
-        }
-        
-        Resume result = resumeService.setResumeTemplate(userId, resumeId, templateId);
-        return BaseResponseVO.success(result);
-    }
-    
-    /**
      * 创建简历
      */
     @PostMapping
     public BaseResponseVO createResume(@RequestBody ResumeDataDTO resumeDataDTO) {
         Long userId = GlobalContextUtil.getUserId();
-        
         Resume resume = resumeService.createResumeWithFullData(userId, resumeDataDTO);
-        
         Map<String, Object> result = new HashMap<>();
         result.put("resumeId", resume.getId());
         result.put("message", "简历创建成功");
@@ -248,8 +152,6 @@ public class ResumeController {
     @PutMapping("/{resumeId}")
     public BaseResponseVO updateResume(@PathVariable Long resumeId,
                                            @RequestBody ResumeDataDTO resumeDataDTO) {
-        Long userId = GlobalContextUtil.getUserId();
-        
         Resume resume = resumeService.updateResumeWithFullData(resumeId, resumeDataDTO);
         
         Map<String, Object> result = new HashMap<>();

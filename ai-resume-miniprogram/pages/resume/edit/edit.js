@@ -236,7 +236,6 @@ Page({
         this.setData({
           jobTypes: jobTypeList
         });
-        console.log('加载职位类型成功:', jobTypeList);
       })
       .catch(error => {
         console.error('请求职位类型失败:', error);
@@ -599,8 +598,6 @@ Page({
         resumeInfo: resumeInfo,
         hasLoadedFromBackend: true  // 标记已从后端成功加载数据
       });
-      
-      console.log('简历数据已成功填充到页面');
       
       // 如果后端有数据，就不再使用本地存储的数据
       return true;
