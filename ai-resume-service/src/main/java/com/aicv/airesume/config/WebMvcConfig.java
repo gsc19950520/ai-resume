@@ -1,11 +1,12 @@
 package com.aicv.airesume.config;
 
-import com.aicv.airesume.interceptor.TokenRefreshInterceptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+import com.aicv.airesume.config.interceptor.TokenRefreshInterceptor;
 
 /**
  * Web配置类

@@ -11,7 +11,6 @@ import com.aicv.airesume.model.vo.InterviewReportVO;
 import com.aicv.airesume.model.vo.InterviewResponseVO;
 import com.aicv.airesume.model.vo.InterviewSessionVO;
 import com.aicv.airesume.model.vo.ReportChunksVO;
-import com.aicv.airesume.model.vo.SalaryRangeVO;
 import com.aicv.airesume.model.vo.InterviewHistoryItemVO;
 import com.aicv.airesume.repository.InterviewSessionRepository;
 import com.aicv.airesume.repository.JobTypeRepository;
@@ -654,17 +653,6 @@ public class InterviewServiceImpl implements InterviewService {
         // 返回最新的进行中面试会话
         InterviewSession session = sessions.get(0);
         return getInterviewDetail(session.getSessionId());
-    }
-
-    @Override
-    public SalaryRangeVO calculateSalary(String sessionId) {
-        try {
-            // 从数据库获取所有相关面试日志
-            return null;
-        } catch (Exception e) {
-            log.error("计算薪资范围失败", e);
-            throw new RuntimeException("薪资范围计算失败: " + e.getMessage());
-        }
     }
     
     @Override

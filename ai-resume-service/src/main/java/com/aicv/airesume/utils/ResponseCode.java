@@ -1,4 +1,4 @@
-package com.aicv.airesume.common.constant;
+package com.aicv.airesume.utils;
 
 import lombok.Getter;
 

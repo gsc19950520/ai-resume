@@ -35,15 +35,8 @@ public class InterviewReportVO {
     private List<Integer> trendCurve;
     private List<String> recommendedSkills;
     private List<String> longTermPath;
-    
-    // 薪资数据
-    private SalaryInfoVO salaryInfo;
-    
     // 会话记录
     private List<SessionLogVO> sessionLog;
-    
-    // 成长建议
-    private GrowthAdviceVO growthAdvice;
     
     public InterviewReportVO() {}
     
@@ -216,13 +209,6 @@ public class InterviewReportVO {
         this.longTermPath = longTermPath;
     }
     
-    public SalaryInfoVO getSalaryInfo() {
-        return salaryInfo;
-    }
-    
-    public void setSalaryInfo(SalaryInfoVO salaryInfo) {
-        this.salaryInfo = salaryInfo;
-    }
     
     public List<SessionLogVO> getSessionLog() {
         return sessionLog;
@@ -232,11 +218,4 @@ public class InterviewReportVO {
         this.sessionLog = sessionLog;
     }
     
-    public GrowthAdviceVO getGrowthAdvice() {
-        return growthAdvice;
-    }
-    
-    public void setGrowthAdvice(GrowthAdviceVO growthAdvice) {
-        this.growthAdvice = growthAdvice;
-    }
 }

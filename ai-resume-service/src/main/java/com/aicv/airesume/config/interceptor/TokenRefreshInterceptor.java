@@ -1,4 +1,4 @@
-package com.aicv.airesume.interceptor;
+package com.aicv.airesume.config.interceptor;
 
 import com.aicv.airesume.model.vo.BaseResponseVO;
 import com.aicv.airesume.utils.GlobalContextUtil;

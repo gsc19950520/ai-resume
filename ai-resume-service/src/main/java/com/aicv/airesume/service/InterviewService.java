@@ -6,7 +6,6 @@ import com.aicv.airesume.model.vo.InterviewReportVO;
 import com.aicv.airesume.model.vo.InterviewResponseVO;
 import com.aicv.airesume.model.vo.InterviewSessionVO;
 import com.aicv.airesume.model.vo.ReportChunksVO;
-import com.aicv.airesume.model.vo.SalaryRangeVO;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import java.util.List;
 import java.util.Map;
@@ -70,13 +69,6 @@ public interface InterviewService {
      * @param reportData 报告数据
      */
     void saveReport(String sessionId, Map<String, Object> reportData);
-
-    /**
-     * 计算薪资范围
-     * @param sessionId 会话ID
-     * @return 薪资范围
-     */
-    SalaryRangeVO calculateSalary(String sessionId);
 
     /**
      * 获取面试详情

@@ -1,7 +1,8 @@
-package com.aicv.airesume.common.exception;
+package com.aicv.airesume.exception;
 
-import com.aicv.airesume.common.constant.ResponseCode;
 import com.aicv.airesume.model.vo.BaseResponseVO;
+import com.aicv.airesume.utils.ResponseCode;
+
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;

@@ -1,7 +1,6 @@
 package com.aicv.airesume.controller;
 
 import com.aicv.airesume.model.dto.SubmitAnswerRequestDTO;
-import com.aicv.airesume.model.dto.CalculateSalaryRequestDTO;
 import com.aicv.airesume.model.dto.SaveReportRequestDTO;
 import com.aicv.airesume.model.dto.UpdateRemainingTimeRequestDTO;
 import com.aicv.airesume.service.InterviewService;
@@ -9,18 +8,17 @@ import com.aicv.airesume.service.config.DynamicConfigService;
 import com.aicv.airesume.model.vo.BaseResponseVO;
 import com.aicv.airesume.model.vo.InterviewConfigVO;
 import com.aicv.airesume.model.vo.InterviewHistoryItemVO;
-import com.aicv.airesume.model.vo.InterviewPersonasVO;
 import com.aicv.airesume.model.vo.InterviewResponseVO;
 import com.aicv.airesume.model.dto.InterviewStartRequestDTO;
 import com.aicv.airesume.model.vo.InterviewReportVO;
 import com.aicv.airesume.model.vo.InterviewHistoryListVO;
 import com.aicv.airesume.model.vo.InterviewHistoryVO;
 import com.aicv.airesume.model.vo.InterviewSessionVO;
-import com.aicv.airesume.model.vo.SalaryRangeVO;
-import com.aicv.airesume.model.vo.InterviewSalaryVO;
 import com.aicv.airesume.model.vo.ReportChunksVO;
 import lombok.extern.slf4j.Slf4j;
 import com.aicv.airesume.annotation.Log;
+import com.aicv.airesume.exception.BusinessException;
+
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -28,9 +26,7 @@ import org.springframework.web.bind.annotation.*;
 import com.aicv.airesume.model.dto.StartReportRequest;
 import java.util.List;
 import java.util.Map;
-import com.aicv.airesume.utils.TokenUtils;
 import com.aicv.airesume.utils.GlobalContextUtil;
-import com.aicv.airesume.common.exception.BusinessException;
 
 /**
  * 面试相关接口控制器

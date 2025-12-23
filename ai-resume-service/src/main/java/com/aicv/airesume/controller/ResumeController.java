@@ -2,10 +2,9 @@ package com.aicv.airesume.controller;
 
 import com.aicv.airesume.annotation.Log;
 import com.aicv.airesume.entity.Resume;
+import com.aicv.airesume.exception.BusinessException;
 import com.aicv.airesume.model.dto.ResumeDataDTO;
 import com.aicv.airesume.model.vo.BaseResponseVO;
-import com.aicv.airesume.model.vo.ResumeScoreVO;
-import com.aicv.airesume.model.vo.ResumeSuggestionVO;
 import com.aicv.airesume.service.ResumeService;
 import com.aicv.airesume.utils.GlobalContextUtil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,7 +15,6 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.ServletOutputStream;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import com.aicv.airesume.common.exception.BusinessException;
 
 
 /**

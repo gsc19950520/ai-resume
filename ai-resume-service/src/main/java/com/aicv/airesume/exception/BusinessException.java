@@ -1,6 +1,7 @@
-package com.aicv.airesume.common.exception;
+package com.aicv.airesume.exception;
 
-import com.aicv.airesume.common.constant.ResponseCode;
+import com.aicv.airesume.utils.ResponseCode;
+
 import lombok.Getter;
 
 /**

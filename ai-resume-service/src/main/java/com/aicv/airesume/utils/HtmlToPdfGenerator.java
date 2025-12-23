@@ -273,47 +273,47 @@ public class HtmlToPdfGenerator {
         }
     }
 
-    public static void main(String[] args) throws Exception {
-        Map<String, Object> data = HtmlToPdfGenerator.getData();
-        String htmlContent = HtmlToPdfGenerator.renderHtml(data);
+    // public static void main(String[] args) throws Exception {
+    //     Map<String, Object> data = HtmlToPdfGenerator.getData();
+    //     String htmlContent = HtmlToPdfGenerator.renderHtml(data);
 
-        System.out.println("开始生成PDF...");
+    //     System.out.println("开始生成PDF...");
         
-        // 从命令行参数获取WKHtmlToPdf路径（如果提供）
-        String wkHtmlToPdfPath = null;
-        if (args.length > 0) {
-            wkHtmlToPdfPath = args[0];
-            System.out.println("使用命令行提供的WKHtmlToPdf路径: " + wkHtmlToPdfPath);
-        }
+    //     // 从命令行参数获取WKHtmlToPdf路径（如果提供）
+    //     String wkHtmlToPdfPath = null;
+    //     if (args.length > 0) {
+    //         wkHtmlToPdfPath = args[0];
+    //         System.out.println("使用命令行提供的WKHtmlToPdf路径: " + wkHtmlToPdfPath);
+    //     }
         
-        // 检查WKHtmlToPdf是否可用
-        boolean wkHtmlToPdfAvailable = isWkHtmlToPdfAvailable(wkHtmlToPdfPath);
-        boolean pdfGenerated = false;
+    //     // 检查WKHtmlToPdf是否可用
+    //     boolean wkHtmlToPdfAvailable = isWkHtmlToPdfAvailable(wkHtmlToPdfPath);
+    //     boolean pdfGenerated = false;
         
-        // 使用WKHtmlToPdf生成PDF
-        if (wkHtmlToPdfAvailable) {
-            System.out.println("WKHtmlToPdf可用，使用WKHtmlToPdf生成PDF...");
-            pdfGenerated = convertHtmlToPdfWithWkHtml(htmlContent, "output_wkhtmltopdf.pdf", wkHtmlToPdfPath);
+    //     // 使用WKHtmlToPdf生成PDF
+    //     if (wkHtmlToPdfAvailable) {
+    //         System.out.println("WKHtmlToPdf可用，使用WKHtmlToPdf生成PDF...");
+    //         pdfGenerated = convertHtmlToPdfWithWkHtml(htmlContent, "output_wkhtmltopdf.pdf", wkHtmlToPdfPath);
             
-            if (pdfGenerated) {
-                System.out.println("WKHtmlToPdf方式PDF生成成功！");
-            } else {
-                System.out.println("WKHtmlToPdf方式生成PDF失败！");
-            }
-        } else {
-            System.out.println("WKHtmlToPdf不可用，无法生成PDF！");
-        }
+    //         if (pdfGenerated) {
+    //             System.out.println("WKHtmlToPdf方式PDF生成成功！");
+    //         } else {
+    //             System.out.println("WKHtmlToPdf方式生成PDF失败！");
+    //         }
+    //     } else {
+    //         System.out.println("WKHtmlToPdf不可用，无法生成PDF！");
+    //     }
 
-        if (pdfGenerated) {
-            System.out.println("PDF已成功生成！");
-        } else {
-            System.out.println("PDF生成失败！");
-            System.out.println("使用说明：");
-            System.out.println("1. 确保已安装WKHtmlToPdf工具");
-            System.out.println("2. 可通过命令行参数指定WKHtmlToPdf路径，例如：");
-            System.out.println("   java -jar [jar文件名] [wkhtmltopdf.exe的完整路径]");
-            System.out.println("   或");
-            System.out.println("   mvn compile exec:java -Dexec.mainClass=com.aicv.airesume.utils.HtmlToPdfGenerator -Dexec.args=\"C:\\\\path\\\\to\\\\wkhtmltopdf.exe\"");
-        }
-    }
+    //     if (pdfGenerated) {
+    //         System.out.println("PDF已成功生成！");
+    //     } else {
+    //         System.out.println("PDF生成失败！");
+    //         System.out.println("使用说明：");
+    //         System.out.println("1. 确保已安装WKHtmlToPdf工具");
+    //         System.out.println("2. 可通过命令行参数指定WKHtmlToPdf路径，例如：");
+    //         System.out.println("   java -jar [jar文件名] [wkhtmltopdf.exe的完整路径]");
+    //         System.out.println("   或");
+    //         System.out.println("   mvn compile exec:java -Dexec.mainClass=com.aicv.airesume.utils.HtmlToPdfGenerator -Dexec.args=\"C:\\\\path\\\\to\\\\wkhtmltopdf.exe\"");
+    //     }
+    // }
 }
