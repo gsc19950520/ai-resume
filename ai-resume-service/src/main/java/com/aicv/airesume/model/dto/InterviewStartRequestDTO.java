@@ -14,4 +14,5 @@ public class InterviewStartRequestDTO {
     private String analysisDepth = "intermediate";
     private Integer jobTypeId;
     private Boolean forceNew = false; // 是否强制创建新会话
+    private String payOrderNo; // 支付订单编号
 }

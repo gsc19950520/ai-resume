@@ -25,7 +25,7 @@ public interface InterviewService {
      * @param forceNew 是否强制创建新会话
      * @return 面试响应VO
      */
-    InterviewResponseVO startInterview(Long userId, Long resumeId, String persona, Integer sessionSeconds, Integer jobTypeId, Boolean forceNew);
+    InterviewResponseVO startInterview(Long userId, Long resumeId, String persona, Integer sessionSeconds, Integer jobTypeId, Boolean forceNew, String payOrderNo);
     
     /**
      * 完成面试并异步生成报告，返回reportId

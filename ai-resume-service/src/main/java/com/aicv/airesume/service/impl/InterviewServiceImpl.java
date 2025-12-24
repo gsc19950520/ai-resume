@@ -18,6 +18,7 @@ import com.aicv.airesume.repository.InterviewLogRepository;
 import com.aicv.airesume.repository.ResumeRepository;
 import com.aicv.airesume.repository.InterviewReportRepository;
 import com.aicv.airesume.service.InterviewService;
+import com.aicv.airesume.service.PayService;
 
 import com.aicv.airesume.service.ResumeService;
 import com.aicv.airesume.utils.AiServiceUtils;
@@ -79,6 +80,9 @@ public class InterviewServiceImpl implements InterviewService {
     
     @Autowired
     private InterviewReportRepository interviewReportRepository;
+    
+    @Autowired
+    private PayService payService;
     
     // 线程池，用于处理异步任务
     private final ExecutorService executorService = java.util.concurrent.Executors.newFixedThreadPool(2);
@@ -207,9 +211,22 @@ public class InterviewServiceImpl implements InterviewService {
      * @return 面试响应VO
      */
     @Override
-    public InterviewResponseVO startInterview(Long userId, Long resumeId, String persona, Integer sessionSeconds, Integer jobTypeId, Boolean forceNew) {
+    public InterviewResponseVO startInterview(Long userId, Long resumeId, String persona, Integer sessionSeconds, Integer jobTypeId, Boolean forceNew, String payOrderNo) {
         try {
-            // 1. 检查用户是否有未完成的面试会话
+            // 1. 验证支付状态（如果提供了支付订单编号）
+            if (payOrderNo != null && !payOrderNo.isEmpty()) {
+                boolean isPaid = payService.verifyOrderPaid(payOrderNo);
+                if (!isPaid) {
+                    log.error("支付验证失败，订单号: {}", payOrderNo);
+                    throw new RuntimeException("支付未完成，请先完成支付");
+                }
+                log.info("支付验证成功，订单号: {}", payOrderNo);
+            } else {
+                // 没有支付订单编号，暂时允许访问（后续可以根据业务需求调整）
+                log.warn("未提供支付订单编号，直接开始面试");
+            }
+            
+            // 2. 检查用户是否有未完成的面试会话
             List<InterviewSession> ongoingSessions = sessionRepository.findByUserIdAndStatusOrderByCreatedAtDesc(userId, "in_progress");
             if (!ongoingSessions.isEmpty() && !Boolean.TRUE.equals(forceNew)) {
                 // 有未完成的面试会话且不强制创建新会话，直接返回最近的一个
@@ -218,16 +235,16 @@ public class InterviewServiceImpl implements InterviewService {
                 
                 return buildInterviewResponse(existingSession, "continue_question", existingSession.getJobName());
             }
-            // 2. 获取行业职位标签
+            // 3. 获取行业职位标签
             String industryJobTag = getIndustryJobTag(resumeId);
             
-            // 3. 创建面试会话 - 优先完成，快速返回给前端
+            // 4. 创建面试会话 - 优先完成，快速返回给前端
             InterviewSession session = createInterviewSession(userId, resumeId, persona, sessionSeconds, industryJobTag);
             
-            // 4. 保存初始会话 - 这是快速返回的关键
+            // 5. 保存初始会话 - 这是快速返回的关键
             sessionRepository.save(session);
 
-            // 5. 构建并返回响应对象
+            // 6. 构建并返回响应对象
             return buildInterviewResponse(session, "first_question", industryJobTag);
         } catch (Exception e) {
             // 捕获异常后直接抛出

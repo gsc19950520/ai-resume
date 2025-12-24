@@ -83,8 +83,9 @@ public class InterviewController {
             
             // 调用服务层开始面试，直接获取InterviewResponseVO
             Integer jobTypeId = request.getJobTypeId();
-            log.info("接收到的参数: userId={}, resumeId={}, jobTypeId={}, forceNew={}", userId, resumeId, jobTypeId, forceNew);
-            InterviewResponseVO result = interviewService.startInterview(userId, resumeId, persona, sessionSeconds, jobTypeId, forceNew);
+            String payOrderNo = request.getPayOrderNo();
+            log.info("接收到的参数: userId={}, resumeId={}, jobTypeId={}, forceNew={}, payOrderNo={}", userId, resumeId, jobTypeId, forceNew, payOrderNo);
+            InterviewResponseVO result = interviewService.startInterview(userId, resumeId, persona, sessionSeconds, jobTypeId, forceNew, payOrderNo);
             
             // 直接返回VO对象，无需额外转换
             return BaseResponseVO.success(result);
