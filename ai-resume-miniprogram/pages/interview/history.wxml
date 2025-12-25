@@ -50,7 +50,7 @@
     </view>
 
     <view class="empty-state" wx:if="{{!loading && interviewList.length === 0}}">
-      <image src="/images/list.png" mode="aspectFit"></image>
+      <image src="/images/history.png" mode="aspectFit"></image>
       <text class="empty-text">暂无面试记录</text>
       <button class="empty-btn" bindtap="startNewInterview">开始新面试</button>
     </view>

@@ -36,12 +36,6 @@ public class WeChatPayConfig {
     private String apiKey;
     
     /**
-     * 微信支付API证书路径
-     */
-    @Value("${wechat.pay.cert-path}")
-    private String certPath;
-    
-    /**
      * 微信支付回调地址
      */
     @Value("${wechat.pay.notify-url}")

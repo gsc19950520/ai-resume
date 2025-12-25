@@ -40,23 +40,13 @@
     </view>
     <view class="menu-item" bindtap="interviewHistory">
       <view class="menu-icon">
-        <image src="/images/list.png" mode="aspectFit"></image>
+        <image src="/images/history.png" mode="aspectFit"></image>
       </view>
       <view class="menu-text">面试历史</view>
       <view class="menu-arrow">
         <image src="/images/arrow.png" mode="aspectFit"></image>
       </view>
     </view>
-    
-    <!-- <view class="menu-item" bindtap="settings">
-      <view class="menu-icon">
-        <image src="/images/settings.png" mode="aspectFit"></image>
-      </view>
-      <view class="menu-text">设置</view>
-      <view class="menu-arrow">
-        <image src="/images/arrow.png" mode="aspectFit"></image>
-      </view>
-    </view> -->
     
     <view class="menu-item" bindtap="feedback">
       <view class="menu-icon">

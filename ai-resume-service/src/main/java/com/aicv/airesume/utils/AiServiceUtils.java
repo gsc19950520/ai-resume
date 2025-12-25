@@ -22,8 +22,6 @@ import com.aicv.airesume.repository.InterviewLogRepository;
 import com.aicv.airesume.repository.InterviewSessionRepository;
 import com.aicv.airesume.service.config.DynamicConfigService;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -63,145 +61,6 @@ public class AiServiceUtils {
     private final WebClient webClient = WebClient.builder().build();
 
     /**
-     * 使用OpenAI优化简历
-     */
-    public String optimizeResumeWithOpenAI(String originalContent, String jobType) {
-        // 实现OpenAI API调用逻辑
-        // 这里简化处理，实际项目中需要按照OpenAI API文档规范实现
-        return "优化后的简历内容 (OpenAI)";
-    }
-
-    /**
-     * 使用通义千问优化简历
-     */
-    public String optimizeResumeWithTongyi(String originalContent, String jobType) {
-        // 实现通义千问API调用逻辑
-        return "优化后的简历内容 (通义千问)";
-    }
-
-    /**
-     * 使用文心一言优化简历
-     */
-    public String optimizeResumeWithWenxin(String originalContent, String jobType) {
-        // 实现文心一言API调用逻辑
-        return "优化后的简历内容 (文心一言)";
-    }
-
-    /**
-     * 获取AI评分
-     */
-    public Integer getAiScore(String resumeContent, String jobType) {
-        // 实现评分逻辑
-        // 这里返回模拟分数，实际项目中需要通过AI评估
-        return 85 + (int)(Math.random() * 10);
-    }
-
-    /**
-     * 获取AI建议
-     */
-    public String getAiSuggestion(String resumeContent, String jobType) {
-        // 实现建议生成逻辑
-        Map<String, String> suggestions = new HashMap<>();
-        suggestions.put("技术岗", "建议突出您的技术栈和项目经验，使用具体的数据成果来展示您的能力。");
-        suggestions.put("市场岗", "建议强调您的市场分析能力和营销活动经验，突出您对市场趋势的把握。");
-        suggestions.put("设计岗", "建议添加作品集链接，详细描述设计思路和使用的设计工具。");
-        suggestions.put("销售岗", "建议量化您的销售业绩，使用具体的数字和百分比来展示您的成就。");
-        suggestions.put("管理岗", "建议突出您的团队管理经验和项目交付能力，强调领导力和决策能力。");
-        
-        return suggestions.getOrDefault(jobType, "您的简历整体不错，建议进一步完善个人技能和项目经验的描述。");
-    }
-    
-    /**
-     * 计算文本的语义哈希
-     * @param text 需要计算哈希的文本
-     * @return 语义哈希值（MD5格式）
-     */
-    public String getSemanticHash(String text) {
-        try {
-            // 实际项目中，这里应该调用AI embedding接口获取语义向量
-            // 然后对向量进行哈希计算
-            // 这里使用简单的MD5实现作为模拟
-            MessageDigest md = MessageDigest.getInstance("MD5");
-            byte[] hashBytes = md.digest(text.getBytes(StandardCharsets.UTF_8));
-            
-            // 转换为十六进制字符串
-            StringBuilder hexString = new StringBuilder();
-            for (byte b : hashBytes) {
-                String hex = Integer.toHexString(0xff & b);
-                if (hex.length() == 1) hexString.append('0');
-                hexString.append(hex);
-            }
-            
-            return hexString.toString();
-        } catch (Exception e) {
-            // 如果计算失败，返回文本本身的哈希作为备选
-            return text.hashCode() + "_fallback";
-        }
-    }
-
-    /**
-     * 调用DeepSeek API（同步方式）
-     * @param prompt 提示词
-     * @return API响应内容
-     */
-    public String callDeepSeekApi(String prompt) {
-        return callDeepSeekApi(prompt, null);
-    }
-    
-    /**
-     * 调用DeepSeek API（同步方式，支持上下文）
-     * @param prompt 提示词
-     * @param sessionId 会话ID，用于获取对话历史
-     * @return API响应内容
-     */
-    public String callDeepSeekApi(String prompt, String sessionId) {
-        try {
-            // 构建请求体
-            Map<String, Object> requestBody = new HashMap<>();
-            requestBody.put("model", "deepseek-chat");
-            requestBody.put("stream", false);
-            
-            // 获取完整的对话历史
-            List<Map<String, String>> messages = getConversationHistory(sessionId, prompt);
-            
-            requestBody.put("messages", messages);
-            requestBody.put("temperature", 0.7);
-            requestBody.put("max_tokens", 2000);
-
-            // 构建HTTP头
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.set("Authorization", "Bearer " + deepseekApiKey);
-
-            // 创建HttpEntity
-            HttpEntity<String> requestEntity = new HttpEntity<>(
-                JSONObject.toJSONString(requestBody), headers);
-
-            log.info("Sending request to DeepSeek API: {}", JSONObject.toJSONString(requestBody));
-            
-            // 发送同步请求
-            ResponseEntity<String> response = restTemplate.exchange(
-                deepseekApiUrl, HttpMethod.POST, requestEntity, String.class);
-            log.info("Received response from DeepSeek API: {}", response.getBody());
-            
-            // 解析响应
-            if (response.getStatusCodeValue() == 200) {
-                JSONObject body = JSONObject.parseObject(response.getBody());
-                if (body.containsKey("choices") && !body.getJSONArray("choices").isEmpty()) {
-                    JSONObject choice = body.getJSONArray("choices").getJSONObject(0);
-                    if (choice.containsKey("message")) {
-                        return choice.getJSONObject("message").getString("content");
-                    }
-                }
-            }
-            return "";
-        } catch (Exception e) {
-            log.error("Error calling DeepSeek API: {}", e.getMessage(), e);
-            return "";
-        }
-    }
-
-    /**
      * 调用DeepSeek API（流式输出方式）
      * @param systemPrompt 系统提示词
      * @param userPrompt 用户提示词
@@ -225,16 +84,6 @@ public class AiServiceUtils {
      */
     public void callDeepSeekApiStream(String systemPrompt, String userPrompt, SseEmitter emitter, Runnable onComplete, String sessionId, String eventName) {
         callDeepSeekApiStream(systemPrompt, userPrompt, emitter, null, onComplete, sessionId, eventName);
-    }
-    
-    /**
-     * 获取对话历史
-     * @param sessionId 会话ID
-     * @param userPrompt 当前用户输入
-     * @return 完整的对话历史消息列表
-     */
-    private List<Map<String, String>> getConversationHistory(String sessionId, String userPrompt) {
-        return getConversationHistory(sessionId, null, userPrompt);
     }
     
     /**
@@ -500,13 +349,6 @@ public class AiServiceUtils {
             emitter.completeWithError(e);
         }
     }
-
-
-
-    
-    // 元数据处理逻辑已移除，现在直接流式输出内容
-    
-
     
     /**
      * 异步保存完整问题文本到数据库

@@ -112,7 +112,7 @@
             <view class="thumbnail-container">
               <!-- 使用条件渲染控制图片加载，避免提前渲染 -->
               <image class="template-thumbnail" 
-                     src="{{item.preview || '/images/default-template.png'}}" 
+                     src="{{item.preview || '/images/template-one.jpg'}}" 
                      mode="aspectFill" 
                      wx:if="{{item.preview}}">
               </image>

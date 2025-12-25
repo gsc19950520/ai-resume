@@ -39,19 +39,19 @@
         "pagePath": "pages/index/index",
         "text": "首页",
         "iconPath": "images/home.png",
-        "selectedIconPath": "images/home_active.png"
+        "selectedIconPath": "images/home.png"
       },
       {
         "pagePath": "pages/resume/redirect/redirect",
         "text": "简历",
         "iconPath": "images/resume.png",
-        "selectedIconPath": "images/resume_active.png"
+        "selectedIconPath": "images/resume.png"
       },
       {
         "pagePath": "pages/profile/profile",
         "text": "我的",
         "iconPath": "images/user.png",
-        "selectedIconPath": "images/user_active.png"
+        "selectedIconPath": "images/user.png"
       }
     ]
   },

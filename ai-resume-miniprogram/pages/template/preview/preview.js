@@ -6,7 +6,7 @@ Page({
   data: {
     templateId: 'template-one',  // 默认模板ID
     templateName: '技术人才模板',  // 默认模板名称
-    imagePath: '/images/template-one.png',  // 默认图片路径
+    imagePath: '/images/template-one.jpg',  // 默认图片路径
     templateUpdateTime: new Date().getTime(),  // 用于触发视图更新的时间戳
     resumeData: null,  // 简历数据
     userInfo: null,  // 用户信息
@@ -50,7 +50,7 @@ Page({
       }
       
       // 设置图片路径和模板ID
-      const imagePath = `/images/${templateId}.png`;
+      const imagePath = `/images/${templateId}.jpg`;
       this.setData({
         templateId: templateId,
         imagePath: imagePath
@@ -411,7 +411,7 @@ Page({
     }
     
     // 更新模板ID和图片路径
-    const imagePath = `/images/${templateId}.png`;
+    const imagePath = `/images/${templateId}.jpg`;
     
     this.setData({
       templateId: templateId,
@@ -505,7 +505,7 @@ Page({
     console.log('切换模板:', templateId);
     
     // 更新模板ID和图片路径
-    const imagePath = `/images/${templateId}.png`;
+    const imagePath = `/images/${templateId}.jpg`;
     this.setData({
       templateId: templateId,
       imagePath: imagePath,

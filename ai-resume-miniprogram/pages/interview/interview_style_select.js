@@ -379,12 +379,32 @@ Page({
       return;
     }
 
-    wx.showLoading({ title: '正在初始化面试...' });
-    
     try {
+      // 1. 获取支付配置，检查是否需要支付和支付金额
+      wx.showLoading({ title: '检查配置...' });
+      const paymentConfig = await this.checkPaymentConfig();
+      wx.hideLoading();
+      
+      let payOrderNo = null;
+      
+      // 2. 如果需要支付，创建支付订单并完成支付
+      if (paymentConfig.needPayment) {
+        // 2.1 创建支付订单，传递配置的支付金额
+        wx.showLoading({ title: '创建支付订单...' });
+        const payResult = await this.createPayOrder(paymentConfig.amount);
+        wx.hideLoading();
+        
+        // 2.2 调用微信支付API
+        await this.processWechatPayment(payResult);
+        payOrderNo = payResult.orderNo;
+      }
+      
+      // 3. 初始化面试会话（无论是否需要支付）
+      wx.showLoading({ title: '正在初始化面试...' });
+      
       // 调用后端API初始化面试会话
-      this.data.jobTypeId = app.globalData.latestResumeData?.jobTypeId || 1
-      const sessionInfo = await this.initInterviewSession();
+      this.data.jobTypeId = app.globalData.latestResumeData?.jobTypeId || 1;
+      const sessionInfo = await this.initInterviewSession(payOrderNo);
       
       // 隐藏加载提示
       wx.hideLoading();
@@ -410,9 +430,48 @@ Page({
   },
   
   /**
-   * 初始化面试会话
+   * 检查支付配置，获取是否需要支付和支付金额
    */
-  initInterviewSession: function() {
+  checkPaymentConfig: async function() {
+    try {
+      const res = await get('/api/config/payment');
+      console.log('获取支付配置结果:', res);
+      
+      let paymentConfig = {
+        needPayment: false,
+        amount: 1 // 默认1分
+      };
+      
+      // 处理新的返回格式（包含needPayment和amount的对象）
+      if ((res.success && typeof res.data === 'object') || (res.code === 0 && typeof res.data === 'object')) {
+        const data = res.data;
+        paymentConfig.needPayment = Boolean(data.needPayment);
+        paymentConfig.amount = Number(data.amount) || 1;
+      } else if (res.success && typeof res.data === 'boolean') {
+        // 兼容旧的返回格式（只有boolean值）
+        paymentConfig.needPayment = res.data;
+      } else if (res.code === 0 && typeof res.data === 'boolean') {
+        // 兼容旧的返回格式（只有boolean值）
+        paymentConfig.needPayment = res.data;
+      }
+      
+      console.log('解析后的支付配置:', paymentConfig);
+      return paymentConfig;
+    } catch (error) {
+      console.error('获取支付配置失败:', error);
+      // 如果获取配置失败，默认不需要支付，金额为1分
+      return {
+        needPayment: false,
+        amount: 1
+      };
+    }
+  },
+  
+  /**
+   * 初始化面试会话
+   * @param {string} payOrderNo - 支付订单号（可选）
+   */
+  initInterviewSession: function(payOrderNo = null) {
     return new Promise((resolve, reject) => {
       // 添加超时处理，延长超时时间为15秒
       const timeoutId = setTimeout(() => {
@@ -425,7 +484,8 @@ Page({
         persona: this.data.selectedPersona,
         jobTypeId: this.data.jobTypeId,
         sessionSeconds: 600, // 默认面试时长10分钟
-        forceNew: this.data.forceNewInterview
+        forceNew: this.data.forceNewInterview,
+        payOrderNo: payOrderNo
       })
       .then(resData => {
         clearTimeout(timeoutId);
@@ -520,6 +580,87 @@ Page({
     wx.navigateBack();
   },
   
+  /**
+   * 创建支付订单
+   * @param {number} amount - 支付金额，单位分
+   */
+  createPayOrder: function(amount) {
+    return new Promise((resolve, reject) => {
+      // 获取用户的openId（从全局数据或本地存储中获取）
+      const openId = app.globalData.openId || wx.getStorageSync('openId');
+      
+      if (!openId) {
+        reject(new Error('获取用户信息失败，请重新登录'));
+        return;
+      }
+      
+      console.log('创建支付订单，用户openId:', openId, '支付金额:', amount);
+      
+      // 调用后端创建支付订单API
+      post('/api/pay/create-order', {
+        userId: this.data.userId,
+        openId: openId,
+        totalFee: amount, // 使用传入的支付金额，单位分
+        body: 'AI模拟面试服务', // 商品描述
+        attach: JSON.stringify({
+          resumeId: this.data.resumeId,
+          persona: this.data.selectedPersona,
+          jobTypeId: this.data.jobTypeId || 1
+        }), // 附加数据，用于回调时使用
+        orderType: 'INTERVIEW' // 订单类型
+      })
+      .then(res => {
+        console.log('创建支付订单成功:', res);
+        
+        if (res.success && res.data) {
+          resolve(res.data);
+        } else {
+          reject(new Error(res.message || '创建支付订单失败'));
+        }
+      })
+      .catch(error => {
+        console.error('创建支付订单失败:', error);
+        reject(error);
+      });
+    });
+  },
+
+  /**
+   * 处理微信支付
+   * @param {Object} payResult - 支付参数
+   */
+  processWechatPayment: function(payResult) {
+    return new Promise((resolve, reject) => {
+      console.log('开始微信支付，参数:', payResult);
+      
+      // 调用微信支付API
+      wx.requestPayment({
+        timeStamp: payResult.timeStamp,
+        nonceStr: payResult.nonceStr,
+        package: payResult.package,
+        signType: payResult.signType,
+        paySign: payResult.paySign,
+        success: (res) => {
+          console.log('微信支付成功:', res);
+          resolve(res);
+        },
+        fail: (err) => {
+          console.error('微信支付失败:', err);
+          
+          // 处理用户取消支付的情况
+          if (err.errMsg === 'requestPayment:fail cancel') {
+            reject(new Error('用户取消支付'));
+          } else {
+            reject(new Error('支付失败，请重试'));
+          }
+        },
+        complete: () => {
+          console.log('微信支付完成（无论成功或失败）');
+        }
+      });
+    });
+  },
+
   // 检查是否有进行中的面试
   checkOngoingInterview: function() {
     if (!this.data.userId) {
