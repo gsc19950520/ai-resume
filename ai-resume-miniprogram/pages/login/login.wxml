@@ -3,10 +3,10 @@
   <!-- 登录头部 -->
   <view class="login-header">
     <view class="logo">
-      <image src="/images/logo.png" mode="aspectFit"></image>
+      <image src="/images/logo.jpg" mode="aspectFit"></image>
     </view>
-    <view class="title">AI简历助手</view>
-    <view class="subtitle">智能简历生成与管理</view>
+    <view class="title">AI面练通</view>
+    <view class="subtitle">简历生成与模拟面试</view>
   </view>
 
   <!-- 登录主体 -->

@@ -22,7 +22,7 @@
   "window": {
     "backgroundTextStyle": "light",
     "navigationBarBackgroundColor": "#FFFFFF",
-    "navigationBarTitleText": "AI简历助手",
+    "navigationBarTitleText": "AI面练通",
     "navigationBarTextStyle": "black",
     "navigationBarShadow": {
       "color": "rgba(0, 0, 0, 0.05)",

@@ -4,7 +4,7 @@
   <view class="welcome-section">
     <view class="welcome-text">
       <text class="hello">你好，{{userInfo ? userInfo.nickName : '用户'}}</text>
-      <text class="subtitle">欢迎使用AI简历助手</text>
+      <text class="subtitle">欢迎使用AI面练通</text>
     </view>
   </view>
 

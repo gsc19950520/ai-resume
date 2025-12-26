@@ -275,7 +275,7 @@ Page({
   about: function() {
     wx.showModal({
       title: '关于我们',
-      content: 'AI简历助手 v1.0.0\n\n智能简历创建与优化工具，帮助您打造专业简历，提升求职成功率。\n\n© 2023 AI简历助手团队',
+      content: 'AI面练通 v1.0.0\n\n智能简历创建与优化工具，帮助您打造专业简历，提升求职成功率。\n\n© 2023 AI面练通团队',
       showCancel: false
     })
   },
